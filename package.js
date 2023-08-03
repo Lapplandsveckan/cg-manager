@@ -15,7 +15,7 @@ function cmd(command, ...args) {
     });
 }
 
-async function build() {
+async function package() {
     const dist = __dirname + '/dist/index.js';
     const out = __dirname + '/out/gateway';
 
@@ -31,7 +31,7 @@ async function clean() {
 }
 
 async function main() {
-    await build();
+    await package();
     await clean();
 
     console.log('Build complete!');

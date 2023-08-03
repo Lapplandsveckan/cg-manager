@@ -10,12 +10,7 @@
     "noImplicitAny": false,
     "typeRoots" : [
       "../node_modules/@types"
-    ],
-    "paths": {
-      "@firecraftgaming/binary-structured-objects/test": [
-        "./utility/index.ts"
-      ]
-    }
+    ]
   },
   "exclude": [
     "../node_modules"
