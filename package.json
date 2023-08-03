@@ -1,7 +1,7 @@
 {
   "private": true,
   "scripts": {
-    "build": "tsc",
+    "build": "node build.js",
     "start": "ts-node src/index.ts",
     "test": "mocha 'test/**/*.test.ts'",
     "test:coverage": "nyc mocha 'test/**/*.test.ts'",
@@ -9,9 +9,9 @@
     "lint:fix": "eslint src test --ext .ts --fix"
   },
   "dependencies": {
+    "chalk": "4",
     "uuid": "^9.0.0",
-    "ws": "^8.12.1",
-    "chalk": "4"
+    "ws": "^8.12.1"
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
@@ -23,6 +23,7 @@
     "mocha": "^10.2.0",
     "mocha-typescript": "^1.1.17",
     "nyc": "^15.1.0",
+    "pkg": "^5.8.1",
     "ts-mockito": "^2.6.1",
     "ts-node": "^10.9.1",
     "tsconfig-paths": "^4.1.2",
