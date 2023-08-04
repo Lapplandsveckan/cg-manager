@@ -3,11 +3,9 @@ name: Lint and Test
 on:
   push:
     branches:
-      - main
       - dev
   pull_request:
     branches:
-      - main
       - dev
 
 jobs:
