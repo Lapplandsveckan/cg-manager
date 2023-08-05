@@ -38,5 +38,5 @@ module.exports = {
         'func-style': ['error', 'declaration', { 'allowArrowFunctions': true }],
         'spaced-comment': ['error', 'always', { 'line': { 'markers': ['/'] }, 'block': { 'balanced': true } }],
         'yoda': ['error', 'never', { 'exceptRange': true }],
-    }
-}
+    },
+};
