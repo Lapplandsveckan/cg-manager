@@ -1,9 +1,17 @@
 import config, { loadConfig } from './util/config';
 import {Logger} from './util/log';
+import {CGServer} from './api/server';
+
+Logger.debug('Debug mode enabled!');
 
 async function start() {
     Logger.info('Starting Caspar CG Gateway...');
     await loadConfig();
+
+    Logger.info('Starting incoming handler...');
+
+    const server = new CGServer(5353);
+    await server.start();
 
     Logger.info('Gateway started!');
 

@@ -1,7 +1,3 @@
-import {promises as fs} from 'fs';
-import path from 'path';
-import {Logger} from './log';
-
 interface Config {
     'hide-debug': boolean; // Hide debug messages
 }
