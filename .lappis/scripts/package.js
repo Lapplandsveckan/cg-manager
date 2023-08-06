@@ -1,8 +1,10 @@
 const { exec } = require('child_process');
 const fs = require('fs');
+const path = require('path');
+const root = path.join(__dirname, '../../');
 
 function cmd(command, ...args) {
-    const nodeModules = `${__dirname}/node_modules/.bin`;
+    const nodeModules = `${root}/node_modules/.bin`;
     return new Promise((resolve, reject) => {
         exec(`node ${nodeModules}/${command} ${args.join(' ')}`, (error, stdout, stderr) => {
             if (error) {
@@ -17,7 +19,7 @@ function cmd(command, ...args) {
 }
 
 async function packageRoutes() {
-    const api = `${__dirname}/dist/api`;
+    const api = `${root}/dist/api`;
 
     const routes = `${api}/routes`;
     const out = `${api}/_routes.js`;
@@ -39,8 +41,8 @@ async function packageRoutes() {
 }
 
 async function package() {
-    const dist = `${__dirname}/dist/index.js`;
-    const out = `${__dirname}/out/gateway`;
+    const dist = `${root}/dist/index.js`;
+    const out = `${root}/out/gateway`;
 
     await cmd('tsc');
     await packageRoutes();
@@ -48,7 +50,7 @@ async function package() {
 }
 
 async function clean() {
-    const dist = `${__dirname}/dist`;
+    const dist = `${root}/dist`;
     if (fs.existsSync(dist)) fs.rmSync(dist, { recursive: true });
 }
 

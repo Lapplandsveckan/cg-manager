@@ -23,7 +23,7 @@ jobs:
 
       - name: Get tag name
         id: tag
-        run: echo ::set-output name=name::`node ./get-release-name.js ${{ github.run_number }}`
+        run: echo ::set-output name=name::`node ./.lappis/scripts/get-release-name.js ${{ github.run_number }}`
 
       - name: Install project dependencies
         run: yarn install --prefer-offline

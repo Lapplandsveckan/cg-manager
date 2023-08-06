@@ -1,5 +1,5 @@
 const path = require('path');
-const version = require(path.join(__dirname, 'package.json')).version;
+const version = require(path.join(__dirname, '../../package.json')).version;
 const build_number = process.argv[2];
 const today = new Date().toLocaleDateString([], {
     year: 'numeric',

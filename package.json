@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "tsc",
-    "package": "node package.js",
+    "package": "node .lappis/scripts/package.js",
     "start": "ts-node src/index.ts",
     "test": "mocha 'test/**/*.test.ts'",
     "test:coverage": "nyc mocha 'test/**/*.test.ts'",
