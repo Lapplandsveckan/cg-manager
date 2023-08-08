@@ -31,12 +31,24 @@ export class Logger {
     }
 
     private static getLevelString(level: LogLevel) {
-        return `[${LogLevel[level].toUpperCase()}]`;
+        const colors = {
+            [LogLevel.INFO]: chalk.greenBright,
+            [LogLevel.WARN]: chalk.yellow,
+            [LogLevel.ERROR]: chalk.redBright,
+            [LogLevel.DEBUG]: chalk.blue,
+            [LogLevel.FATAL]: chalk.red,
+        };
+
+        const color = colors[level];
+        if (!color) return '';
+
+        return color(LogLevel[level].toUpperCase());
     }
 
     private static formatMessage(level: LogLevel, message: string) {
         const meta = [this.getTimestamp(), this.getLevelString(level)];
         if (level === LogLevel.NONE) meta.pop();
+        if (level === LogLevel.DEBUG) message = chalk.gray(message);
 
         const metaString = meta.join(' ');
         const messageString = `${metaString} ${message}`;
@@ -55,22 +67,22 @@ export class Logger {
         if (level === LogLevel.DEBUG && config['hide-debug']) return;
         switch (level) {
             case LogLevel.INFO:
-                console.info(chalk.greenBright(messageString));
+                console.info(messageString);
                 break;
             case LogLevel.WARN:
-                console.warn(chalk.yellow(messageString));
+                console.warn(messageString);
                 break;
             case LogLevel.ERROR:
-                console.error(chalk.redBright(messageString));
+                console.error(messageString);
                 break;
             case LogLevel.DEBUG:
-                console.debug(chalk.blue(messageString));
+                console.debug(messageString);
                 break;
             case LogLevel.FATAL:
-                console.error(chalk.red(messageString));
+                console.error(messageString);
                 break;
             default:
-                console.log(chalk.gray(messageString));
+                console.log(messageString);
                 break;
         }
     }
@@ -115,7 +127,7 @@ export class Logger {
     }
 
     public log(level: LogLevel, message: string) {
-        this.logger(level, `[${this.scope_}] ${message}`);
+        this.logger(level, `(${this.scope_}) ${message}`);
     }
 
     public info(message: string) {
