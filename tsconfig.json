@@ -4,6 +4,7 @@
     "target": "esnext",
     "outDir": "./dist",
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "types": [
       "node"
     ]

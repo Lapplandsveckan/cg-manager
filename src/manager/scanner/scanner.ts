@@ -10,61 +10,15 @@ import moment from 'moment';
 import * as path from 'path';
 import * as os from 'os';
 import * as chokidar from 'chokidar';
-import {MediaDoc} from './index';
+import {FileDatabase, MediaDoc} from './db';
 
 const logger = Logger.scope('Scanner');
 
-async function cleanDeleted(db: PouchDB.Database<MediaDoc>) {
-    logger.info('Checking for dead media');
-
-    const limit = 256;
-    let startkey;
-    while (true) {
-        const deleted = [];
-
-        const { rows } = await db.allDocs({
-            include_docs: true,
-            startkey,
-            limit,
-        });
-        await Promise.all(rows.map(async ({ doc }) => {
-            try {
-                const mediaFolder = path.normalize(config.paths.media);
-                const mediaPath = path.normalize(doc.mediaPath);
-                if (mediaPath.indexOf(mediaFolder) === 0)
-                    try {
-                        const stat = await fs.stat(doc.mediaPath);
-                        if (stat.isFile()) return;
-                    } catch (e) {
-                        // File not found
-                    }
-
-                deleted.push({
-                    _id: doc._id,
-                    _rev: doc._rev,
-                    _deleted: true,
-                });
-            } catch (err) {
-                logger.error(err);
-                // logger.error(doc);
-            }
-        }));
-
-        await db.bulkDocs(deleted);
-
-        if (rows.length < limit) break;
-        startkey = rows[rows.length - 1].doc._id;
-    }
-
-    logger.info('Finished check for dead media');
-}
-
-async function scanFile(mediaPath, mediaId, mediaStat, db) {
+async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: FileDatabase) {
     if (!mediaId || mediaStat.isDirectory()) return;
 
     const mediaLogger = logger.scope(mediaId);
-    const doc = await db.get(mediaId)
-        .catch(() => ({ _id: mediaId }));
+    const doc = db.get(mediaId) || { id: mediaId };
 
     if (doc.mediaPath && doc.mediaPath !== mediaPath) {
         mediaLogger.info('Skipped');
@@ -88,25 +42,21 @@ async function scanFile(mediaPath, mediaId, mediaStat, db) {
         }),
     ]);
 
-    await db.put(doc);
-
+    db.put(mediaId, doc);
     mediaLogger.info('Scanned');
 }
 
-async function generateThumb (doc) {
+async function generateThumb(doc: MediaDoc) {
     const tmpPath = `${path.join(os.tmpdir(), Math.random().toString(16)).substring(2)}.png`;
 
     await fs.mkdir(path.dirname(tmpPath), { recursive: true });
     await new Promise<void>((resolve, reject) => {
         ffmpeg()
-            .addOption('-hide_banner')
             .input(doc.mediaPath)
             .output(tmpPath)
             .frames(1)
-            .videoFilters([
-                'select=gt\\(scene\,0.4\\)',
-                'scale=256:-1',
-            ])
+            .size('256x?')
+            .seek(5)
 
             .on('error', err => {
                 reject(err);
@@ -138,14 +88,12 @@ async function generateThumb (doc) {
     await fs.unlink(tmpPath);
 }
 
-async function generateInfo (doc) {
-    const json = await new Promise((resolve, reject) => {
+async function generateInfo(doc: MediaDoc) {
+    const json = await new Promise<ffmpeg.FfprobeData>((resolve, reject) => {
         ffmpeg()
-            .addOption('-hide_banner')
             .input(doc.mediaPath)
             .addOption('-show_streams')
             .addOption('-show_format')
-            .addOption('-print_format', 'json')
             .ffprobe((err, data) => {
                 if (err) return reject(err);
                 if (!data.streams || !data.streams[0]) return reject(new Error('not media'));
@@ -192,9 +140,9 @@ function generateCinf(doc, json) {
     return `${cinf.join(' ')}\r\n`;
 }
 
-function generateMediainfo(doc: MediaDoc, json): MediaDoc['mediainfo'] {
+function generateMediainfo(doc: MediaDoc, json: ffmpeg.FfprobeData): MediaDoc['mediainfo'] {
     return {
-        name: doc._id,
+        name: doc.id,
         path: doc.mediaPath,
         size: doc.mediaSize,
         time: doc.mediaTime,
@@ -264,22 +212,20 @@ function createWatcher(callback: (_: [path: string, stat?: any]) => void) {
     return () => watcher.close();
 }
 
-function Scanner(db: PouchDB.Database<MediaDoc>) {
+function Scanner(db: FileDatabase) {
     const stop = createWatcher(async ([mediaPath, mediaStat]) => {
         const mediaId = getId(config.paths.media, mediaPath);
         const [error] = await noTryAsync(async () => {
-            if (!mediaStat) await db.remove(await db.get(mediaId));
+            if (!mediaStat) db.remove(mediaId);
             else await scanFile(mediaPath, mediaId, mediaStat, db);
         });
 
         if (error) logger.error(error);
     });
 
-    cleanDeleted(db);
-
     return {
         stop,
     };
-};
+}
 
 export default Scanner;

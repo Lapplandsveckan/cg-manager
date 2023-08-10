@@ -72,12 +72,10 @@ export class Logger {
             case LogLevel.WARN:
                 console.warn(messageString);
                 break;
-            case LogLevel.ERROR:
-                console.error(messageString);
-                break;
             case LogLevel.DEBUG:
                 console.debug(messageString);
                 break;
+            case LogLevel.ERROR:
             case LogLevel.FATAL:
                 console.error(messageString);
                 break;
@@ -123,7 +121,7 @@ export class Logger {
     private readonly logger: (level: LogLevel, message: string) => void;
     private constructor(scope: string, logger?: (level: LogLevel, message: string) => void) {
         this.scope_ = scope;
-        this.logger = logger || Logger.log;
+        this.logger = logger || Logger.log.bind(Logger);
     }
 
     public log(level: LogLevel, message: string) {
@@ -157,6 +155,6 @@ export class Logger {
     }
 
     public scope(scope: string) {
-        return new Logger(scope, this.log);
+        return new Logger(scope, this.log.bind(this));
     }
 }

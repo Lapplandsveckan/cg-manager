@@ -4,9 +4,11 @@ const path = require('path');
 const root = path.join(__dirname, '../../');
 
 function cmd(command, ...args) {
-    const nodeModules = `${root}/node_modules/.bin`;
+    let cmdPath = JSON.stringify(path.join(root, 'node_modules', command));
+    cmdPath += args.map(arg => ` ${arg}`).join('');
+
     return new Promise((resolve, reject) => {
-        exec(`node ${nodeModules}/${command} ${args.join(' ')}`, (error, stdout, stderr) => {
+        exec(`node ${cmdPath}`, (error, stdout, stderr) => {
             if (error) {
                 console.error(error);
                 reject(error);
@@ -19,16 +21,16 @@ function cmd(command, ...args) {
 }
 
 async function packageRoutes() {
-    const api = `${root}/dist/api`;
+    const api = path.join(root, 'dist', 'api');
 
-    const routes = `${api}/routes`;
-    const out = `${api}/_routes.js`;
+    const routes = path.join(api, 'routes');
+    const out = path.join(api, '_routes.js');
 
     const files = fs.readdirSync(routes, { recursive: true })
-        .filter((file) => file.endsWith('.js') || file.endsWith('.ts'))
+        .filter((file) => file.endsWith('.js'))
         .map((file) => {
             // First remove the ./ and the .ts, then split by / and remove index
-            const fileName = file.substring(0, file.length - '.ts'.length);
+            const fileName = file.substring(0, file.length - '.js'.length);
             fileName.replace(/\\/g, '/'); // Replace backslashes with forward slashes
             fileName.replace(/(\/|^)index$/, ''); // Remove index at the end, for example: /api/index.ts -> /api
 
@@ -41,12 +43,15 @@ async function packageRoutes() {
 }
 
 async function package() {
-    const dist = `${root}/dist/index.js`;
-    const out = `${root}/out/gateway`;
+    let outName = 'gateway';
+    if (process.platform === 'win32') outName += '.exe';
 
-    await cmd('tsc');
+    const dist = JSON.stringify(path.join(root, 'dist', 'index.js'));
+    const out = JSON.stringify(path.join(root, 'out', outName));
+
+    await cmd(path.join('typescript', 'bin', 'tsc'));
     await packageRoutes();
-    await cmd('pkg', dist, '-t', 'node16', '-o', out);
+    await cmd(path.join('pkg', 'lib-es5', 'bin.js'), dist, '-t', 'node16', '-o', out);
 }
 
 async function clean() {

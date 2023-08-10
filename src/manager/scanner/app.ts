@@ -4,34 +4,28 @@ import config from './config';
 import { Logger } from '../../util/log';
 import express from 'express';
 import cors from 'cors';
-import ExpressPouchDB from 'express-pouchdb';
-import PouchDB from 'pouchdb-node';
 import { getId, getGDDScriptElement, extractGDDJSON } from './util';
 import {noTryAsync} from 'no-try';
 import { promises as fs } from 'fs';
-import {MediaDoc} from './index';
+import {FileDatabase} from './db';
 
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
 const logger = Logger.scope('Scanner');
-function App(db: PouchDB.Database<MediaDoc>) {
+function App(db: FileDatabase) {
     const app = express();
 
     app.use(cors());
 
-    app.use('/db', ExpressPouchDB(PouchDB, {
-        mode: 'minimumForPouchDB',
-    }));
-
     app.get('/media', wrap(async (req, res) => {
-        const { rows } = await db.allDocs({ include_docs: true });
+        const docs = db.allDocs();
 
-        const blob = rows
-            .filter(r => r.doc.mediainfo)
-            .map(r => ({
-                ...r.doc.mediainfo,
-                mediaSize: r.doc.mediaSize,
-                mediaTime: r.doc.mediaTime,
+        const blob = docs
+            .filter(d => d.mediainfo)
+            .map(d => ({
+                ...d.mediainfo,
+                mediaSize: d.mediaSize,
+                mediaTime: d.mediaTime,
             }));
 
         res.set('content-type', 'application/json');
@@ -39,14 +33,14 @@ function App(db: PouchDB.Database<MediaDoc>) {
     }));
 
     app.get('/media/info/:id', wrap(async (req, res) => {
-        const { mediainfo } = await db.get(req.params.id.toUpperCase());
+        const { mediainfo } = db.get(req.params.id.toUpperCase());
 
         res.set('content-type', 'application/json');
         res.send(mediainfo || {});
     }));
 
     app.get('/media/thumbnail/:id', wrap(async (req, res) => {
-        const { _attachments } = await db.get(req.params.id.toUpperCase(), { attachments: true, binary: true });
+        const { _attachments } = db.get(req.params.id.toUpperCase());
 
         if (!_attachments['thumb.png']) 
             return res.status(404).end();
@@ -56,10 +50,10 @@ function App(db: PouchDB.Database<MediaDoc>) {
     }));
 
     app.get('/cls', wrap(async (req, res) => {
-        const { rows } = await db.allDocs({ include_docs: true });
+        const docs = db.allDocs();
 
-        const str = rows
-            .map(row => row.doc.cinf || '')
+        const str = docs
+            .map(doc => doc.cinf || '')
             .reduce((acc, inf) => acc + inf, '');
 
         res.set('content-type', 'text/plain');
@@ -172,7 +166,7 @@ function App(db: PouchDB.Database<MediaDoc>) {
     }));
 
     app.get('/cinf/:id', wrap(async (req, res) => {
-        const { cinf } = await db.get(req.params.id.toUpperCase());
+        const { cinf } = db.get(req.params.id.toUpperCase());
 
         res.set('content-type', 'text/plain');
         res.send(`201 CINF OK\r\n${cinf}`);
@@ -189,10 +183,10 @@ function App(db: PouchDB.Database<MediaDoc>) {
     }));
 
     app.get('/thumbnail', wrap(async (req, res) => {
-        const { rows } = await db.allDocs({ include_docs: true });
+        const docs = db.allDocs();
 
-        const str = rows
-            .map(row => row.doc.tinf || '')
+        const str = docs
+            .map(doc => doc.tinf || '')
             .reduce((acc, inf) => acc + inf, '');
 
         res.set('content-type', 'text/plain');
@@ -200,7 +194,7 @@ function App(db: PouchDB.Database<MediaDoc>) {
     }));
 
     app.get('/thumbnail/:id', wrap(async (req, res) => {
-        const { _attachments } = await db.get(req.params.id.toUpperCase(), { attachments: true });
+        const { _attachments } = db.get(req.params.id.toUpperCase());
 
         if (!_attachments['thumb.png']) 
             return res.status(404).end();

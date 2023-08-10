@@ -5,7 +5,7 @@ module.exports = {
     env: {},
     parserOptions: {
         'ecmaVersion': 'latest',
-        'sourceType': 'module'
+        'sourceType': 'module',
     },
     rules: {
         semi: ['error', 'always'],
