@@ -1,19 +1,27 @@
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 import {Logger} from '../../util/log';
 import { EventEmitter } from 'events';
+import path from 'path';
 
 export class CasparProcess extends EventEmitter {
     private process: ChildProcessWithoutNullStreams = null;
+    private logs = '';
+
     constructor() {
         super();
     }
 
     async start() {
-        this.process = spawn('casparcg.exe', []);
+        let cmd = path.join(process.cwd(), 'casparcg');
+        if (process.platform === 'win32') cmd += '.exe';
+
+        this.process = spawn(cmd, []);
         this.process.stdout.on('data', (data) => {
-            Logger.scope('CasparCG').info(data.toString());
+            this.logs += data.toString();
+            Logger.scope('CasparCG').debug(data.toString());
         });
         this.process.stderr.on('data', (data) => {
+            this.logs += data.toString();
             Logger.scope('CasparCG').error(data.toString());
         });
 

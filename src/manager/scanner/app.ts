@@ -194,13 +194,19 @@ function App(db: FileDatabase) {
     }));
 
     app.get('/thumbnail/:id', wrap(async (req, res) => {
-        const { _attachments } = db.get(req.params.id.toUpperCase());
+        const doc = db.get(req.params.id.toUpperCase());
+        if (!doc)
+            return res.status(404).end();
 
+        const { _attachments } = db.get(req.params.id.toUpperCase());
         if (!_attachments['thumb.png']) 
             return res.status(404).end();
 
+        const data = _attachments['thumb.png'].data;
+        const base64 = data.toString('base64');
+
         res.set('content-type', 'text/plain');
-        res.send(`201 THUMBNAIL RETRIEVE OK\r\n${_attachments['thumb.png'].data}\r\n`);
+        res.send(`201 THUMBNAIL RETRIEVE OK\r\n${base64}\r\n`);
     }));
 
     app.use((err, req, res, next) => {

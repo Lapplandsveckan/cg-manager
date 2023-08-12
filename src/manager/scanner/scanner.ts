@@ -43,11 +43,11 @@ async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: 
     ]);
 
     db.put(mediaId, doc);
-    mediaLogger.info('Scanned');
+    mediaLogger.debug('Scanned');
 }
 
 async function generateThumb(doc: MediaDoc) {
-    const tmpPath = `${path.join(os.tmpdir(), Math.random().toString(16)).substring(2)}.png`;
+    const tmpPath = `${path.join(os.tmpdir(), Math.random().toString(16).substring(2))}.png`;
 
     await fs.mkdir(path.dirname(tmpPath), { recursive: true });
     await new Promise<void>((resolve, reject) => {
@@ -56,8 +56,8 @@ async function generateThumb(doc: MediaDoc) {
             .output(tmpPath)
             .frames(1)
             .size('256x?')
-            .seek(5)
-
+            // .outputOption('-vf select=\'gt(scene\\,0.4)\'')
+            // Above is a scene detection filter, but it's not working properly
             .on('error', err => {
                 reject(err);
             })
