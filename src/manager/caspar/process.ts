@@ -8,8 +8,8 @@ export class CasparProcess extends EventEmitter {
     private logs = '';
 
     async start() {
-        let cmd = path.join(process.cwd(), 'casparcg');
-        if (process.platform === 'win32') cmd += '.exe';
+        let cmd = path.join(process.cwd(), 'run.sh');
+        if (process.platform === 'win32') cmd = path.join(process.cwd(), 'casparcg.exe');
 
         this.process = spawn(cmd, []);
         this.process.stdout.on('data', (data) => {
