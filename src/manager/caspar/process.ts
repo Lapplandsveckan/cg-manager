@@ -7,10 +7,6 @@ export class CasparProcess extends EventEmitter {
     private process: ChildProcessWithoutNullStreams = null;
     private logs = '';
 
-    constructor() {
-        super();
-    }
-
     async start() {
         let cmd = path.join(process.cwd(), 'casparcg');
         if (process.platform === 'win32') cmd += '.exe';
