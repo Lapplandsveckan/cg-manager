@@ -1,13 +1,11 @@
-import {promises as fs} from 'fs';
-import path from 'path';
-import {Logger} from './log';
-
 interface Config {
     'hide-debug': boolean; // Hide debug messages
+    'port': number; // Port to listen on
 }
 
 const defaultConfig = {
     'hide-debug': process.env.NODE_ENV !== 'development',
+    'port': 5353,
 } as Config;
 
 const config = defaultConfig;
