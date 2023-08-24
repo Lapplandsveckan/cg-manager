@@ -96,14 +96,14 @@ async function generateInfo(doc: MediaDoc) {
             .addOption('-show_format')
             .ffprobe((err, data) => {
                 if (err) return reject(err);
-                if (!data.streams || !data.streams[0]) return reject(new Error('not media'));
+                if (!data.streams?.[0]) return reject(new Error('not media'));
 
                 resolve(data);
             });
     });
 
     doc.cinf = generateCinf(doc, json);
-    doc.mediainfo = await generateMediainfo(doc, json);
+    doc.mediainfo = generateMediainfo(doc, json);
 }
 
 function generateCinf(doc, json) {
@@ -195,7 +195,7 @@ function generateMediainfo(doc: MediaDoc, json: ffmpeg.FfprobeData): MediaDoc['m
     };
 }
 
-function createWatcher(callback: (_: [path: string, stat?: any]) => void) {
+function createWatcher(callback: (_: [path: string, stat?: any]) => Promise<void> | void) {
     const watcher = chokidar
         .watch(config.paths.media, {
             alwaysStat: true,

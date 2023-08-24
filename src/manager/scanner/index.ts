@@ -1,5 +1,3 @@
-import PouchDB from 'pouchdb-node';
-
 import config from './config';
 import Scanner from './scanner';
 import App from './app';
@@ -20,7 +18,7 @@ function start() {
 }
 
 export class MediaScanner {
-    private cancel: () => void = null;
+    private cancel: () => Promise<void> | void = null;
 
     async start() {
         if (this.cancel) return;

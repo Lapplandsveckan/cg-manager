@@ -11,8 +11,6 @@ async function start() {
     Logger.info('Starting Caspar CG Gateway...');
     await loadConfig();
 
-    // Logger.info('Starting Caspar CG process...');
-
     Logger.info('Starting media scanner...');
     const scanner = new MediaScanner();
     await scanner.start();
@@ -54,7 +52,7 @@ export function stop() {
     if (stopHandler) stopHandler();
 }
 
-let stopHandler: () => void;
+let stopHandler: () => Promise<void> | void;
 async function main() {
     try {
         const stop = await start();
