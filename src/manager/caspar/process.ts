@@ -11,6 +11,7 @@ export class CasparProcess extends EventEmitter {
     async start() {
         let cmd = path.join(process.cwd(), 'run.sh');
         if (process.platform === 'win32') cmd = path.join(process.cwd(), 'casparcg.exe');
+        if (process.platform === 'darwin') return logger.error('Could not start CasparCG: macOS is not supported yet!');
 
         this.process = spawn(cmd, []);
         this.process.stdout.on('data', (data) => {
@@ -28,11 +29,11 @@ export class CasparProcess extends EventEmitter {
 
         this.process.on('close', (code) => {
             logger.warn(`CasparCG exited with code ${code}`);
-            this.emit('status', false);
             this.process = null;
+            this.emit('status', this.getStatus());
         });
 
-        this.emit('status', true);
+        this.emit('status', this.getStatus());
     }
 
     async stop() {
@@ -46,5 +47,15 @@ export class CasparProcess extends EventEmitter {
 
     get running() {
         return this.process !== null;
+    }
+
+    get log() {
+        return this.logs;
+    }
+
+    getStatus() {
+        return {
+            running: this.running,
+        };
     }
 }

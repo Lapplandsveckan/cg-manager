@@ -3089,10 +3089,10 @@ resolve@^1.22.0:
     path-parse "^1.0.7"
     supports-preserve-symlinks-flag "^1.0.0"
 
-rest-exchange-protocol@^0.0.9:
-  version "0.0.9"
-  resolved "https://registry.yarnpkg.com/rest-exchange-protocol/-/rest-exchange-protocol-0.0.9.tgz#1d5d6c3294a60afed22e402ab8f1d87f355e41f0"
-  integrity sha512-DkiEAgJfv3LMG1rqWtMvFOD25p85ves+vpsbnGAYFL1WBQqDXXF4Pegwd7LoT5YulVoXVlWLKHCsXbqSloUHRA==
+rest-exchange-protocol@^0.0.11:
+  version "0.0.11"
+  resolved "https://registry.yarnpkg.com/rest-exchange-protocol/-/rest-exchange-protocol-0.0.11.tgz#c48144d48a8227d12fd9d9d4cabc614942ab42e1"
+  integrity sha512-Tzo/rDdw4CAL7eMdlujHgy/bDFoz/1uYy4nit5J2dLLAvx/PQJVBjiR1kthVsjcMu126zdes56uVhXlatTWUwQ==
   dependencies:
     uuid "^9.0.0"
     ws "^8.12.1"

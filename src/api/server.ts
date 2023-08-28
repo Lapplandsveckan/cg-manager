@@ -1,12 +1,21 @@
-import {MiddlewareProhibitFurtherExecution, REPServer} from 'rest-exchange-protocol';
+import {
+    Method,
+    MiddlewareProhibitFurtherExecution,
+    REPServer,
+    TypedClient,
+    WebsocketClient, WebsocketOutboundMethod,
+} from 'rest-exchange-protocol';
 import {loadRoutes} from './route';
-import {TypedClient} from 'rest-exchange-protocol/dist/client';
+import {CasparManager} from '../manager';
 
 export type CGClient = TypedClient<{}>;
 export class CGServer {
     private server: REPServer;
+    private manager: CasparManager;
 
-    constructor(port?: number) {
+    constructor(manager: CasparManager, port?: number) {
+        this.manager = manager;
+
         this.server = new REPServer({
             port,
         });
@@ -15,6 +24,14 @@ export class CGServer {
         routes.forEach((route) => this.server.register(route));
 
         this.server.use(this.cors());
+
+        this.manager.on('caspar-status', (status) => {
+            const clients = this.server.getClients();
+            clients.forEach((client) => {
+                if (!(client instanceof WebsocketClient)) return;
+                client.send('caspar/status', WebsocketOutboundMethod.ACTION, status, false);
+            });
+        });
     }
 
     cors() {
