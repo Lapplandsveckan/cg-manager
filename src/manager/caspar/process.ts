@@ -3,6 +3,7 @@ import {Logger} from '../../util/log';
 import { EventEmitter } from 'events';
 import path from 'path';
 
+const logger = Logger.scope('CasparCG');
 export class CasparProcess extends EventEmitter {
     private process: ChildProcessWithoutNullStreams = null;
     private logs = '';
@@ -14,15 +15,19 @@ export class CasparProcess extends EventEmitter {
         this.process = spawn(cmd, []);
         this.process.stdout.on('data', (data) => {
             this.logs += data.toString();
-            Logger.scope('CasparCG').debug(data.toString());
+            logger.debug(data.toString());
         });
         this.process.stderr.on('data', (data) => {
             this.logs += data.toString();
-            Logger.scope('CasparCG').error(data.toString());
+            logger.error(data.toString());
+        });
+
+        this.process.on('error', (code) => {
+            logger.error(`Could not start CasparCG: ${code}`);
         });
 
         this.process.on('close', (code) => {
-            Logger.scope('CasparCG').warn(`CasparCG exited with code ${code}`);
+            logger.warn(`CasparCG exited with code ${code}`);
             this.emit('status', false);
             this.process = null;
         });

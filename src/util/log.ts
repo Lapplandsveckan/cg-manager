@@ -1,5 +1,7 @@
 import config from './config';
 import chalk from 'chalk';
+import path from 'path';
+import {promises as fs} from 'fs';
 
 export enum LogLevel {
     INFO = 'INFO',
@@ -60,9 +62,54 @@ export class Logger {
         return `${error.name} (${error.message}) caused by ${error.cause}, stack: ${error.stack}`;
     }
 
+    private static flushingLogs: boolean = false;
+    private static flushAgain: boolean = false;
+    private static async flushLogs() {
+        if (this.flushingLogs) return void (this.flushAgain = true);
+        if (!this.doLogToFile) return;
+
+        this.flushingLogs = true;
+
+        const date = new Date();
+        const dateString = date.toISOString().substring(0, 10).replace('T', ' ');
+
+        const writeData = Logger.logFileQueue;
+        Logger.logFileQueue = '';
+
+        const files = ['current.log', `${dateString}.log`]
+            .map(file => path.join(config['log-dir'], file))
+            .map(file => fs.appendFile(file, writeData, 'utf8'));
+
+        await Promise.all(files)
+            .catch(() => {
+                Logger.logFileQueue = writeData + Logger.logFileQueue;
+                Logger.warn('Failed to write to log file!');
+            });
+
+        this.flushingLogs = false;
+        if (this.flushAgain) {
+            this.flushAgain = false;
+            this.flushLogs();
+        }
+    }
+
+    private static doLogToFile: boolean = false;
+    private static logFileQueue = '';
+    private static logToFile(level: LogLevel, message: string) {
+        const meta = [this.getTimestamp(), LogLevel[level].toUpperCase()];
+        if (level === LogLevel.NONE) meta.pop();
+
+        const metaString = meta.join(' ');
+        const messageString = `${metaString} ${message}`;
+
+        this.logFileQueue += `${messageString}\n`;
+        this.flushLogs();
+    }
+
     public static log(level: LogLevel, message: string) {
         const messageString = Logger.formatMessage(level, message);
         Logger.logs += `${messageString}\n`;
+        this.logToFile(level, message);
 
         if (level === LogLevel.DEBUG && config['hide-debug']) return;
         switch (level) {
