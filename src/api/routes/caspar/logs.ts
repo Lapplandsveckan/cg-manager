@@ -1,10 +1,10 @@
 import {CasparManager} from '../../../manager';
 
 export default {
-    'ACTION': async (request) => {
-        await CasparManager
+    'GET': async (request) => {
+        return CasparManager
             .getManager()
             .getCasparProcess()
-            .start();
+            .getLogs();
     },
 };

@@ -5,6 +5,6 @@ export default {
         await CasparManager
             .getManager()
             .getCasparProcess()
-            .start();
+            .restart();
     },
 };

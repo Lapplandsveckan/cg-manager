@@ -1,7 +1,7 @@
 import {CasparManager} from '../../../manager';
 
 export default {
-    'POST': async (request) => {
+    'ACTION': async (request) => {
         await CasparManager
             .getManager()
             .getCasparProcess()

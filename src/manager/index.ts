@@ -20,6 +20,7 @@ export class CasparManager extends EventEmitter {
         this.caspar = new CasparProcess();
 
         this.caspar.on('status', (status) => this.emit('caspar-status', status));
+        this.caspar.on('log', (log) => this.emit('caspar-log', log));
     }
 
     async start() {

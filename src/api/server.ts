@@ -32,6 +32,14 @@ export class CGServer {
                 client.send('caspar/status', WebsocketOutboundMethod.ACTION, status, false);
             });
         });
+
+        this.manager.on('caspar-logs', (logs) => {
+            const clients = this.server.getClients();
+            clients.forEach((client) => {
+                if (!(client instanceof WebsocketClient)) return;
+                client.send('caspar/logs', WebsocketOutboundMethod.ACTION, logs, false);
+            });
+        });
     }
 
     cors() {

@@ -20,14 +20,28 @@ function cmd(command, ...args) {
     });
 }
 
+function readDirRecursive(dir) {
+    const results = fs.readdirSync(dir);
+    const files = [];
+
+    for (const result of results) {
+        if (result.endsWith('.js')) files.push(result);
+        if (result.includes('.')) continue;
+
+        const subFiles = readDirRecursive(path.join(dir, result));
+        for (const subFile of subFiles) files.push(`${result}/${subFile}`);
+    }
+
+    return files;
+}
+
 async function packageRoutes() {
     const api = path.join(root, 'dist', 'api');
 
     const routes = path.join(api, 'routes');
     const out = path.join(api, '_routes.js');
 
-    const files = fs.readdirSync(routes, { recursive: true })
-        .filter((file) => file.endsWith('.js'))
+    const files = readDirRecursive(routes)
         .map((file) => {
             // First remove the ./ and the .ts, then split by / and remove index
             const fileName = file.substring(0, file.length - '.js'.length);
