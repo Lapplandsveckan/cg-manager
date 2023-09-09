@@ -2,25 +2,17 @@ import config, { loadConfig } from './util/config';
 import {Logger} from './util/log';
 import {CGServer} from './api/server';
 import {Discovery} from './manager/discovery';
-import {MediaScanner} from './manager/scanner';
-import {CasparProcess} from './manager/caspar/process';
+import {CasparManager} from './manager';
 
-let casparPath = '/home/simme/caspar/server/casparcg_server/';
+
 Logger.debug('Debug mode enabled!');
-
-
 
 async function start() {
     Logger.info('Starting Caspar CG Gateway...');
     await loadConfig();
 
-    Logger.info('Starting media scanner...');
-    const scanner = new MediaScanner();
-    await scanner.start();
-
-    Logger.info('Starting Caspar CG process...');
-    const caspar = new CasparProcess();
-    await caspar.start(casparPath);
+    const manager = CasparManager.getManager();
+    await manager.start();
 
     Logger.info('Starting incoming handler...');
 
@@ -70,5 +62,4 @@ async function main() {
     }
 }
 
-//if (require.main === module) main();
-main();
+if (require.main === module) main();
