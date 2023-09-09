@@ -13,14 +13,22 @@ export class CasparProcess extends EventEmitter {
         this.emit('log', data);
     }
 
-    async start() {
-        if (this.process) return;
+    async start(casparPath = '') {
+        let cmd = '';
 
-        let cmd = path.join(process.cwd(), 'run.sh');
+        if (casparPath) {
+            Logger.info('Setting caspar path to: ' + casparPath);
+            cmd = path.join(casparPath, 'run.sh');
+        } else {
+            Logger.info('Caspar path is not provided, using current working directory.');
+            cmd = path.join(process.cwd(), 'run.sh');
+        }
+
         if (process.platform === 'win32') cmd = path.join(process.cwd(), 'casparcg.exe');
         if (process.platform === 'darwin') return logger.error('Could not start CasparCG: macOS is not supported yet!');
 
-        this.process = spawn(cmd, []);
+        this.process = spawn(cmd, [], { cwd: casparPath });
+
         this.process.stdout.on('data', (data) => {
             this.appendLog(data.toString());
             logger.debug(data.toString());

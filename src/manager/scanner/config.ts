@@ -1,12 +1,14 @@
-import {Logger} from '../../util/log';
+import { Logger } from '../../util/log';
 import { promises as fs } from 'fs';
 import { Parser } from 'xml2js';
 
 async function loadCasparConfig() {
-    const data = await fs.readFile('./casparcg.config')
+
+    const data = await fs.readFile('/home/simme/caspar/server/casparcg_server/casparcg.config')
         .catch(() => Logger.scope('Scanner').error('Failed to read casparcg.config'));
 
     if (!data) return;
+    Logger.info('casparcg.config read.');
 
     const parser = new Parser();
     parser.parseString(data, (err, result) => {
