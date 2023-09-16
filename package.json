@@ -26,6 +26,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rest-exchange-protocol": "^0.0.12",
+    "rest-exchange-protocol-client": "^0.0.11",
     "uuid": "^9.0.0",
     "ws": "^8.12.1",
     "xml2js": "^0.6.2"
@@ -54,9 +55,12 @@
   },
   "pkg": {
     "assets": [
-        "dist/web/.next/**/*"
+      "dist/web/.next/**/*",
+      "dist/web/public/**/*"
     ],
-    "targets": [ "node16" ],
+    "targets": [
+      "node16"
+    ],
     "outputPath": "out"
   },
   "bin": {

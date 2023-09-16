@@ -4,6 +4,7 @@ export interface Config {
     'log-dir'?: string | null; // Directory to store logs in
     'dev': boolean; // Whether the server is in development mode
     'caspar-path'?: string | null; // Path to CasparCG
+    'temp'? : true; // Whether this config is temporary from dev mode
 }
 
 export default {
@@ -12,4 +13,5 @@ export default {
     'port': 5353,
     'log-dir': null,
     'caspar-path': null,
+    'temp': true,
 } as Config;

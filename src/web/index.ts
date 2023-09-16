@@ -6,7 +6,7 @@ import config from '../util/config';
 const hostname = 'localhost';
 const port = config.port;
 
-const app = next({ dev: false, hostname, port, dir: __dirname });
+const app = next({ dev: config.dev, hostname, port, dir: __dirname });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
