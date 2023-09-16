@@ -1,9 +1,12 @@
-import {Logger} from '../../util/log';
+import { Logger } from '../../util/log';
 import { promises as fs } from 'fs';
 import { Parser } from 'xml2js';
+import path from 'path';
+import config from '../../util/config';
 
 async function loadCasparConfig() {
-    const data = await fs.readFile('./casparcg.config')
+    const folder = config['caspar-path'] || process.cwd();
+    const data = await fs.readFile(path.join(folder, 'casparcg.config'))
         .catch(() => Logger.scope('Scanner').error('Failed to read casparcg.config'));
 
     if (!data) return;
@@ -14,12 +17,12 @@ async function loadCasparConfig() {
 
         for (const path in result.configuration.paths[0]) {
             const name = path.split('-')[0];
-            config.paths[name] = result.configuration.paths[0][path][0];
+            Config.paths[name] = result.configuration.paths[0][path][0];
         }
     });
 }
 
-const config = {
+const Config = {
     paths: {
         template: './template',
         media: './media',
@@ -32,4 +35,4 @@ const config = {
 
 loadCasparConfig();
 
-export default config;
+export default Config;

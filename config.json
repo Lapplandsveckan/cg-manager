@@ -1,0 +1,7 @@
+{
+  "dev": false,
+  "hide-debug": true,
+  "port": 5353,
+  "log-dir": "./manager-logs",
+  "caspar-path": null
+}

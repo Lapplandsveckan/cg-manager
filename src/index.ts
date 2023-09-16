@@ -2,8 +2,7 @@ import config, { loadConfig } from './util/config';
 import {Logger} from './util/log';
 import {CGServer} from './api/server';
 import {Discovery} from './manager/discovery';
-import {MediaScanner} from './manager/scanner';
-import {CasparProcess} from './manager/caspar/process';
+import {CasparManager} from './manager';
 
 Logger.debug('Debug mode enabled!');
 
@@ -11,17 +10,12 @@ async function start() {
     Logger.info('Starting Caspar CG Gateway...');
     await loadConfig();
 
-    Logger.info('Starting media scanner...');
-    const scanner = new MediaScanner();
-    await scanner.start();
-
-    Logger.info('Starting Caspar CG process...');
-    const caspar = new CasparProcess();
-    await caspar.start();
+    const manager = CasparManager.getManager();
+    await manager.start();
 
     Logger.info('Starting incoming handler...');
 
-    const server = new CGServer(config.port);
+    const server = new CGServer(manager, config.port);
     await server.start();
 
     Logger.info('Starting bonjour discovery service...');
@@ -31,16 +25,12 @@ async function start() {
 
     Logger.info('Gateway started!');
 
-    if (process.env.NODE_ENV !== 'production') {
-        // Development mode, reveal functions for debugging
-    }
-
     return async () => {
         Logger.info('Stopping gateway...');
 
-        await server.stop();
         await discovery.stop();
-        await scanner.stop();
+        await server.stop();
+        await manager.stop();
 
         Logger.info('Gateway stopped!');
 
@@ -57,6 +47,16 @@ async function main() {
     try {
         const stop = await start();
         stopHandler = stop;
+
+        process.on('uncaughtException', (e) => {
+            Logger.error(e);
+            stop();
+            return false;
+        });
+
+        process.on('exit', () => {
+            Logger.info('Exiting...');
+        });
 
         const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
         signals.forEach((signal) => {

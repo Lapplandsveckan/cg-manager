@@ -40,4 +40,4 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            ./out/gateway
+            ./out/manager

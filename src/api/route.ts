@@ -18,11 +18,11 @@ export function loadRoutes() {
             const routeExport = file[1];
 
             Object.entries(routeExport).forEach(([method, handler]) => {
-                logger.debug(`Loaded route: ${method} ${fileName}`);
+                logger.debug(`Loaded route: ${method} /api${fileName}`);
 
                 routes.push({
                     method: method as Method,
-                    path: fileName,
+                    path: `/api${fileName}`,
                     handler,
                 });
             });

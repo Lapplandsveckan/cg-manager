@@ -1,5 +1,6 @@
 const { exec } = require('child_process');
-const fs = require('fs');
+const fss = require('fs');
+const fs = fss.promises;
 const path = require('path');
 const root = path.join(__dirname, '../../');
 
@@ -20,14 +21,29 @@ function cmd(command, ...args) {
     });
 }
 
+async function readDirRecursive(dir) {
+    const results = await fs.readdir(dir);
+    const files = [];
+
+    for (const result of results) {
+        if (result.endsWith('.js')) files.push(result);
+        if (result.includes('.')) continue;
+
+        const subFiles = await readDirRecursive(path.join(dir, result));
+        for (const subFile of subFiles) files.push(`${result}/${subFile}`);
+    }
+
+    return files;
+}
+
 async function packageRoutes() {
+    console.log('Packaging routes...');
     const api = path.join(root, 'dist', 'api');
 
     const routes = path.join(api, 'routes');
     const out = path.join(api, '_routes.js');
 
-    const files = fs.readdirSync(routes, { recursive: true })
-        .filter((file) => file.endsWith('.js'))
+    const files = (await readDirRecursive(routes))
         .map((file) => {
             // First remove the ./ and the .ts, then split by / and remove index
             const fileName = file.substring(0, file.length - '.js'.length);
@@ -39,7 +55,27 @@ async function packageRoutes() {
         });
 
     const content = `[\n${files.join('')}]`;
-    fs.writeFileSync(out, `module.exports = ${content};`);
+    await fs.writeFile(out, `module.exports = ${content};`);
+}
+
+async function packageConfig() {
+    console.log('Packaging config...');
+
+    const out = path.join(root, 'dist', 'util', '_config.js');
+    const config = path.join(root, 'config.json');
+
+    const content = await fs.readFile(config, 'utf-8');
+    await fs.writeFile(out, `module.exports = ${content};`);
+}
+
+async function packageWeb() {
+    console.log('Packaging web...');
+
+    const web = path.join(root, 'src', 'web');
+    const out = path.join(root, 'dist', 'web', '.next');
+
+    await cmd(path.join('next', 'dist', 'bin', 'next'), 'build', JSON.stringify(web));
+    await fs.rename(path.join(web, '.next'), out);
 }
 
 async function package() {
@@ -49,21 +85,31 @@ async function package() {
     const dist = JSON.stringify(path.join(root, 'dist', 'index.js'));
     const out = JSON.stringify(path.join(root, 'out', outName));
 
+    console.log('Compiling TypeScript...');
     await cmd(path.join('typescript', 'bin', 'tsc'));
+
     await packageRoutes();
-    await cmd(path.join('pkg', 'lib-es5', 'bin.js'), dist, '-t', 'node16', '-o', out);
+    await packageConfig();
+    await packageWeb();
+
+    console.log('Packaging executable...');
+    await cmd(path.join('pkg', 'lib-es5', 'bin.js'), JSON.stringify(path.join(root, 'package.json')));
 }
 
 async function clean() {
+    console.log('Cleaning up...');
+
     const dist = `${root}/dist`;
-    if (fs.existsSync(dist)) fs.rmSync(dist, { recursive: true });
+    await fs.rm(dist, { recursive: true });
 }
 
 async function main() {
-    await package();
+    let state = true;
+    await package().catch((e) => (state = false) || console.error(e));
     await clean();
 
-    console.log('Build complete!');
+    if (state) console.log('Build complete!');
+    else console.error('Build failed!');
 }
 
 main().catch(console.error);
