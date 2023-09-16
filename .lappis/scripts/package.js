@@ -62,7 +62,7 @@ async function packageConfig() {
     console.log('Packaging config...');
 
     const out = path.join(root, 'dist', 'util', '_config.js');
-    const config = path.join(root, 'config.json');
+    const config = path.join(root, 'config.prod.json');
 
     const content = await fs.readFile(config, 'utf-8');
     await fs.writeFile(out, `module.exports = ${content};`);
