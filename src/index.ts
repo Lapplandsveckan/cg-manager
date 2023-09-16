@@ -4,7 +4,6 @@ import {CGServer} from './api/server';
 import {Discovery} from './manager/discovery';
 import {CasparManager} from './manager';
 
-
 Logger.debug('Debug mode enabled!');
 
 async function start() {
@@ -48,6 +47,16 @@ async function main() {
     try {
         const stop = await start();
         stopHandler = stop;
+
+        process.on('uncaughtException', (e) => {
+            Logger.error(e);
+            stop();
+            return false;
+        });
+
+        process.on('exit', () => {
+            Logger.info('Exiting...');
+        });
 
         const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
         signals.forEach((signal) => {

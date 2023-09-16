@@ -1,5 +1,4 @@
 import {
-    Method,
     MiddlewareProhibitFurtherExecution,
     REPServer,
     TypedClient,
@@ -7,6 +6,7 @@ import {
 } from 'rest-exchange-protocol';
 import {loadRoutes} from './route';
 import {CasparManager} from '../manager';
+import {handleRequest} from '../web';
 
 export type CGClient = TypedClient<{}>;
 export class CGServer {
@@ -23,6 +23,7 @@ export class CGServer {
         const routes = loadRoutes();
         routes.forEach((route) => this.server.register(route));
 
+        this.server.use(this.web());
         this.server.use(this.cors());
 
         this.manager.on('caspar-status', (status) => {
@@ -40,6 +41,18 @@ export class CGServer {
                 client.send('caspar/logs', WebsocketOutboundMethod.ACTION, logs, false);
             });
         });
+    }
+
+    web() {
+        return async data => {
+            if (data.type === 'websocket-upgrade' && data.request.url.startsWith('/_next/')) throw new MiddlewareProhibitFurtherExecution();
+
+            if (data.type !== 'http') return;
+            if (data.request.url.startsWith('/api')) return;
+
+            await handleRequest(data.request, data.response);
+            throw new MiddlewareProhibitFurtherExecution();
+        };
     }
 
     cors() {

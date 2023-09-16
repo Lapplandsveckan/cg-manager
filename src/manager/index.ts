@@ -3,8 +3,6 @@ import {MediaScanner} from './scanner';
 import {CasparProcess} from './caspar/process';
 import {EventEmitter} from 'events';
 
-let casparPath = '/home/simme/caspar/server/casparcg_server/'
-
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
     public caspar: CasparProcess;
@@ -30,7 +28,7 @@ export class CasparManager extends EventEmitter {
         await this.scanner.start();
 
         Logger.info('Starting Caspar CG process...');
-        await this.caspar.start(casparPath);
+        await this.caspar.start();
     }
 
     async stop() {

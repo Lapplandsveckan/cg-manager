@@ -15,8 +15,31 @@ export enum LogLevel {
     NONE = 'NONE'
 }
 
+const Console = {
+    log: global.console.log,
+    debug: global.console.debug,
+    info: global.console.info,
+    warn: global.console.warn,
+    error: global.console.error,
+};
+
 export class Logger {
     private static logs: string = '';
+
+    private static enableConsole() {
+        const logger = Logger.scope('Console');
+        const test = (method: string) => {
+            method = method === 'log' ? 'debug' : method;
+            const log = logger[method].bind(logger);
+            return (...args) => log(args.map((arg) => arg.toString()).join(' '));
+        };
+
+        global.console.log = test('log');
+        global.console.debug = test('debug');
+        global.console.info = test('info');
+        global.console.warn = test('warn');
+        global.console.error = test('error');
+    }
 
     private static getTimestamp() {
         const date = new Date();
@@ -67,6 +90,7 @@ export class Logger {
     private static async flushLogs() {
         if (this.flushingLogs) return void (this.flushAgain = true);
         if (!this.doLogToFile) return;
+        if (config['log-dir'] === null) return;
 
         this.flushingLogs = true;
 
@@ -114,20 +138,20 @@ export class Logger {
         if (level === LogLevel.DEBUG && config['hide-debug']) return;
         switch (level) {
             case LogLevel.INFO:
-                console.info(messageString);
+                Console.info(messageString);
                 break;
             case LogLevel.WARN:
-                console.warn(messageString);
+                Console.warn(messageString);
                 break;
             case LogLevel.DEBUG:
-                console.debug(messageString);
+                Console.debug(messageString);
                 break;
             case LogLevel.ERROR:
             case LogLevel.FATAL:
-                console.error(messageString);
+                Console.error(messageString);
                 break;
             default:
-                console.log(messageString);
+                Console.log(messageString);
                 break;
         }
     }
