@@ -3,6 +3,7 @@ import {Logger} from './util/log';
 import {CGServer} from './api/server';
 import {Discovery} from './manager/discovery';
 import {CasparManager} from './manager';
+import {testColorLayers} from './manager/amcp';
 
 Logger.debug('Debug mode enabled!');
 

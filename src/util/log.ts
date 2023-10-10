@@ -31,7 +31,7 @@ export class Logger {
         const test = (method: string) => {
             method = method === 'log' ? 'debug' : method;
             const log = logger[method].bind(logger);
-            return (...args) => log(args.map((arg) => arg.toString()).join(' '));
+            return (...args) => log(args.map((arg) => arg?.toString() ?? 'undefined').join(' '));
         };
 
         global.console.log = test('log');
