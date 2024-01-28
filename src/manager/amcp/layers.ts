@@ -1,26 +1,37 @@
 import {Effect} from './effect';
+import {CommandGroup} from './command';
+import {ClearCommand} from './commands/clear';
+import {SwapCommand} from './commands/swap';
+import {BasicChannel, BasicLayer} from './basic';
+import {CommandExecutor} from './executor';
 
-interface AllocateOptions {
+export interface AllocateOptions {
     count?: number;
     index?: number;
-
-    now?: boolean;
 }
 
-export class LayerManager {
+export class Channel extends BasicChannel{
     public layers = new Map<number, Layer>();
 
-    public lastOrder: number[] = [];
-    public currentOrder: number[] = [];
+    private lastOrder: number[] = [];
+    private currentOrder: number[] = [];
 
-    private casparChannel: number = undefined;
+    public executor: CommandExecutor;
+    constructor(casparChannel: number, executor?: CommandExecutor) {
+        super(casparChannel);
+        this.executor = executor;
+    }
 
-    constructor(casparChannel: number) {
-        this.casparChannel = casparChannel;
+    public setExecutor(executor: CommandExecutor) {
+        this.executor = executor;
     }
 
     public getLayer(id: number) {
         return this.layers.get(id);
+    }
+
+    public getLayers() {
+        return this.currentOrder.map(id => this.layers.get(id)).filter(layer => layer !== undefined) as Layer[];
     }
 
     public allocateLayers(options?: AllocateOptions): Layer[] {
@@ -53,19 +64,19 @@ export class LayerManager {
             i--;
         }
 
-        if (options.now) this.executeAllocation();
+        this.needExecute = true;
         return layers;
     }
 
-    public allocateLayer(index?: number, now?: boolean): Layer {
+    private needExecute = false;
+    public allocateLayer(index?: number): Layer {
         return this.allocateLayers({
             index,
             count: 1,
-            now,
         })[0];
     }
 
-    public deallocateLayers(layers: Layer[], now?: boolean): void {
+    public deallocateLayers(layers: Layer[]): void {
         for (let i = 0; i < layers.length; i++) {
             const layer = layers[i];
             layer['setLayerManager'](undefined);
@@ -76,10 +87,13 @@ export class LayerManager {
             this.layers.delete(layer.id);
         }
 
-        if (now) this.executeAllocation();
+        this.needExecute = true;
     }
 
     public executeAllocation() {
+        if (!this.needExecute) return;
+        this.needExecute = false;
+
         const commands = [];
 
         const swap = this.lastOrder.slice();
@@ -91,7 +105,9 @@ export class LayerManager {
             if (index >= 0) continue;
 
             swap[i] = undefined;
-            commands.push(`CLEAR ${this.casparChannel}-${i + 1}`);
+
+            const layer = BasicLayer.caspar(this.casparChannel, i + 1);
+            commands.push(new ClearCommand(layer));
         }
 
         for (let i = 0; i < this.currentOrder.length; i++) {
@@ -105,7 +121,9 @@ export class LayerManager {
             swap[index] = swap[i];
             swap[i] = id;
 
-            commands.push(`SWAP ${this.casparChannel}-${i + 1} ${this.casparChannel}-${index + 1}`);
+            const layer1 = BasicLayer.caspar(this.casparChannel, i + 1);
+            const layer2 = BasicLayer.caspar(this.casparChannel, index + 1);
+            commands.push(new SwapCommand(layer1, layer2));
         }
 
         this.lastOrder = this.currentOrder;
@@ -121,78 +139,37 @@ export class LayerManager {
             layer['setCasparLayer'](i + 1);
         }
 
-        LayerManager.sendCommand(commands.join('\n'));
-    }
-
-    private static sendCommand(command: string) {
-        if (!command) return;
-        console.log(`Sending command: ${command}`);
+        const commandGroup = new CommandGroup(commands);
+        this.executor.execute(commandGroup);
     }
 }
 
-export class Layer {
+export class Layer extends BasicLayer {
     public readonly id: number;
-    public effects: Effect[] = [];
-
-    private casparLayer: number = undefined;
-    private layerManager: LayerManager = undefined;
     private static layerCount = 0;
-    constructor(layerManager: LayerManager) {
+
+    constructor(channel: Channel) {
+        super(channel);
         this.id = Layer.layerCount++;
-        this.layerManager = layerManager;
     }
 
-    private setLayerManager(layerManager: LayerManager) {
-        this.layerManager = layerManager;
-
-        for (let i = 0; i < this.effects.length; i++) {
-            const effect = this.effects[i];
-            effect.allocate(this.layerManager?.['casparChannel'], this.casparLayer);
-        }
-    }
-
-    private setCasparLayer(layer: number) {
-        this.casparLayer = layer;
-
-        for (let i = 0; i < this.effects.length; i++) {
-            const effect = this.effects[i];
-            effect.allocate(this.layerManager?.['casparChannel'], layer);
-        }
-    }
-
-    public addEffect(effect: Effect, activate = false) {
-        if (!this.layerManager) return;
-        if (!this.casparLayer) return;
-
-        const channel = this.layerManager['casparChannel'];
-        const layer = this.casparLayer;
-
-        effect.allocate(channel, layer);
+    private effects = [] as Effect[];
+    public addEffect(effect: Effect) {
         this.effects.push(effect);
-
-        if (activate) effect.activate();
     }
 
     public removeEffect(effect: Effect) {
         const index = this.effects.indexOf(effect);
         if (index < 0) return;
 
-        effect.deactivate();
-        effect.allocate();
         this.effects.splice(index, 1);
     }
 
-    public activate() {
-        for (let i = 0; i < this.effects.length; i++) {
-            const effect = this.effects[i];
-            effect.activate();
-        }
+    public getEffects() {
+        return this.effects.slice();
     }
 
-    public deactivate() {
-        for (let i = 0; i < this.effects.length; i++) {
-            const effect = this.effects[i];
-            effect.deactivate();
-        }
+    public clearEffects() {
+        this.effects = [];
     }
 }

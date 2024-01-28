@@ -1,16 +1,18 @@
-import {LayerManager} from './layers';
-import {ColorEffect} from './effects/color';
+import {LogExecutor} from './test';
+import {ColorCommand} from './commands/color';
 
 export function testColorLayers() {
-    const manager = new LayerManager(1);
+    const executor = new LogExecutor();
+    const channel = executor.allocateChannel(1);
+    const layer = channel.allocateLayer();
+    executor.executeAllocations();
 
-    const layer = manager.allocateLayer(0, true);
-    const color = new ColorEffect(ColorEffect.RGBA(10, 170, 230));
-    layer.addEffect(color, true);
+    const layer2 = channel.allocateLayer(0);
+    executor.executeAllocations();
 
-    const layer2 = manager.allocateLayer(0, true);
-    const color2 = new ColorEffect(ColorEffect.RGBA(230, 130, 20));
-    layer2.addEffect(color2, true);
+    const command = new ColorCommand(ColorCommand.RGBA(255, 0, 0)).allocate(layer);
+    executor.execute(command);
 
-    manager.deallocateLayers([layer], true);
+    const command2 = new ColorCommand(ColorCommand.RGBA(0, 255, 0)).allocate(layer2);
+    executor.execute(command2);
 }

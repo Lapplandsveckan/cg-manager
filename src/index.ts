@@ -8,6 +8,14 @@ import {testColorLayers} from './manager/amcp';
 Logger.debug('Debug mode enabled!');
 
 async function start() {
+    if (true) { // TODO: Add a flag for this
+        testColorLayers();
+
+        return async () => {
+            process.exit(0);
+        };
+    }
+
     Logger.info('Starting Caspar CG Gateway...');
     await loadConfig();
 

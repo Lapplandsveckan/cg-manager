@@ -1,52 +1,22 @@
-export const EffectLayer = {
-    NONE: -1,
+import {Layer} from './layers';
+import {CommandExecutor} from './executor';
 
-    PRODUCER: 1,
-    MIXER: 5,
-} as const;
-
-export class Effect {
-    constructor() {
-
+export abstract class Effect {
+    protected executor: CommandExecutor;
+    protected constructor(executor?: CommandExecutor) {
+        this.setExecutor(executor);
     }
 
-    private static sendCommand(command: string) {
-        console.log(`Sending command: ${command}`);
+    public setExecutor(executor: CommandExecutor) {
+        this.executor = executor;
     }
 
-    protected sendCommand(command: string | string[]) {
-        if (typeof command === 'string') command = [command];
-        const commandString = command.join('\n');
-        Effect.sendCommand(commandString);
-    }
-
-    protected getPosition() {
-        if (this.channel === undefined) return null;
-        if (this.layer === undefined) return null;
-        return `${this.channel}-${this.layer}`;
-    }
-
-    protected channel: number = undefined;
-    protected layer: number = undefined;
-    public allocate(channel?: number, layer?: number) {
-        this.channel = channel;
-        this.layer = layer;
-    }
-
-    public isActive() {
-        return false;
-    }
-
+    public abstract getLayers(): Layer[];
     public activate() {
-
+        for (const layer of this.getLayers()) layer.addEffect(this);
     }
 
     public deactivate() {
-
-    }
-
-    // if two effects share the same effect layer the first will be deactivated, does not apply for layer -1
-    public getEffectLayer(): number {
-        return EffectLayer.NONE;
+        for (const layer of this.getLayers()) layer.removeEffect(this);
     }
 }

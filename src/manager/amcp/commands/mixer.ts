@@ -1,4 +1,4 @@
-import {Effect, EffectLayer} from '../effect';
+import {Command, LayeredCommand, RawCommand} from '../command';
 
 interface ChromaEnabled {
     enabled: true;
@@ -64,13 +64,21 @@ interface Tween {
     duration: number;
 }
 
-export class MixerEffect extends Effect {
-    private commands: string[];
+export class MixerCommand extends LayeredCommand {
+    private commands: string[] = [];
+    private readonly shouldClear: boolean;
 
-    constructor() {
+    constructor(shouldClear: boolean = false) {
         super();
+        this.shouldClear = shouldClear;
+    }
 
-        this.commands = [];
+    public static create() {
+        return new MixerCommand();
+    }
+
+    public static clear() {
+        return new MixerCommand(true);
     }
 
     public keyer(keyer: number) {
@@ -316,32 +324,18 @@ export class MixerEffect extends Effect {
         return this;
     }
 
-    private active: boolean = false;
-    public getActive() {
-        return this.active;
+    public clear() {
+        this.commands = [];
+        return this;
     }
 
-    public deactivate() {
-        this.commands = [];
-
+    public getCommand() {
         const position = this.getPosition();
         if (!position) return;
 
-        this.sendCommand(`MIXER CLEAR ${position}`);
-        this.active = false;
-    }
+        const compiled = this.commands.map((command) => `MIXER ${position} ${command}`);
+        if (this.shouldClear) compiled.unshift(`MIXER CLEAR ${position}`);
 
-    public activate() {
-        const position = this.getPosition();
-        if (!position) return;
-
-        this.sendCommand(this.commands.map((command) => `MIXER ${position} ${command}`));
-
-        this.active = true;
-        this.commands = [];
-    }
-
-    public getEffectLayer(): number {
-        return EffectLayer.MIXER;
+        return compiled.join('\n');
     }
 }
