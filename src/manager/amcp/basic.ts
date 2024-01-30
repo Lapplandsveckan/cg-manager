@@ -47,7 +47,11 @@ export class BasicLayer {
 
     protected setCasparLayer(layer: number) {
         this.casparLayer = layer;
-        // TODO: events?
+        this.onMove();
+    }
+
+    protected onMove() {
+
     }
 
     public getCasparLayer() {

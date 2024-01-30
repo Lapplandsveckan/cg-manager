@@ -34,6 +34,15 @@ export class Channel extends BasicChannel{
         return this.currentOrder.map(id => this.layers.get(id)).filter(layer => layer !== undefined) as Layer[];
     }
 
+    protected getActiveEffects() {
+        const effects = new Set<Effect>();
+        for (const layer of this.layers.values())
+            for (const effect of layer.getActiveEffects())
+                effects.add(effect);
+
+        return effects;
+    }
+
     public allocateLayers(options?: AllocateOptions): Layer[] {
         options = options ?? {};
 
@@ -141,6 +150,9 @@ export class Channel extends BasicChannel{
 
         const commandGroup = new CommandGroup(commands);
         this.executor.execute(commandGroup);
+
+        const effects = this.getActiveEffects();
+        for (const effect of effects) effect.updatePositions();
     }
 }
 
@@ -153,23 +165,21 @@ export class Layer extends BasicLayer {
         this.id = Layer.layerCount++;
     }
 
-    private effects = [] as Effect[];
+    private effects = new Set<Effect>();
     public addEffect(effect: Effect) {
-        this.effects.push(effect);
+        this.effects.add(effect);
     }
 
     public removeEffect(effect: Effect) {
-        const index = this.effects.indexOf(effect);
-        if (index < 0) return;
-
-        this.effects.splice(index, 1);
+        this.effects.delete(effect);
     }
 
-    public getEffects() {
-        return this.effects.slice();
+    public getActiveEffects() {
+        return Array.from(this.effects.values());
     }
 
     public clearEffects() {
-        this.effects = [];
+        // deactive the effects?
+        this.effects.clear();
     }
 }

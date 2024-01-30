@@ -1,8 +1,8 @@
 
-import {Command} from '../command';
+import {BasicCommand, Command} from '../command';
 import {BasicChannel, BasicLayer} from '../basic';
 
-export class SwapCommand extends Command {
+export class SwapCommand extends BasicCommand {
     protected allocation1?: BasicLayer | BasicChannel;
     protected allocation2?: BasicLayer | BasicChannel;
 
@@ -31,11 +31,15 @@ export class SwapCommand extends Command {
         return this;
     }
 
-    public getCommand() {
+    protected getCommandType(): string {
+        return 'SWAP';
+    }
+
+    protected getArguments(): string[] {
         const position1 = this.allocation1?.getCommandString();
         const position2 = this.allocation2?.getCommandString();
-        if (!position1 || !position2) return;
+        if (!position1 || !position2) return [];
 
-        return `SWAP ${position1} ${position2}`;
+        return [position1, position2];
     }
 }

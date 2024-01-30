@@ -336,6 +336,6 @@ export class MixerCommand extends LayeredCommand {
         const compiled = this.commands.map((command) => `MIXER ${position} ${command}`);
         if (this.shouldClear) compiled.unshift(`MIXER CLEAR ${position}`);
 
-        return compiled.join('\n');
+        return compiled.join('\r\n');
     }
 }

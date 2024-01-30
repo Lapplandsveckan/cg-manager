@@ -19,4 +19,8 @@ export abstract class Effect {
     public deactivate() {
         for (const layer of this.getLayers()) layer.removeEffect(this);
     }
+
+    public updatePositions() {
+
+    }
 }

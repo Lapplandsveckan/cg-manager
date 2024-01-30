@@ -27,7 +27,7 @@ export class DeferCommand extends SimpleCommand {
     }
 
     public getCommand() {
-        if (this.cmd === 'BEGIN') return `${this.cmd}\n${this.command.getCommand()}`;
+        if (this.cmd === 'BEGIN') return `${this.cmd}\r\n${this.command.getCommand()}`;
         return this.cmd;
     }
 }

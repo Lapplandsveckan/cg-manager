@@ -80,6 +80,13 @@ export class LoadBGCommand extends LayeredCommand {
         return 'LOADBG';
     }
 
+    protected getArguments(): string[] {
+        const position = this.getPosition();
+        if (!position) return [];
+
+        return [position, ...this.arguments];
+    }
+
     constructor() {
         super();
         this.arguments = [];
@@ -103,12 +110,5 @@ export class LoadBGCommand extends LayeredCommand {
     public static color(color: string) {
         return new this()
             .setArguments(JSON.stringify(color));
-    }
-
-    public getCommand() {
-        const position = this.getPosition();
-        if (!position) return;
-
-        return `${this.getCommandType()} ${position} ${this.arguments.join(' ')}`;
     }
 }

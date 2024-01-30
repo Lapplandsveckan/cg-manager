@@ -3,10 +3,8 @@ import {Logger} from '../../util/log';
 import {CommandExecutor} from './executor';
 
 export class LogExecutor extends CommandExecutor {
-    public execute(command: Command) {
-        const result = command.getCommand();
-        if (!result) return;
-
-        Logger.scope('LGE').info(result);
+    public send(data: string) {
+        Logger.scope('LGE').info(data);
+        if (data === 'TLS') this.receive('200 TLS OK\r\nABC\r\nDEF\r\nGHI\r\nJKL\r\n\r\n');
     }
 }

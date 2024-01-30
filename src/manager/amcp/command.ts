@@ -4,7 +4,85 @@ export abstract class Command {
     public abstract getCommand(): string | undefined | void;
 }
 
-export abstract class LayeredCommand extends Command {
+export abstract class BasicCommand {
+    protected abstract getCommandType(): string;
+    protected abstract getArguments(): string[];
+
+    public static create(command: string, ...args: string[]) {
+        return new class extends BasicCommand {
+            protected getCommandType() {
+                return command;
+            }
+
+            protected getArguments() {
+                return args;
+            }
+        };
+    }
+
+    public static from(command: string): BasicCommand {
+        if (command.endsWith('\r\n')) command = command.slice(0, -2);
+        if (command.indexOf('\r\n') > -1) throw new Error('Command cannot contain line breaks');
+
+        const parts = command.split(' ');
+        const cmd = parts[0];
+        const args = parts.slice(1);
+
+        let quote = -1;
+        for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
+            if (quote < 0 && arg.startsWith('"')) quote = i;
+
+            if (quote > -1) {
+                if (!arg.endsWith('"')) continue;
+
+                let shadowed = false;
+                for (let j = arg.length - 2; j >= 0; j--) {
+                    if (arg[j] !== '\\') break;
+                    shadowed = !shadowed;
+                }
+
+                if (shadowed) continue;
+
+                const a = [];
+                for (let j = quote; j <= i; j++) a.push(args[j]);
+
+                args.splice(quote, i - quote + 1, JSON.parse(a.join(' ')));
+                quote = -1;
+            }
+        }
+
+        if (quote > -1) throw new Error('Command contains unclosed quotes');
+        return this.create(cmd, ...args);
+    }
+
+    public static interpret(command: string): BasicCommand[] {
+        const lines = command.split('\r\n');
+        if (lines[lines.length - 1] === '') lines.pop();
+
+        return lines.map(line => this.from(line));
+    }
+
+    protected compileArgs() {
+        return this
+            .getArguments()
+            .map(v => v.startsWith('"') ? (v.indexOf(' ') > -1 ? v : `"${v}"`) : JSON.stringify(v))
+            .map(v => v.indexOf(' ') > -1 ? v : v.substring(1, v.length - 1))
+            .join(' ');
+    }
+
+    public getCommand() {
+        const cmd = this.getCommandType();
+        if (!cmd) return;
+
+        const args = this.compileArgs();
+        if (!args) return `${cmd}\r\n`;
+
+        return `${cmd} ${args}\r\n`;
+    }
+}
+
+export abstract class LayeredCommand extends BasicCommand {
     protected allocation?: BasicLayer | BasicChannel;
 
     constructor(allocation?: BasicLayer | BasicChannel) {
@@ -29,25 +107,21 @@ export abstract class LayeredCommand extends Command {
     }
 
     protected getPosition() {
-        return this.allocation.getCommandString();
+        return this.allocation?.getCommandString();
     }
 }
 
-export class SimpleCommand extends LayeredCommand {
-    protected getCommandType(): string {
-        return '';
-    }
-
-    public getCommand() {
+export abstract class SimpleCommand extends LayeredCommand {
+    protected getArguments(): string[] {
         const position = this.getPosition();
-        if (!position) return;
+        if (!position) return [];
 
-        return `${this.getCommandType()} ${position}`;
+        return [position];
     }
 }
 
-export class SimpleArgsCommand extends SimpleCommand {
-    private args: string[];
+export abstract class SimpleArgsCommand extends SimpleCommand {
+    protected args: string[];
 
     constructor(...args: string[]) {
         super();
@@ -59,35 +133,33 @@ export class SimpleArgsCommand extends SimpleCommand {
         return this;
     }
 
-    public getCommand() {
-        const command = super.getCommand();
-        if (!command) return;
-
-        return `${command} ${this.args.join(' ')}`;
+    protected getArguments() {
+        return [...super.getArguments(), ...this.args];
     }
 }
 
-export class CommandGroup extends LayeredCommand {
+export class CommandGroup extends Command {
     private readonly commands: Command[];
+    protected allocation?: BasicLayer | BasicChannel;
+
     constructor(commands: Command[]) {
         super();
         this.commands = commands;
     }
 
+    public allocate(channel: BasicLayer | BasicChannel | number);
+    public allocate(channel: BasicChannel | number, layer: number);
     public allocate(arg1: BasicLayer | BasicChannel | number, arg2?: number) {
-        // @ts-ignore
-        super.allocate(arg1, arg2);
+        this.allocation = BasicLayer.from(arg1, arg2);
 
-        for (let i = 0; i < this.commands.length; i++) {
-            const command = this.commands[i];
+        for (const command of this.commands)
             if (command instanceof LayeredCommand) command.allocate(this.allocation);
-        }
 
         return this;
     }
 
     public getCommand(): string {
-        return this.commands.map(command => command.getCommand()).join('\n');
+        return this.commands.map(command => command.getCommand()).join('');
     }
 }
 
