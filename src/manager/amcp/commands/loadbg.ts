@@ -109,6 +109,6 @@ export class LoadBGCommand extends LayeredCommand {
 
     public static color(color: string) {
         return new this()
-            .setArguments(JSON.stringify(color));
+            .setArguments(color);
     }
 }

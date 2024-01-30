@@ -1,5 +1,7 @@
 import {Channel} from './layers';
 import {BasicCommand, Command} from './command';
+import {TemplateInfo} from '../scanner/scanner';
+import {TLSCommand} from './commands/tls';
 
 export interface CommandListener {
     command: string;
@@ -9,6 +11,36 @@ export interface CommandListener {
 }
 
 export class CommandExecutor {
+    protected templates: TemplateInfo[] = [];
+    private lastFetch = 0;
+    private fetchPromise: Promise<TemplateInfo[]> = null;
+
+    protected fetchTemplates() {
+        // TODO: optimize and better options
+        if (!this.fetchPromise)
+            this.fetchPromise = TLSCommand.getTemplates()
+                .then(templates => {
+                    this.fetchPromise = null;
+                    return this.templates = templates;
+                });
+
+
+        return this.fetchPromise;
+    }
+
+    public async getTemplates(force = false) {
+        if (force || (Date.now() - this.lastFetch > 1000 * 60 * 5)) {
+            this.lastFetch = Date.now();
+            await this.fetchTemplates();
+        }
+
+        return this.templates;
+    }
+
+    public resolveTemplates() {
+        return this.templates;
+    }
+
     public promise(command: string) {
         return new Promise<{ data: string[], code: number }>((resolve, reject) => {
             const listener: CommandListener = {
@@ -61,24 +93,32 @@ export class CommandExecutor {
 
     protected receive(data: string) {
         const lines = data.split('\r\n');
+        const excess = lines.pop();
+
+        let index = 0;
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const parts = line.split(' ');
             const code = parseInt(parts[0]);
-            let data: string[] = [];
+            const data: string[] = [];
 
             if (code === 101 || code === 201 || code === 400) {
                 i++;
-                data.push(line[i]);
+                data.push(lines[i]);
+                if (i === lines.length) break;
             }
 
             if (code === 200) {
                 i++;
-                while (lines[i] && i < lines.length - 1) {
+                while (lines[i]) {
                     data.push(lines[i]);
                     i++;
                 }
+
+                if (i === lines.length) break;
             }
+
+            index = i + 1;
 
             let cmd = null;
             if (code !== 400 && code !== 500) cmd = parts[1];
@@ -86,6 +126,8 @@ export class CommandExecutor {
             this.executeListeners(code, cmd, data);
             this.onEvent(code, cmd, data);
         }
+
+        return [...lines.slice(index), excess].join('\r\n');
     }
 
     protected listeners = [] as CommandListener[];
