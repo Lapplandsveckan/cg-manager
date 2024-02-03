@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 
-import config from './config';
+import config, {loadCasparConfig} from './config';
 import {Logger} from '../../util/log';
 import {noTryAsync} from 'no-try';
 import {extractGDDJSON, getGDDScriptElement, getId} from './util';

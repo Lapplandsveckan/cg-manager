@@ -1,9 +1,11 @@
-import config from './config';
+import config, {loadCasparConfig} from './config';
 import Scanner from './scanner';
 import App from './app';
 import {FileDatabase} from './db';
 
-function start() {
+async function start() {
+    await loadCasparConfig();
+
     const db = new FileDatabase();
     const scanner = Scanner(db);
     const app = App(db);

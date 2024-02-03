@@ -17,10 +17,18 @@ export abstract class BasicCommand {
             protected getArguments() {
                 return args;
             }
+
+            public getCmd() {
+                return this.getCommandType();
+            }
+
+            public getArgs() {
+                return this.getArguments();
+            }
         };
     }
 
-    public static from(command: string): BasicCommand {
+    public static from(command: string) {
         if (command.endsWith('\r\n')) command = command.slice(0, -2);
         if (command.indexOf('\r\n') > -1) throw new Error('Command cannot contain line breaks');
 
@@ -56,11 +64,11 @@ export abstract class BasicCommand {
         return this.create(cmd, ...args);
     }
 
-    public static interpret(command: string): BasicCommand[] {
-        const lines = command.split('\r\n');
-        if (lines[lines.length - 1] === '') lines.pop();
-
-        return lines.map(line => this.from(line));
+    public static interpret(command: string) {
+        return command
+            .split('\r\n')
+            .filter(line => line.length > 0)
+            .map(line => this.from(line));
     }
 
     protected compileArgs() {

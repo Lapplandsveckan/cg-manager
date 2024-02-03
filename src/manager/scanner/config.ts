@@ -4,7 +4,7 @@ import { Parser } from 'xml2js';
 import path from 'path';
 import config from '../../util/config';
 
-async function loadCasparConfig() {
+export async function loadCasparConfig() {
     const folder = config['caspar-path'] || process.cwd();
     const data = await fs.readFile(path.join(folder, 'casparcg.config'))
         .catch(() => Logger.scope('Scanner').error('Failed to read casparcg.config'));
@@ -32,7 +32,5 @@ const Config = {
         port: 8000,
     },
 };
-
-loadCasparConfig();
 
 export default Config;

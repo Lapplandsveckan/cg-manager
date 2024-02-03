@@ -2,6 +2,7 @@ import {Channel} from './layers';
 import {BasicCommand, Command} from './command';
 import {TemplateInfo} from '../scanner/scanner';
 import {TLSCommand} from './commands/tls';
+import {Logger} from '../../util/log';
 
 export interface CommandListener {
     command: string;
@@ -43,14 +44,37 @@ export class CommandExecutor {
 
     public promise(command: string) {
         return new Promise<{ data: string[], code: number }>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                this.removeListener(listener);
+                reject({data: ['Timeout'], code: -1});
+            }, 1000);
+
+            const onSuccess = (data: string[], code: number) => {
+                clearTimeout(timeout);
+                resolve({data, code});
+            };
+
+            const onError = (data: string[], code: number) => {
+                clearTimeout(timeout);
+                reject({data, code});
+            };
+
             const listener: CommandListener = {
                 command,
-                success: (data, code) => resolve({data, code}),
-                error: (data, code) => reject({data, code}),
+                success: onSuccess,
+                error: onError,
             };
 
             this.addListener(listener);
         });
+    }
+
+    /** @description NOTE: only use this function when you are certain that the server won't respond */
+    public executePassive(command: Command) {
+        const data = command.getCommand();
+        if (!data) return;
+
+        this.send(data);
     }
 
     public execute(command: Command) {
@@ -58,7 +82,7 @@ export class CommandExecutor {
         if (!data) return;
 
         const commands = BasicCommand.interpret(data);
-        const promises = commands.map(cmd => this.promise(cmd.getCommand()));
+        const promises = commands.map(cmd => this.promise(cmd.getCmd()));
         this.send(data);
 
         // Could be faulty if one of the commands fails, especially if it's a multi-command and in the middle
