@@ -16,7 +16,7 @@ export enum Direction {
     RIGHT = 'RIGHT',
 }
 
-interface Options {
+export interface PlayoutOptions {
     duration?: number;
 
     transition?: Transition;
@@ -51,7 +51,7 @@ export class Color {
 }
 
 export class Video {
-    public static getVideoArguments(options: Options): string[] {
+    public static getVideoArguments(options?: PlayoutOptions): string[] {
         options = options || {};
         const args: string[] = [];
 
@@ -97,7 +97,7 @@ export class LoadBGCommand extends LayeredCommand {
         return this;
     }
 
-    public static video(video: string, options: Options) {
+    public static video(video: string, options?: PlayoutOptions) {
         return new this()
             .setArguments(video, ...Video.getVideoArguments(options));
     }
