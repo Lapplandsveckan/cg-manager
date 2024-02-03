@@ -5,6 +5,24 @@ import {SwapCommand} from './commands/swap';
 import {BasicChannel, BasicLayer} from './basic';
 import {CommandExecutor} from './executor';
 
+export interface IndexAllocation {
+    index: number;
+}
+
+export interface GroupAllocation {
+    group: string;
+}
+
+export interface BeforeAllocation {
+    before: string | BasicLayer;
+}
+
+export interface AfterAllocation {
+    after: string | BasicLayer;
+}
+
+export type AllocationTypes = IndexAllocation | GroupAllocation | BeforeAllocation | AfterAllocation | undefined;
+
 export interface AllocateOptions {
     count?: number;
     index?: number;
@@ -12,6 +30,12 @@ export interface AllocateOptions {
 
 export class Channel extends BasicChannel{
     public layers = new Map<number, Layer>();
+    public groupOrder: string[] = [];
+    public setGroupOrder(order: string[]) {
+        this.groupOrder = order;
+
+        // TODO: update the currentOrder
+    }
 
     private lastOrder: number[] = [];
     private currentOrder: number[] = [];
@@ -158,11 +182,13 @@ export class Channel extends BasicChannel{
 
 export class Layer extends BasicLayer {
     public readonly id: number;
+    public readonly group: string = '';
     private static layerCount = 0;
 
-    constructor(channel: Channel) {
+    constructor(channel: Channel, group?: string) {
         super(channel);
         this.id = Layer.layerCount++;
+        this.group = group ?? '';
     }
 
     private effects = new Set<Effect>();
@@ -179,7 +205,12 @@ export class Layer extends BasicLayer {
     }
 
     public clearEffects() {
-        // deactive the effects?
+        for (const effect of this.effects) effect.deactivate();
         this.effects.clear();
+    }
+
+    public dispose() {
+        this.clearEffects();
+        (this.channel as Channel).deallocateLayers([this]);
     }
 }
