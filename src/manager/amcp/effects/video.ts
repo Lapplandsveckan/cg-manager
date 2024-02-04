@@ -27,7 +27,7 @@ export class VideoEffect extends Effect {
     protected playing: boolean = false;
     protected paused: boolean = false;
     public activate(play: boolean = true) {
-        super.activate();
+        if (!super.activate()) return;
         if (play) this.playing = true;
 
         let commandType = LoadBGCommand;
@@ -75,7 +75,8 @@ export class VideoEffect extends Effect {
     }
 
     public deactivate() {
-        super.deactivate();
+        if (!super.deactivate()) return;
+
         this.playing = false;
 
         let cmd: Command = new ClearCommand(this.layer);

@@ -2,6 +2,7 @@ import {EffectGroup, Layer} from './layers';
 
 export abstract class Effect {
     private _active: boolean = false;
+    private _disposed: boolean = false;
     protected get active() {
         return this._active;
     }
@@ -20,22 +21,31 @@ export abstract class Effect {
         this.group.addEffect(this); // Maybe delay this until the effect is activated?
     }
 
-    public activate() {
-        if (this.active) return;
+    public activate(): any {
+        if (this._disposed) return false;
+        if (this.active) return false;
         this._active = true;
 
         this.executor.executeAllocations();
+        return true;
     }
 
-    public deactivate() {
-        if (!this.active) return;
+    public deactivate(): any {
+        if (!this.active) return false;
         this._active = false;
+
+        return true;
     }
 
     public dispose() {
+        if (this._disposed) return;
+        this._disposed = true;
+
         this.deactivate();
         this.deallocateLayers(this.layers);
+
         this.group.removeEffect(this);
+        this.effectGroup = null;
     }
 
     protected layers: Layer[] = [];

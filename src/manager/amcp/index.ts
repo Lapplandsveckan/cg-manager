@@ -1,24 +1,26 @@
 import {LogExecutor} from './test';
-import {TLSCommand} from './commands/tls';
-import {PlayCommand} from './commands/play';
-import {Color} from './commands/loadbg';
+import {VideoEffect} from "./effects/video";
 
-export function testColorLayers() {
+export async function testColorLayers() {
     const executor = new LogExecutor();
     const channel = executor.allocateChannel(1);
-    const layer = channel.allocateLayer();
-    executor.executeAllocations();
 
-    const layer2 = channel.allocateLayer(0);
-    executor.executeAllocations();
+    const groupA = channel.createGroup('A');
+    const groupB = channel.createGroup('B');
 
-    const command = PlayCommand.color(Color.RGBA(255, 0, 0)).allocate(layer);
-    executor.execute(command);
+    const effectA = new VideoEffect('A', groupA, { disposeOnStop: true });
+    await effectA.activate(true);
 
-    const command2 = PlayCommand.color(Color.RGBA(0, 255, 0)).allocate(layer2);
-    executor.execute(command2);
+    const effectB = new VideoEffect('B', groupB, { disposeOnStop: true });
+    await effectB.activate(true);
 
-    TLSCommand.getTemplates(executor).then(templates => {
-        console.log('templates', templates);
-    });
+    const effectC = new VideoEffect('C', groupA, { disposeOnStop: true });
+    await effectC.activate(true);
+
+
+    setTimeout(() => {
+        effectA.deactivate();
+        effectB.deactivate();
+        effectC.deactivate();
+    }, 3000);
 }
