@@ -3,19 +3,10 @@ import {Logger} from './util/log';
 import {CGServer} from './api/server';
 import {Discovery} from './manager/discovery';
 import {CasparManager} from './manager';
-import {testColorLayers} from './manager/amcp';
 
 Logger.debug('Debug mode enabled!');
 
 async function start() {
-    if (true) { // TODO: Add a flag for this
-        testColorLayers();
-
-        return async () => {
-            process.exit(0);
-        };
-    }
-
     Logger.info('Starting Caspar CG Gateway...');
     await loadConfig();
 

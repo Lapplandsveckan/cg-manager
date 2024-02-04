@@ -7,7 +7,7 @@ import {PauseCommand} from '../commands/pause';
 import {ResumeCommand} from '../commands/resume';
 import {StopCommand} from '../commands/stop';
 import {Command} from '../command';
-import {FileDatabase} from "../../scanner/db";
+import {FileDatabase} from '../../scanner/db';
 
 export interface VideoEffectOptions extends PlayoutOptions {
     disposeOnStop?: boolean;
@@ -113,6 +113,6 @@ export class VideoEffect extends Effect {
         const result = this.executor.execute(cmd);
         if (this.options.disposeOnStop) result.then(() => !this.active && this.dispose());
 
-        return result
+        return result;
     }
 }

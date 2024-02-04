@@ -4,7 +4,7 @@ import {ClearCommand} from './commands/clear';
 import {SwapCommand} from './commands/swap';
 import {BasicChannel, BasicLayer} from './basic';
 import {CommandExecutor} from './executor';
-import {UUID} from "../../util/uuid";
+import {UUID} from '../../util/uuid';
 
 export interface AllocateOptions {
     count?: number;

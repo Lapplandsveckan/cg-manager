@@ -2,10 +2,12 @@ import {Logger} from '../util/log';
 import {MediaScanner} from './scanner';
 import {CasparProcess} from './caspar/process';
 import {EventEmitter} from 'events';
+import {CasparExecutor} from './caspar/executor';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
     public caspar: CasparProcess;
+    public executor: CasparExecutor;
 
     private static instance: CasparManager;
     public static getManager() {
@@ -18,6 +20,11 @@ export class CasparManager extends EventEmitter {
 
         this.scanner = new MediaScanner();
         this.caspar = new CasparProcess();
+
+        this.executor = new CasparExecutor();
+        this.executor.connect();
+
+        this.executor.allocateChannel(1); // TODO: Remove this line
 
         this.caspar.on('status', (status) => this.emit('caspar-status', status));
         this.caspar.on('log', (log) => this.emit('caspar-log', log));
