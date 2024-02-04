@@ -75,6 +75,14 @@ export interface MediaDoc {
 
 export class FileDatabase {
     private db = new Map<string, MediaDoc>();
+    private static instance: FileDatabase;
+    public static get db() {
+        return FileDatabase.instance;
+    }
+
+    constructor() {
+        FileDatabase.instance = this;
+    }
 
     get(id: string): MediaDoc {
         return this.db.get(id);

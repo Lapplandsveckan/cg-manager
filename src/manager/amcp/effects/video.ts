@@ -7,6 +7,7 @@ import {PauseCommand} from '../commands/pause';
 import {ResumeCommand} from '../commands/resume';
 import {StopCommand} from '../commands/stop';
 import {Command} from '../command';
+import {FileDatabase} from "../../scanner/db";
 
 export interface VideoEffectOptions extends PlayoutOptions {
     disposeOnStop?: boolean;
@@ -15,6 +16,7 @@ export interface VideoEffectOptions extends PlayoutOptions {
 export class VideoEffect extends Effect {
     protected clip: string;
     protected options: VideoEffectOptions;
+
     public constructor(clip: string, group: EffectGroup, options?: VideoEffectOptions) {
         super(group);
 
@@ -28,7 +30,6 @@ export class VideoEffect extends Effect {
     protected paused: boolean = false;
     public activate(play: boolean = true) {
         if (!super.activate()) return;
-        if (play) this.playing = true;
 
         let commandType = LoadBGCommand;
         if (play) commandType = PlayCommand;
@@ -36,6 +37,7 @@ export class VideoEffect extends Effect {
         const cmd = commandType.video(this.clip, this.options);
         cmd.allocate(this.layer);
 
+        if (play) this.handlePlay();
         return this.executor.execute(cmd);
     }
 
@@ -46,12 +48,34 @@ export class VideoEffect extends Effect {
     public play() {
         if (!this.active) return this.activate(true);
         if (this.playing) return;
-        this.playing = true;
 
         const cmd = PlayCommand.video(this.clip);
         cmd.allocate(this.layer);
 
+        this.handlePlay();
         return this.executor.execute(cmd);
+    }
+
+    private playTimeout: any;
+
+    protected handlePlay() {
+        this.playing = true;
+        this.paused = false;
+
+        if (this.options.loop) return;
+
+        const media = FileDatabase.db.get(this.clip);
+        if (!media) return;
+
+        const duration = media.mediainfo.format.duration;
+        if (duration === undefined) return;
+
+        this.playTimeout = setTimeout(() => this.handleFinish(), duration * 1000);
+    }
+
+    protected handleFinish() {
+        if (!this.active) return;
+        this.deactivate();
     }
 
     public pause() {
@@ -59,6 +83,8 @@ export class VideoEffect extends Effect {
         if (!this.playing) return;
         this.playing = false;
         this.paused = true;
+
+        clearTimeout(this.playTimeout); // TODO: only pause the timeout
 
         const cmd = new PauseCommand(this.layer);
         return this.executor.execute(cmd);
@@ -77,6 +103,7 @@ export class VideoEffect extends Effect {
     public deactivate() {
         if (!super.deactivate()) return;
 
+        clearTimeout(this.playTimeout);
         this.playing = false;
 
         let cmd: Command = new ClearCommand(this.layer);

@@ -1,8 +1,6 @@
 import {Channel} from './layers';
 import {BasicCommand, Command} from './command';
-import {TemplateInfo} from '../scanner/scanner';
-import {TLSCommand} from './commands/tls';
-import {Logger} from '../../util/log';
+import {getTemplatesWithContent, TemplateInfo} from '../scanner/scanner';
 
 export interface CommandListener {
     command: string;
@@ -13,13 +11,14 @@ export interface CommandListener {
 
 export class CommandExecutor {
     protected templates: TemplateInfo[] = [];
+
     private lastFetch = 0;
     private fetchPromise: Promise<TemplateInfo[]> = null;
 
     protected fetchTemplates() {
         // TODO: optimize and better options
         if (!this.fetchPromise)
-            this.fetchPromise = TLSCommand.getTemplates()
+            this.fetchPromise = getTemplatesWithContent()
                 .then(templates => {
                     this.fetchPromise = null;
                     return this.templates = templates;
