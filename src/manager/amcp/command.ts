@@ -147,7 +147,7 @@ export abstract class SimpleArgsCommand extends SimpleCommand {
 }
 
 export class CommandGroup extends Command {
-    private readonly commands: Command[];
+    protected readonly commands: Command[];
     protected allocation?: BasicLayer | BasicChannel;
 
     constructor(commands: Command[]) {

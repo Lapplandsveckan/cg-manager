@@ -17,12 +17,10 @@ export class CallCommand extends LayeredCommand {
         return this;
     }
 
-    public getCommand() {
-        if (!this.method) throw new Error('Method is not set');
-
-        const position = this.getPosition();
-        if (!position) return;
-
-        return `CALL ${position} ${this.method}`;
+    protected getCommandType() {
+        return 'CALL';
+    }
+    protected getArguments() {
+        return [this.method];
     }
 }

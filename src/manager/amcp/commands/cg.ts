@@ -4,6 +4,7 @@ export class CgCommand extends LayeredCommand {
     private cmd: string;
     private cgLayer?: number;
     private arguments: string[] = [];
+
     constructor() {
         super();
     }
@@ -64,13 +65,17 @@ export class CgCommand extends LayeredCommand {
         return CgCommand.single(layer, 'INFO');
     }
 
-    public getCommand() {
-        const position = this.getPosition();
-        if (!position) return;
+    public getCommandType() {
+        return 'CG';
+    }
 
-        let args = this.arguments.join(' ');
-        if (this.cgLayer !== undefined) args = `${this.cgLayer} ${args}`;
+    public getArguments(): string[] {
+        const args = this.arguments.slice();
+        if (this.cgLayer !== undefined) args.unshift(this.cgLayer.toString());
 
-        return `CG ${position} ${this.cmd} ${args}`;
+        const pos = this.getPosition();
+        if (pos) args.unshift(pos);
+
+        return args;
     }
 }
