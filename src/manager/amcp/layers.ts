@@ -4,37 +4,104 @@ import {ClearCommand} from './commands/clear';
 import {SwapCommand} from './commands/swap';
 import {BasicChannel, BasicLayer} from './basic';
 import {CommandExecutor} from './executor';
-
-export interface IndexAllocation {
-    index: number;
-}
-
-export interface GroupAllocation {
-    group: string;
-}
-
-export interface BeforeAllocation {
-    before: string | BasicLayer;
-}
-
-export interface AfterAllocation {
-    after: string | BasicLayer;
-}
-
-export type AllocationTypes = IndexAllocation | GroupAllocation | BeforeAllocation | AfterAllocation | undefined;
+import {UUID} from "../../util/uuid";
 
 export interface AllocateOptions {
     count?: number;
     index?: number;
 }
 
+export class EffectGroup {
+    public effects: Effect[] = [];
+
+    public readonly name: string;
+    public readonly channel: Channel;
+
+    constructor(channel: Channel, name: string) {
+        this.name = name;
+        this.channel = channel;
+    }
+
+    public addEffect(effect: Effect) {
+        this.effects.push(effect);
+    }
+    public removeEffect(effect: Effect) {
+        const index = this.effects.indexOf(effect);
+        if (index >= 0) this.effects.splice(index, 1);
+    }
+    public dispose() {
+        for (const effect of this.effects) effect.dispose();
+    }
+
+    /** Gets the first index that is after all previous effects, and after all the effects layer. AKA the index for a new layer */
+    public getEffectIndex(effect: Effect) {
+        let index = this.effects.indexOf(effect);
+        if (index < 0) throw new Error('Effect not found in group');
+
+        while (index >= 0) {
+            const effect = this.effects[index];
+            const layers = effect.getLayers();
+            if (layers.length) {
+                const layer = layers[layers.length - 1];
+                return this.channel.getLayerIndex(layer) + 1;
+            }
+
+            index--;
+        }
+
+        return this.getStartingIndex();
+    }
+
+    /** Gets the first index that is after all other effect groups */
+    protected getStartingIndex() {
+        let index = this.channel.groups.indexOf(this);
+        if (index < 0) throw new Error('Effect group not found in channel');
+        if (index === 0) return 0;
+
+        while (index > 0) {
+            index--;
+
+            const group = this.channel.groups[index];
+            if (group.effects.length < 1) continue;
+
+            const effects = group.effects;
+            let i = effects.length - 1;
+            while (i >= 0) {
+                const effect = effects[i];
+                if (effect.getLayers().length) break;
+
+                i--;
+            }
+
+            if (i < 0) continue;
+
+            const effect = effects[i];
+            const layers = effect.getLayers();
+            const layer = layers[layers.length - 1];
+            return this.channel.getLayerIndex(layer) + 1;
+        }
+
+        return 0;
+    }
+}
+
 export class Channel extends BasicChannel{
     public layers = new Map<number, Layer>();
-    public groupOrder: string[] = [];
-    public setGroupOrder(order: string[]) {
-        this.groupOrder = order;
+    public groups: EffectGroup[] = [];
 
-        // TODO: update the currentOrder
+    public createGroup(name: string, index = -1) {
+        const group = new EffectGroup(this, name);
+
+        index = index < 0 ? this.groups.length : index;
+        this.groups.splice(index, 0, group);
+
+        return group;
+    }
+    public getGroup(name?: string) {
+        name = name ?? UUID.generate();
+
+        const group = this.groups.find(group => group.name === name);
+        return group ?? this.createGroup(name);
     }
 
     private lastOrder: number[] = [];
@@ -56,6 +123,10 @@ export class Channel extends BasicChannel{
 
     public getLayers() {
         return this.currentOrder.map(id => this.layers.get(id)).filter(layer => layer !== undefined) as Layer[];
+    }
+
+    public getLayerIndex(layer: Layer) {
+        return this.currentOrder.indexOf(layer.id);
     }
 
     protected getActiveEffects() {

@@ -27,7 +27,7 @@
     "react-dom": "^18.2.0",
     "rest-exchange-protocol": "^0.0.12",
     "rest-exchange-protocol-client": "^0.0.11",
-    "uuid": "^9.0.0",
+    "uuid": "^9.0.1",
     "ws": "^8.12.1",
     "xml2js": "^0.6.2"
   },

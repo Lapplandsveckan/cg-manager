@@ -1,6 +1,5 @@
 import {Effect} from '../effect';
-import {Layer} from '../layers';
-import {CommandExecutor} from '../executor';
+import {EffectGroup} from '../layers';
 import {LoadBGCommand, PlayoutOptions} from '../commands/loadbg';
 import {PlayCommand} from '../commands/play';
 import {ClearCommand} from '../commands/clear';
@@ -9,22 +8,20 @@ import {ResumeCommand} from '../commands/resume';
 import {StopCommand} from '../commands/stop';
 import {Command} from '../command';
 
-export interface VideoEffectOptions {
-    layer: Layer;
-    clip: string;
-
-    options?: PlayoutOptions;
+export interface VideoEffectOptions extends PlayoutOptions {
+    disposeOnStop?: boolean;
 }
 
 export class VideoEffect extends Effect {
+    protected clip: string;
     protected options: VideoEffectOptions;
-    public constructor(options: VideoEffectOptions, executor?: CommandExecutor) {
-        super(executor);
-        this.options = options;
-    }
+    public constructor(clip: string, group: EffectGroup, options?: VideoEffectOptions) {
+        super(group);
 
-    getLayers(): Layer[] {
-        return [this.options.layer];
+        this.clip = clip;
+        this.options = options || {};
+
+        this.allocateLayers();
     }
 
     protected playing: boolean = false;
@@ -36,10 +33,14 @@ export class VideoEffect extends Effect {
         let commandType = LoadBGCommand;
         if (play) commandType = PlayCommand;
 
-        const cmd = commandType.video(this.options.clip, this.options.options);
-        cmd.allocate(this.options.layer);
+        const cmd = commandType.video(this.clip, this.options);
+        cmd.allocate(this.layer);
 
         return this.executor.execute(cmd);
+    }
+
+    protected get layer() {
+        return this.layers[0];
     }
 
     public play() {
@@ -47,8 +48,8 @@ export class VideoEffect extends Effect {
         if (this.playing) return;
         this.playing = true;
 
-        const cmd = PlayCommand.video(this.options.clip);
-        cmd.allocate(this.options.layer);
+        const cmd = PlayCommand.video(this.clip);
+        cmd.allocate(this.layer);
 
         return this.executor.execute(cmd);
     }
@@ -59,7 +60,7 @@ export class VideoEffect extends Effect {
         this.playing = false;
         this.paused = true;
 
-        const cmd = new PauseCommand(this.options.layer);
+        const cmd = new PauseCommand(this.layer);
         return this.executor.execute(cmd);
     }
 
@@ -69,7 +70,7 @@ export class VideoEffect extends Effect {
         this.playing = true;
         this.paused = false;
 
-        const cmd = new ResumeCommand(this.options.layer);
+        const cmd = new ResumeCommand(this.layer);
         return this.executor.execute(cmd);
     }
 
@@ -77,10 +78,13 @@ export class VideoEffect extends Effect {
         super.deactivate();
         this.playing = false;
 
-        let cmd: Command = new ClearCommand(this.options.layer);
-        if (this.playing) cmd = new StopCommand(this.options.layer);
+        let cmd: Command = new ClearCommand(this.layer);
+        if (this.playing) cmd = new StopCommand(this.layer);
         // TODO: do we want this ^^^?
 
-        return this.executor.execute(cmd);
+        const result = this.executor.execute(cmd);
+        if (this.options.disposeOnStop) result.then(() => !this.active && this.dispose());
+
+        return result
     }
 }
