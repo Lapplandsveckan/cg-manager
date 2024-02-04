@@ -22,11 +22,10 @@ export class CasparManager extends EventEmitter {
         this.caspar = new CasparProcess();
 
         this.executor = new CasparExecutor();
-        this.executor.connect();
-
         this.executor.allocateChannel(1); // TODO: Remove this line
 
         this.caspar.on('status', (status) => this.emit('caspar-status', status));
+        this.caspar.on('status', (status) => status.running && setTimeout(() => this.executor.connect(), 500));
         this.caspar.on('log', (log) => this.emit('caspar-log', log));
     }
 

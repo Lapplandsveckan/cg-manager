@@ -28,6 +28,12 @@ export class VideoEffect extends Effect {
 
     protected playing: boolean = false;
     protected paused: boolean = false;
+
+    protected startedTime: number = -1;
+    protected pausedTime: number = -1;
+    protected pausedDuration: number;
+    protected clipDuration: number;
+
     public activate(play: boolean = true) {
         if (!super.activate()) return;
 
@@ -71,6 +77,8 @@ export class VideoEffect extends Effect {
         if (duration === undefined) return;
 
         this.playTimeout = setTimeout(() => this.handleFinish(), duration * 1000);
+        this.startedTime = Date.now();
+        this.clipDuration = duration;
     }
 
     protected handleFinish() {
@@ -85,6 +93,7 @@ export class VideoEffect extends Effect {
         this.paused = true;
 
         clearTimeout(this.playTimeout); // TODO: only pause the timeout
+        this.pausedTime = Date.now();
 
         const cmd = new PauseCommand(this.layer);
         return this.executor.execute(cmd);
@@ -96,6 +105,13 @@ export class VideoEffect extends Effect {
         this.playing = true;
         this.paused = false;
 
+        const playTime = this.pausedTime - this.startedTime - this.pausedDuration;
+        this.pausedDuration += Date.now() - this.pausedTime;
+        this.pausedTime = -1;
+
+        const duration = this.clipDuration * 1000 - playTime;
+        this.playTimeout = setTimeout(() => this.handleFinish(), duration * 1000);
+
         const cmd = new ResumeCommand(this.layer);
         return this.executor.execute(cmd);
     }
@@ -104,11 +120,12 @@ export class VideoEffect extends Effect {
         if (!super.deactivate()) return;
 
         clearTimeout(this.playTimeout);
-        this.playing = false;
 
         let cmd: Command = new ClearCommand(this.layer);
         if (this.playing) cmd = new StopCommand(this.layer);
         // TODO: do we want this ^^^?
+
+        this.playing = false;
 
         const result = this.executor.execute(cmd);
         if (this.options.disposeOnStop) result.then(() => !this.active && this.dispose());
