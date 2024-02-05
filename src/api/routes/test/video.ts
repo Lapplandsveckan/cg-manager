@@ -2,7 +2,7 @@ import {CasparManager} from '../../../manager';
 import {WebError} from 'rest-exchange-protocol';
 import {FileDatabase} from '../../../manager/scanner/db';
 import {VideoEffect} from '../../../manager/amcp/effects/video';
-import {Logger} from "../../../util/log";
+import {Logger} from '../../../util/log';
 
 export default {
     'GET': async (request) => {

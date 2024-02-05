@@ -1,6 +1,6 @@
 import {CommandExecutor} from '../amcp/executor';
 import net from 'net';
-import {Logger} from "../../util/log";
+import {Logger} from '../../util/log';
 
 export class CasparExecutor extends CommandExecutor {
     private client: net.Socket;
