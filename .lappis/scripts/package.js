@@ -79,12 +79,6 @@ async function packageWeb() {
 }
 
 async function package() {
-    let outName = 'gateway';
-    if (process.platform === 'win32') outName += '.exe';
-
-    const dist = JSON.stringify(path.join(root, 'dist', 'index.js'));
-    const out = JSON.stringify(path.join(root, 'out', outName));
-
     console.log('Compiling TypeScript...');
     await cmd(path.join('typescript', 'bin', 'tsc'));
 
@@ -94,6 +88,28 @@ async function package() {
 
     console.log('Packaging executable...');
     await cmd(path.join('pkg', 'lib-es5', 'bin.js'), JSON.stringify(path.join(root, 'package.json')));
+}
+
+async function moveExecutable() {
+    let dest = process.env.DEST;
+    if (!dest) return;
+
+    console.log('Moving executable...');
+
+    let ending = 'manager';
+    if (process.platform === 'win32') ending += '.exe';
+
+    if (dest.endsWith('/') || dest.endsWith('\\')) dest += ending;
+
+    const src = path.join(root, 'out', ending);
+    await fs.copyFile(src, dest);
+
+    console.log(`Executable moved to ${dest}`);
+}
+
+async function finalize() {
+    console.log('Finalizing...');
+    await moveExecutable();
 }
 
 async function clean() {
@@ -106,6 +122,7 @@ async function clean() {
 async function main() {
     let state = true;
     await package().catch((e) => (state = false) || console.error(e));
+    await finalize();
     await clean();
 
     if (state) console.log('Build complete!');
