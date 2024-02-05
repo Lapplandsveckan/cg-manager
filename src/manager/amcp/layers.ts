@@ -86,7 +86,7 @@ export class EffectGroup {
 }
 
 export class Channel extends BasicChannel{
-    public layers = new Map<number, Layer>();
+    public layers = new Map<string, Layer>();
     public groups: EffectGroup[] = [];
 
     public createGroup(name: string, index = -1) {
@@ -104,8 +104,8 @@ export class Channel extends BasicChannel{
         return group ?? this.createGroup(name);
     }
 
-    private lastOrder: number[] = [];
-    private currentOrder: number[] = [];
+    private lastOrder: string[] = [];
+    private currentOrder: string[] = [];
 
     public executor: CommandExecutor;
     constructor(casparChannel: number, executor?: CommandExecutor) {
@@ -117,7 +117,7 @@ export class Channel extends BasicChannel{
         this.executor = executor;
     }
 
-    public getLayer(id: number) {
+    public getLayer(id: string) {
         return this.layers.get(id);
     }
 
@@ -252,13 +252,12 @@ export class Channel extends BasicChannel{
 }
 
 export class Layer extends BasicLayer {
-    public readonly id: number;
+    public readonly id: string;
     public readonly group: string = '';
-    private static layerCount = 0;
 
     constructor(channel: Channel, group?: string) {
         super(channel);
-        this.id = Layer.layerCount++;
+        this.id = UUID.generate();
         this.group = group ?? '';
     }
 
