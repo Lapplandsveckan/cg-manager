@@ -4,7 +4,7 @@ import {ClearCommand} from './commands/clear';
 import {SwapCommand} from './commands/swap';
 import {BasicChannel, BasicLayer} from './basic';
 import {CommandExecutor} from './executor';
-import {UUID} from '../../util/uuid';
+import { v4 as uuid } from 'uuid';
 
 export interface AllocateOptions {
     count?: number;
@@ -98,7 +98,7 @@ export class Channel extends BasicChannel{
         return group;
     }
     public getGroup(name?: string) {
-        name = name ?? UUID.generate();
+        name = name ?? uuid();
 
         const group = this.groups.find(group => group.name === name);
         return group ?? this.createGroup(name);
@@ -257,7 +257,7 @@ export class Layer extends BasicLayer {
 
     constructor(channel: Channel, group?: string) {
         super(channel);
-        this.id = UUID.generate();
+        this.id = uuid();
         this.group = group ?? '';
     }
 

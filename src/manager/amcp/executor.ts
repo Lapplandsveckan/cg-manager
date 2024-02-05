@@ -1,6 +1,14 @@
 import {Channel} from './layers';
 import {BasicCommand, Command} from './command';
-import {getTemplatesWithContent, TemplateInfo} from '../scanner/scanner';
+
+export interface TemplateInfo {
+    id: string;
+    path: string;
+    type: string;
+
+    gdd?: any;
+    error?: string;
+}
 
 export interface CommandListener {
     command: string;
