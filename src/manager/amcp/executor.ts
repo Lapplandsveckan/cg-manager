@@ -15,10 +15,14 @@ export class CommandExecutor {
     private lastFetch = 0;
     private fetchPromise: Promise<TemplateInfo[]> = null;
 
+    protected async _fetchTemplates() {
+        return [];
+    }
+
     protected fetchTemplates() {
         // TODO: optimize and better options
         if (!this.fetchPromise)
-            this.fetchPromise = getTemplatesWithContent()
+            this.fetchPromise = this._fetchTemplates()
                 .then(templates => {
                     this.fetchPromise = null;
                     return this.templates = templates;
