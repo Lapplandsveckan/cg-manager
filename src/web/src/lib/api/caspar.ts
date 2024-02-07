@@ -15,7 +15,7 @@ export class CasparServerApi extends EventEmitter {
         super();
         this.socket = socket;
 
-        this.socket.routes.action('api/caspar/status', async (request) => {
+        this.socket.routes.action('caspar/status', async (request) => {
             const status = request.data as { running: boolean };
             this.status = status;
 
@@ -24,11 +24,11 @@ export class CasparServerApi extends EventEmitter {
             this.emit('status', status);
         });
 
-        this.socket.routes.action('api/caspar/logs', async (request) => {
+        this.socket.routes.action('caspar/logs', async (request) => {
             const logs = request.data as string;
             this.logs += logs;
 
-            this.emit('logs', logs);
+            this.emit('logs', this.logs);
         });
     }
 

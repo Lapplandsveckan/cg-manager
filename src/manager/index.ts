@@ -26,7 +26,7 @@ export class CasparManager extends EventEmitter {
 
         this.caspar.on('status', (status) => this.emit('caspar-status', status));
         this.caspar.on('status', (status) => status.running && setTimeout(() => this.executor.connect(), 500));
-        this.caspar.on('log', (log) => this.emit('caspar-log', log));
+        this.caspar.on('log', (log) => this.emit('caspar-logs', log));
     }
 
     async start() {
