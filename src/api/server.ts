@@ -6,7 +6,7 @@ import {
 } from 'rest-exchange-protocol';
 import {loadRoutes} from './route';
 import {CasparManager} from '../manager';
-import {handleRequest} from '../web';
+import {handleRequest, onUpgrade} from '../web';
 
 export type CGClient = TypedClient<{}>;
 export class CGServer {
@@ -45,7 +45,10 @@ export class CGServer {
 
     web() {
         return async data => {
-            if (data.type === 'websocket-upgrade' && data.request.url.startsWith('/_next/')) throw new MiddlewareProhibitFurtherExecution();
+            if (data.type === 'websocket-upgrade' && data.request.url.startsWith('/_next/')) {
+                onUpgrade(data.request, data.socket, data.head);
+                throw new MiddlewareProhibitFurtherExecution();
+            }
 
             if (data.type !== 'http') return;
             if (data.request.url.startsWith('/api')) return;

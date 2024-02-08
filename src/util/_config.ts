@@ -1,5 +1,6 @@
 export interface Config {
     'hide-debug': boolean; // Hide debug messages
+    'pipe-caspar': boolean; // Pipe CasparCG output to console
     'port': number; // Port to listen on
     'log-dir'?: string | null; // Directory to store logs in
     'dev': boolean; // Whether the server is in development mode
@@ -12,6 +13,7 @@ export default {
     'hide-debug': process.env.NODE_ENV === 'production',
     'port': 5353,
     'log-dir': null,
+    'pipe-caspar': false,
     'caspar-path': null,
     'temp': true,
 } as Config;

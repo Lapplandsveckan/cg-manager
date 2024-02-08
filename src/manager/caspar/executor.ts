@@ -25,6 +25,11 @@ export class CasparExecutor extends CommandExecutor {
     }
 
     public connect() {
+        this.retry = true;
+        this._internalConnect();
+    }
+
+    private _internalConnect() {
         if (this.client) this.client.destroy();
 
         this.client = net.connect(this.port, this.ip, () => this.onConnect());
@@ -37,10 +42,8 @@ export class CasparExecutor extends CommandExecutor {
     }
 
     public disconnect() {
-        if (this.client) this.client.destroy();
-        this.onDisconnect();
-
         this.retry = false;
+        this.onDisconnect();
     }
 
     protected send(data: string) {
@@ -51,19 +54,23 @@ export class CasparExecutor extends CommandExecutor {
         clearTimeout(this.retryTimeout);
 
         this.connected = true;
-        this.retry = true;
         this.fetchTemplates();
 
         Logger.info('Caspar CG executor connected');
     }
 
     protected onDisconnect(error?: Error) {
+        if (!this.client) return;
+
+        this.client.destroy();
+
+        this.client = null;
         this.connected = false;
 
+        if (error) Logger.error(`Caspar CG executor failed to connect: ${error}`);
         Logger.info('Caspar CG executor disconnected');
-        if (error) Logger.error(error);
 
         if (this.retryTimeout) clearTimeout(this.retryTimeout);
-        this.retryTimeout = setTimeout(() => this.connect(), 5000);
+        if (this.retry) this.retryTimeout = setTimeout(() => this._internalConnect(), 5000);
     }
 }

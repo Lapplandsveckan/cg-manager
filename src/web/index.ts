@@ -15,6 +15,10 @@ app.prepare().then(() => {
     Logger.scope('Web').info('Web server prepared');
 });
 
+export function onUpgrade(req: http.IncomingMessage, socket: any, head: Buffer) {
+    httpServer.emit('upgrade', req, socket, head);
+}
+
 export function handleRequest(req: http.IncomingMessage, res: http.ServerResponse) {
     return handle(req, res);
 }
