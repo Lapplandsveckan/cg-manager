@@ -20,11 +20,18 @@ const CasparLog: React.FC = () => {
     }, []);
 
     return (
-        <div className="logs" style={{
-            whiteSpace: 'pre-wrap',
-        }}
-        >
-            {logs}
+        <div style={{
+            width: '100%',
+            height: '100%',
+
+            overflow: 'auto',
+        }}>
+            <div className="logs" style={{
+                whiteSpace: 'pre-wrap',
+            }}
+            >
+                {logs}
+            </div>
         </div>
     );
 };
@@ -69,7 +76,7 @@ const StatusButton: React.FC = () => {
 const Page = () => {
     return (
         <DefaultContentLayout>
-            <StatusButton />
+            { /* <StatusButton /> */ }
             <CasparLog/>
         </DefaultContentLayout>
     );
