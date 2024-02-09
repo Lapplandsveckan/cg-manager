@@ -5,7 +5,7 @@ import {loadPluginFolder} from './util';
 import {CasparManager} from '../manager';
 
 export function loadPlugins() {
-    const logger = Logger.scope('API');
+    const logger = Logger.scope('Plugin Loader');
     logger.info('Loading plugins...');
 
     const externalPlugins = loadPluginFolder(path.join(process.cwd(), 'plugins'));
@@ -14,4 +14,9 @@ export function loadPlugins() {
 
     logger.info('Enabling plugins...');
     CasparManager.getManager().plugins.enableAll();
+}
+
+export function unloadPlugins() {
+    Logger.scope('Plugin Loader').info('Unloading plugins...');
+    CasparManager.getManager().plugins.disableAll();
 }

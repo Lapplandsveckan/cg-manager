@@ -58,6 +58,21 @@ async function packageRoutes() {
     await fs.writeFile(out, `module.exports = ${content};`);
 }
 
+async function packageInternalPlugins() {
+    console.log('Packaging internal plugins...');
+    const plugins = path.join(root, 'dist', 'plugins');
+
+    const internals = path.join(plugins, 'internal');
+    const out = path.join(plugins, '_plugins.js');
+
+    const files = fss.readdirSync(internals)
+        .filter((file) => !file.includes('.'))
+        .map((file) => `require('./internal/${file}').default,\n`);
+
+    const content = `[\n${files.join('')}]`;
+    await fs.writeFile(out, `module.exports = ${content};`);
+}
+
 async function packageConfig() {
     console.log('Packaging config...');
 
@@ -83,6 +98,7 @@ async function package() {
     await cmd(path.join('typescript', 'bin', 'tsc'));
 
     await packageRoutes();
+    await packageInternalPlugins();
     await packageConfig();
     await packageWeb();
 

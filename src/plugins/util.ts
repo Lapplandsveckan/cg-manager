@@ -1,24 +1,21 @@
 import fs from 'fs';
 import path from 'path';
 import {CasparPlugin} from '../manager/amcp/plugin';
+import {noTry} from 'no-try';
+import {Logger} from '../util/log';
 
-function readDirRecursive(dir: string) {
-    const results = fs.readdirSync(dir);
-    const files = [];
-
-    for (const result of results) {
-        if (result.endsWith('.js')) files.push(result);
-        if (result.endsWith('.ts')) files.push(result);
-        if (result.includes('.')) continue;
-
-        const subFiles = readDirRecursive(path.join(dir, result));
-        for (const subFile of subFiles) files.push(`${result}/${subFile}`);
-    }
-
-    return files;
+function loadPluginFolderUnsafe(dir: string) {
+    return fs.readdirSync(dir)
+        .filter((file) => !file.includes('.'))
+        .map((file) => require(path.join(dir, file)).default as typeof CasparPlugin);
 }
 
 export function loadPluginFolder(dir: string) {
-    return readDirRecursive(dir)
-        .map((file) => require(path.join(dir, file)).default as typeof CasparPlugin);
+    const [err, files] = noTry(() => loadPluginFolderUnsafe(dir));
+    if (err) {
+        if (!err.message.includes('ENOENT')) Logger.error(`Error loading plugins from ${dir}: ${err}`);
+        return [];
+    }
+
+    return files;
 }

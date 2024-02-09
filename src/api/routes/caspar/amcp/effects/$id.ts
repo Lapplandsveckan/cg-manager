@@ -8,6 +8,6 @@ export default {
             .getManager()
             .getExecutor()
             .getEffect(request.params.id)
-           ?.toJSON();
+            ?.toJSON();
     },
 };

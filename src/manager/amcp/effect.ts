@@ -95,7 +95,7 @@ export abstract class Effect {
             type: this.getName(),
             active: this.active,
             metadata: this.getMetadata(),
-            layers: this.layers.map(layer => layer.toJSON())
+            layers: this.layers.map(layer => layer.toJSON()),
         };
     }
 }

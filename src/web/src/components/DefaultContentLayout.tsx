@@ -10,7 +10,7 @@ const ErrorComponent = () => {
             <p>Sorry about that</p>
         </div>
     );
-}
+};
 
 export const DefaultContentLayout = (props: { children: React.ReactNode }) => {
     return (

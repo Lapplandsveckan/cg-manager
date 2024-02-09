@@ -6,7 +6,7 @@ import ImageIcon from '@mui/icons-material/Image';
 import {OverridableComponent} from '@mui/material/OverridableComponent';
 import {useRouter} from 'next/router';
 
-const NavbarButton: React.FC<{ href: string, icon: OverridableComponent<SvgIconTypeMap<{}, "svg">> }> = ({ href, icon }) => {
+const NavbarButton: React.FC<{ href: string, icon: OverridableComponent<SvgIconTypeMap<{}, 'svg'>> }> = ({ href, icon }) => {
     const router = useRouter();
     const Icon = icon;
 
@@ -18,7 +18,7 @@ const NavbarButton: React.FC<{ href: string, icon: OverridableComponent<SvgIconT
             <Icon htmlColor="#FFF" />
         </IconButton>
     );
-}
+};
 
 export const Navbar = () => {
     const version = useVersion();

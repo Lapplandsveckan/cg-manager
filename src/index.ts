@@ -3,6 +3,7 @@ import {Logger} from './util/log';
 import {CGServer} from './api/server';
 import {Discovery} from './manager/discovery';
 import {CasparManager} from './manager';
+import {loadPlugins, unloadPlugins} from './plugins/plugins';
 
 Logger.debug('Debug mode enabled!');
 
@@ -25,11 +26,14 @@ async function start() {
     const discovery = new Discovery();
     await discovery.start();
 
+    await loadPlugins();
+
     Logger.info('Gateway started!');
 
     return async () => {
         Logger.info('Stopping gateway...');
 
+        await unloadPlugins();
         await discovery.stop();
         await server.stop();
         await manager.stop();

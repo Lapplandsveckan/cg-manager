@@ -9,7 +9,10 @@ export class CasparPlugin {
     private _enabled: boolean = false;
     protected readonly logger = Logger.scope('Plugin').scope(this.pluginName);
 
-    public static readonly pluginName: string;
+    public static get pluginName() {
+        return this.name;
+    }
+
     public get pluginName() {
         return this.constructor['pluginName'];
     }
@@ -25,7 +28,7 @@ export class CasparPlugin {
             return;
         }
 
-        Logger.scope('Plugin Loader').scope(this.pluginName).info('Enabled');
+        Logger.scope('Plugin Loader').scope(this.pluginName).debug('Enabled');
     }
 
     private disable() {
@@ -34,7 +37,7 @@ export class CasparPlugin {
 
         const [error] = noTry(this.onDisable);
         if (error) Logger.scope('Plugin Loader').scope(this.pluginName).error(`Error disabling plugin: ${error}`);
-        else Logger.scope('Plugin Loader').scope(this.pluginName).info('Disabled');
+        else Logger.scope('Plugin Loader').scope(this.pluginName).debug('Disabled');
     }
 
     protected onEnable() {
@@ -66,6 +69,8 @@ export class PluginManager {
     public register(plugin: typeof CasparPlugin) {
         const _plugin = new plugin();
         this._plugins.push(_plugin);
+
+        Logger.scope('Plugin Loader').scope(_plugin.pluginName).debug('Loaded');
 
         new PluginAPI(CasparManager.getManager(), _plugin);
         if (this._enabled) _plugin['enable']();
