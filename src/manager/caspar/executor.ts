@@ -73,4 +73,11 @@ export class CasparExecutor extends CommandExecutor {
         if (this.retryTimeout) clearTimeout(this.retryTimeout);
         if (this.retry) this.retryTimeout = setTimeout(() => this._internalConnect(), 5000);
     }
+
+    public getEffect(effect: string) {
+        return this.getChannels()
+            .map(channel => channel.groups.map(group => group.effects))
+            .flat(2)
+            .find(e => e.id === effect);
+    }
 }

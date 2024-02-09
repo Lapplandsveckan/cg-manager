@@ -195,4 +195,10 @@ export class CommandExecutor {
     protected onEvent(code: number, cmd: string, data: string[]) {
 
     }
+
+    public toJSON() {
+        return {
+            channels: this.getChannels().map(channel => channel.toJSON()),
+        };
+    }
 }

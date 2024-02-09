@@ -3,11 +3,15 @@ import {MediaScanner} from './scanner';
 import {CasparProcess} from './caspar/process';
 import {EventEmitter} from 'events';
 import {CasparExecutor} from './caspar/executor';
+import {EffectRegistry} from './amcp/effect';
+import {PluginManager} from './amcp/plugin';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
     public caspar: CasparProcess;
     public executor: CasparExecutor;
+    public effects: EffectRegistry;
+    public plugins: PluginManager;
 
     private static instance: CasparManager;
     public static getManager() {
@@ -20,8 +24,10 @@ export class CasparManager extends EventEmitter {
 
         this.scanner = new MediaScanner();
         this.caspar = new CasparProcess();
-
+        this.effects = new EffectRegistry();
         this.executor = new CasparExecutor();
+        this.plugins = new PluginManager();
+
         this.executor.allocateChannel(1); // TODO: Remove this line
 
         this.caspar.on('status', (status) => this.emit('caspar-status', status));
@@ -51,5 +57,9 @@ export class CasparManager extends EventEmitter {
 
     public getCasparProcess() {
         return this.caspar;
+    }
+
+    public getExecutor() {
+        return this.executor;
     }
 }

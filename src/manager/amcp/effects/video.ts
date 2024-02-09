@@ -31,7 +31,7 @@ export class VideoEffect extends Effect {
 
     protected startedTime: number = -1;
     protected pausedTime: number = -1;
-    protected pausedDuration: number;
+    protected pausedDuration: number = 0;
     protected clipDuration: number;
 
     public activate(play: boolean = true) {
@@ -131,5 +131,20 @@ export class VideoEffect extends Effect {
         if (this.options.disposeOnStop) result.then(() => !this.active && this.dispose());
 
         return result;
+    }
+
+    public getMetadata(): {} {
+        return {
+            playing: this.playing,
+
+            startedTime: this.startedTime,
+            pausedTime: this.pausedTime,
+
+            pausedDuration: this.pausedDuration,
+            clipDuration: this.clipDuration * 1000,
+
+            playDuration: this.playing ? Date.now() - this.startedTime - this.pausedDuration : 0,
+            now: Date.now(),
+        };
     }
 }

@@ -83,6 +83,13 @@ export class EffectGroup {
 
         return 0;
     }
+
+    public toJSON() {
+        return {
+            name: this.name,
+            effects: this.effects.map(effect => effect.id),
+        };
+    }
 }
 
 export class Channel extends BasicChannel{
@@ -127,15 +134,6 @@ export class Channel extends BasicChannel{
 
     public getLayerIndex(layer: Layer) {
         return this.currentOrder.indexOf(layer.id);
-    }
-
-    protected getActiveEffects() {
-        const effects = new Set<Effect>();
-        for (const layer of this.layers.values())
-            for (const effect of layer.getActiveEffects())
-                effects.add(effect);
-
-        return effects;
     }
 
     public allocateLayers(options?: AllocateOptions): Layer[] {
@@ -183,10 +181,8 @@ export class Channel extends BasicChannel{
     public deallocateLayers(layers: Layer[]): void {
         for (let i = 0; i < layers.length; i++) {
             const layer = layers[i];
-            layer['setLayerManager'](undefined);
-            layer['setCasparLayer'](undefined);
-
             const index = this.currentOrder.indexOf(layer.id);
+
             this.currentOrder[index] = undefined;
             this.layers.delete(layer.id);
         }
@@ -218,6 +214,9 @@ export class Channel extends BasicChannel{
             const id = this.currentOrder[i];
             if (id === undefined) continue;
 
+            const layer = this.layers.get(id);
+            layer['setCasparLayer'](i + 1);
+
             const index = swap.indexOf(id);
             if (index === i) continue;
             if (index < 0) continue;
@@ -246,41 +245,44 @@ export class Channel extends BasicChannel{
         const commandGroup = new CommandGroup(commands);
         this.executor.execute(commandGroup);
 
-        const effects = this.getActiveEffects();
-        for (const effect of effects) effect.updatePositions();
+        // TODO: call all effects to update their layers
+    }
+
+    public toJSON() {
+        return {
+            channel: this.casparChannel,
+
+            layers: this.currentOrder.filter(v => v).map(v => this.layers.get(v)).map(layer => layer.toJSON()),
+            groups: this.groups.map(group => group.toJSON()),
+        };
     }
 }
 
 export class Layer extends BasicLayer {
     public readonly id: string;
-    public readonly group: string = '';
 
-    constructor(channel: Channel, group?: string) {
+    constructor(channel: Channel) {
         super(channel);
         this.id = uuid();
-        this.group = group ?? '';
     }
 
-    private effects = new Set<Effect>();
-    public addEffect(effect: Effect) {
-        this.effects.add(effect);
+    private effect: Effect;
+    public setEffect(effect: Effect) {
+        this.effect = effect;
     }
 
-    public removeEffect(effect: Effect) {
-        this.effects.delete(effect);
-    }
-
-    public getActiveEffects() {
-        return Array.from(this.effects.values());
-    }
-
-    public clearEffects() {
-        for (const effect of this.effects) effect.deactivate();
-        this.effects.clear();
+    public getEffect() {
+        return this.effect;
     }
 
     public dispose() {
-        this.clearEffects();
         (this.channel as Channel).deallocateLayers([this]);
+    }
+
+    public toJSON() {
+        return {
+            id: this.id,
+            effect: this.effect?.id,
+        };
     }
 }
