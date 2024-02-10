@@ -1,5 +1,6 @@
 import {EffectGroup, Layer} from './layers';
 import {v4 as uuid} from 'uuid';
+import {Transform} from './transform';
 
 export abstract class Effect {
     private _active: boolean = false;
@@ -7,6 +8,25 @@ export abstract class Effect {
     public readonly id: string = uuid();
     protected get active() {
         return this._active;
+    }
+
+    protected transform: Transform;
+    public getTransform() {
+        return this.transform;
+    }
+
+    public setTransform(transform: Transform) {
+        this.transform = transform;
+        this.applyTransform();
+    }
+
+    // Override this method if you don't want to apply the transform
+    protected applyTransform() {
+        if (!this.active) return;
+        if (!this.transform) return;
+
+        for (const layer of this.layers)
+            this.executor.execute(this.transform.getCommand().allocate(layer));
     }
 
     protected effectGroup: EffectGroup;
@@ -29,6 +49,8 @@ export abstract class Effect {
         this._active = true;
 
         this.executor.executeAllocations();
+        this.applyTransform();
+
         return true;
     }
 

@@ -59,7 +59,7 @@ interface Perspective {
     bottom_left: Anchor;
 }
 
-interface Tween {
+export interface Tween {
     type: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
     duration: number;
 }
@@ -92,7 +92,12 @@ export class MixerCommand extends CommandGroup {
         this.shouldClear = shouldClear;
     }
 
-    protected single(command: string, args: string[] = []) {
+    protected single(command: string, args: string[] = [], tween?: Tween) {
+        if (tween) {
+            args.push(tween.duration.toString());
+            args.push(tween.type);
+        }
+
         const mixer = new MixerSingleCommand(command, args);
         this.commands.push(mixer);
         return this;
@@ -110,7 +115,7 @@ export class MixerCommand extends CommandGroup {
         return this.single('KEYER', [keyer.toString()]);
     }
 
-    public chroma(chroma: Chrome, tween: Tween) {
+    public chroma(chroma: Chrome, tween?: Tween) {
         if (!chroma.enabled) return this.single('CHROMA', ['0']);
 
         const args = [
@@ -124,12 +129,9 @@ export class MixerCommand extends CommandGroup {
             chroma.spill_suppress,
             chroma.spill_suppress_saturation,
             chroma.show_mask ? 1 : 0,
+        ] as any[];
 
-            tween.duration,
-            tween.type,
-        ];
-
-        return this.single('CHROMA', args.map(arg => arg.toString()));
+        return this.single('CHROMA', args.map(arg => arg.toString()), tween);
     }
 
     public blend(blend: string) {
@@ -140,127 +142,101 @@ export class MixerCommand extends CommandGroup {
         return this.single('INVERT', [invert ? '1' : '0']);
     }
 
-    public opacity(opacity: number, tween: Tween) {
+    public opacity(opacity: number, tween?: Tween) {
         const args = [
             opacity,
-            tween.duration,
-            tween.type,
-        ];
+        ] as any[];
 
-        return this.single('OPACITY', args.map(arg => arg.toString()));
+        return this.single('OPACITY', args.map(arg => arg.toString()), tween);
     }
 
-    public brightness(brightness: number, tween: Tween) {
+    public brightness(brightness: number, tween?: Tween) {
         const args = [
             brightness,
-            tween.duration,
-            tween.type,
-        ];
+        ] as any[];
 
-        return this.single('BRIGHTNESS', args.map(arg => arg.toString()));
+        return this.single('BRIGHTNESS', args.map(arg => arg.toString()), tween);
     }
 
-    public saturation(saturation: number, tween: Tween) {
+    public saturation(saturation: number, tween?: Tween) {
         const args = [
             saturation,
-            tween.duration,
-            tween.type,
-        ];
+        ] as any[];
 
-        return this.single('SATURATION', args.map(arg => arg.toString()));
+        return this.single('SATURATION', args.map(arg => arg.toString()), tween);
     }
 
-    public contrast(contrast: number, tween: Tween) {
+    public contrast(contrast: number, tween?: Tween) {
         const args = [
             contrast,
-            tween.duration,
-            tween.type,
-        ];
+        ] as any[];
 
-        return this.single('CONTRAST', args.map(arg => arg.toString()));
+        return this.single('CONTRAST', args.map(arg => arg.toString()), tween);
     }
 
-    public levels(levels: Levels, tween: Tween) {
+    public levels(levels: Levels, tween?: Tween) {
         const args = [
             levels.min_input,
             levels.max_input,
             levels.gamma,
             levels.min_output,
             levels.max_output,
+        ] as any[];
 
-            tween.duration,
-            tween.type,
-        ];
-
-        return this.single('LEVELS', args.map(arg => arg.toString()));
+        return this.single('LEVELS', args.map(arg => arg.toString()), tween);
     }
 
-    public fill(fill: Fill, tween: Tween) {
+    public fill(fill: Fill, tween?: Tween) {
         const args = [
             fill.x,
             fill.y,
             fill.x_scale,
             fill.y_scale,
+        ] as any[];
 
-            tween.duration,
-            tween.type,
-        ];
-
-        return this.single('FILL', args.map(arg => arg.toString()));
+        return this.single('FILL', args.map(arg => arg.toString()), tween);
     }
 
-    public clip(clip: Clip, tween: Tween) {
+    public clip(clip: Clip, tween?: Tween) {
         const args = [
             clip.x,
             clip.y,
             clip.width,
             clip.height,
+        ] as any[];
 
-            tween.duration,
-            tween.type,
-        ];
-
-        return this.single('CLIP', args.map(arg => arg.toString()));
+        return this.single('CLIP', args.map(arg => arg.toString()), tween);
     }
 
-    public anchor(anchor: Anchor, tween: Tween) {
+    public anchor(anchor: Anchor, tween?: Tween) {
         const args = [
             anchor.x,
             anchor.y,
+        ] as any[];
 
-            tween.duration,
-            tween.type,
-        ];
-
-        return this.single('ANCHOR', args.map(arg => arg.toString()));
+        return this.single('ANCHOR', args.map(arg => arg.toString()), tween);
     }
 
-    public crop(crop: Crop, tween: Tween) {
+    public crop(crop: Crop, tween?: Tween) {
         const args = [
             crop.left_edge,
             crop.top_edge,
             crop.right_edge,
             crop.bottom_edge,
+        ] as any[];
 
-            tween.duration,
-            tween.type,
-        ];
-
-        return this.single('CROP', args.map(arg => arg.toString()));
+        return this.single('CROP', args.map(arg => arg.toString()), tween);
     }
 
-    public rotation(angle: number, tween: Tween) {
+    public rotation(angle: number, tween?: Tween) {
         const args = [
             angle,
+        ] as any[];
 
-            tween.duration,
-            tween.type,
-        ];
-
-        return this.single('ROTATION', args.map(arg => arg.toString()));
+        return this.single('ROTATION', args.map(arg => arg.toString()), tween);
     }
 
-    public perspective(perspective: Perspective, tween: Tween) {
+    public perspective(perspective: Perspective, tween?: Tween) {
         const args = [
             perspective.top_left.x,
             perspective.top_left.y,
@@ -270,27 +246,21 @@ export class MixerCommand extends CommandGroup {
             perspective.bottom_right.y,
             perspective.bottom_left.x,
             perspective.bottom_left.y,
+        ] as any[];
 
-            tween.duration,
-            tween.type,
-        ];
-
-        return this.single('PERSPECTIVE', args.map(arg => arg.toString()));
+        return this.single('PERSPECTIVE', args.map(arg => arg.toString()), tween);
     }
 
     public mipmap(mipmap: boolean) {
         return this.single('MIPMAP', [mipmap ? '1' : '0']);
     }
 
-    public volume(volume: number, tween: Tween) {
+    public volume(volume: number, tween?: Tween) {
         const args = [
             volume,
+        ] as any[];
 
-            tween.duration,
-            tween.type,
-        ];
-
-        return this.single('VOLUME', args.map(arg => arg.toString()));
+        return this.single('VOLUME', args.map(arg => arg.toString()), tween);
     }
 
     public mastervolume(volume: number) {
