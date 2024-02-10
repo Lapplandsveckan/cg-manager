@@ -10,7 +10,6 @@ export interface Rect {
     end: Point;
 }
 
-
 export class Transform {
     public source: Rect;
     public destination: Rect;
@@ -21,6 +20,17 @@ export class Transform {
     constructor(source: Rect, destination: Rect) {
         this.source = source;
         this.destination = destination;
+    }
+
+    public static getRect(sx: number, sy: number, ex: number, ey: number) {
+        return {
+            start: {x: sx, y: sy},
+            end: {x: ex, y: ey}
+        };
+    }
+
+    public static normalRect() {
+        return Transform.getRect(0, 0, 1, 1);
     }
 
     public setTween();
