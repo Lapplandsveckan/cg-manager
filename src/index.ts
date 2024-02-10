@@ -21,6 +21,8 @@ async function start() {
     const server = new CGServer(manager, config.port);
     await server.start();
 
+    manager.server = server;
+
     Logger.info('Starting bonjour discovery service...');
 
     const discovery = new Discovery();

@@ -24,12 +24,10 @@ function readDirRecursive(dir: string) {
 const files = readDirRecursive(path.join(__dirname, 'routes'))
     .map((file) => {
         // First remove the ./ and the .ts, then split by / and remove index
-        const fileName = file.substring(0, file.length - '.js'.length);
-        fileName.replace(/\\/g, '/'); // Replace backslashes with forward slashes
-        fileName.replace(/(\/|^)index$/, ''); // Remove index at the end, for example: /api/index.ts -> /api
+        let fileName = file.substring(0, file.length - '.js'.length);
+        fileName = fileName.replace(/(\/|^)index$/, ''); // Remove index at the end, for example: /api/index.ts -> /api
 
         const routeExport = require(`./routes/${file}`).default;
-
         return [`/${fileName}`, routeExport] as [string, RouteExport];
     });
 

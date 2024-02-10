@@ -20,7 +20,7 @@ export abstract class Effect {
 
     protected constructor(effectGroup: EffectGroup) {
         this.effectGroup = effectGroup;
-        this.group.addEffect(this); // Maybe delay this until the effect is activated?
+        this.group.addEffect(this);
     }
 
     public activate(): any {
@@ -106,6 +106,10 @@ export class EffectRegistry {
 
     public register(name: string, effect: EffectConstructor) {
         this.effects.set(name, effect);
+    }
+
+    public unregister(name: string) {
+        this.effects.delete(name);
     }
 
     public get(name: string) {

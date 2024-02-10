@@ -2,6 +2,7 @@ import {CommandExecutor} from '../amcp/executor';
 import net from 'net';
 import {Logger} from '../../util/log';
 import {getTemplatesWithContent} from '../scanner/scanner';
+import {Effect} from '../amcp/effect';
 
 export class CasparExecutor extends CommandExecutor {
     private client: net.Socket;
@@ -74,10 +75,15 @@ export class CasparExecutor extends CommandExecutor {
         if (this.retry) this.retryTimeout = setTimeout(() => this._internalConnect(), 5000);
     }
 
-    public getEffect(effect: string) {
-        return this.getChannels()
-            .map(channel => channel.groups.map(group => group.effects))
-            .flat(2)
-            .find(e => e.id === effect);
+    public getEffectGroup(identifier: string) {
+        const [c, group] = identifier.split(':');
+
+        const cid = parseInt(c);
+        if (isNaN(cid)) return null;
+
+        const channel = this.getChannel(cid);
+        if (!channel) return null;
+
+        return channel.getGroup(group);
     }
 }

@@ -46,10 +46,8 @@ async function packageRoutes() {
     const files = (await readDirRecursive(routes))
         .map((file) => {
             // First remove the ./ and the .ts, then split by / and remove index
-            const fileName = file.substring(0, file.length - '.js'.length);
-            fileName.replace(/\\/g, '/'); // Replace backslashes with forward slashes
-            fileName.replace(/(\/|^)index$/, ''); // Remove index at the end, for example: /api/index.ts -> /api
-
+            let fileName = file.substring(0, file.length - '.js'.length);
+            fileName = fileName.replace(/(\/|^)index$/, ''); // Remove index at the end, for example: /api/index.ts -> /api
 
             return `    ['/${fileName}', require('./routes/${file}').default],\n`;
         });
@@ -67,7 +65,7 @@ async function packageInternalPlugins() {
 
     const files = fss.readdirSync(internals)
         .filter((file) => !file.includes('.'))
-        .map((file) => `require('./internal/${file}').default,\n`);
+        .map((file) => `    require('./internal/${file}').default,\n`);
 
     const content = `[\n${files.join('')}]`;
     await fs.writeFile(out, `module.exports = ${content};`);

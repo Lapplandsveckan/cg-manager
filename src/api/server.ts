@@ -1,4 +1,5 @@
 import {
+    Method,
     MiddlewareProhibitFurtherExecution,
     REPServer,
     TypedClient,
@@ -7,6 +8,8 @@ import {
 import {loadRoutes} from './route';
 import {CasparManager} from '../manager';
 import {handleRequest, onUpgrade} from '../web';
+import {Route} from 'rest-exchange-protocol/dist/route';
+import {Logger} from '../util/log';
 
 export type CGClient = TypedClient<{}>;
 export class CGServer {
@@ -81,5 +84,20 @@ export class CGServer {
 
     async stop() {
         await this.server.stop();
+    }
+
+    public registerRoute(path: string, handler: Route['handler'], method: Method) {
+        const route = {
+            method: method,
+            path: `/api/${path}`,
+            handler,
+        };
+
+        Logger.scope('API').debug(`Registering route ${method} /api/${path}`);
+        this.server.register(route);
+    }
+
+    public unregisterRoute(path: string, method: Method) {
+        // TODO: Implement unregisterRoute
     }
 }

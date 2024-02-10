@@ -24,10 +24,13 @@ export class EffectGroup {
 
     public addEffect(effect: Effect) {
         this.effects.push(effect);
+        this.channel.executor['effects'].set(effect.id, effect);
     }
     public removeEffect(effect: Effect) {
         const index = this.effects.indexOf(effect);
         if (index >= 0) this.effects.splice(index, 1);
+
+        this.channel.executor['effects'].delete(effect.id);
     }
     public dispose() {
         for (const effect of this.effects) effect.dispose();

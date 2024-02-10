@@ -1,28 +1,26 @@
-import {Effect} from '../effect';
-import {EffectGroup} from '../layers';
-import {LoadBGCommand, PlayoutOptions} from '../commands/loadbg';
-import {PlayCommand} from '../commands/play';
-import {ClearCommand} from '../commands/clear';
-import {PauseCommand} from '../commands/pause';
-import {ResumeCommand} from '../commands/resume';
-import {StopCommand} from '../commands/stop';
-import {Command} from '../command';
-import {FileDatabase} from '../../scanner/db';
+import {Effect} from '../../../../manager/amcp/effect';
+import {EffectGroup} from '../../../../manager/amcp/layers';
+import {LoadBGCommand, PlayoutOptions} from '../../../../manager/amcp/commands/loadbg';
+import {PlayCommand} from '../../../../manager/amcp/commands/play';
+import {ClearCommand} from '../../../../manager/amcp/commands/clear';
+import {PauseCommand} from '../../../../manager/amcp/commands/pause';
+import {ResumeCommand} from '../../../../manager/amcp/commands/resume';
+import {StopCommand} from '../../../../manager/amcp/commands/stop';
+import {Command} from '../../../../manager/amcp/command';
+import {FileDatabase} from '../../../../manager/scanner/db';
 
 export interface VideoEffectOptions extends PlayoutOptions {
+    clip: string;
     disposeOnStop?: boolean;
 }
 
 export class VideoEffect extends Effect {
-    protected clip: string;
     protected options: VideoEffectOptions;
 
-    public constructor(clip: string, group: EffectGroup, options?: VideoEffectOptions) {
+    public constructor(group: EffectGroup, options: VideoEffectOptions) {
         super(group);
 
-        this.clip = clip;
-        this.options = options || {};
-
+        this.options = options;
         this.allocateLayers();
     }
 
@@ -40,7 +38,7 @@ export class VideoEffect extends Effect {
         let commandType = LoadBGCommand;
         if (play) commandType = PlayCommand;
 
-        const cmd = commandType.video(this.clip, this.options);
+        const cmd = commandType.video(this.options.clip, this.options);
         cmd.allocate(this.layer);
 
         if (play) this.handlePlay();
@@ -55,7 +53,7 @@ export class VideoEffect extends Effect {
         if (!this.active) return this.activate(true);
         if (this.playing) return;
 
-        const cmd = PlayCommand.video(this.clip);
+        const cmd = PlayCommand.video(this.options.clip);
         cmd.allocate(this.layer);
 
         this.handlePlay();
@@ -70,7 +68,7 @@ export class VideoEffect extends Effect {
 
         if (this.options.loop) return;
 
-        const media = FileDatabase.db.get(this.clip);
+        const media = FileDatabase.db.get(this.options.clip);
         if (!media) return;
 
         const duration = media.mediainfo.format.duration;

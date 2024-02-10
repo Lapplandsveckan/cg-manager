@@ -22,14 +22,36 @@ async function start() {
 export class MediaScanner {
     private cancel: () => Promise<void> | void = null;
 
+    private db: FileDatabase;
+    private server: any;
+    private scanner: any;
+
+    public started: boolean = false;
+
     async start() {
-        if (this.cancel) return;
-        this.cancel = await start();
+        if (this.started) return;
+        this.started = true;
+
+        await loadCasparConfig();
+
+        this.db = new FileDatabase();
+        this.scanner = Scanner(this.db);
+
+        const app = App(this.db);
+        this.server = app.listen(config.http.port);
     }
 
     async stop() {
-        if (!this.cancel) return;
-        await this.cancel();
-        this.cancel = null;
+        if (!this.started) return;
+        this.started = false;
+
+        this.server.close();
+        this.db.close();
+
+        await this.scanner.stop();
+    }
+
+    public getDatabase() {
+        return this.db;
     }
 }

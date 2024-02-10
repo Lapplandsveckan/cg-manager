@@ -1,5 +1,6 @@
 import {Channel} from './layers';
 import {BasicCommand, Command} from './command';
+import {Effect} from './effect';
 
 export interface TemplateInfo {
     id: string;
@@ -194,6 +195,16 @@ export class CommandExecutor {
 
     protected onEvent(code: number, cmd: string, data: string[]) {
 
+    }
+
+    protected effects = new Map<string, Effect>();
+
+    public getEffects() {
+        return Array.from(this.effects.values());
+    }
+
+    public getEffect(effect: string) {
+        return this.effects.get(effect);
     }
 
     public toJSON() {

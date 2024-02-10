@@ -3,6 +3,8 @@ import {CasparManager} from '../index';
 import {EffectConstructor} from './effect';
 import {noTry} from 'no-try';
 import {Logger} from '../../util/log';
+import {Method} from 'rest-exchange-protocol';
+import {Route} from 'rest-exchange-protocol/dist/route';
 
 export class CasparPlugin {
     private _api: PluginAPI;
@@ -21,7 +23,7 @@ export class CasparPlugin {
         if (this._enabled) return;
         this._enabled = true;
 
-        const [error] = noTry(this.onEnable);
+        const [error] = noTry(() => this.onEnable());
         if (error) {
             Logger.scope('Plugin Loader').scope(this.pluginName).error(`Error enabling plugin: ${error}`);
             this._enabled = false;
@@ -35,7 +37,8 @@ export class CasparPlugin {
         if (!this._enabled) return;
         this._enabled = false;
 
-        const [error] = noTry(this.onDisable);
+        this['_api']['unregisterEffects']();
+        const [error] = noTry(() => this.onDisable());
         if (error) Logger.scope('Plugin Loader').scope(this.pluginName).error(`Error disabling plugin: ${error}`);
         else Logger.scope('Plugin Loader').scope(this.pluginName).debug('Disabled');
     }
@@ -59,8 +62,35 @@ export class PluginAPI extends EventEmitter {
         this._plugin['_api'] = this;
     }
 
+    private _effects: string[] = [];
     public registerEffect(name: string, effect: EffectConstructor) {
+        this._effects.push(name);
         this._manager.effects.register(name, effect);
+    }
+
+    private unregisterEffects() {
+        for (const effect of this._effects) this._manager.effects.unregister(effect);
+        this._effects = [];
+    }
+
+    public registerRoute(path: string, handler: Route['handler'], method: Method) {
+        this._manager.server.registerRoute(`plugin/${this._plugin.pluginName}/${path}`, handler, method);
+    }
+
+    /**
+     * @deprecated
+     */
+    public unregisterRoute(path: string, method: Method) {
+        this._manager.server.unregisterRoute(`plugin/${this._plugin.pluginName}/${path}`, method);
+    }
+
+    public createEffect(name: string, group: string, options: any) {
+        const effectGroup = this._manager.executor.getEffectGroup(group);
+        return this._manager.effects.create(name, effectGroup, options);
+    }
+
+    public getEffect(id: string) {
+        return this._manager.executor.getEffect(id);
     }
 }
 

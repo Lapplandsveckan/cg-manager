@@ -5,6 +5,7 @@ import {EventEmitter} from 'events';
 import {CasparExecutor} from './caspar/executor';
 import {EffectRegistry} from './amcp/effect';
 import {PluginManager} from './amcp/plugin';
+import {CGServer} from '../api/server';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
@@ -12,6 +13,7 @@ export class CasparManager extends EventEmitter {
     public executor: CasparExecutor;
     public effects: EffectRegistry;
     public plugins: PluginManager;
+    public server: CGServer;
 
     private static instance: CasparManager;
     public static getManager() {
