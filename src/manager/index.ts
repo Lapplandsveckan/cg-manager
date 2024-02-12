@@ -6,6 +6,7 @@ import {CasparExecutor} from './caspar/executor';
 import {EffectRegistry} from './amcp/effect';
 import {PluginManager} from './amcp/plugin';
 import {CGServer} from '../api/server';
+import {DirectoryManager} from './scanner/dir';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
@@ -63,5 +64,9 @@ export class CasparManager extends EventEmitter {
 
     public getExecutor() {
         return this.executor;
+    }
+
+    public get directory() {
+        return DirectoryManager.getManager();
     }
 }

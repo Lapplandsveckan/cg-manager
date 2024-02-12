@@ -57,6 +57,7 @@ export class CasparPlugin {
 }
 
 export class PluginAPI extends EventEmitter {
+    private files: string[] = [];
     public constructor(private _manager: CasparManager, private _plugin: CasparPlugin) {
         super();
         this._plugin['_api'] = this;
@@ -75,6 +76,30 @@ export class PluginAPI extends EventEmitter {
 
     public registerRoute(path: string, handler: Route['handler'], method: Method) {
         this._manager.server.registerRoute(`plugin/${this._plugin.pluginName}/${path}`, handler, method);
+    }
+
+    public registerFile(type: 'media' | 'template', path: string) {
+        return this._manager.directory.createDirectory(type, path).then(data => {
+            this.files.push(data.id);
+            return data;
+        });
+    }
+
+    public unregisterFile(id: string) {
+        const index = this.files.indexOf(id);
+        if (index < 0) return;
+
+        this.files.splice(index, 1);
+        return this._manager.directory.deleteDirectory(id);
+    }
+
+    public getDirectory(id: string) {
+        if (!this.files.includes(id)) return;
+        return this._manager.directory.getDirectory(id);
+    }
+
+    public getDirectories() {
+        return this.files.map(id => this._manager.directory.getDirectory(id));
     }
 
     /**

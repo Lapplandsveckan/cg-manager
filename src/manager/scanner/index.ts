@@ -2,6 +2,7 @@ import config, {loadCasparConfig} from './config';
 import Scanner from './scanner';
 import App from './app';
 import {FileDatabase} from './db';
+import {DirectoryManager} from './dir';
 
 async function start() {
     await loadCasparConfig();
@@ -39,6 +40,8 @@ export class MediaScanner {
 
         const app = App(this.db);
         this.server = app.listen(config.http.port);
+
+        await DirectoryManager.getManager().initialize(config.paths.media, config.paths.template);
     }
 
     async stop() {
@@ -49,6 +52,7 @@ export class MediaScanner {
         this.db.close();
 
         await this.scanner.stop();
+        await DirectoryManager.getManager().deleteDirectories();
     }
 
     public getDatabase() {

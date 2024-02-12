@@ -1,6 +1,7 @@
 import {CasparPlugin} from '../../../manager/amcp/plugin';
 import {VideoEffect, VideoEffectOptions} from './effects/video';
 import {Method, WebError} from 'rest-exchange-protocol';
+import path from 'path';
 
 export default class VideoPlugin extends CasparPlugin {
     public static get pluginName() {
@@ -32,5 +33,9 @@ export default class VideoPlugin extends CasparPlugin {
             await effect.play();
             return effect.toJSON();
         }, Method.ACTION);
+
+        this.api.registerFile('template', path.join(__dirname, 'templates', 'test.html'))
+            .then(data => this.logger.info(`Registered file: ${data.id} (${data.identifier})`))
+            .catch(err => this.logger.error(err));
     }
 }
