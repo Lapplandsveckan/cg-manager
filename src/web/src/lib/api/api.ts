@@ -24,6 +24,10 @@ export class ManagerApi {
         this.caspar = new CasparServerApi(this.socket);
     }
 
+    public async rawRequest(path: string, method: string, data: any) {
+        return this.socket.request(path, method, data);
+    }
+
     /**
      * Connect to socket.
      */

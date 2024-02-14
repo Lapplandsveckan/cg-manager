@@ -93,6 +93,9 @@ export class CommandExecutor {
         const data = command.getCommand();
         if (!data) return;
 
+        // TODO: handle information from commands sent such as if the cmd was a CLEAR or SWAP,
+        // which would affect critical systems of this application and should be handled accordingly
+        
         const commands = BasicCommand.interpret(data);
         const promises = commands.map(cmd => this.promise(cmd.getCmd()));
         this.send(data);

@@ -8,10 +8,15 @@ import {ResumeCommand} from '../../../../manager/amcp/commands/resume';
 import {StopCommand} from '../../../../manager/amcp/commands/stop';
 import {Command} from '../../../../manager/amcp/command';
 import {FileDatabase} from '../../../../manager/scanner/db';
+import {Transform} from '../../../../manager/amcp/transform';
+
+type Tuple<T, N extends number> = N extends N ? number extends N ? T[] : _TupleOf<T, N, []> : never;
+type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _TupleOf<T, N, [T, ...R]>;
 
 export interface VideoEffectOptions extends PlayoutOptions {
     clip: string;
     disposeOnStop?: boolean;
+    transform?: Tuple<number, 8>;
 }
 
 export class VideoEffect extends Effect {
@@ -22,6 +27,8 @@ export class VideoEffect extends Effect {
 
         this.options = options;
         this.allocateLayers();
+
+        if (options.transform) this.setTransform(Transform.fromArray(options.transform));
     }
 
     protected playing: boolean = false;

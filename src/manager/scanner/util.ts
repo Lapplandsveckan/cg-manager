@@ -11,8 +11,18 @@ export function getId(fileDir: string, filePath: string) {
         .toUpperCase();
 }
 
+export async function readFile(filePath: string) {
+    const link = await fs.readlink(filePath).catch(() => null); // check if file is a symlink
+    if (link) {
+        const linkPath = path.resolve(path.dirname(filePath), link);
+        return readFile(link);
+    }
+
+    return fs.readFile(filePath);
+}
+
 export async function getGDDScriptElement(filePath: string) {
-    const html = await fs.readFile(filePath);
+    const html = await readFile(filePath);
     const gddScripts = cheerio.load(html)('script[name="graphics-data-definition"]');
     if (gddScripts.length === 0) return undefined;
 

@@ -1,3 +1,5 @@
+/* eslint camelcase: 0 */
+
 import {MixerCommand, Tween} from './commands/mixer';
 
 export interface Point {
@@ -9,6 +11,9 @@ export interface Rect {
     start: Point;
     end: Point;
 }
+
+type Tuple<T, N extends number> = N extends N ? number extends N ? T[] : _TupleOf<T, N, []> : never;
+type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _TupleOf<T, N, [T, ...R]>;
 
 export class Transform {
     public source: Rect;
@@ -25,12 +30,19 @@ export class Transform {
     public static getRect(sx: number, sy: number, ex: number, ey: number) {
         return {
             start: {x: sx, y: sy},
-            end: {x: ex, y: ey}
+            end: {x: ex, y: ey},
         };
     }
 
     public static normalRect() {
         return Transform.getRect(0, 0, 1, 1);
+    }
+
+    public static fromArray(arr: Tuple<number, 8>) {
+        return new Transform(
+            Transform.getRect(arr[0], arr[1], arr[2], arr[3]),
+            Transform.getRect(arr[4], arr[5], arr[6], arr[7]),
+        );
     }
 
     public setTween();

@@ -3,7 +3,7 @@
 import config, {loadCasparConfig} from './config';
 import {Logger} from '../../util/log';
 import {noTryAsync} from 'no-try';
-import {extractGDDJSON, getGDDScriptElement, getId} from './util';
+import {extractGDDJSON, getGDDScriptElement, getId, readFile} from './util';
 import { promises as fs } from 'fs';
 import ffmpeg from 'fluent-ffmpeg';
 import moment from 'moment';
@@ -81,7 +81,7 @@ async function generateThumb(doc: MediaDoc) {
     doc._attachments = {
         'thumb.png': {
             content_type: 'image/png',
-            data: (await fs.readFile(tmpPath)),
+            data: (await readFile(tmpPath)),
         },
     };
 
