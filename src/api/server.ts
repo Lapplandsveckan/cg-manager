@@ -1,5 +1,5 @@
 import {
-    Method,
+    Method, MiddleWareData,
     MiddlewareProhibitFurtherExecution,
     REPServer,
     TypedClient,
@@ -10,6 +10,7 @@ import {CasparManager} from '../manager';
 import {handleRequest, onUpgrade} from '../web';
 import {Route} from 'rest-exchange-protocol/dist/route';
 import {Logger} from '../util/log';
+import {Upload} from '../manager/scanner/upload';
 
 export type CGClient = TypedClient<{}>;
 export class CGServer {
@@ -28,6 +29,7 @@ export class CGServer {
 
         this.server.use(this.web());
         this.server.use(this.cors());
+        this.server.use(this.upload());
 
         this.manager.on('caspar-status', (status) => {
             const clients = this.server.getClients();
@@ -44,6 +46,41 @@ export class CGServer {
                 client.send('caspar/logs', WebsocketOutboundMethod.ACTION, logs, false);
             });
         });
+    }
+
+    upload() {
+        return async (data: MiddleWareData) => {
+            if (data.type !== 'http') return;
+            if (!data.request.url.startsWith('/api/upload/chunk')) return;
+
+            const answer = (status: number, message: string, stop = true) => {
+                data.response.statusCode = status;
+                data.response.write(message);
+                data.response.end();
+
+                if (stop) throw new MiddlewareProhibitFurtherExecution();
+            };
+
+            const url = new URLSearchParams(data.request.url);
+
+            const id = url.get('id')?.toString();
+            if (!id) return answer(400, 'No id provided');
+
+            const upload = Upload.get(id);
+            if (!upload) return answer(404, 'Upload not found');
+
+            const chunk = parseInt(url.get('chunk')?.toString());
+            if (Number.isNaN(chunk) || chunk < 0 || chunk > upload['data'].total) return answer(400, 'Invalid chunk');
+
+            const buffer: Uint8Array[] = [];
+            data.request.on('data', (chunk) => buffer.push(chunk));
+            data.request.on('end', () => {
+                upload.bufferChunk(chunk, Buffer.concat(buffer));
+                answer(200, 'OK', false);
+            });
+
+            throw new MiddlewareProhibitFurtherExecution();
+        };
     }
 
     web() {
