@@ -11,6 +11,7 @@ import {handleRequest, onUpgrade} from '../web';
 import {Route} from 'rest-exchange-protocol/dist/route';
 import {Logger} from '../util/log';
 import {Upload} from '../manager/scanner/upload';
+import {noTry} from 'no-try';
 
 export type CGClient = TypedClient<{}>;
 export class CGServer {
@@ -61,16 +62,15 @@ export class CGServer {
                 if (stop) throw new MiddlewareProhibitFurtherExecution();
             };
 
-            const url = new URLSearchParams(data.request.url);
-
-            const id = url.get('id')?.toString();
+            const url = new URL(data.request.url, `http://${data.request.headers.host}`);
+            const id = url.searchParams.get('id')?.toString();
             if (!id) return answer(400, 'No id provided');
 
             const upload = Upload.get(id);
             if (!upload) return answer(404, 'Upload not found');
 
-            const chunk = parseInt(url.get('chunk')?.toString());
-            if (Number.isNaN(chunk) || chunk < 0 || chunk > upload['data'].total) return answer(400, 'Invalid chunk');
+            const chunk = parseInt(url.searchParams.get('chunk'));
+            if (Number.isNaN(chunk) || chunk < 0 || chunk >= upload['data'].total) return answer(400, 'Invalid chunk');
 
             const buffer: Uint8Array[] = [];
             data.request.on('data', (chunk) => buffer.push(chunk));

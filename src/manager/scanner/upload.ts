@@ -2,6 +2,7 @@ import * as path from 'path';
 import { promises as fs, WriteStream } from 'fs';
 import {Logger} from '../../util/log';
 import {DirectoryManager} from './dir';
+import * as os from 'os';
 
 interface UploadDestination {
     uri: string;
@@ -36,6 +37,8 @@ export class Upload {
     private readonly logger: Logger;
     private timeout?: NodeJS.Timeout;
 
+    private readonly tempPath: string;
+
     private constructor(destination: UploadDestination, total: number) {
         this.id = Math.random().toString(36).substring(2, 11);
         this.data = {
@@ -48,6 +51,7 @@ export class Upload {
         this.logger = Logger.scope('File Upload').scope(this.id);
         this.logger.info(`Started upload to ${this.destinationLog} (${total} chunks)`);
 
+        this.tempPath = this.getTemporaryPath();
         Upload.uploads.set(this.id, this);
     }
 
@@ -63,12 +67,19 @@ export class Upload {
         throw new Error('Invalid destination type');
     }
 
+    private getTemporaryPath() {
+        if (this.tempPath) return this.tempPath;
+
+        const tmpFolder = os.tmpdir();
+        return path.join(tmpFolder, this.id);
+    }
+
     private getPath() {
         return path.join(this.basePath, this.data.destination.uri);
     }
 
     async openFile() {
-        const handle = await fs.open(this.getPath(), 'a');
+        const handle = await fs.open(this.getTemporaryPath(), 'a');
         this.file = {
             handle,
             stream: handle.createWriteStream(),
@@ -82,7 +93,7 @@ export class Upload {
         await handle.close();
 
         if (deleteFile)
-            await fs.unlink(this.getPath())
+            await fs.unlink(this.getTemporaryPath())
                 .catch(() => this.logger.warn('Failed to delete file'));
     }
 
@@ -111,8 +122,6 @@ export class Upload {
     }
 
     public addChunk(chunk: UploadBuffer) {
-        this.logger.debug(`Received chunk ${chunk.index} (${chunk.data.length} bytes)`);
-
         const { buffer } = this.data;
         for (let i = 0; ; i++) {
             if (i < buffer.length && buffer[i].index < chunk.index) continue;
@@ -131,6 +140,7 @@ export class Upload {
         Upload.uploads.delete(this.id);
         await this.closeFile();
 
+        await fs.rename(this.getTemporaryPath(), this.getPath());
         this.logger.info(`Upload complete ${this.destinationLog}`);
     }
 

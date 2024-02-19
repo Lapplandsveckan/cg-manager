@@ -1,5 +1,6 @@
 import {REPClient} from 'rest-exchange-protocol-client';
 import EventEmitter from 'events';
+import {getChunkCount} from './upload';
 
 /**
  * All API calls relevant to CasparCG are handled here.
@@ -68,5 +69,12 @@ export class CasparServerApi extends EventEmitter {
         this.logs = await this.socket.request('api/caspar/logs', 'GET', {}).then(v => v.data);
 
         return this.logs;
+    }
+
+    public async uploadMedia(path: string, chunks: number | File) {
+        if (typeof chunks !== 'number') chunks = getChunkCount(chunks);
+
+        const res = await this.socket.request('api/caspar/media/upload', 'ACTION', { path, chunks });
+        return res.data.id;
     }
 }
