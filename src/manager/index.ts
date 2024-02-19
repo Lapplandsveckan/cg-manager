@@ -7,6 +7,7 @@ import {EffectRegistry} from './amcp/effect';
 import {PluginManager} from './amcp/plugin';
 import {CGServer} from '../api/server';
 import {DirectoryManager} from './scanner/dir';
+import {FileDatabase} from './scanner/db';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
@@ -41,6 +42,8 @@ export class CasparManager extends EventEmitter {
     async start() {
         Logger.info('Starting media scanner...');
         await this.scanner.start();
+
+        FileDatabase.db.on('change', (key, value) => this.emit('media', key, value));
 
         Logger.info('Starting Caspar CG process...');
         await this.caspar.start();

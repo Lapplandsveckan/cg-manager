@@ -1,3 +1,5 @@
+import {EventEmitter} from 'events';
+
 export interface MediaDoc {
     id: string;
 
@@ -73,14 +75,16 @@ export interface MediaDoc {
     }
 }
 
-export class FileDatabase {
+export class FileDatabase extends EventEmitter {
     private db = new Map<string, MediaDoc>();
     private static instance: FileDatabase;
+
     public static get db() {
         return FileDatabase.instance;
     }
 
     constructor() {
+        super();
         FileDatabase.instance = this;
     }
 
@@ -90,11 +94,13 @@ export class FileDatabase {
 
     put(id: string, doc: MediaDoc): MediaDoc {
         this.db.set(id, doc);
+        this.emit('change', id, doc);
         return doc;
     }
 
     remove(id: string): MediaDoc {
         const doc = this.db.get(id);
+        this.emit('change', id, null);
         return this.db.delete(id) ? doc : null;
     }
 

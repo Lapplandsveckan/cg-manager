@@ -1,5 +1,5 @@
 import {WebError} from 'rest-exchange-protocol';
-import {Upload} from '../../../../manager/scanner/upload';
+import {Upload} from '../../../../../manager/scanner/upload';
 
 export default {
     'ACTION': async (request) => {

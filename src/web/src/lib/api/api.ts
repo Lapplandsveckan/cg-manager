@@ -15,8 +15,14 @@ export class ManagerApi {
 
     public caspar: CasparServerApi;
 
+    private static instance: ManagerApi;
+    public static getConnection() {
+        return ManagerApi.instance;
+    }
 
     constructor(host: string) {
+        ManagerApi.instance = this;
+
         this.socket = new REPClient({
             host,
         });

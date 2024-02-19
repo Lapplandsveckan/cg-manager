@@ -8,6 +8,6 @@ export default {
             .getManager()
             .getMediaScanner()
             .getDatabase()
-            .get(request.params.id);
+            .get(decodeURIComponent(request.params.id));
     },
 };

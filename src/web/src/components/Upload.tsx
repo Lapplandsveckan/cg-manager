@@ -1,110 +1,94 @@
 import React from 'react';
-import {Button, Stack, Typography} from '@mui/material';
+import {Card, IconButton, Modal, Typography} from '@mui/material';
 import {uploadFile} from '../lib/api/upload';
 import {noTryAsync} from 'no-try';
+import {showOpenFilePicker, ShowOpenFilePickerOptions} from '../lib/filePicker';
+import {CloudUploadRounded} from '@mui/icons-material';
 
-interface UploadContainerProps {
-    fileEnding: string[];
-    accept: string;
-    title: string;
-
-    onFile: (file: File) => void;
+interface UploadButtonProps {
+    types: ShowOpenFilePickerOptions['types'];
+    createUpload: (file: File) => Promise<string>;
 }
 
-export const UploadContainer: React.FC<UploadContainerProps> = ({ accept, title, fileEnding, onFile }) => {
-    const [file, setFile] = React.useState<File | null>(null);
-    const inputRef = React.useRef<HTMLInputElement>(null);
-
-    const selectFile = (file: File) => {
-        setFile(file);
-        onFile(file);
-    };
-
-    // TODO: handle folders
-
-    return (
-        <Stack
-            direction="column"
-            alignItems="center"
-            justifyContent="center"
-
-            sx={{
-                width: '500px',
-                height: '500px',
-
-                border: '2px dashed #777',
-                borderRadius: '10px',
-
-                cursor: 'pointer',
-            }}
-
-            onClick={() => inputRef.current?.click()}
-            onDrop={e => {
-                e.preventDefault();
-
-                const file = e.dataTransfer.files[0];
-                if (!file) return;
-
-                const ext = file.name.split('.').pop();
-                if (ext && fileEnding.includes(ext)) selectFile(file);
-            }}
-            onDragOver={e => e.preventDefault()}
-        >
-            <Typography>{file?.name ?? 'No file chosen'}</Typography>
-            <input ref={inputRef} style={{ visibility: 'hidden' }} type="file" multiple={false} accept={accept} onChange={e => {
-                const input = e.nativeEvent.target as HTMLInputElement;
-
-                const file = input.files?.[0];
-                if (!file) return;
-
-                const ext = file.name.split('.').pop();
-                if (ext && fileEnding.includes(ext)) selectFile(file);
-            }} />
-        </Stack>
-    );
-};
-
-export const Upload: React.FC<UploadContainerProps & { createUpload: (file: File) => Promise<string> }> = props => {
-    const { createUpload, onFile, ...rest } = props;
-    const [file, setFile] = React.useState<File | null>(null);
-    const [uploading, setUploading] = React.useState(false);
+export const UploadButton: React.FC<UploadButtonProps> = ({ types, createUpload }) => {
+    const [open, setOpen] = React.useState(false);
+    const [upload, setUpload] = React.useState<(() => unknown) | null>(null);
     const [progress, setProgress] = React.useState<number | null>(null); // [0, 100]
     const [error, setError] = React.useState<string | null>(null);
 
     return (
-        <Stack>
-            <UploadContainer {...rest} onFile={file => {
-                setFile(file);
-                onFile(file);
-            }} />
-            <Button
-                disabled={!file}
+        <>
+            <IconButton
+                sx={{
+                    color: '#fff',
+                }}
                 onClick={async () => {
-                    if (!file || uploading) return;
-                    setUploading(true);
+                    if (upload) return;
+
+                    const [e, files] = await noTryAsync(() => showOpenFilePicker({ types }));
+                    if (e) return;
+
+                    setOpen(true);
+                    const [err, file] = await noTryAsync(() => files[0].getFile());
+                    if (err || !file) {
+                        setError(err?.message ?? 'File not found');
+                        return;
+                    }
 
                     const id = await createUpload(file);
-                    const [error] = await noTryAsync(() =>
-                        uploadFile(
-                            id,
-                            file,
-                            progress => setProgress(Math.round(progress * 100))
-                        )
+
+                    const [promise, cancel] = uploadFile(
+                        id,
+                        file,
+                        progress => setProgress(Math.round(progress * 100))
                     );
 
+                    setUpload(() => cancel);
+                    const [error] = await noTryAsync(() => promise);
+
                     if (error) setError(error.message);
-                    setUploading(false);
+                    setUpload(null);
                 }}
             >
-                Upload
-            </Button>
-            <Typography>
-                {
-                    uploading ? `Uploading... ${progress ? `${progress}%` : ''}` :
-                    error ? `Error: ${error}` :
-                    ''
-                }
-            </Typography>
-        </Stack>
+                <CloudUploadRounded />
+            </IconButton>
+
+            <Modal
+                open={open}
+                onClose={() => {
+                    setOpen(false);
+                    if (upload) upload(); // cancel upload
+                }}
+                aria-labelledby="parent-modal-title"
+                aria-describedby="parent-modal-description"
+            >
+                <Card
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+
+                        width: 600,
+                        height: 400,
+
+                        transform: 'translate(-50%, -50%)',
+
+                        bgcolor: '#47575a',
+                        p: 4,
+                    }}
+                >
+                    <Typography id="parent-modal-title" variant="h6" component="h2">
+                        Upload
+                    </Typography>
+                    <Typography id="parent-modal-description" variant="body1" component="p" color={error ? 'error' : 'initial'}>
+                        {
+                            upload ? `Uploading... ${progress ? `${progress}%` : ''}` :
+                            error ? `Error: ${error}`
+                            : 'Successfully uploaded'
+                        }
+                    </Typography>
+                </Card>
+            </Modal>
+        </>
     );
 }
