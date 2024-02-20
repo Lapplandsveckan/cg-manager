@@ -5,6 +5,7 @@ import {noTry} from 'no-try';
 import {Logger} from '../../util/log';
 import {Method} from 'rest-exchange-protocol';
 import {Route} from 'rest-exchange-protocol/dist/route';
+import {UI_INJECTION_ZONE} from './ui';
 
 export class CasparPlugin {
     private _api: PluginAPI;
@@ -100,6 +101,14 @@ export class PluginAPI extends EventEmitter {
 
     public getDirectories() {
         return this.files.map(id => this._manager.directory.getDirectory(id));
+    }
+
+    /**
+     * @param injectionZone The zone to inject the file into, e.g. UI_INJECTION_ZONE.EFFECT_CREATOR for the effect creator
+     * @param file The file to inject, it holds the component as default export
+     */
+    public registerUI(injectionZone: UI_INJECTION_ZONE, file: string) {
+        this._manager.ui.register(injectionZone, file, this._plugin.pluginName);
     }
 
     /**

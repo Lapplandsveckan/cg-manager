@@ -8,6 +8,7 @@ import {PluginManager} from './amcp/plugin';
 import {CGServer} from '../api/server';
 import {DirectoryManager} from './scanner/dir';
 import {FileDatabase} from './scanner/db';
+import {UIInjector} from './amcp/ui';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
@@ -16,6 +17,7 @@ export class CasparManager extends EventEmitter {
     public effects: EffectRegistry;
     public plugins: PluginManager;
     public server: CGServer;
+    public ui: UIInjector;
 
     private static instance: CasparManager;
     public static getManager() {
@@ -31,6 +33,7 @@ export class CasparManager extends EventEmitter {
         this.effects = new EffectRegistry();
         this.executor = new CasparExecutor();
         this.plugins = new PluginManager();
+        this.ui = new UIInjector();
 
         this.executor.allocateChannel(1); // TODO: Remove this line
 
@@ -71,5 +74,13 @@ export class CasparManager extends EventEmitter {
 
     public get directory() {
         return DirectoryManager.getManager();
+    }
+
+    public getPluginInjections() {
+        return this.ui.getInjections();
+    }
+
+    public getPluginInjectionCode(id: string) {
+        return this.ui.bundle(id);
     }
 }

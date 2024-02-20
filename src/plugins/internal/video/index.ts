@@ -2,6 +2,7 @@ import {CasparPlugin} from '../../../manager/amcp/plugin';
 import {VideoEffect, VideoEffectOptions} from './effects/video';
 import {Method, WebError} from 'rest-exchange-protocol';
 import path from 'path';
+import {UI_INJECTION_ZONE} from '../../../manager/amcp/ui';
 
 export default class VideoPlugin extends CasparPlugin {
     public static get pluginName() {
@@ -37,5 +38,7 @@ export default class VideoPlugin extends CasparPlugin {
         this.api.registerFile('template', path.join(__dirname, 'templates', 'test.html'))
             .then(data => this.logger.info(`Registered file: ${data.id} (${data.identifier})`))
             .catch(err => this.logger.error(err));
+
+        this.api.registerUI(UI_INJECTION_ZONE.EFFECT_CREATOR, path.join(__dirname, 'ui', 'test'));
     }
 }

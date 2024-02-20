@@ -28,6 +28,8 @@ export class CGServer {
         const routes = loadRoutes();
         routes.forEach((route) => this.server.register(route));
 
+        // this.server.use(this.log());
+
         this.server.use(this.web());
         this.server.use(this.cors());
         this.server.use(this.upload());
@@ -55,6 +57,13 @@ export class CGServer {
                 client.send('caspar/media', WebsocketOutboundMethod.ACTION, { key, value }, false);
             });
         });
+    }
+
+    log() {
+        return async (data: MiddleWareData) => {
+            if (data.type !== 'pre-route') return;
+            Logger.scope('API').debug(`${data.route.method} ${data.route.path}`);
+        };
     }
 
     upload() {
