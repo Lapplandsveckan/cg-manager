@@ -1,44 +1,7 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 import {Card, Grid, Stack, Typography} from '@mui/material';
 
-export interface MediaCardProps {
-    name: string;
-    duration: string;
-
-    backgroundUrl: string;
-}
-
-export const MediaCard: React.FC<MediaCardProps> = ({name, duration, backgroundUrl}) => {
-    return (
-        <Grid item xs={12 / 5}>
-            <Card
-                sx={{
-                    aspectRatio: '16/9',
-                    backgroundImage: `url(${backgroundUrl})`,
-                    backgroundSize: 'cover',
-                }}
-            >
-                <Stack height="100%" direction="column" alignItems="stretch" justifyContent="end">
-                    <Stack
-                        direction="row"
-                        alignItems="center"
-                        justifyContent="space-between"
-
-                        sx={{
-                            backgroundColor: '#0009',
-                            padding: '5px',
-                        }}
-                    >
-                        <Typography fontSize="8px" color="#ccc">{name}</Typography>
-                        <Typography fontSize="12px" color="#aaa">{duration}</Typography>
-                    </Stack>
-                </Stack>
-            </Card>
-        </Grid>
-    );
-}
-
-export function getDurationString(duration: number) {
+function getDurationString(duration: number) {
     const hours = Math.floor(duration / 3600);
     const minutes = Math.floor((duration % 3600) / 60);
     const seconds = Math.floor(duration % 60);
@@ -57,4 +20,43 @@ export function getDurationString(duration: number) {
     let durationString = `${M}:${S}.${MS}`;
     if (hours > 0) durationString = `${H}:${durationString}`;
     return durationString;
+}
+
+export interface MediaCardProps {
+    name: string;
+    duration: number;
+
+    backgroundUrl: string;
+}
+
+export const MediaCard: React.FC<MediaCardProps> = ({name, duration, backgroundUrl}) => {
+    const durationString = useMemo(() => getDurationString(duration), [duration]);
+
+    return (
+        <Grid item xs={12} sm={6} md={4} lg={3} xl={2.4}>
+            <Card
+                sx={{
+                    aspectRatio: '16/9',
+                    backgroundImage: `url(${backgroundUrl})`,
+                    backgroundSize: 'cover',
+                }}
+            >
+                <Stack height="100%" direction="column" alignItems="stretch" justifyContent="end">
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+
+                        sx={{
+                            backgroundColor: '#0007',
+                            padding: '5px',
+                        }}
+                    >
+                        <Typography fontSize="7.5px" color="#ccc">{name}</Typography>
+                        <Typography fontSize="10px" color="#aaa">{durationString}</Typography>
+                    </Stack>
+                </Stack>
+            </Card>
+        </Grid>
+    );
 }

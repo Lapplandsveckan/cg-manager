@@ -87,6 +87,7 @@ export class CasparServerApi extends EventEmitter {
     private media = new Map<string, MediaDoc>();
 
     private logs: string = '';
+    private _mediaPromise: Promise<Map<string, MediaDoc>>;
 
     constructor(socket: REPClient) {
         super();
@@ -116,6 +117,11 @@ export class CasparServerApi extends EventEmitter {
 
             this.emit('media', key, value);
         });
+
+        this._mediaPromise = this.requestMedia();
+        this._mediaPromise
+            .then(() => this._mediaPromise = null)
+            .catch(e => console.error('Failed to get media', e));
     }
 
     private async requestMedia() {
@@ -181,9 +187,7 @@ export class CasparServerApi extends EventEmitter {
     }
 
     public async getMedia() {
-        if (this.media.size === 0) // better check, some may not have media which will trigger this request every time
-            await this.requestMedia();
-
+        if (this._mediaPromise) return this._mediaPromise;
         return this.media;
     }
 }
