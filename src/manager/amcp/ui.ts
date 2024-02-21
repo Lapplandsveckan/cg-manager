@@ -3,6 +3,7 @@ import webpack from 'webpack';
 import MemoryFS from 'memory-fs';
 import path from 'path';
 import {Logger} from '../../util/log';
+import {noTryAsync} from 'no-try';
 export const UI_INJECTION_ZONE = {
     EFFECT_CREATOR: 'effect-creator',
 } as const;
@@ -56,12 +57,17 @@ export class UIInjector {
         const path = this._injections.get(id)?.file;
         if (!path) return null;
 
-        const promise = bundleFile(path);
+        const promise = bundleFile(path).catch(e => {
+            Logger.scope('UIInjector').error(`Failed to bundle ${path} - ${e}`);
+            this.bundledComponents.delete(id);
+            return '';
+        });
         this.bundledComponents.set(id, promise);
 
-        const file = await promise;
-        this.bundledComponents.set(id, file);
+        const [err, file] = await noTryAsync(() => promise);
+        if (err) return null;
 
+        this.bundledComponents.set(id, file);
         Logger.scope('UIInjector').info(`Bundled ${path}`);
 
         return file;
@@ -86,7 +92,7 @@ function getConfig(entry: string) {
                         loader: require.resolve('babel-loader'), // Use Babel loader
                         options: {
                             presets: [
-                                require.resolve('@babel/preset-env'),
+                                [require.resolve('@babel/preset-env'), { targets: {chrome: 100} }],
                                 require.resolve('@babel/preset-react'),
                                 require.resolve('@babel/preset-typescript'),
                             ], // Babel presets for handling ES6+, React, and TypeScript
@@ -106,11 +112,11 @@ function getConfig(entry: string) {
         externals: {
             react: 'React', // Use external version of React
             '@mui/material': 'MaterialUI',
+            '@web-lib': 'WebLib',
         },
         experiments: {
             outputModule: true, // Enable output module
         },
-        target: 'web', // Compile for usage in a browser-like environment
     } as webpack.Configuration;
 }
 

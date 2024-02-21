@@ -8,6 +8,9 @@
     "types": [
       "node"
     ],
+    "paths": {
+      "@web-lib": ["./src/web/src/lib"]
+    },
     "jsx": "preserve"
   },
   "include": [
