@@ -59,10 +59,10 @@ interface Perspective {
     bottom_left: Anchor;
 }
 
-export interface Tween {
-    type: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+export type Tween = {
+    type?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
     duration: number;
-}
+} | number;
 
 class MixerSingleCommand extends LayeredCommand {
     private readonly command: string;
@@ -85,18 +85,17 @@ class MixerSingleCommand extends LayeredCommand {
 }
 
 export class MixerCommand extends CommandGroup {
-    private readonly shouldClear: boolean;
-
     constructor(shouldClear: boolean = false) {
         super([]);
-        this.shouldClear = shouldClear;
+        if (shouldClear) this.commands.push(new MixerSingleCommand('CLEAR'));
     }
 
     protected single(command: string, args: string[] = [], tween?: Tween) {
-        if (tween) {
-            args.push(tween.duration.toString());
-            args.push(tween.type);
-        }
+        if (tween)
+            if (typeof tween === 'number') args.push(tween.toString());
+            else args.push(tween.duration.toString());
+
+        if (typeof tween !== 'number' && tween?.type) args.push(tween.type);
 
         const mixer = new MixerSingleCommand(command, args);
         this.commands.push(mixer);

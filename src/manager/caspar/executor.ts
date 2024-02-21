@@ -75,7 +75,7 @@ export class CasparExecutor extends CommandExecutor {
         if (this.retry) this.retryTimeout = setTimeout(() => this._internalConnect(), 5000);
     }
 
-    public getEffectGroup(identifier: string) {
+    public getEffectGroup(identifier: string, index?: number) {
         const [c, group] = identifier.split(':');
 
         const cid = parseInt(c);
@@ -84,6 +84,6 @@ export class CasparExecutor extends CommandExecutor {
         const channel = this.getChannel(cid);
         if (!channel) return null;
 
-        return channel.getGroup(group);
+        return channel.getGroup(group, index);
     }
 }

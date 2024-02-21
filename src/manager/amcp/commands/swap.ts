@@ -5,14 +5,16 @@ import {BasicChannel, BasicLayer} from '../basic';
 export class SwapCommand extends BasicCommand {
     protected allocation1?: BasicLayer | BasicChannel;
     protected allocation2?: BasicLayer | BasicChannel;
+    protected transforms: boolean;
 
-    constructor()
-    constructor(allocation1: BasicLayer | BasicChannel, allocation2: BasicLayer | BasicChannel)
+    constructor();
+    constructor(allocation1: BasicLayer | BasicChannel, allocation2: BasicLayer | BasicChannel, transforms?: boolean);
 
-    constructor(allocation1?: BasicLayer | BasicChannel, allocation2?: BasicLayer | BasicChannel) {
+    constructor(allocation1?: BasicLayer | BasicChannel, allocation2?: BasicLayer | BasicChannel, transforms = true) {
         super();
         if (allocation1) this.allocate1(allocation1);
         if (allocation2) this.allocate2(allocation2);
+        this.transforms = transforms;
     }
 
     public allocate1(channel: BasicLayer | BasicChannel | number);
@@ -40,6 +42,9 @@ export class SwapCommand extends BasicCommand {
         const position2 = this.allocation2?.getCommandString();
         if (!position1 || !position2) return [];
 
-        return [position1, position2];
+        const args = [position1, position2];
+        if (this.transforms) args.push('TRANSFORM');
+
+        return args;
     }
 }

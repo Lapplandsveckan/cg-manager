@@ -87,6 +87,10 @@ export class PluginAPI extends EventEmitter {
         });
     }
 
+    public getEffectGroup(name: string, index?: number) {
+        return this._manager.executor.getEffectGroup(name, index);
+    }
+
     public unregisterFile(id: string) {
         const index = this.files.indexOf(id);
         if (index < 0) return;

@@ -5,6 +5,7 @@ import {SwapCommand} from './commands/swap';
 import {BasicChannel, BasicLayer} from './basic';
 import {CommandExecutor} from './executor';
 import { v4 as uuid } from 'uuid';
+import {MixerCommand} from './commands';
 
 export interface AllocateOptions {
     count?: number;
@@ -107,11 +108,11 @@ export class Channel extends BasicChannel{
 
         return group;
     }
-    public getGroup(name?: string) {
+    public getGroup(name?: string, index?: number) {
         name = name ?? uuid();
 
         const group = this.groups.find(group => group.name === name);
-        return group ?? this.createGroup(name);
+        return group ?? this.createGroup(name, index ?? -1);
     }
 
     private lastOrder: string[] = [];
@@ -211,6 +212,7 @@ export class Channel extends BasicChannel{
 
             const layer = BasicLayer.caspar(this.casparChannel, i + 1);
             commands.push(new ClearCommand(layer));
+            commands.push(MixerCommand.clear().allocate(layer));
         }
 
         for (let i = 0; i < this.currentOrder.length; i++) {
@@ -229,7 +231,7 @@ export class Channel extends BasicChannel{
 
             const layer1 = BasicLayer.caspar(this.casparChannel, i + 1);
             const layer2 = BasicLayer.caspar(this.casparChannel, index + 1);
-            commands.push(new SwapCommand(layer1, layer2));
+            commands.push(new SwapCommand(layer1, layer2, true));
         }
 
         this.lastOrder = this.currentOrder;
