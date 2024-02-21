@@ -2,7 +2,7 @@ import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {ManagerApi} from '../lib/api/api';
 import {useSocket} from '../lib/hooks/useSocket';
 import {Button, Stack} from '@mui/material';
-import {InjectionMap, InjectionProvider, Injections, UI_INJECTION_ZONE, UIPluginInjector} from '../plugin';
+import {Injections, UI_INJECTION_ZONE} from '../lib/api/plugin';
 
 async function playVideo(conn: ManagerApi, media: string, destination: string, transform?: number[]) {
     const { status, data } = await conn.rawRequest('/api/plugin/video/effects/video', 'ACTION', {
@@ -57,34 +57,20 @@ function ultimateTest(conn: ManagerApi) {
     }
 }
 
-const Page: React.FC<{ injectionMap: InjectionMap }> = ({ injectionMap }) => {
+const Page = () => {
     const conn = useSocket();
-    console.log('injectionMap', injectionMap);
     return (
-        <InjectionProvider injectionMap={injectionMap}>
-            <DefaultContentLayout>
-                <h1>Test</h1>
+        <DefaultContentLayout>
+            <h1>Test</h1>
 
-                <Button onClick={() => basicTest(conn)}>Basic Test</Button>
-                <Button onClick={() => ultimateTest(conn)}>Ultimate Test</Button>
+            <Button onClick={() => basicTest(conn)}>Basic Test</Button>
+            <Button onClick={() => ultimateTest(conn)}>Ultimate Test</Button>
 
-                <Stack>
-                    <Injections zone={UI_INJECTION_ZONE.EFFECT_CREATOR} />
-                </Stack>
-            </DefaultContentLayout>
-        </InjectionProvider>
+            <Stack>
+                <Injections zone={UI_INJECTION_ZONE.EFFECT_CREATOR} />
+            </Stack>
+        </DefaultContentLayout>
     );
-};
-
-export const getServerSideProps = async () => {
-    const injectionMap = UIPluginInjector.useInjectionMap([UI_INJECTION_ZONE.EFFECT_CREATOR]);
-    console.log('injectionMap', JSON.stringify(injectionMap));
-
-    return {
-        props: {
-            injectionMap,
-        },
-    };
 };
 
 export default Page;

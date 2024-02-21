@@ -59,6 +59,7 @@ export class CasparPlugin {
 
 export class PluginAPI extends EventEmitter {
     private files: string[] = [];
+    private uiInjections: string[] = [];
     public constructor(private _manager: CasparManager, private _plugin: CasparPlugin) {
         super();
         this._plugin['_api'] = this;
@@ -108,7 +109,16 @@ export class PluginAPI extends EventEmitter {
      * @param file The file to inject, it holds the component as default export
      */
     public registerUI(injectionZone: UI_INJECTION_ZONE, file: string) {
-        this._manager.ui.register(injectionZone, file, this._plugin.pluginName);
+        const id = this._manager.ui.register(injectionZone, file, this._plugin.pluginName);
+        this.uiInjections.push(id);
+    }
+
+    public unregisterUI(id: string) {
+        const index = this.uiInjections.indexOf(id);
+        if (index < 0) return;
+
+        this.uiInjections.splice(index, 1);
+        this._manager.ui.unregister(id);
     }
 
     /**

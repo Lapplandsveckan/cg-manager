@@ -1,8 +1,17 @@
+// import React from 'react';
+
+import {Button} from '@mui/material';
+
 const VideoTest = () => {
     return (
-        <div>
-            <h1>Video Test</h1>
-        </div>
+        <Button
+            variant="contained"
+            color="primary"
+
+            onClick={() => console.log('Hello World')}
+        >
+            Hello World
+        </Button>
     );
 };
 
