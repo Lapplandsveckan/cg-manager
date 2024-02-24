@@ -4,6 +4,8 @@ import Head from 'next/head';
 import {SocketProvider} from '../components/SocketProvider';
 import CssBaseline from '@mui/material/CssBaseline';
 import React from 'react';
+import {ThemeProvider} from '@mui/material/styles';
+import {theme} from '../lib/theme';
 
 function App({ Component, pageProps }: AppProps) {
     return (
@@ -14,7 +16,10 @@ function App({ Component, pageProps }: AppProps) {
             </Head>
             <CssBaseline />
             <SocketProvider>
-                <Component {...pageProps} />
+                <ThemeProvider theme={theme}>
+                    <CssBaseline />
+                    <Component {...pageProps} />
+                </ThemeProvider>
             </SocketProvider>
         </>
     );

@@ -2,7 +2,7 @@ import {Effect} from '../../../../manager/amcp/effect';
 import {EffectGroup} from '../../../../manager/amcp/layers';
 import {PlayCommand} from '../../../../manager/amcp/commands/play';
 import {ClearCommand} from '../../../../manager/amcp/commands/clear';
-import {CommandGroup} from '../../../../manager/amcp/command';
+import {Command, CommandGroup} from '../../../../manager/amcp/command';
 import {Logger} from '../../../../util/log';
 import {MixerCommand} from '../../../../manager/amcp/commands/mixer';
 import {Color} from '../../../../manager/amcp/commands/loadbg';
@@ -12,17 +12,62 @@ type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N 
 
 export interface VideoEffectOptions {
     clip: string;
+    color?: string;
     disposeOnStop?: boolean;
 }
 
 export class MotionEffect extends Effect {
     protected options: VideoEffectOptions;
+    protected color: string;
 
     public constructor(group: EffectGroup, options: VideoEffectOptions) {
         super(group);
 
         this.options = options;
+        this.color = options.color;
         this.allocateLayers(2);
+    }
+
+    public setColor(color: string) {
+        if (!this.active) return;
+        if (!this.colorLayer) return;
+        if (this.color === color) return;
+
+        // TODO: handle transition
+
+        const cmds: Command[] = [];
+        if (!this.color) {
+            const mixerCmd = MixerCommand
+                .create()
+                .keyer(1)
+                .brightness(2)
+                .saturation(0)
+                .allocate(this.videoLayer);
+
+            cmds.push(mixerCmd);
+        } else if (!color) {
+            const mixerCmd = MixerCommand
+                .create()
+                .keyer(0)
+                .brightness(1)
+                .saturation(1)
+                .allocate(this.videoLayer);
+
+            cmds.push(mixerCmd);
+        }
+
+        if (color)
+            cmds.push(PlayCommand
+                .color(color)
+                .allocate(this.colorLayer));
+        else
+            cmds.push(
+                new ClearCommand(this.colorLayer));
+
+        this.color = color;
+
+        const cmd = new CommandGroup(cmds);
+        return this.executor.execute(cmd);
     }
 
     public get transitionDuration() {
@@ -42,8 +87,7 @@ export class MotionEffect extends Effect {
                 .allocate(this.videoLayer),
         ];
 
-        const useColor = true;
-        if (useColor) {
+        if (this.color) {
             const mixerCmd = MixerCommand
                 .create()
                 .keyer(1)
@@ -52,29 +96,41 @@ export class MotionEffect extends Effect {
                 .allocate(this.videoLayer);
 
             const colorCmd = PlayCommand
-                .color(Color.RGBA(255, 0, 0, 0))
+                .color(this.color)
                 .allocate(this.colorLayer);
 
             cmds.push(mixerCmd);
             cmds.push(colorCmd);
+        }
 
-            if (this.transitionDuration > 0) {
+        if (this.transitionDuration > 0) {
+            const videoMixCmd = MixerCommand
+                .create()
+                .opacity(0)
+                .allocate(this.videoLayer);
+
+            const colorMixCmd = MixerCommand
+                .create()
+                .opacity(0)
+                .allocate(this.colorLayer);
+
+            cmds.push(videoMixCmd);
+            cmds.push(colorMixCmd);
+
+            setTimeout(() => {
+                const videoMixCmd = MixerCommand
+                    .create()
+                    .opacity(1, this.transitionDuration * this.FPS)
+                    .allocate(this.videoLayer);
+
                 const colorMixCmd = MixerCommand
                     .create()
-                    .opacity(0)
+                    .opacity(1, this.transitionDuration * this.FPS)
                     .allocate(this.colorLayer);
 
-                cmds.push(colorMixCmd);
-
-                setTimeout(() => {
-                    const colorMixCmd = MixerCommand
-                        .create()
-                        .opacity(1, this.transitionDuration * this.FPS)
-                        .allocate(this.colorLayer);
-
-                    this.executor.execute(colorMixCmd);
-                }, 100);
-            }
+                const cmd = new CommandGroup([videoMixCmd, colorMixCmd]);
+                this.executor.execute(cmd);
+            }, 100);
         }
 
         const cmd = new CommandGroup(cmds);
@@ -91,15 +147,22 @@ export class MotionEffect extends Effect {
 
     public deactivate() {
         if (!super.deactivate()) return;
-        if (this.transitionDuration < 1) return this._deactivate();
+        if (this.transitionDuration <= 0) return this._deactivate();
 
-        const mixerCmd = MixerCommand
+        const videoMixCmd = MixerCommand
             .create()
             .opacity(0, this.transitionDuration * this.FPS)
-            .allocate(this.colorLayer); // TODO: use videoLayer, if colorLayer is not used
+            .allocate(this.videoLayer);
+
+        const colorMixCmd = MixerCommand
+            .create()
+            .opacity(0, this.transitionDuration * this.FPS)
+            .allocate(this.colorLayer);
 
         setTimeout(() => this._deactivate(), this.transitionDuration * 1000);
-        return this.executor.execute(mixerCmd);
+
+        const cmd = new CommandGroup([videoMixCmd, colorMixCmd]);
+        return this.executor.execute(cmd);
     }
 
     private _deactivate() {

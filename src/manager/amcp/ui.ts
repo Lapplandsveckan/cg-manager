@@ -112,6 +112,7 @@ function getConfig(entry: string) {
         externals: {
             react: 'React', // Use external version of React
             '@mui/material': 'MaterialUI',
+            'mui-color-input': 'MUIColorInput',
             '@web-lib': 'WebLib',
         },
         experiments: {

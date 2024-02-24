@@ -3,6 +3,7 @@ import {useSocket} from '../hooks/useSocket';
 import React, {ComponentType, createElement, Fragment, useEffect, useState} from 'react';
 import * as material from '@mui/material';
 import * as weblib from '../';
+
 if (typeof window !== 'undefined') {
     window['React'] = React;
     window['MaterialUI'] = material;
