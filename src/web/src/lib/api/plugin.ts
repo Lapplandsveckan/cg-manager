@@ -1,112 +1,44 @@
 import {REPClient} from 'rest-exchange-protocol-client';
-import {useSocket} from '../hooks/useSocket';
-import React, {ComponentType, createElement, Fragment, useEffect, useState} from 'react';
-import * as material from '@mui/material';
-import * as weblib from '../';
+import EventEmitter from 'events';
+import {getChunkCount} from './upload';
 
-if (typeof window !== 'undefined') {
-    window['React'] = React;
-    window['MaterialUI'] = material;
-    window['WebLib'] = weblib;
+/**
+ * All API calls relevant to CasparCG are handled here.
+ */
+
+interface Plugin {
+    name: string;
+    enabled: boolean;
 }
 
-export const UI_INJECTION_ZONE = {
-    EFFECT_CREATOR: 'effect-creator',
-} as const;
-
-export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];
-
-export interface Injection {
-    zone: UI_INJECTION_ZONE;
-    file: string;
-    plugin: string;
-    id: string;
-}
-
-export class PluginInjectionAPI {
-    private _loaded = new Map<string, React.ComponentType | Promise<React.ComponentType>>();
-    private _plugins = new Map<string, Injection>();
-    private _pluginPromise: Promise<Map<string, Injection>>;
+export class PluginApi extends EventEmitter {
     private socket: REPClient;
+    private plugins = [] as Plugin[];
+
+    private logs: string = '';
+    private _pluginPromise: Promise<Plugin[]>;
 
     constructor(socket: REPClient) {
+        super();
         this.socket = socket;
 
-        this._pluginPromise = this.requestPlugins();
+        // TODO: add listener for plugin updates
+
+        this._pluginPromise = this.requestPlugin();
         this._pluginPromise
             .then(() => this._pluginPromise = null)
             .catch(e => console.error('Failed to get plugins', e));
     }
 
-    private async requestPlugins() {
-        const res = await this.socket.request('api/plugins/inject', 'GET', {});
-        this._plugins.clear();
+    private async requestPlugin() {
+        const res = await this.socket.request('api/plugins', 'GET', {});
+        this.plugins = res.data as Plugin[];
 
-        const plugins = res.data as Injection[];
-        for (const plugin of plugins) this._plugins.set(plugin.id, plugin);
-
-        return this._plugins;
+        return this.plugins;
     }
 
-    private async _import(id: string) {
-        const data = await this.socket.request(`api/plugins/inject/${id}`, 'GET', {});
-        const str = data.data as string;
-
-        if (typeof URL.createObjectURL !== 'undefined') {
-            const blob = new Blob([str], { type: 'text/javascript' });
-            const url = URL.createObjectURL(blob);
-            const component = import(/* webpackIgnore: true */url).then(module => module.default);
-            URL.revokeObjectURL(url);
-
-            return component;
-        }
-
-        const url = `data:text/javascript;base64,${btoa(str)}`;
-        return import(/* webpackIgnore: true */url).then(module => module.default);
-    }
-
-    public async import(id: string): Promise<React.ComponentType> {
-        if (this._loaded.has(id)) return this._loaded.get(id);
-
-        const promise = this._import(id);
-        this._loaded.set(id, promise);
-
-        const component = await promise;
-        this._loaded.set(id, component);
-
-        return component;
-    }
-
-    public async getInjects(zone: UI_INJECTION_ZONE): Promise<Injection[]> {
-        await this._pluginPromise;
-        return Array.from(this._plugins.values()).filter(p => p.zone === zone);
-    }
-
-    public async inject(zone: UI_INJECTION_ZONE) {
-        const injects = await this.getInjects(zone);
-        return await Promise.all(
-            injects.map(i =>
-                this.import(i.id)
-                    .then(component => ({id: i.id, component})),
-            ),
-        );
+    public async getPlugins() {
+        if (this._pluginPromise) return this._pluginPromise;
+        return this.requestPlugin();
     }
 }
-
-export const Injections: React.FC<{zone: UI_INJECTION_ZONE}> = ({zone}) => {
-    const [components, setComponents] = useState<{id: string, component: ComponentType}[]>([]);
-    const socket = useSocket();
-
-    useEffect(() => {
-        socket.plugin.inject(zone)
-            .then(setComponents);
-    }, [zone]);
-
-    return createElement(
-        Fragment,
-        null,
-        components.map((inject, i) =>
-            inject.component ? createElement(inject.component, {key: inject.id}) : null,
-        ),
-    );
-};

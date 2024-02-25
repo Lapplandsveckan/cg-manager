@@ -5,9 +5,15 @@ export default {
     'GET': async (request) => {
         if (!request.params.id) throw new WebError('No plugin id provided', 400);
 
-        return CasparManager
+        const plugin = CasparManager
             .getManager()
-            .getPluginInjectionCode(request.params.id)
-            .catch((e) => console.error(e));
+            .getPlugins()
+            .plugins
+            .find((plugin) => plugin.pluginName === request.params.id);
+
+        return {
+            name: plugin.pluginName,
+            enabled: plugin['_enabled'],
+        };
     },
 };

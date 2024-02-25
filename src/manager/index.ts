@@ -76,6 +76,10 @@ export class CasparManager extends EventEmitter {
         return DirectoryManager.getManager();
     }
 
+    public getPlugins() {
+        return this.plugins;
+    }
+
     public getPluginInjections() {
         return this.ui.getInjections();
     }

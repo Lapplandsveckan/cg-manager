@@ -38,7 +38,7 @@ export class CasparPlugin {
         if (!this._enabled) return;
         this._enabled = false;
 
-        this['_api']['unregisterEffects']();
+        this['_api']['unregister'](); // await?
         const [error] = noTry(() => this.onDisable());
         if (error) Logger.scope('Plugin Loader').scope(this.pluginName).error(`Error disabling plugin: ${error}`);
         else Logger.scope('Plugin Loader').scope(this.pluginName).debug('Disabled');
@@ -66,6 +66,7 @@ export class PluginAPI extends EventEmitter {
     }
 
     private _effects: string[] = [];
+    private routes: Route[] = [];
     public registerEffect(name: string, effect: EffectConstructor) {
         this._effects.push(name);
         this._manager.effects.register(name, effect);
@@ -76,8 +77,41 @@ export class PluginAPI extends EventEmitter {
         this._effects = [];
     }
 
+    private unregisterRoutes() {
+        for (const route of this.routes) this._manager.server.unregisterRoute(route);
+        this.routes = [];
+    }
+
+    private async unregisterFiles() {
+        for (const file of this.files) await this._manager.directory.deleteDirectory(file);
+        this.files = [];
+    }
+
+    private unregisterUIInjections() {
+        for (const injection of this.uiInjections) this._manager.ui.unregister(injection);
+        this.uiInjections = [];
+    }
+
+    private unregister() {
+        this.unregisterEffects();
+        this.unregisterRoutes();
+        this.unregisterUIInjections();
+        return this.unregisterFiles();
+    }
+
     public registerRoute(path: string, handler: Route['handler'], method: Method) {
-        this._manager.server.registerRoute(`plugin/${this._plugin.pluginName}/${path}`, handler, method);
+        const route = this._manager.server.registerRoute(`plugin/${this._plugin.pluginName}/${path}`, handler, method);
+        this.routes.push(route);
+
+        return route;
+    }
+
+    public unregisterRoute(route: Route) {
+        const index = this.routes.indexOf(route);
+        if (index < 0) return;
+
+        this.routes.splice(index, 1);
+        this._manager.server.unregisterRoute(route);
     }
 
     public registerFile(type: 'media' | 'template', path: string) {
@@ -123,13 +157,6 @@ export class PluginAPI extends EventEmitter {
 
         this.uiInjections.splice(index, 1);
         this._manager.ui.unregister(id);
-    }
-
-    /**
-     * @deprecated
-     */
-    public unregisterRoute(path: string, method: Method) {
-        this._manager.server.unregisterRoute(`plugin/${this._plugin.pluginName}/${path}`, method);
     }
 
     public createEffect(name: string, group: string, options: any) {

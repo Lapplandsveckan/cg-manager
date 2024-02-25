@@ -149,9 +149,12 @@ export class CGServer {
 
         Logger.scope('API').debug(`Registering route ${method} /api/${path}`);
         this.server.register(route);
+
+        return route;
     }
 
-    public unregisterRoute(path: string, method: Method) {
-        // TODO: Implement unregisterRoute
+    public unregisterRoute(route: Route) {
+        Logger.scope('API').debug(`Unregistering route ${route.method} ${route.path}`);
+        this.server.unregister(route);
     }
 }

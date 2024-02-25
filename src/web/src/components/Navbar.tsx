@@ -6,7 +6,8 @@ import {useRouter} from 'next/router';
 import HomeIcon from '@mui/icons-material/Home';
 import ComputerIcon from '@mui/icons-material/Computer';
 import ImageIcon from '@mui/icons-material/Image';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import ExtensionIcon from '@mui/icons-material/Extension';
 
 const NavbarButton: React.FC<{ href: string, icon: OverridableComponent<SvgIconTypeMap<{}, 'svg'>> }> = ({ href, icon }) => {
     const router = useRouter();
@@ -32,6 +33,7 @@ export const Navbar = () => {
                 <NavbarButton href="/server" icon={ComputerIcon} />
                 <NavbarButton href="/media" icon={ImageIcon} />
                 <NavbarButton href="/test" icon={PlayArrowIcon} />
+                <NavbarButton href="/plugins" icon={ExtensionIcon} />
             </Stack>
 
             <Typography textAlign="center" fontSize={12} >{`v${version}`}</Typography>

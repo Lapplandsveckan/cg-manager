@@ -4,7 +4,8 @@
  */
 import {REPClient} from 'rest-exchange-protocol-client';
 import {CasparServerApi} from './caspar';
-import {PluginInjectionAPI} from './plugin';
+import {PluginInjectionAPI} from './inject';
+import {PluginApi} from './plugin';
 
 
 /**
@@ -15,7 +16,8 @@ export class ManagerApi {
     private socket: REPClient;
 
     public caspar: CasparServerApi;
-    public plugin: PluginInjectionAPI;
+    public injects: PluginInjectionAPI;
+    public plugin: PluginApi;
 
     private static instance: ManagerApi;
     public static getConnection() {
@@ -30,7 +32,8 @@ export class ManagerApi {
         });
 
         this.caspar = new CasparServerApi(this.socket);
-        this.plugin = new PluginInjectionAPI(this.socket);
+        this.injects = new PluginInjectionAPI(this.socket);
+        this.plugin = new PluginApi(this.socket);
     }
 
     public async rawRequest(path: string, method: string, data: any) {
