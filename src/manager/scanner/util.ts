@@ -12,7 +12,7 @@ export function getId(fileDir: string, filePath: string) {
         .toUpperCase();
 }
 
-export function sha1(path: string) {
+export function hashFile(path: string) {
     return new Promise<string>((resolve, reject) => {
         const hash = crypto.createHash('sha1');
         const rs = createReadStream(path);

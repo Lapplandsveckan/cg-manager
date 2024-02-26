@@ -1,8 +1,9 @@
 import {EventEmitter} from 'events';
-import {sha1} from './util';
+import {hashFile} from './util';
 
 export interface MediaDoc {
     id: string;
+    _invalidate?: boolean;
 
     mediaPath?: string;
     mediaSize?: number;
@@ -100,18 +101,12 @@ export class FileDatabase extends EventEmitter {
         return this.hash.get(hash);
     }
 
-    async retrieveFile(file: string): Promise<MediaDoc> {
-        const hash = await sha1(file);
-        return this.retrieve(hash);
-    }
-
     getHash(id: string): string {
         return this.db.get(id);
     }
 
-    async put(file: string, doc: MediaDoc): Promise<MediaDoc> {
+    put(hash: string, doc: MediaDoc): MediaDoc {
         const id = doc.id;
-        const hash = await sha1(file);
 
         this.db.set(id, hash);
         this.hash.set(hash, doc);
@@ -141,11 +136,17 @@ export class FileDatabase extends EventEmitter {
     }
 
     save() {
-        return JSON.stringify(Object.fromEntries(this.hash.entries()));
+        return JSON.stringify(
+            Object.fromEntries(
+                Array.from(this.hash.entries())
+                    .filter(([_, value]) => !value._invalidate),
+            ),
+        );
     }
 
     load(data: string) {
         const hash = JSON.parse(data);
-        for (const [key, value] of Object.entries(hash)) this.hash.set(key, value as MediaDoc);
+        for (const [key, value] of Object.entries(hash))
+            this.hash.set(key, {...(value as MediaDoc), _invalidate: true});
     }
 }

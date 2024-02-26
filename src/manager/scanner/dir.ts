@@ -80,10 +80,12 @@ export class DirectoryManager {
     }
 
     public async deleteDirectory(id: string) {
+        if (!this._created) return;
+
         const data = this.media.get(id);
         if (!data) return;
 
-        await fs.unlink(data.location);
+        await fs.unlink(data.location).catch(() => {});
         this.media.delete(id);
     }
 

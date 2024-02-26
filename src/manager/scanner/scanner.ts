@@ -3,7 +3,7 @@
 import config from './config';
 import {Logger} from '../../util/log';
 import {noTryAsync} from 'no-try';
-import {extractGDDJSON, getGDDScriptElement, getId, readFile} from './util';
+import {extractGDDJSON, getGDDScriptElement, getId, readFile, hashFile} from './util';
 import { promises as fs } from 'fs';
 import ffmpeg from 'fluent-ffmpeg';
 import moment from 'moment';
@@ -18,9 +18,12 @@ async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: 
     if (!mediaId || mediaStat.isDirectory()) return;
 
     const mediaLogger = logger.scope(mediaId);
-    const doc = await db.retrieveFile(mediaPath) || { id: mediaId };
+    const hash = await hashFile(mediaPath);
+    const doc = db.retrieve(hash) || { id: mediaId };
+    delete doc._invalidate;
+
     if (doc.mediaPath && doc.mediaPath !== mediaPath) doc.mediaPath = mediaPath; // File has moved
-    if (doc.mediaSize === mediaStat.size && doc.mediaTime === mediaStat.mtime.getTime()) return;
+    if (doc.mediaSize === mediaStat.size && doc.mediaTime === mediaStat.mtime.getTime()) return mediaLogger.debug('Unchanged');
 
     doc.mediaPath = mediaPath;
     doc.mediaSize = mediaStat.size;
@@ -37,7 +40,7 @@ async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: 
         }),
     ]);
 
-    await db.put(mediaPath, doc);
+    db.put(hash, doc);
     mediaLogger.debug(`Scanned (${db.getHash(doc.id)})`);
 }
 

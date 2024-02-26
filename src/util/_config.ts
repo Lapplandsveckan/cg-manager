@@ -17,5 +17,5 @@ export default {
     'pipe-caspar': false,
     'caspar-path': null,
     'temp': true,
-    'db-file': './media.json',
+    'db-file': './media-cache.json',
 } as Config;

@@ -22,8 +22,10 @@ export class MediaScanner {
         await loadCasparConfig();
         this.db = new FileDatabase();
 
-        const data = await fs.readFile(baseConfig['db-file'], 'utf8');
-        this.db.load(JSON.parse(data));
+        const data = await fs.readFile(baseConfig['db-file'], 'utf8')
+            .catch(() => '{}');
+
+        this.db.load(data);
         this.scanner = Scanner(this.db);
 
         const app = App(this.db);
@@ -37,7 +39,7 @@ export class MediaScanner {
         this.started = false;
 
         const data = this.db.save();
-        await fs.writeFile(baseConfig['db-file'], JSON.stringify(data, null, 2));
+        await fs.writeFile(baseConfig['db-file'], data);
 
         this.server.close();
         this.db.close();
