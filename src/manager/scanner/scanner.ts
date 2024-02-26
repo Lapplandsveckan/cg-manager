@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 
-import config, {loadCasparConfig} from './config';
+import config from './config';
 import {Logger} from '../../util/log';
 import {noTryAsync} from 'no-try';
 import {extractGDDJSON, getGDDScriptElement, getId, readFile} from './util';
@@ -18,13 +18,8 @@ async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: 
     if (!mediaId || mediaStat.isDirectory()) return;
 
     const mediaLogger = logger.scope(mediaId);
-    const doc = db.get(mediaId) || { id: mediaId };
-
-    if (doc.mediaPath && doc.mediaPath !== mediaPath) {
-        mediaLogger.info('Skipped');
-        return;
-    }
-
+    const doc = await db.retrieveFile(mediaPath) || { id: mediaId };
+    if (doc.mediaPath && doc.mediaPath !== mediaPath) doc.mediaPath = mediaPath; // File has moved
     if (doc.mediaSize === mediaStat.size && doc.mediaTime === mediaStat.mtime.getTime()) return;
 
     doc.mediaPath = mediaPath;
@@ -42,8 +37,8 @@ async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: 
         }),
     ]);
 
-    db.put(mediaId, doc);
-    mediaLogger.debug('Scanned');
+    await db.put(mediaPath, doc);
+    mediaLogger.debug(`Scanned (${db.getHash(doc.id)})`);
 }
 
 async function generateThumb(doc: MediaDoc) {

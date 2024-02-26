@@ -6,6 +6,7 @@ export interface Config {
     'dev': boolean; // Whether the server is in development mode
     'caspar-path'?: string | null; // Path to CasparCG
     'temp'? : true; // Whether this config is temporary from dev mode
+    'db-file': string; // Path to the database file
 }
 
 export default {
@@ -16,4 +17,5 @@ export default {
     'pipe-caspar': false,
     'caspar-path': null,
     'temp': true,
+    'db-file': './media.json',
 } as Config;

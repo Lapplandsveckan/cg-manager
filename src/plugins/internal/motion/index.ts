@@ -22,8 +22,6 @@ export default class VideoPlugin extends CasparPlugin {
             null,
         ];
 
-        let ci = 0;
-
         this.api.registerEffect(
             'motion',
             (group, options) => new MotionEffect(group, options as VideoEffectOptions),

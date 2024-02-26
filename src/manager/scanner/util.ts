@@ -1,7 +1,8 @@
 import {noTry} from 'no-try';
-import {promises as fs} from 'fs';
+import {promises as fs, createReadStream} from 'fs';
 import * as path from 'path';
 import * as cheerio from 'cheerio';
+import * as crypto from 'crypto';
 
 export function getId(fileDir: string, filePath: string) {
     return path
@@ -11,14 +12,19 @@ export function getId(fileDir: string, filePath: string) {
         .toUpperCase();
 }
 
+export function sha1(path: string) {
+    return new Promise<string>((resolve, reject) => {
+        const hash = crypto.createHash('sha1');
+        const rs = createReadStream(path);
+        rs.on('error', reject);
+        rs.on('data', chunk => hash.update(chunk));
+        rs.on('end', () => resolve(hash.digest('hex')));
+    });
+}
+
 export async function readFile(filePath: string) {
     const link = await fs.readlink(filePath).catch(() => null); // check if file is a symlink
-    if (link) {
-        const linkPath = path.resolve(path.dirname(filePath), link);
-        return readFile(link);
-    }
-
-    return fs.readFile(filePath);
+    return fs.readFile(link ?? filePath);
 }
 
 export async function getGDDScriptElement(filePath: string) {

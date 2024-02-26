@@ -1,4 +1,5 @@
 import {EventEmitter} from 'events';
+import {sha1} from './util';
 
 export interface MediaDoc {
     id: string;
@@ -76,7 +77,9 @@ export interface MediaDoc {
 }
 
 export class FileDatabase extends EventEmitter {
-    private db = new Map<string, MediaDoc>();
+    private hash = new Map<string, MediaDoc>();
+
+    private db = new Map<string, string>();
     private static instance: FileDatabase;
 
     public static get db() {
@@ -89,26 +92,60 @@ export class FileDatabase extends EventEmitter {
     }
 
     get(id: string): MediaDoc {
+        const hash = this.getHash(id);
+        return hash ? this.retrieve(hash) : null;
+    }
+
+    retrieve(hash: string): MediaDoc {
+        return this.hash.get(hash);
+    }
+
+    async retrieveFile(file: string): Promise<MediaDoc> {
+        const hash = await sha1(file);
+        return this.retrieve(hash);
+    }
+
+    getHash(id: string): string {
         return this.db.get(id);
     }
 
-    put(id: string, doc: MediaDoc): MediaDoc {
-        this.db.set(id, doc);
+    async put(file: string, doc: MediaDoc): Promise<MediaDoc> {
+        const id = doc.id;
+        const hash = await sha1(file);
+
+        this.db.set(id, hash);
+        this.hash.set(hash, doc);
+
         this.emit('change', id, doc);
         return doc;
     }
 
     remove(id: string): MediaDoc {
-        const doc = this.db.get(id);
+        const hash = this.db.get(id);
+        const doc = hash ? this.hash.get(hash) : null;
         this.emit('change', id, null);
-        return this.db.delete(id) ? doc : null;
+
+        if (hash) this.hash.delete(hash);
+
+        this.db.delete(id);
+        if (doc) return doc;
     }
 
     allDocs(): MediaDoc[] {
-        return Array.from(this.db.values());
+        return Array.from(this.db.values()).map(id => this.hash.get(id));
     }
 
     close() {
         this.db.clear();
+        this.hash.clear();
+    }
+
+    save() {
+        return JSON.stringify(Object.fromEntries(this.hash.entries()));
+    }
+
+    load(data: string) {
+        const hash = JSON.parse(data);
+        for (const [key, value] of Object.entries(hash)) this.hash.set(key, value as MediaDoc);
     }
 }
