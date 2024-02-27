@@ -9,16 +9,20 @@ export class CgCommand extends LayeredCommand {
         super();
     }
 
-    private static single(layer: number, cmd: string) {
+    public setLayer(layer: number) {
+        this.cgLayer = layer;
+        return this;
+    }
+
+    private static single(cmd: string) {
         const command = new CgCommand();
         command.cmd = cmd;
-        command.cgLayer = layer;
 
         return command;
     }
 
-    public static add(layer: number, templateName: string, playOnLoad: boolean, data?: any) {
-        const cmd = CgCommand.single(layer, 'ADD');
+    public static add(templateName: string, playOnLoad = true, data?: any) {
+        const cmd = CgCommand.single('ADD');
 
         cmd.arguments.push(templateName);
         cmd.arguments.push(playOnLoad ? '1' : '0');
@@ -27,42 +31,42 @@ export class CgCommand extends LayeredCommand {
         return cmd;
     }
 
-    public static play(layer: number) {
-        return CgCommand.single(layer, 'PLAY');
+    public static play() {
+        return CgCommand.single('PLAY');
     }
 
-    public static stop(layer: number) {
-        return CgCommand.single(layer, 'STOP');
+    public static stop() {
+        return CgCommand.single('STOP');
     }
 
-    public static next(layer: number) {
-        return CgCommand.single(layer, 'NEXT');
+    public static next() {
+        return CgCommand.single('NEXT');
     }
 
-    public static remove(layer: number) {
-        return CgCommand.single(layer, 'REMOVE');
+    public static remove() {
+        return CgCommand.single('REMOVE');
     }
 
-    public static clear(layer?: number) {
-        return CgCommand.single(layer, 'CLEAR');
+    public static clear() {
+        return CgCommand.single('CLEAR');
     }
 
-    public static update(layer: number, data: any) {
-        const command = CgCommand.single(layer, 'UPDATE');
+    public static update(data: any) {
+        const command = CgCommand.single('UPDATE');
         command.arguments.push(JSON.stringify(data));
 
         return command;
     }
 
-    public static invoke(layer: number, method: string) {
-        const command = CgCommand.single(layer, 'INVOKE');
+    public static invoke(method: string) {
+        const command = CgCommand.single('INVOKE');
         command.arguments.push(method);
 
         return command;
     }
 
-    public static info(layer: number) {
-        return CgCommand.single(layer, 'INFO');
+    public static info() {
+        return CgCommand.single('INFO');
     }
 
     public getCommandType() {
@@ -72,6 +76,9 @@ export class CgCommand extends LayeredCommand {
     public getArguments(): string[] {
         const args = this.arguments.slice();
         if (this.cgLayer !== undefined) args.unshift(this.cgLayer.toString());
+        else if (this.cmd !== 'CLEAR') args.unshift('0');
+
+        args.unshift(this.cmd);
 
         const pos = this.getPosition();
         if (pos) args.unshift(pos);

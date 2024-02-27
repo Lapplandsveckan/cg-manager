@@ -6,7 +6,7 @@ export abstract class Effect {
     private _active: boolean = false;
     private _disposed: boolean = false;
     public readonly id: string = uuid();
-    protected get active() {
+    public get active() {
         return this._active;
     }
 

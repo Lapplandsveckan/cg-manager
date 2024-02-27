@@ -14,13 +14,7 @@ export default class VideoPlugin extends CasparPlugin {
 
     protected onEnable() {
         // TODO: sanitize options input, verify that the options are valid
-        const group = this.api.getEffectGroup('1:motion', 0); // TODO: not hardcode channel
-        const clips = [
-            'MOTIONS/WINTER_ARBORIST_MOTIONS_HD/ALWAYS_WINTER_HD',
-            'MOTIONS/WINTER_ARBORIST_MOTIONS_HD/JOLLY_SNOW_HD',
-            'MOTIONS/WINTER_ARBORIST_MOTIONS_HD/MOONLIGHT_SNOW_STAR_HD',
-            null,
-        ];
+        this.api.getEffectGroup('1:motion', 0); // TODO: not hardcode channel
 
         this.api.registerEffect(
             'motion',

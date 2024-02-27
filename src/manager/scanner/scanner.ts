@@ -223,7 +223,7 @@ export async function getTemplates() {
     const rows = await fs.readdir(config.paths.template, { recursive: true });
     return rows
         .filter(x => /\.(ft|wt|ct|swf|htm|html)$/.test(x))
-        .map(x => ({ path: x, id: getId(config.paths.template, x)}));
+        .map(x => ({ path: path.join(config.paths.template, x), id: getId(config.paths.template, x)}));
 }
 
 export async function getTemplatesWithContent() {

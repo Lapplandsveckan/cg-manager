@@ -72,7 +72,7 @@ export class DirectoryManager {
             location,
 
             name: path.basename(from),
-            identifier: `_internal/${filename}`.toUpperCase(),
+            identifier: `_internal/${id}`.toUpperCase(),
         };
 
         this.media.set(data.id, data);

@@ -8,7 +8,7 @@ export abstract class BasicCommand {
     protected abstract getCommandType(): string;
     protected abstract getArguments(): string[];
 
-    public static create(command: string, ...args: string[]) {
+    private static create(command: string, ...args: string[]) {
         return new class extends BasicCommand {
             protected getCommandType() {
                 return command;
