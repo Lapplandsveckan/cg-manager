@@ -67,9 +67,11 @@ export abstract class Effect {
 
         this.deactivate();
         this.deallocateLayers(this.layers);
+        this.executor.executeAllocations();
 
         this.group.removeEffect(this);
         this.effectGroup = null;
+        this.transform = null;
     }
 
     protected layers: Layer[] = [];

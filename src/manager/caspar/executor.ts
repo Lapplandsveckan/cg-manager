@@ -6,13 +6,14 @@ import {Effect} from '../amcp/effect';
 
 export class CasparExecutor extends CommandExecutor {
     private client: net.Socket;
-    public connected: boolean = false;
+    public _connected: boolean = false;
 
     public readonly ip: string;
     public readonly port: number;
 
     private retryTimeout: NodeJS.Timeout;
     private retry = true;
+    private buffer = '';
 
     protected _fetchTemplates(): Promise<any[]> {
         return getTemplatesWithContent();
@@ -23,6 +24,10 @@ export class CasparExecutor extends CommandExecutor {
 
         this.ip = ip ?? '127.0.0.1';
         this.port = port ?? 5250;
+    }
+
+    public get connected(): boolean {
+        return this._connected;
     }
 
     public connect() {
@@ -48,13 +53,18 @@ export class CasparExecutor extends CommandExecutor {
     }
 
     protected send(data: string) {
+        if (!this.client) return this.buffer += data;
+        if (this.buffer) data = this.buffer + data;
         this.client.write(data);
+
+        this.buffer = '';
     }
 
     protected onConnect() {
         clearTimeout(this.retryTimeout);
 
-        this.connected = true;
+        this._connected = true;
+        this.send(''); // Flush buffer
         this.fetchTemplates();
 
         Logger.info('Caspar CG executor connected');
@@ -66,7 +76,7 @@ export class CasparExecutor extends CommandExecutor {
         this.client.destroy();
 
         this.client = null;
-        this.connected = false;
+        this._connected = false;
 
         if (error) Logger.error(`Caspar CG executor failed to connect: ${error}`);
         Logger.info('Caspar CG executor disconnected');

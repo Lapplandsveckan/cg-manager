@@ -1,0 +1,156 @@
+.swish__main {
+    position: absolute;
+    left: 0;
+    top: 110vh;
+
+    width: 100vw;
+    height: 110vh;
+
+    background-image: url(../images/banner1.png);
+    background-size: 100vw 110vh;
+    background-repeat: no-repeat;
+}
+
+.swish__wrapper {
+    position: absolute;
+    left: 0;
+    top: 0;
+
+    width: 100vw;
+    height: 100vh;
+}
+
+.swish__sliding {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+
+    width: 100vw;
+    height: 100vh;
+}
+
+.swish__sliding__section {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+
+    width: 100vw;
+}
+
+.swish__sliding__row {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+    width: 150vw;
+
+    margin: 20px 0;
+}
+
+.swish__sliding__text {
+    font-size: 90pt;
+    font-weight: 600;
+
+    width: 20vw;
+
+    opacity: 0.6;
+    color: #FFF;
+
+    text-anchor: middle;
+    alignment-baseline: middle;
+}
+
+.swish__number {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    font-weight: bold;
+    font-size: 120pt;
+
+    width: 100vw;
+    color: #FFF;
+
+    text-anchor: middle;
+    alignment-baseline: middle;
+}
+
+.swish__top {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+
+    width: 100vw;
+    height: 10vh;
+
+    position: absolute;
+    left: 0;
+    top: -120vh;
+
+    padding: 0 175px;
+    box-sizing: border-box;
+}
+
+.swish_top_element {
+    font-size: 60px;
+    font-weight: 600;
+
+    width: 8vw;
+
+    opacity: 0.6;
+    color: #FFF;
+
+    text-anchor: middle;
+    alignment-baseline: middle;
+}
+
+/* Animation of the sliding swish texts */
+
+.swish__sliding__top_top {
+    animation: swish_sliding_right 4s infinite linear;
+}
+
+.swish__sliding__top_bottom {
+    animation: swish_sliding_right 6s infinite linear;
+}
+
+.swish__sliding__bottom_top {
+    animation: swish_sliding_left 6s infinite linear;
+}
+
+.swish__sliding__bottom_bottom {
+    animation: swish_sliding_left 4s infinite linear;
+}
+
+@keyframes swish_sliding_right {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(26vw);
+    }
+}
+
+@keyframes swish_sliding_left {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-26vw);
+    }
+}

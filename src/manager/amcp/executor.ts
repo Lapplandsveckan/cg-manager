@@ -24,6 +24,10 @@ export class CommandExecutor {
     private lastFetch = 0;
     private fetchPromise: Promise<TemplateInfo[]> = null;
 
+    public get connected() {
+        return true;
+    }
+
     protected async _fetchTemplates() {
         return [];
     }
@@ -56,18 +60,25 @@ export class CommandExecutor {
 
     public promise(command: string) {
         return new Promise<{ data: string[], code: number }>((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                this.removeListener(listener);
-                reject({data: ['Timeout'], code: -1});
-            }, 1000);
+            let timeout;
+            const startTimeout = () => {
+                timeout = setTimeout(() => {
+                    if (!this.connected) return startTimeout();
+
+                    this.removeListener(listener);
+                    reject({data: ['Timeout'], code: -1});
+                }, 1000);
+            };
+
+            startTimeout();
 
             const onSuccess = (data: string[], code: number) => {
-                clearTimeout(timeout);
+                if (timeout) clearTimeout(timeout);
                 resolve({data, code});
             };
 
             const onError = (data: string[], code: number) => {
-                clearTimeout(timeout);
+                if (timeout) clearTimeout(timeout);
                 reject({data, code});
             };
 

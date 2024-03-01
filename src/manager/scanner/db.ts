@@ -147,6 +147,6 @@ export class FileDatabase extends EventEmitter {
     load(data: string) {
         const hash = JSON.parse(data);
         for (const [key, value] of Object.entries(hash))
-            this.hash.set(key, {...(value as MediaDoc), _invalidate: true});
+            this.put(key, {...(value as MediaDoc), _invalidate: true});
     }
 }

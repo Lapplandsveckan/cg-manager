@@ -1,21 +1,28 @@
 import {Effect} from '../../../../manager/amcp/effect';
 import {EffectGroup} from '../../../../manager/amcp/layers';
-import {ClearCommand} from '../../../../manager/amcp/commands/clear';
 import {CgCommand} from '../../../../manager/amcp/commands';
+import {Logger} from '../../../../util/log';
 
 export interface SwishEffectOptions {
     template: string;
-    disposeOnStop: boolean;
+    number: string;
 }
 
 export class SwishEffect extends Effect {
-    protected options: SwishEffectOptions;
+    private options: SwishEffectOptions;
 
     public constructor(group: EffectGroup, options: SwishEffectOptions) {
         super(group);
 
         this.options = options;
         this.allocateLayers(1);
+        this.executor.executeAllocations();
+
+        const cmd = CgCommand.add(this.options.template, false, { number: this.options.number });
+        cmd.allocate(this.layer);
+
+        this.executor.execute(cmd)
+            .catch(err => Logger.error(`Failed to add swish effect: ${JSON.stringify(err)}`));
     }
 
     public get layer() {
@@ -23,21 +30,28 @@ export class SwishEffect extends Effect {
     }
     public activate() {
         if (!super.activate()) return;
+        return this.executor.execute(
+            CgCommand
+                .play()
+                .allocate(this.layer),
+        );
+    }
 
-        const cmd = CgCommand.add(this.options.template);
-        cmd.allocate(this.layer);
-
-        return this.executor.execute(cmd);
+    public minimize() {
+        return this.executor.execute(
+            CgCommand
+                .next()
+                .allocate(this.layer),
+        );
     }
 
     public deactivate() {
         if (!super.deactivate()) return;
-
-        const cmd = new ClearCommand(this.layer);
-        const result = this.executor.execute(cmd);
-        if (this.options.disposeOnStop) result.then(() => !this.active && this.dispose());
-
-        return result;
+        return this.executor.execute(
+            CgCommand
+                .stop()
+                .allocate(this.layer),
+        );
     }
 
     public getMetadata(): {} {
