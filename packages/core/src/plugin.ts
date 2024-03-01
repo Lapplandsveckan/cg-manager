@@ -149,6 +149,10 @@ export class PluginAPI extends EventEmitter {
         return this.files.map(id => this._manager.directory.getDirectory(id));
     }
 
+    public getFileDatabase() {
+        return this._manager.getFiles();
+    }
+
     /**
      * @param injectionZone The zone to inject the file into, e.g. UI_INJECTION_ZONE.EFFECT_CREATOR for the effect creator
      * @param file The file to inject, it holds the component as default export

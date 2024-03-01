@@ -9,16 +9,17 @@ import {CGServer} from './server';
 import {PluginManager} from './plugin';
 import {CasparProcess} from './caspar/process';
 import {CasparExecutor} from './caspar/executor';
+import {FileDatabase} from './scanner/db';
 
 export declare class CasparManager extends EventEmitter {
     public effects: EffectRegistry;
     public ui: UIInjector;
-
     public scanner: MediaScanner;
     public server: CGServer;
     public plugins: PluginManager;
     public caspar: CasparProcess;
     public executor: CasparExecutor;
+    public db: FileDatabase;
 
     // This is a static method, so it will not be available from the plugin
     // public static getManager(): CasparManager;
@@ -31,6 +32,7 @@ export declare class CasparManager extends EventEmitter {
     public getPlugins(): PluginManager;
     public getCasparProcess(): CasparProcess;
     public getExecutor(): CasparExecutor;
+    public getFiles(): FileDatabase;
 
     public getPluginInjections(): Injection[];
     public getPluginInjectionCode(id: string): Promise<string>;
