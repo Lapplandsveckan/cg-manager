@@ -1,12 +1,11 @@
-import {CommandExecutor} from '../amcp/executor';
 import net from 'net';
 import {Logger} from '../../util/log';
 import {getTemplatesWithContent} from '../scanner/scanner';
-import {Effect} from '../amcp/effect';
+import {CommandExecutor} from '@lappis/cg-manager';
 
 export class CasparExecutor extends CommandExecutor {
     private client: net.Socket;
-    public _connected: boolean = false;
+    private _connected: boolean = false;
 
     public readonly ip: string;
     public readonly port: number;

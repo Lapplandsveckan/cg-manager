@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import {CasparPlugin} from '../manager/amcp/plugin';
 import {noTry} from 'no-try';
 import {Logger} from '../util/log';
+import {CasparPlugin} from '@lappis/cg-manager';
 
 function loadPluginFolderUnsafe(dir: string) {
     return fs.readdirSync(dir)

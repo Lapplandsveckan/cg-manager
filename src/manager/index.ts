@@ -3,12 +3,12 @@ import {MediaScanner} from './scanner';
 import {CasparProcess} from './caspar/process';
 import {EventEmitter} from 'events';
 import {CasparExecutor} from './caspar/executor';
-import {EffectRegistry} from './amcp/effect';
 import {PluginManager} from './amcp/plugin';
 import {CGServer} from '../api/server';
 import {DirectoryManager} from './scanner/dir';
 import {FileDatabase} from './scanner/db';
 import {UIInjector} from './amcp/ui';
+import {EffectRegistry} from '@lappis/cg-manager';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
@@ -18,6 +18,9 @@ export class CasparManager extends EventEmitter {
     public plugins: PluginManager;
     public server: CGServer;
     public ui: UIInjector;
+    public get db() {
+        return FileDatabase.db;
+    }
 
     private static instance: CasparManager;
     public static getManager() {
@@ -80,11 +83,19 @@ export class CasparManager extends EventEmitter {
         return this.plugins;
     }
 
+    public getFiles() {
+        return this.db;
+    }
+
     public getPluginInjections() {
         return this.ui.getInjections();
     }
 
     public getPluginInjectionCode(id: string) {
         return this.ui.bundle(id);
+    }
+
+    public getLogger(scope: string) {
+        return Logger.scope(scope);
     }
 }

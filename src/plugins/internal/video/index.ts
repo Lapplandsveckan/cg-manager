@@ -1,8 +1,8 @@
-import {CasparPlugin} from '../../../manager/amcp/plugin';
 import {VideoEffect, VideoEffectOptions} from './effects/video';
 import {Method, WebError} from 'rest-exchange-protocol';
 import path from 'path';
-import {UI_INJECTION_ZONE} from '../../../manager/amcp/ui';
+import {CasparPlugin, UI_INJECTION_ZONE} from '@lappis/cg-manager';
+import {noTry} from 'no-try';
 
 export default class VideoPlugin extends CasparPlugin {
     public static get pluginName() {
@@ -20,9 +20,13 @@ export default class VideoPlugin extends CasparPlugin {
             const data = req.getData();
             if (typeof data !== 'object') throw new WebError('Invalid request data', 400);
 
-            const {group, ...options} = data as {group: string | unknown} & VideoEffectOptions;
+            const {group, clip, ...options} = data as {group: string | unknown} & {clip: string} & VideoEffectOptions;
             if (typeof group !== 'string') throw new WebError('Invalid group', 400);
 
+            const media = this.api.getFileDatabase().get(clip);
+            if (!media) throw new WebError('Clip not found', 404);
+
+            options.media = media;
             return this.api.createEffect('video', group, options).toJSON();
         }, Method.ACTION);
 

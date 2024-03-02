@@ -1,11 +1,4 @@
-import {Effect} from '../../../../manager/amcp/effect';
-import {EffectGroup} from '../../../../manager/amcp/layers';
-import {PlayCommand} from '../../../../manager/amcp/commands/play';
-import {ClearCommand} from '../../../../manager/amcp/commands/clear';
-import {Command, CommandGroup} from '../../../../manager/amcp/command';
-import {Logger} from '../../../../util/log';
-import {MixerCommand} from '../../../../manager/amcp/commands/mixer';
-import {Color} from '../../../../manager/amcp/commands/loadbg';
+import {ClearCommand, Command, CommandGroup, Effect, EffectGroup, MixerCommand, PlayCommand} from '@lappis/cg-manager';
 
 type Tuple<T, N extends number> = N extends N ? number extends N ? T[] : _TupleOf<T, N, []> : never;
 type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _TupleOf<T, N, [T, ...R]>;

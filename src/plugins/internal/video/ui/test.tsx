@@ -3,7 +3,7 @@ import {useSocket} from '@web-lib';
 import {ManagerApi} from '../../../../web/src/lib/api/api';
 
 async function playVideo(conn: ManagerApi, media: string, destination: string, transform?: number[]) {
-    const { status, data } = await conn.rawRequest('/api/plugin/video/effects/video', 'ACTION', {
+    const { status, data, error } = await conn.rawRequest('/api/plugin/video/effects/video', 'ACTION', {
         group: destination,
         clip: media,
         disposeOnStop: true,
@@ -11,7 +11,7 @@ async function playVideo(conn: ManagerApi, media: string, destination: string, t
     });
 
     if (status !== 200) {
-        console.error('Error playing video', data);
+        console.error('Error playing video', data, error);
         return;
     }
 

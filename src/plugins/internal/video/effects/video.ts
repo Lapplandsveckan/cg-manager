@@ -1,20 +1,24 @@
-import {Effect} from '../../../../manager/amcp/effect';
-import {EffectGroup} from '../../../../manager/amcp/layers';
-import {LoadBGCommand, PlayoutOptions} from '../../../../manager/amcp/commands/loadbg';
-import {PlayCommand} from '../../../../manager/amcp/commands/play';
-import {ClearCommand} from '../../../../manager/amcp/commands/clear';
-import {PauseCommand} from '../../../../manager/amcp/commands/pause';
-import {ResumeCommand} from '../../../../manager/amcp/commands/resume';
-import {StopCommand} from '../../../../manager/amcp/commands/stop';
-import {Command} from '../../../../manager/amcp/command';
-import {FileDatabase} from '../../../../manager/scanner/db';
-import {Transform} from '../../../../manager/amcp/transform';
+import {
+    ClearCommand,
+    Command,
+    Effect,
+    EffectGroup,
+    PauseCommand,
+    PlayCommand,
+    StopCommand,
+    Transform,
+    LoadBGCommand,
+    ResumeCommand,
+    PlayoutOptions,
+} from '@lappis/cg-manager';
+import { MediaDoc } from '@lappis/cg-manager/dist/types/scanner/db';
+
 
 type Tuple<T, N extends number> = N extends N ? number extends N ? T[] : _TupleOf<T, N, []> : never;
 type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _TupleOf<T, N, [T, ...R]>;
 
 export interface VideoEffectOptions extends PlayoutOptions {
-    clip: string;
+    media: MediaDoc;
     disposeOnStop?: boolean;
     transform?: Tuple<number, 8>;
 }
@@ -45,7 +49,7 @@ export class VideoEffect extends Effect {
         let commandType = LoadBGCommand;
         if (play) commandType = PlayCommand;
 
-        const cmd = commandType.video(this.options.clip, this.options);
+        const cmd = commandType.video(this.options.media.id, this.options);
         cmd.allocate(this.layer);
 
         if (play) this.handlePlay();
@@ -60,7 +64,7 @@ export class VideoEffect extends Effect {
         if (!this.active) return this.activate(true);
         if (this.playing) return;
 
-        const cmd = PlayCommand.video(this.options.clip);
+        const cmd = PlayCommand.video(this.options.media.id);
         cmd.allocate(this.layer);
 
         this.handlePlay();
@@ -75,10 +79,7 @@ export class VideoEffect extends Effect {
 
         if (this.options.loop) return;
 
-        const media = FileDatabase.db.get(this.options.clip);
-        if (!media) return;
-
-        const duration = media.mediainfo.format.duration;
+        const duration = this.options.media.mediainfo.format.duration;
         if (duration === undefined) return;
 
         this.playTimeout = setTimeout(() => this.handleFinish(), duration * 1000);

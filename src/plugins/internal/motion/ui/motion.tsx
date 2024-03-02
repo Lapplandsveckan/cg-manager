@@ -1,7 +1,6 @@
 import {Button, MenuItem, Select} from '@mui/material';
 import {useSocket} from '@web-lib';
 import {ManagerApi} from '../../../../web/src/lib/api/api';
-import {Dropdown, Option} from '@mui/base';
 import React, {useEffect, useState} from 'react';
 
 async function updateMotion(conn: ManagerApi, clip: string) {

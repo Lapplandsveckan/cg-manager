@@ -1,6 +1,4 @@
-import {Effect} from '../../../../manager/amcp/effect';
-import {EffectGroup} from '../../../../manager/amcp/layers';
-import {CgCommand} from '../../../../manager/amcp/commands';
+import {CgCommand, Effect, EffectGroup} from '@lappis/cg-manager';
 import {Logger} from '../../../../util/log';
 
 export interface SwishEffectOptions {

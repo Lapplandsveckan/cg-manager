@@ -1,8 +1,7 @@
-import {CasparPlugin} from '../../../manager/amcp/plugin';
 import {MotionEffect, VideoEffectOptions} from './effects/motion';
 import {Method, WebError} from 'rest-exchange-protocol';
 import path from 'path';
-import {UI_INJECTION_ZONE} from '../../../manager/amcp/ui';
+import {CasparPlugin, UI_INJECTION_ZONE} from '@lappis/cg-manager';
 
 export default class VideoPlugin extends CasparPlugin {
     private motion: MotionEffect;
