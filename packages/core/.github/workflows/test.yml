@@ -1,0 +1,29 @@
+name: Lint and Test
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    name: Lint, Typecheck and Test
+    runs-on: ubuntu-latest
+    steps:
+        - name: Clone codebase
+          uses: actions/checkout@v2
+
+        - name: Setup node
+          uses: actions/setup-node@v2
+          with:
+            node-version: 16
+            cache: 'yarn'
+
+        - name: Install project dependencies
+          run: yarn install --prefer-offline
+
+        - name: Lint
+          run: yarn lint
+
+        - name: Typecheck
+          run: yarn tsc
+
+        - name: Test
+          run: yarn test
