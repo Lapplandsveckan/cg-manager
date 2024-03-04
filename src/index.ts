@@ -3,10 +3,13 @@ import {Logger} from './util/log';
 import {CGServer} from './api/server';
 import {Discovery} from './manager/discovery';
 import {CasparManager} from './manager';
+import {loadPlugins, unloadPlugins} from './plugins/plugins';
 
 Logger.debug('Debug mode enabled!');
 
 async function start() {
+    if (process.env.CASPAR_DIR) process.chdir(process.env.CASPAR_DIR);
+
     Logger.info('Starting Caspar CG Gateway...');
     await loadConfig();
 
@@ -18,16 +21,21 @@ async function start() {
     const server = new CGServer(manager, config.port);
     await server.start();
 
+    manager.server = server;
+
     Logger.info('Starting bonjour discovery service...');
 
     const discovery = new Discovery();
     await discovery.start();
+
+    await loadPlugins();
 
     Logger.info('Gateway started!');
 
     return async () => {
         Logger.info('Stopping gateway...');
 
+        await unloadPlugins();
         await discovery.stop();
         await server.stop();
         await manager.stop();

@@ -27,7 +27,7 @@ export class CasparProcess extends EventEmitter {
 
         this.process.stdout.on('data', (data) => {
             this.appendLog(data.toString());
-            logger.debug(data.toString());
+            if (config['pipe-caspar']) logger.debug(data.toString());
         });
         this.process.stderr.on('data', (data) => {
             this.appendLog(data.toString());

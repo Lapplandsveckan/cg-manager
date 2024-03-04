@@ -14,7 +14,7 @@ export function loadRoutes() {
     const routes: Route[] = [];
     files.forEach((file) => {
         try {
-            const fileName = file[0];
+            const fileName = file[0].replace(/\$/g, ':');
             const routeExport = file[1];
 
             Object.entries(routeExport).forEach(([method, handler]) => {

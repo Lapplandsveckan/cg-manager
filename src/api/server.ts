@@ -1,4 +1,5 @@
 import {
+    Method, MiddleWareData,
     MiddlewareProhibitFurtherExecution,
     REPServer,
     TypedClient,
@@ -6,7 +7,11 @@ import {
 } from 'rest-exchange-protocol';
 import {loadRoutes} from './route';
 import {CasparManager} from '../manager';
-import {handleRequest} from '../web';
+import {handleRequest, onUpgrade} from '../web';
+import {Route} from 'rest-exchange-protocol/dist/route';
+import {Logger} from '../util/log';
+import {Upload} from '../manager/scanner/upload';
+import {noTry} from 'no-try';
 
 export type CGClient = TypedClient<{}>;
 export class CGServer {
@@ -23,8 +28,11 @@ export class CGServer {
         const routes = loadRoutes();
         routes.forEach((route) => this.server.register(route));
 
+        // this.server.use(this.log());
+
         this.server.use(this.web());
         this.server.use(this.cors());
+        this.server.use(this.upload());
 
         this.manager.on('caspar-status', (status) => {
             const clients = this.server.getClients();
@@ -41,11 +49,63 @@ export class CGServer {
                 client.send('caspar/logs', WebsocketOutboundMethod.ACTION, logs, false);
             });
         });
+
+        this.manager.on('media', (key, value) => {
+            const clients = this.server.getClients();
+            clients.forEach((client) => {
+                if (!(client instanceof WebsocketClient)) return;
+                client.send('caspar/media', WebsocketOutboundMethod.ACTION, { key, value }, false);
+            });
+        });
+    }
+
+    log() {
+        return async (data: MiddleWareData) => {
+            if (data.type !== 'pre-route') return;
+            Logger.scope('API').debug(`${data.route.method} ${data.route.path}`);
+        };
+    }
+
+    upload() {
+        return async (data: MiddleWareData) => {
+            if (data.type !== 'http') return;
+            if (!data.request.url.startsWith('/api/upload/chunk')) return;
+
+            const answer = (status: number, message: string, stop = true) => {
+                data.response.statusCode = status;
+                data.response.write(message);
+                data.response.end();
+
+                if (stop) throw new MiddlewareProhibitFurtherExecution();
+            };
+
+            const url = new URL(data.request.url, `http://${data.request.headers.host}`);
+            const id = url.searchParams.get('id')?.toString();
+            if (!id) return answer(400, 'No id provided');
+
+            const upload = Upload.get(id);
+            if (!upload) return answer(404, 'Upload not found');
+
+            const chunk = parseInt(url.searchParams.get('chunk'));
+            if (Number.isNaN(chunk) || chunk < 0 || chunk >= upload['data'].total) return answer(400, 'Invalid chunk');
+
+            const buffer: Uint8Array[] = [];
+            data.request.on('data', (chunk) => buffer.push(chunk));
+            data.request.on('end', () => {
+                upload.bufferChunk(chunk, Buffer.concat(buffer));
+                answer(200, 'OK', false);
+            });
+
+            throw new MiddlewareProhibitFurtherExecution();
+        };
     }
 
     web() {
         return async data => {
-            if (data.type === 'websocket-upgrade' && data.request.url.startsWith('/_next/')) throw new MiddlewareProhibitFurtherExecution();
+            if (data.type === 'websocket-upgrade' && data.request.url.startsWith('/_next/')) {
+                onUpgrade(data.request, data.socket, data.head);
+                throw new MiddlewareProhibitFurtherExecution();
+            }
 
             if (data.type !== 'http') return;
             if (data.request.url.startsWith('/api')) return;
@@ -78,5 +138,23 @@ export class CGServer {
 
     async stop() {
         await this.server.stop();
+    }
+
+    public registerRoute(path: string, handler: Route['handler'], method: Method) {
+        const route = {
+            method: method,
+            path: `/api/${path}`,
+            handler,
+        };
+
+        Logger.scope('API').debug(`Registering route ${method} /api/${path}`);
+        this.server.register(route);
+
+        return route;
+    }
+
+    public unregisterRoute(route: Route) {
+        Logger.scope('API').debug(`Unregistering route ${route.method} ${route.path}`);
+        this.server.unregister(route);
     }
 }

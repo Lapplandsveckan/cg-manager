@@ -46,13 +46,31 @@ async function packageRoutes() {
     const files = (await readDirRecursive(routes))
         .map((file) => {
             // First remove the ./ and the .ts, then split by / and remove index
-            const fileName = file.substring(0, file.length - '.js'.length);
-            fileName.replace(/\\/g, '/'); // Replace backslashes with forward slashes
-            fileName.replace(/(\/|^)index$/, ''); // Remove index at the end, for example: /api/index.ts -> /api
-
+            let fileName = file.substring(0, file.length - '.js'.length);
+            fileName = fileName.replace(/(\/|^)index$/, ''); // Remove index at the end, for example: /api/index.ts -> /api
 
             return `    ['/${fileName}', require('./routes/${file}').default],\n`;
         });
+
+    const content = `[\n${files.join('')}]`;
+    await fs.writeFile(out, `module.exports = ${content};`);
+}
+
+async function packageInternalPlugins() {
+    console.log('Packaging internal plugins...');
+    const plugins = path.join(root, 'dist', 'plugins');
+
+    const internals = path.join(plugins, 'internal');
+    const out = path.join(plugins, '_plugins.js');
+
+    const _files = await fs.readdir(internals)
+        .catch(e => e.code === 'ENOENT' ? [] : e);
+
+    if (_files instanceof Error) throw _files;
+
+    const files = _files
+        .filter((file) => !file.includes('.'))
+        .map((file) => `    require('./internal/${file}').default,\n`);
 
     const content = `[\n${files.join('')}]`;
     await fs.writeFile(out, `module.exports = ${content};`);
@@ -62,7 +80,7 @@ async function packageConfig() {
     console.log('Packaging config...');
 
     const out = path.join(root, 'dist', 'util', '_config.js');
-    const config = path.join(root, 'config.json');
+    const config = path.join(root, 'config.prod.json');
 
     const content = await fs.readFile(config, 'utf-8');
     await fs.writeFile(out, `module.exports = ${content};`);
@@ -79,21 +97,38 @@ async function packageWeb() {
 }
 
 async function package() {
-    let outName = 'gateway';
-    if (process.platform === 'win32') outName += '.exe';
-
-    const dist = JSON.stringify(path.join(root, 'dist', 'index.js'));
-    const out = JSON.stringify(path.join(root, 'out', outName));
-
     console.log('Compiling TypeScript...');
     await cmd(path.join('typescript', 'bin', 'tsc'));
 
     await packageRoutes();
+    await packageInternalPlugins();
     await packageConfig();
     await packageWeb();
 
     console.log('Packaging executable...');
     await cmd(path.join('pkg', 'lib-es5', 'bin.js'), JSON.stringify(path.join(root, 'package.json')));
+}
+
+async function moveExecutable() {
+    let dest = process.env.DEST;
+    if (!dest) return;
+
+    console.log('Moving executable...');
+
+    let ending = 'manager';
+    if (process.platform === 'win32') ending += '.exe';
+
+    if (dest.endsWith('/') || dest.endsWith('\\')) dest += ending;
+
+    const src = path.join(root, 'out', ending);
+    await fs.copyFile(src, dest);
+
+    console.log(`Executable moved to ${dest}`);
+}
+
+async function finalize() {
+    console.log('Finalizing...');
+    await moveExecutable();
 }
 
 async function clean() {
@@ -106,6 +141,7 @@ async function clean() {
 async function main() {
     let state = true;
     await package().catch((e) => (state = false) || console.error(e));
+    await finalize();
     await clean();
 
     if (state) console.log('Build complete!');

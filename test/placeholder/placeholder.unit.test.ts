@@ -2,11 +2,11 @@ import {should, suite, test} from '../utility';
 import {expect} from 'chai';
 
 should;
-@suite class ApiGatewayParamsUnitTests {
+@suite class BasicCommandUnitTests {
     before() {
     }
 
-    @test 'test placeholder'() {
-        expect(1).to.equal(1);
+    @test 'placeholder'() {
+        expect('test').to.equal('test');
     }
 }

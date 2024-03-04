@@ -1,5 +1,9 @@
+import {EventEmitter} from 'events';
+import {hashFile} from './util';
+
 export interface MediaDoc {
     id: string;
+    _invalidate?: boolean;
 
     mediaPath?: string;
     mediaSize?: number;
@@ -73,28 +77,76 @@ export interface MediaDoc {
     }
 }
 
-export class FileDatabase {
-    private db = new Map<string, MediaDoc>();
+export class FileDatabase extends EventEmitter {
+    private hash = new Map<string, MediaDoc>();
+
+    private db = new Map<string, string>();
+    private static instance: FileDatabase;
+
+    public static get db() {
+        return FileDatabase.instance;
+    }
+
+    constructor() {
+        super();
+        FileDatabase.instance = this;
+    }
 
     get(id: string): MediaDoc {
+        const hash = this.getHash(id);
+        return hash ? this.retrieve(hash) : null;
+    }
+
+    retrieve(hash: string): MediaDoc {
+        return this.hash.get(hash);
+    }
+
+    getHash(id: string): string {
         return this.db.get(id);
     }
 
-    put(id: string, doc: MediaDoc): MediaDoc {
-        this.db.set(id, doc);
+    put(hash: string, doc: MediaDoc): MediaDoc {
+        const id = doc.id;
+
+        this.db.set(id, hash);
+        this.hash.set(hash, doc);
+
+        this.emit('change', id, doc);
         return doc;
     }
 
     remove(id: string): MediaDoc {
-        const doc = this.db.get(id);
-        return this.db.delete(id) ? doc : null;
+        const hash = this.db.get(id);
+        const doc = hash ? this.hash.get(hash) : null;
+        this.emit('change', id, null);
+
+        if (hash) this.hash.delete(hash);
+
+        this.db.delete(id);
+        if (doc) return doc;
     }
 
     allDocs(): MediaDoc[] {
-        return Array.from(this.db.values());
+        return Array.from(this.db.values()).map(id => this.hash.get(id));
     }
 
     close() {
         this.db.clear();
+        this.hash.clear();
+    }
+
+    save() {
+        return JSON.stringify(
+            Object.fromEntries(
+                Array.from(this.hash.entries())
+                    .filter(([_, value]) => !value._invalidate),
+            ),
+        );
+    }
+
+    load(data: string) {
+        const hash = JSON.parse(data);
+        for (const [key, value] of Object.entries(hash))
+            this.put(key, {...(value as MediaDoc), _invalidate: true});
     }
 }

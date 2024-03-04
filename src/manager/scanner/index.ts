@@ -1,33 +1,54 @@
-import config from './config';
+import config, {loadCasparConfig} from './config';
+import baseConfig from '../../util/config';
 import Scanner from './scanner';
 import App from './app';
 import {FileDatabase} from './db';
-
-function start() {
-    const db = new FileDatabase();
-    const scanner = Scanner(db);
-    const app = App(db);
-    const server = app.listen(config.http.port);
-
-    return async () => {
-        server.close();
-
-        await scanner.stop();
-        await db.close();
-    };
-}
+import {DirectoryManager} from './dir';
+import fs from 'fs/promises';
 
 export class MediaScanner {
     private cancel: () => Promise<void> | void = null;
 
+    private db: FileDatabase;
+    private server: any;
+    private scanner: any;
+
+    public started: boolean = false;
+
     async start() {
-        if (this.cancel) return;
-        this.cancel = await start();
+        if (this.started) return;
+        this.started = true;
+
+        await loadCasparConfig();
+        this.db = new FileDatabase();
+
+        const data = await fs.readFile(baseConfig['db-file'], 'utf8')
+            .catch(() => '{}');
+
+        this.db.load(data);
+        this.scanner = Scanner(this.db);
+
+        const app = App(this.db);
+        this.server = app.listen(config.http.port);
+
+        await DirectoryManager.getManager().initialize(config.paths.media, config.paths.template);
     }
 
     async stop() {
-        if (!this.cancel) return;
-        await this.cancel();
-        this.cancel = null;
+        if (!this.started) return;
+        this.started = false;
+
+        const data = this.db.save();
+        await fs.writeFile(baseConfig['db-file'], data);
+
+        this.server.close();
+        this.db.close();
+
+        await this.scanner.stop();
+        await DirectoryManager.getManager().deleteDirectories();
+    }
+
+    public getDatabase() {
+        return this.db;
     }
 }

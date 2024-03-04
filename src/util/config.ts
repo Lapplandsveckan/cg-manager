@@ -8,16 +8,30 @@ import config from './_config';
 export async function loadConfig() {
     const configPath = path.join(process.cwd(), 'config.json');
 
-    await fs.readFile(configPath, 'utf8')
-        .then((data) => JSON.parse(data))
-        .then((parsed) => Object.assign(config, parsed))
-        .then(() => Logger.info('Loaded config'))
-        .catch(() => Logger.warn('Failed to load config, using default config'));
+    const temp = config.temp;
+    delete config.temp;
 
-    const configString = JSON.stringify(config, null, 2);
-    await fs.writeFile(configPath, configString, 'utf8')
-        .then(() => Logger.info('Saved config'))
-        .catch(() => Logger.error('Failed to save config!'));
+    let configPromise = fs.readFile(configPath, 'utf8')
+        .then((data) => JSON.parse(data))
+        .then((parsed) => Object.assign(config, parsed));
+
+    if (temp)
+        configPromise = configPromise
+            .then(() => Logger.info('Loaded external config'))
+            .catch(() => Logger.info('Loaded default config'));
+    else
+        configPromise = configPromise
+            .then(() => Logger.info('Loaded config'))
+            .catch(() => Logger.warn('Failed to load config, using default config'));
+
+    await configPromise;
+
+    if (!temp) {
+        const configString = JSON.stringify(config, null, 2);
+        await fs.writeFile(configPath, configString, 'utf8')
+            .then(() => Logger.info('Saved config'))
+            .catch(() => Logger.error('Failed to save config!'));
+    }
 
     const directories = [];
     if (config['log-dir']) directories.push(config['log-dir']);

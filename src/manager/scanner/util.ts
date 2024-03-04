@@ -1,7 +1,8 @@
 import {noTry} from 'no-try';
-import {promises as fs} from 'fs';
+import {promises as fs, createReadStream} from 'fs';
 import * as path from 'path';
 import * as cheerio from 'cheerio';
+import * as crypto from 'crypto';
 
 export function getId(fileDir: string, filePath: string) {
     return path
@@ -11,8 +12,23 @@ export function getId(fileDir: string, filePath: string) {
         .toUpperCase();
 }
 
+export function hashFile(path: string) {
+    return new Promise<string>((resolve, reject) => {
+        const hash = crypto.createHash('sha1');
+        const rs = createReadStream(path);
+        rs.on('error', reject);
+        rs.on('data', chunk => hash.update(chunk));
+        rs.on('end', () => resolve(hash.digest('hex')));
+    });
+}
+
+export async function readFile(filePath: string) {
+    const link = await fs.readlink(filePath).catch(() => null); // check if file is a symlink
+    return fs.readFile(link ?? filePath);
+}
+
 export async function getGDDScriptElement(filePath: string) {
-    const html = await fs.readFile(filePath);
+    const html = await readFile(filePath);
     const gddScripts = cheerio.load(html)('script[name="graphics-data-definition"]');
     if (gddScripts.length === 0) return undefined;
 
