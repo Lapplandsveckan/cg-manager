@@ -63,7 +63,12 @@ async function packageInternalPlugins() {
     const internals = path.join(plugins, 'internal');
     const out = path.join(plugins, '_plugins.js');
 
-    const files = fss.readdirSync(internals)
+    const _files = await fs.readdir(internals)
+        .catch(e => e.code === 'ENOENT' ? [] : e);
+
+    if (_files instanceof Error) throw _files;
+
+    const files = _files
         .filter((file) => !file.includes('.'))
         .map((file) => `    require('./internal/${file}').default,\n`);
 

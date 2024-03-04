@@ -47,9 +47,11 @@ export const showOpenFilePicker = (globalThis.showOpenFilePicker ?? typeof docum
         ...descriptorsOfFileSystemHandle,
         ...getOwnPropertyDescriptors({
             get name() {
+                // @ts-ignore
                 return mapOfFiles.get(this)?.name ?? name.call(this);
             },
             get kind() {
+                // @ts-ignore
                 return mapOfFiles.has(this) ? 'file' : kind.call(this);
             },
         }),
@@ -59,6 +61,7 @@ export const showOpenFilePicker = (globalThis.showOpenFilePicker ?? typeof docum
         ...descriptorsOfFileSystemFileHandle,
         ...getOwnPropertyDescriptors({
             async getFile() {
+                // @ts-ignore
                 return await mapOfFiles.get(this) || getFile.call(this);
             },
         }),

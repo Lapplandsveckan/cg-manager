@@ -7,12 +7,12 @@ const Page = () => {
     const conn = useSocket();
     const [plugins, setPlugins] = useState([] as string[]);
     useEffect(() => {
-        if (!conn) return
+        if (!conn) return;
 
         conn.plugin
             .getPlugins()
             .then((plugins) =>
-                setPlugins(plugins.map(p => p.name))
+                setPlugins(plugins.map(p => p.name)),
             );
     }, [conn]);
 
@@ -21,7 +21,7 @@ const Page = () => {
             <Typography variant="h3">Plugins</Typography>
             <Stack spacing={2}>
                 {plugins.map((plugin, i) =>
-                    <Typography key={plugin}>{plugin}</Typography>
+                    <Typography key={plugin}>{plugin}</Typography>,
                 )}
             </Stack>
         </DefaultContentLayout>
