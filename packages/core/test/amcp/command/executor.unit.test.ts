@@ -1,6 +1,6 @@
+import {expect} from 'chai';
 import {should, suite, test} from '../../utility';
 import {BasicCommand, RawCommand} from '../../../src';
-import {expect} from 'chai';
 import {MockExecutor} from '../../utility/command/executor.mock';
 
 should;
