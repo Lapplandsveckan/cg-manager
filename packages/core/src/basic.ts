@@ -1,3 +1,5 @@
+import {Allocation} from './command';
+
 export class BasicChannel {
     protected readonly casparChannel: number; // maybe this should not be readonly
     constructor(casparChannel: number) {
@@ -25,11 +27,11 @@ export class BasicLayer {
     public static caspar(channel: BasicChannel, layer?: number);
     public static caspar(channel: number, layer?: number);
 
-    public static caspar(channel: number | BasicChannel | BasicLayer, layer?: number) {
+    public static caspar(channel: Allocation, layer?: number) {
         return BasicLayer.from(channel, layer);
     }
 
-    public static from(channel: number | BasicChannel | BasicLayer, layer?: number) {
+    public static from(channel: Allocation, layer?: number) {
         if (channel instanceof BasicLayer) return channel;
         if (typeof channel === 'number') channel = new BasicChannel(channel);
         if (typeof layer !== 'number') return channel;

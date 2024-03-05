@@ -1,4 +1,4 @@
-import {Command, CommandGroup, LayeredCommand, RawCommand} from '../command';
+import {CommandGroup, LayeredCommand} from '../command';
 
 interface ChromaEnabled {
     enabled: true;

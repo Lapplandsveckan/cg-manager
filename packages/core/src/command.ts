@@ -4,6 +4,9 @@ export abstract class Command {
     public abstract getCommand(): string | undefined | void;
 }
 
+export type ChannelResolvable = BasicChannel | number;
+export type Allocation = BasicLayer | ChannelResolvable;
+
 export abstract class BasicCommand {
     protected abstract getCommandType(): string;
     protected abstract getArguments(): string[];
@@ -48,6 +51,7 @@ export abstract class BasicCommand {
     private static parseArguments(args: string[]): string[] {
         const result = [];
 
+        // TODO: ensure no malformed quotes i.e any quote that is not at the start or end of a space separated argument
         for (let i = 0; i < args.length; i++) {
             const arg = args[i];
             if (!arg.startsWith('"')) {
@@ -80,10 +84,11 @@ export abstract class BasicCommand {
     }
 
     protected compileArgs() {
+        // NOTE: we treat any quote as an escaped quote, so if you would pass "hello" to make sure, it would be treated as \"hello\" and not hello
         return this
             .getArguments()
-            .map(v => v.startsWith('"') ? (v.indexOf(' ') > -1 ? v : `"${v}"`) : JSON.stringify(v))
-            .map(v => v.indexOf(' ') > -1 ? v : v.substring(1, v.length - 1))
+            .map(v => JSON.stringify(v)) // escapes anything that needs to be escaped, and wraps the string in quotes
+            .map(v => v.includes(' ') ? v : v.substring(1, v.length - 1)) // removes quotes if the string does not contain spaces
             .join(' ');
     }
 
@@ -106,10 +111,10 @@ export abstract class LayeredCommand extends BasicCommand {
         if (allocation) this.allocate(allocation);
     }
 
-    public allocate(channel: BasicLayer | BasicChannel | number);
-    public allocate(channel: BasicChannel | number, layer: number);
+    public allocate(channel: Allocation);
+    public allocate(channel: ChannelResolvable, layer: number);
 
-    public allocate(arg1: BasicLayer | BasicChannel | number, arg2?: number) {
+    public allocate(arg1: Allocation, arg2?: number) {
         this.allocation = BasicLayer.from(arg1, arg2);
         return this;
     }
@@ -163,9 +168,9 @@ export class CommandGroup extends Command {
         this.commands = commands;
     }
 
-    public allocate(channel: BasicLayer | BasicChannel | number);
-    public allocate(channel: BasicChannel | number, layer: number);
-    public allocate(arg1: BasicLayer | BasicChannel | number, arg2?: number) {
+    public allocate(channel: Allocation);
+    public allocate(channel: ChannelResolvable, layer: number);
+    public allocate(arg1: Allocation, arg2?: number) {
         this.allocation = BasicLayer.from(arg1, arg2);
 
         for (const command of this.commands)

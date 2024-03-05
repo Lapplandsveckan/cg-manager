@@ -18,6 +18,19 @@ export interface CommandListener {
     error: (data: string[], code: number) => void;
 }
 
+class CasparResponseError extends Error {
+    public data: string[];
+    public code: number;
+
+    constructor(data: string[], code: number) {
+        super([code, ...data].join('\n'));
+        this.data = data;
+        this.code = code;
+
+        this.name = 'CasparResponseError';
+    }
+}
+
 export class CommandExecutor {
     protected templates: TemplateInfo[] = [];
 
@@ -66,7 +79,7 @@ export class CommandExecutor {
                     if (!this.connected) return startTimeout();
 
                     this.removeListener(listener);
-                    reject({data: ['Timeout'], code: -1});
+                    reject(new CasparResponseError(['Timeout'], -1));
                 }, 1000);
             };
 
@@ -79,7 +92,7 @@ export class CommandExecutor {
 
             const onError = (data: string[], code: number) => {
                 if (timeout) clearTimeout(timeout);
-                reject({data, code});
+                reject(new CasparResponseError(data, code));
             };
 
             const listener: CommandListener = {
