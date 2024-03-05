@@ -141,6 +141,27 @@ export class CommandExecutor {
 
     }
 
+    private readData(code: number, cmd: string, lines: string[]): number {
+        const data = [];
+
+        if (code === 101 || code === 201 || code === 400) {
+            data.push(lines[0]);
+            if (lines.length < 1) return -1;
+        }
+
+        if (code === 200) {
+            for (let i = 0; lines[i]; i++) data.push(lines[i]);
+            if (data.length === lines.length) return -1;
+        }
+
+        this.executeListeners(code, cmd, data);
+        this.onEvent(code, cmd, data);
+
+        // 200 means multiple lines and ends with one empty line which will not be in data,
+        // so in that case we read one more line than data.length
+        return code === 200 ? data.length + 1 : data.length;
+    }
+
     protected receive(data: string) {
         const lines = data.split('\r\n');
         const excess = lines.pop();
@@ -149,32 +170,17 @@ export class CommandExecutor {
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
             const parts = line.split(' ');
+
             const code = parseInt(parts[0]);
-            const data: string[] = [];
-
-            if (code === 101 || code === 201 || code === 400) {
-                i++;
-                data.push(lines[i]);
-                if (i === lines.length) break;
-            }
-
-            if (code === 200) {
-                i++;
-                while (lines[i]) {
-                    data.push(lines[i]);
-                    i++;
-                }
-
-                if (i === lines.length) break;
-            }
-
-            index = i + 1;
 
             let cmd = null;
             if (code !== 400 && code !== 500) cmd = parts[1];
 
-            this.executeListeners(code, cmd, data);
-            this.onEvent(code, cmd, data);
+            const r = this.readData(code, cmd, lines.slice(i + 1));
+            if (r < 0) break;
+
+            i += r;
+            index = i + 1;
         }
 
         return [...lines.slice(index), excess].join('\r\n');

@@ -28,40 +28,48 @@ export abstract class BasicCommand {
         };
     }
 
+    private static parseQuotes(args: string[]): string[] {
+        for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
+            if (!arg.endsWith('"')) continue;
+
+            let shadowed = false;
+            for (let j = arg.length - 2; j >= 0; j--) {
+                if (arg[j] !== '\\') break;
+                shadowed = !shadowed;
+            }
+
+            if (!shadowed) return args.slice(0, i + 1);
+        }
+
+        throw new Error('Command contains unclosed quotes');
+    }
+
+    private static parseArguments(args: string[]): string[] {
+        const result = [];
+
+        for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
+            if (!arg.startsWith('"')) {
+                result.push(arg);
+                continue;
+            }
+
+            const quotes = this.parseQuotes(args.slice(i));
+            result.push(JSON.parse(quotes.join(' ')));
+            i += quotes.length - 1;
+        }
+
+        return result;
+    }
+
     public static from(command: string): ReturnType<typeof BasicCommand.create> {
         if (command.endsWith('\r\n')) command = command.slice(0, -2);
         if (command.indexOf('\r\n') > -1) throw new Error('Command cannot contain line breaks');
+        if (command.startsWith('"')) throw new Error('Command cannot start with quotes');
 
         const parts = command.split(' ');
-        const cmd = parts[0];
-        const args = parts.slice(1);
-
-        let quote = -1;
-        for (let i = 0; i < args.length; i++) {
-            const arg = args[i];
-            if (quote < 0 && arg.startsWith('"')) quote = i;
-
-            if (quote > -1) {
-                if (!arg.endsWith('"')) continue;
-
-                let shadowed = false;
-                for (let j = arg.length - 2; j >= 0; j--) {
-                    if (arg[j] !== '\\') break;
-                    shadowed = !shadowed;
-                }
-
-                if (shadowed) continue;
-
-                const a = [];
-                for (let j = quote; j <= i; j++) a.push(args[j]);
-
-                args.splice(quote, i - quote + 1, JSON.parse(a.join(' ')));
-                quote = -1;
-            }
-        }
-
-        if (quote > -1) throw new Error('Command contains unclosed quotes');
-        return this.create(cmd, ...args);
+        return this.create(parts[0], ...this.parseArguments(parts.slice(1)));
     }
 
     public static interpret(command: string): ReturnType<typeof BasicCommand.create>[] {
