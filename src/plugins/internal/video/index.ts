@@ -2,7 +2,8 @@ import {VideoEffect, VideoEffectOptions} from './effects/video';
 import {Method, WebError} from 'rest-exchange-protocol';
 import path from 'path';
 import {CasparPlugin, UI_INJECTION_ZONE} from '@lappis/cg-manager';
-import {noTry} from 'no-try';
+import {RouteEffect, RouteEffectOptions} from './effects/route';
+import {ColorEffect, ColorEffectOptions} from './effects/color';
 
 export default class VideoPlugin extends CasparPlugin {
     public static get pluginName() {
@@ -10,11 +11,56 @@ export default class VideoPlugin extends CasparPlugin {
     }
 
     protected onEnable() {
+        this.api.getEffectGroup('3:color2');
+        this.api.getEffectGroup('3:color1');
+
         // TODO: sanitize options input, verify that the options are valid
         this.api.registerEffect(
             'video',
             (group, options) => new VideoEffect(group, options as VideoEffectOptions),
         );
+
+        this.api.registerEffect(
+            'route',
+            (group, options) => new RouteEffect(group, options as RouteEffectOptions),
+        );
+
+        this.api.registerEffect(
+            'color',
+            (group, options) => new ColorEffect(group, options as ColorEffectOptions),
+        );
+
+        this.api.registerRoute('tests/route', async req => {
+            const color1Effect = this.api.createEffect('color', '3:color1', {
+                color: 'red',
+            }) as ColorEffect;
+
+            const routeEffect = this.api.createEffect('route', '1:route', {
+                source: color1Effect.layer,
+            }) as RouteEffect;
+
+            this.logger.info('Route effect created');
+
+            await color1Effect.activate();
+            await routeEffect.activate();
+
+            this.logger.info('Effects activated');
+
+            const color2Effect = this.api.createEffect('color', '3:color2', {
+                color: 'blue',
+            }) as ColorEffect;
+
+            await color2Effect.activate();
+
+            this.logger.info('Color2 activated');
+
+            return {
+                color1: color1Effect.toJSON(),
+                color2: color2Effect.toJSON(),
+                route: routeEffect.toJSON(),
+            };
+        }, Method.ACTION);
+
 
         this.api.registerRoute('effects/video', req => {
             const data = req.getData();
@@ -43,6 +89,6 @@ export default class VideoPlugin extends CasparPlugin {
             .then(data => this.logger.info(`Registered file: ${data.id} (${data.identifier})`))
             .catch(err => this.logger.error(err));
 
-        this.api.registerUI(UI_INJECTION_ZONE.EFFECT_CREATOR, path.join(__dirname, 'ui', 'test'));
+        this.api.registerUI(UI_INJECTION_ZONE.PLUGIN_PAGE, path.join(__dirname, 'ui', 'test'));
     }
 }

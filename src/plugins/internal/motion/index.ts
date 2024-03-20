@@ -36,7 +36,7 @@ export default class VideoPlugin extends CasparPlugin {
             this.setColor(color);
         }, Method.ACTION);
 
-        this.api.registerUI(UI_INJECTION_ZONE.EFFECT_CREATOR, path.join(__dirname, 'ui', 'motion'));
+        this.api.registerUI(UI_INJECTION_ZONE.PLUGIN_PAGE, path.join(__dirname, 'ui', 'motion'));
     }
 
     public setMotion(clip?: string) {

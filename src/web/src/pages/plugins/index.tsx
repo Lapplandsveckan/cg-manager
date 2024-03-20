@@ -1,7 +1,8 @@
-import {DefaultContentLayout} from '../components/DefaultContentLayout';
-import {useSocket} from '../lib/hooks/useSocket';
+import {DefaultContentLayout} from '../../components/DefaultContentLayout';
+import {useSocket} from '../../lib/hooks/useSocket';
 import {Stack, Typography} from '@mui/material';
 import {useEffect, useState} from 'react';
+import Link from 'next/link';
 
 const Page = () => {
     const conn = useSocket();
@@ -21,7 +22,9 @@ const Page = () => {
             <Typography variant="h3">Plugins</Typography>
             <Stack spacing={2}>
                 {plugins.map((plugin, i) =>
-                    <Typography key={plugin}>{plugin}</Typography>
+                    <Link key={plugin} href={`/plugins/${plugin}`}>
+                        <a>{plugin}</a>
+                    </Link>
                 )}
             </Stack>
         </DefaultContentLayout>

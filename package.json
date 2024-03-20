@@ -19,7 +19,7 @@
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@fontsource/roboto": "^5.0.8",
-    "@lappis/cg-manager": "^0.0.4",
+    "@lappis/cg-manager": "^0.0.7",
     "@mui/base": "^5.0.0-beta.36",
     "@mui/icons-material": "^5.15.9",
     "@mui/material": "^5.15.9",

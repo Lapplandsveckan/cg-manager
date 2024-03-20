@@ -25,6 +25,10 @@ function basicTest(conn: ManagerApi) {
     playVideo(conn, media, destination);
 }
 
+function testRoute(conn: ManagerApi) {
+    conn.rawRequest(`/api/plugin/video/tests/route`, 'ACTION', {});
+}
+
 function ultimateTest(conn: ManagerApi) {
     const medias = [
         'MOTIONS/WINTER_ARBORIST_MOTIONS_HD/RED_VELVET_SNOW_HD',
@@ -59,6 +63,7 @@ const VideoTest = () => {
     const conn = useSocket();
     return (
         <>
+            <Button onClick={() => testRoute(conn)}>Test Route</Button>
             <Button onClick={() => basicTest(conn)}>Basic Test</Button>
             <Button onClick={() => ultimateTest(conn)}>Ultimate Test</Button>
         </>
