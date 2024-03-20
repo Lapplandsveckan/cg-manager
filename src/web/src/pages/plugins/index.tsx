@@ -23,7 +23,7 @@ const Page = () => {
             <Stack spacing={2}>
                 {plugins.map((plugin, i) =>
                     <Link key={plugin} href={`/plugins/${plugin}`}>
-                        <a>{plugin}</a>
+                        {plugin}
                     </Link>
                 )}
             </Stack>
