@@ -10,7 +10,7 @@ Logger.debug('Debug mode enabled!');
 async function start() {
     if (process.env.CASPAR_DIR) process.chdir(process.env.CASPAR_DIR);
 
-    Logger.info('Starting Caspar CG Gateway...');
+    Logger.info('Starting Caspar CG manager...');
     await loadConfig();
 
     const manager = CasparManager.getManager();

@@ -3,6 +3,7 @@ import {Logger} from '../../util/log';
 import { EventEmitter } from 'events';
 import path from 'path';
 import config from '../../util/config';
+import {configuration} from '../config';
 
 const logger = Logger.scope('CasparCG');
 export class CasparProcess extends EventEmitter {
@@ -16,6 +17,7 @@ export class CasparProcess extends EventEmitter {
 
     async start() {
         if (this.process) return;
+        await configuration.get(); // ensure right config
 
         const folder = config['caspar-path'] || process.cwd();
 

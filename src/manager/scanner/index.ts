@@ -1,4 +1,4 @@
-import config, {loadCasparConfig} from './config';
+import config from './config';
 import baseConfig from '../../util/config';
 import Scanner from './scanner';
 import App from './app';
@@ -7,8 +7,6 @@ import {DirectoryManager} from './dir';
 import fs from 'fs/promises';
 
 export class MediaScanner {
-    private cancel: () => Promise<void> | void = null;
-
     private db: FileDatabase;
     private server: any;
     private scanner: any;
@@ -19,7 +17,6 @@ export class MediaScanner {
         if (this.started) return;
         this.started = true;
 
-        await loadCasparConfig();
         this.db = new FileDatabase();
 
         const data = await fs.readFile(baseConfig['db-file'], 'utf8')
@@ -29,7 +26,7 @@ export class MediaScanner {
         this.scanner = Scanner(this.db);
 
         const app = App(this.db);
-        this.server = app.listen(config.http.port);
+        this.server = app.listen(8000); // TODO: do we need this
 
         await DirectoryManager.getManager().initialize(config.paths.media, config.paths.template);
     }
