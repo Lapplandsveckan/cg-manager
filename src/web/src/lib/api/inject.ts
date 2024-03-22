@@ -100,7 +100,7 @@ export const Injections: React.FC<{zone: UI_INJECTION_ZONE, plugin?: string | nu
     useEffect(() => {
         let mounted = true;
         socket.injects.inject(zone, plugin)
-            .then(components => mounted && setComponents(components))
+            .then(components => mounted && setComponents(components));
 
         return () => void (mounted = false);
     }, [zone, plugin]);
@@ -108,7 +108,7 @@ export const Injections: React.FC<{zone: UI_INJECTION_ZONE, plugin?: string | nu
     return createElement(
         Fragment,
         null,
-        components.map((inject, i) =>
+        components.map((inject) =>
             inject.component ? createElement(inject.component, {key: inject.id}) : null,
         ),
     );

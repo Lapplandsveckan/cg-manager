@@ -60,7 +60,7 @@ export class RouteEffect extends Effect {
         return [
             PlayCommand
                 .route(this.options.source)
-                .allocate(this.layer)
+                .allocate(this.layer),
         ];
     }
 }
