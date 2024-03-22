@@ -62,6 +62,12 @@ async function main() {
             return false;
         });
 
+        process.on('unhandledRejection', (e) => {
+            Logger.error(typeof e === 'object' ? JSON.stringify(e) : e as Error);
+            stop();
+            return false;
+        });
+
         process.on('exit', () => {
             Logger.info('Exiting...');
         });

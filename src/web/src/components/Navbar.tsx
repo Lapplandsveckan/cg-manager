@@ -8,15 +8,16 @@ import ComputerIcon from '@mui/icons-material/Computer';
 import ImageIcon from '@mui/icons-material/Image';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import ExtensionIcon from '@mui/icons-material/Extension';
+import Link from 'next/link';
 
 const NavbarButton: React.FC<{ href: string, icon: OverridableComponent<SvgIconTypeMap<{}, 'svg'>> }> = ({ href, icon }) => {
-    const router = useRouter();
     const Icon = icon;
 
     return (
         <IconButton
+            component={Link}
             size="large"
-            onClick={() => router.push(href)}
+            href={href}
         >
             <Icon htmlColor="#FFF" />
         </IconButton>
