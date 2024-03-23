@@ -4,7 +4,6 @@ import {Logger} from './log';
 
 export type { Config } from './_config';
 import config from './_config';
-import {configuration} from '../manager/config';
 
 export async function loadConfig() {
     const configPath = path.join(process.cwd(), 'config.json');
@@ -26,7 +25,6 @@ export async function loadConfig() {
             .catch(() => Logger.warn('Failed to load config, using default config'));
 
     await configPromise;
-    if (config['caspar-path']) configuration.setPath(config['caspar-path']);
 
     if (!temp) {
         const configString = JSON.stringify(config, null, 2);

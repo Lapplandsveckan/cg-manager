@@ -17,9 +17,11 @@ export class CasparProcess extends EventEmitter {
 
     async start() {
         if (this.process) return;
-        await configuration.get(); // ensure right config
 
         const folder = config['caspar-path'] || process.cwd();
+
+        configuration.setPath(folder);
+        await configuration.get(); // ensure right config
 
         let cmd = path.join(folder, 'run.sh');
         if (process.platform === 'win32') cmd = path.join(folder, 'casparcg.exe');
