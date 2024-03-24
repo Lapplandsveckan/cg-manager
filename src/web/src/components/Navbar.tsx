@@ -1,13 +1,13 @@
 import {IconButton, Stack, SvgIconTypeMap, Typography} from '@mui/material';
 import {useVersion} from '../lib/hooks/useVersion';
 import {OverridableComponent} from '@mui/material/OverridableComponent';
-import {useRouter} from 'next/router';
 
 import HomeIcon from '@mui/icons-material/Home';
 import ComputerIcon from '@mui/icons-material/Computer';
 import ImageIcon from '@mui/icons-material/Image';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow'
 import ExtensionIcon from '@mui/icons-material/Extension';
+import ConfigIcon from '@mui/icons-material/Settings';
 import Link from 'next/link';
 
 const NavbarButton: React.FC<{ href: string, icon: OverridableComponent<SvgIconTypeMap<{}, 'svg'>> }> = ({ href, icon }) => {
@@ -35,6 +35,7 @@ export const Navbar = () => {
                 <NavbarButton href="/media" icon={ImageIcon} />
                 <NavbarButton href="/test" icon={PlayArrowIcon} />
                 <NavbarButton href="/plugins" icon={ExtensionIcon} />
+                <NavbarButton href={`/config`} icon={ConfigIcon} />
             </Stack>
 
             <Typography textAlign="center" fontSize={12} >{`v${version}`}</Typography>

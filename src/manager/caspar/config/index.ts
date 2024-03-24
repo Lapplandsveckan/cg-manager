@@ -9,6 +9,10 @@ import {Config} from './types';
 function getDefaults() {
     return {
         version: '0.0.1',
+        html: {
+            remoteDebuggingPort: 9222,
+            enableGpu: false,
+        },
         videoModes: [
             {
                 id: '1920x1080p6000',
@@ -46,10 +50,6 @@ function getDefaults() {
                 consumers: [],
             },
         ],
-        html: {
-            remoteDebuggingPort: 9222,
-            enableGpu: false,
-        },
     } as Config;
 }
 

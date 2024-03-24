@@ -4,11 +4,13 @@ import { EventEmitter } from 'events';
 import path from 'path';
 import config from '../../util/config';
 import {configuration} from '../config';
+import {Config} from './config/types';
 
 const logger = Logger.scope('CasparCG');
 export class CasparProcess extends EventEmitter {
     private process: ChildProcessWithoutNullStreams = null;
     private logs = '';
+    public config: Config;
 
     appendLog(data: string) {
         this.logs += data;
@@ -21,7 +23,7 @@ export class CasparProcess extends EventEmitter {
         const folder = config['caspar-path'] || process.cwd();
 
         configuration.setPath(folder);
-        await configuration.get(); // ensure right config
+        this.config = await configuration.get(); // ensure right config
 
         let cmd = path.join(folder, 'run.sh');
         if (process.platform === 'win32') cmd = path.join(folder, 'casparcg.exe');

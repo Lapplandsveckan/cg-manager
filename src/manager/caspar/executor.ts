@@ -59,6 +59,7 @@ export class CasparExecutor extends CommandExecutor {
         this.buffer = '';
     }
 
+    private connectListeners: (() => void)[] = [];
     protected onConnect() {
         clearTimeout(this.retryTimeout);
 
@@ -66,7 +67,17 @@ export class CasparExecutor extends CommandExecutor {
         this.send(''); // Flush buffer
         this.fetchTemplates();
 
+        for (const listener of this.connectListeners) listener();
+        this.connectListeners = [];
+
         Logger.info('Caspar CG executor connected');
+    }
+
+    public awaitConnection() {
+        return new Promise<void>((resolve, _reject) => {
+            if (this.connected) return resolve();
+            this.connectListeners.push(resolve);
+        });
     }
 
     protected onDisconnect(error?: Error) {

@@ -3,7 +3,7 @@ import {Card, Stack, Typography} from '@mui/material';
 import {UploadButton} from '../components/Upload';
 import React from 'react';
 import {MediaView} from '../components/MediaView';
-import {useSocket} from '../lib/hooks/useSocket';
+import {useSocket} from '../lib';
 
 const Page = () => {
     const socket = useSocket();
@@ -13,8 +13,8 @@ const Page = () => {
             <Typography
                 fontSize="32px"
                 fontWeight={600}
-                variant="h1"
                 marginBottom="20px"
+                variant="h1"
             >
                 Media
             </Typography>
