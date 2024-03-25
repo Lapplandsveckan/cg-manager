@@ -38,9 +38,6 @@ export class CasparManager extends EventEmitter {
         this.plugins = new PluginManager();
         this.ui = new UIInjector();
 
-        for (let i = 0; i < this.caspar.config.channels.length; i++)
-            this.executor.allocateChannel(i + 1);
-
         this.caspar.on('status', (status) => this.emit('caspar-status', status));
         this.caspar.on('status', (status) => status.running ? setTimeout(() => this.executor.connect(), 500) : setTimeout(() => this.executor.disconnect(), 500));
         this.caspar.on('log', (log) => this.emit('caspar-logs', log));
@@ -54,6 +51,9 @@ export class CasparManager extends EventEmitter {
 
         Logger.info('Starting Caspar CG process...');
         await this.caspar.start();
+
+        for (let i = 0; i < this.caspar.config.channels.length; i++)
+            this.executor.allocateChannel(i + 1);
     }
 
     async stop() {
@@ -62,6 +62,9 @@ export class CasparManager extends EventEmitter {
 
         this.scanner = null;
         this.caspar = null;
+
+        // TODO: fix this
+        // this.executor.deallocateAllChannels();
     }
 
     public getMediaScanner() {
