@@ -8,11 +8,7 @@ import {Config} from './types';
 
 function getDefaults() {
     return {
-        version: '0.0.1',
-        html: {
-            remoteDebuggingPort: 9222,
-            enableGpu: false,
-        },
+        version: '2.3.0',
         videoModes: [
             {
                 id: '1920x1080p6000',
@@ -26,30 +22,13 @@ function getDefaults() {
         channels: [
             {
                 videoMode: '1920x1080p6000',
-                consumers: [
-                    {
-                        type: 'screen',
-                        data: {
-                            device: 2,
-                            windowed: true,
-                            borderless: true,
-                            width: 1920,
-                            height: 1200,
-                            // alwaysOnTop: true,
-                        },
-                    },
-                    { type: 'system-audio', data: {} },
-                ],
-            },
-            {
-                videoMode: '1920x1080p6000',
-                consumers: [],
-            },
-            {
-                videoMode: '1920x1080p6000',
                 consumers: [],
             },
         ],
+        html: {
+            remoteDebuggingPort: 9222,
+            enableGpu: false,
+        },
     } as Config;
 }
 

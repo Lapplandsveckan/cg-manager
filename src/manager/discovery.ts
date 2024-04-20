@@ -9,7 +9,8 @@ export class Discovery {
 
     start() {
         return new Promise<void>((resolve, reject) => {
-            const service = this.instance.publish({ name: 'CG Manager', type: 'cg-manager', port: config.port });
+            const id = Math.random().toString(36).substring(7);
+            const service = this.instance.publish({ name: `CG Manager (${id})`, type: 'cg-manager', port: config.port });
             service.on('up', () => {
                 resolve();
             });
