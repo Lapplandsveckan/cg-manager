@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { arrayMove, SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { PlayListItem } from './PlaylistItem';
-import { useState } from 'react';
 import {closestCorners, DndContext, DragEndEvent, UniqueIdentifier} from '@dnd-kit/core';
 
 export interface IPlaylistItem{
@@ -27,10 +26,8 @@ export const PlayList = () => {
         const { active, over } = event;
         if (active.id === over.id) return;
 
-        setPlaylist(tasks => {
-            const getItemPos = (id: UniqueIdentifier) => playlist.findIndex(task => task.id === id);
-            return arrayMove(tasks, getItemPos(active.id), getItemPos(over.id));
-        });
+        const getItemPos = (id: UniqueIdentifier) => playlist.findIndex(task => task.id === id);
+        setPlaylist(tasks => arrayMove(tasks, getItemPos(active.id), getItemPos(over.id)));
     };
 
     return (
