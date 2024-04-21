@@ -1,10 +1,9 @@
 import { DefaultContentLayout } from '../components/DefaultContentLayout';
-import { useSocket } from '../lib/hooks/useSocket';
-import { PlaylistLayout } from '../components/Playlist/PlaylistLayout';
+import { useSocket } from '../lib/';
+import { PlaylistLayout } from '../components/playlist/PlaylistLayout';
 
 
 const Page = () => {
-
     const conn = useSocket();
 
     return (
@@ -12,7 +11,6 @@ const Page = () => {
             <PlaylistLayout/>
         </DefaultContentLayout>
     );
-
 };
 
 export default Page;
