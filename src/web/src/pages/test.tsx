@@ -1,16 +1,14 @@
-import {DefaultContentLayout} from '../components/DefaultContentLayout';
-import {useSocket} from '../lib/hooks/useSocket';
-import {Stack} from '@mui/material';
+import { DefaultContentLayout } from '../components/DefaultContentLayout';
+import { useSocket } from '../lib/';
+import { PlaylistLayout } from '../components/playlist/PlaylistLayout';
+
 
 const Page = () => {
     const conn = useSocket();
+
     return (
         <DefaultContentLayout>
-            <h1>Test</h1>
-
-            <Stack>
-
-            </Stack>
+            <PlaylistLayout/>
         </DefaultContentLayout>
     );
 };
