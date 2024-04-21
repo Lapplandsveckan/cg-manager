@@ -26,7 +26,7 @@ function basicTest(conn: ManagerApi) {
 }
 
 function testRoute(conn: ManagerApi) {
-    conn.rawRequest(`/api/plugin/video/tests/route`, 'ACTION', {});
+    conn.rawRequest('/api/plugin/video/tests/route', 'ACTION', {});
 }
 
 function ultimateTest(conn: ManagerApi) {
@@ -51,8 +51,15 @@ function ultimateTest(conn: ManagerApi) {
             // 0, 0, 1, 1,
             // 0, 0, 1, 1,
 
-            0, 0, 1, 1,
-            dx, dy, dx + 0.5, dy + 0.5,
+            0,
+            0,
+            1,
+            1,
+
+            dx,
+            dy,
+            dx + 0.5,
+            dy + 0.5,
         ];
 
         playVideo(conn, media, destination, transform);

@@ -8,8 +8,8 @@
     "start": "ts-node src/index.ts",
     "test": "mocha 'test/**/*.test.ts'",
     "test:coverage": "nyc mocha 'test/**/*.test.ts'",
-    "lint": "eslint src test --ext .ts",
-    "lint:fix": "eslint src test --ext .ts --fix",
+    "lint": "eslint src test --ext .ts,.tsx",
+    "lint:fix": "eslint src test --ext .ts,.tsx --fix",
     "tsc": "tsc --noEmit"
   },
   "dependencies": {

@@ -59,4 +59,4 @@ export const MediaCard: React.FC<MediaCardProps> = ({name, duration, backgroundU
             </Card>
         </Grid>
     );
-}
+};

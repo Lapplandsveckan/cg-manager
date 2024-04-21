@@ -5,7 +5,7 @@ import {OverridableComponent} from '@mui/material/OverridableComponent';
 import HomeIcon from '@mui/icons-material/Home';
 import ComputerIcon from '@mui/icons-material/Computer';
 import ImageIcon from '@mui/icons-material/Image';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import ConfigIcon from '@mui/icons-material/Settings';
 import Link from 'next/link';
@@ -35,7 +35,7 @@ export const Navbar = () => {
                 <NavbarButton href="/media" icon={ImageIcon} />
                 <NavbarButton href="/test" icon={PlayArrowIcon} />
                 <NavbarButton href="/plugins" icon={ExtensionIcon} />
-                <NavbarButton href={`/config`} icon={ConfigIcon} />
+                <NavbarButton href="/config" icon={ConfigIcon} />
             </Stack>
 
             <Typography textAlign="center" fontSize={12} >{`v${version}`}</Typography>

@@ -8,12 +8,12 @@ const Page = () => {
     const conn = useSocket();
     const [plugins, setPlugins] = useState([] as string[]);
     useEffect(() => {
-        if (!conn) return
+        if (!conn) return;
 
         conn.plugin
             .getPlugins()
             .then((plugins) =>
-                setPlugins(plugins.map(p => p.name))
+                setPlugins(plugins.map(p => p.name)),
             );
     }, [conn]);
 
@@ -24,7 +24,7 @@ const Page = () => {
                 {plugins.map((plugin, i) =>
                     <Link key={plugin} href={`/plugins/${plugin}`}>
                         {plugin}
-                    </Link>
+                    </Link>,
                 )}
             </Stack>
         </DefaultContentLayout>

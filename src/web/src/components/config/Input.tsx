@@ -140,7 +140,8 @@ export const BooleanInput: React.FC<InputProps<boolean>> = ({ label, value, defa
     );
 };
 
-export const EnumInput: React.FC<InputProps<string> & { options: string[] }> = ({ label, value, defaultValue, onChange, required, options }) => {
+export const EnumInput: React.FC<InputProps<string> & { options: string[] }> =
+({ label, value, defaultValue, onChange, required, options }) => {
     const [val, setVal] = useState<string | undefined>(value);
     const updateValue = (val: string | undefined) => {
         setVal(val);

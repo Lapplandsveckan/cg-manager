@@ -220,4 +220,4 @@ export const ConsumerEditor = ({ consumer }) => {
             }
         </Stack>
     );
-}
+};
