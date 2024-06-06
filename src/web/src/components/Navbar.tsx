@@ -33,7 +33,7 @@ export const Navbar = () => {
                 <NavbarButton href="/" icon={HomeIcon} />
                 <NavbarButton href="/server" icon={ComputerIcon} />
                 <NavbarButton href="/media" icon={ImageIcon} />
-                <NavbarButton href="/test" icon={PlayArrowIcon} />
+                <NavbarButton href="/play" icon={PlayArrowIcon} />
                 <NavbarButton href="/plugins" icon={ExtensionIcon} />
                 <NavbarButton href="/config" icon={ConfigIcon} />
             </Stack>
