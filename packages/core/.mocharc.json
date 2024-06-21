@@ -1,0 +1,4 @@
+{
+  "require": "./.lappis/scripts/register.js",
+  "reporter": "dot"
+}

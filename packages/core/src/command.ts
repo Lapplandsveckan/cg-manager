@@ -4,6 +4,9 @@ export abstract class Command {
     public abstract getCommand(): string | undefined | void;
 }
 
+export type ChannelResolvable = BasicChannel | number;
+export type Allocation = BasicLayer | ChannelResolvable;
+
 export abstract class BasicCommand {
     protected abstract getCommandType(): string;
     protected abstract getArguments(): string[];
@@ -28,40 +31,49 @@ export abstract class BasicCommand {
         };
     }
 
+    private static parseQuotes(args: string[]): string[] {
+        for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
+            if (!arg.endsWith('"')) continue;
+
+            let shadowed = false;
+            for (let j = arg.length - 2; j >= 0; j--) {
+                if (arg[j] !== '\\') break;
+                shadowed = !shadowed;
+            }
+
+            if (!shadowed) return args.slice(0, i + 1);
+        }
+
+        throw new Error('Command contains unclosed quotes');
+    }
+
+    private static parseArguments(args: string[]): string[] {
+        const result = [];
+
+        // TODO: ensure no malformed quotes i.e any quote that is not at the start or end of a space separated argument
+        for (let i = 0; i < args.length; i++) {
+            const arg = args[i];
+            if (!arg.startsWith('"')) {
+                result.push(arg);
+                continue;
+            }
+
+            const quotes = this.parseQuotes(args.slice(i));
+            result.push(JSON.parse(quotes.join(' ')));
+            i += quotes.length - 1;
+        }
+
+        return result;
+    }
+
     public static from(command: string): ReturnType<typeof BasicCommand.create> {
         if (command.endsWith('\r\n')) command = command.slice(0, -2);
         if (command.indexOf('\r\n') > -1) throw new Error('Command cannot contain line breaks');
+        if (command.startsWith('"')) throw new Error('Command cannot start with quotes');
 
         const parts = command.split(' ');
-        const cmd = parts[0];
-        const args = parts.slice(1);
-
-        let quote = -1;
-        for (let i = 0; i < args.length; i++) {
-            const arg = args[i];
-            if (quote < 0 && arg.startsWith('"')) quote = i;
-
-            if (quote > -1) {
-                if (!arg.endsWith('"')) continue;
-
-                let shadowed = false;
-                for (let j = arg.length - 2; j >= 0; j--) {
-                    if (arg[j] !== '\\') break;
-                    shadowed = !shadowed;
-                }
-
-                if (shadowed) continue;
-
-                const a = [];
-                for (let j = quote; j <= i; j++) a.push(args[j]);
-
-                args.splice(quote, i - quote + 1, JSON.parse(a.join(' ')));
-                quote = -1;
-            }
-        }
-
-        if (quote > -1) throw new Error('Command contains unclosed quotes');
-        return this.create(cmd, ...args);
+        return this.create(parts[0], ...this.parseArguments(parts.slice(1)));
     }
 
     public static interpret(command: string): ReturnType<typeof BasicCommand.create>[] {
@@ -72,10 +84,11 @@ export abstract class BasicCommand {
     }
 
     protected compileArgs() {
+        // NOTE: we treat any quote as an escaped quote, so if you would pass "hello" to make sure, it would be treated as \"hello\" and not hello
         return this
             .getArguments()
-            .map(v => v.startsWith('"') ? (v.indexOf(' ') > -1 ? v : `"${v}"`) : JSON.stringify(v))
-            .map(v => v.indexOf(' ') > -1 ? v : v.substring(1, v.length - 1))
+            .map(v => JSON.stringify(v)) // escapes anything that needs to be escaped, and wraps the string in quotes
+            .map(v => v.includes(' ') ? v : v.substring(1, v.length - 1)) // removes quotes if the string does not contain spaces
             .join(' ');
     }
 
@@ -98,10 +111,10 @@ export abstract class LayeredCommand extends BasicCommand {
         if (allocation) this.allocate(allocation);
     }
 
-    public allocate(channel: BasicLayer | BasicChannel | number);
-    public allocate(channel: BasicChannel | number, layer: number);
+    public allocate(channel: Allocation);
+    public allocate(channel: ChannelResolvable, layer: number);
 
-    public allocate(arg1: BasicLayer | BasicChannel | number, arg2?: number) {
+    public allocate(arg1: Allocation, arg2?: number) {
         this.allocation = BasicLayer.from(arg1, arg2);
         return this;
     }
@@ -155,9 +168,9 @@ export class CommandGroup extends Command {
         this.commands = commands;
     }
 
-    public allocate(channel: BasicLayer | BasicChannel | number);
-    public allocate(channel: BasicChannel | number, layer: number);
-    public allocate(arg1: BasicLayer | BasicChannel | number, arg2?: number) {
+    public allocate(channel: Allocation);
+    public allocate(channel: ChannelResolvable, layer: number);
+    public allocate(arg1: Allocation, arg2?: number) {
         this.allocation = BasicLayer.from(arg1, arg2);
 
         for (const command of this.commands)

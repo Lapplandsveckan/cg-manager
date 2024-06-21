@@ -1,5 +1,4 @@
-
-import {BasicCommand, Command} from '../command';
+import {Allocation, BasicCommand, ChannelResolvable} from '../command';
 import {BasicChannel, BasicLayer} from '../basic';
 
 export class SwapCommand extends BasicCommand {
@@ -8,27 +7,27 @@ export class SwapCommand extends BasicCommand {
     protected transforms: boolean;
 
     constructor();
-    constructor(allocation1: BasicLayer | BasicChannel, allocation2: BasicLayer | BasicChannel, transforms?: boolean);
+    constructor(allocation1: Allocation, allocation2: Allocation, transforms?: boolean);
 
-    constructor(allocation1?: BasicLayer | BasicChannel, allocation2?: BasicLayer | BasicChannel, transforms = true) {
+    constructor(allocation1?: Allocation, allocation2?: Allocation, transforms = true) {
         super();
         if (allocation1) this.allocate1(allocation1);
         if (allocation2) this.allocate2(allocation2);
         this.transforms = transforms;
     }
 
-    public allocate1(channel: BasicLayer | BasicChannel | number);
-    public allocate1(channel: BasicChannel | number, layer: number);
+    public allocate1(channel: Allocation);
+    public allocate1(channel: ChannelResolvable, layer: number);
 
-    public allocate1(arg1: BasicLayer | BasicChannel | number, arg2?: number) {
+    public allocate1(arg1: Allocation, arg2?: number) {
         this.allocation1 = BasicLayer.from(arg1, arg2);
         return this;
     }
 
-    public allocate2(channel: BasicLayer | BasicChannel | number);
-    public allocate2(channel: BasicChannel | number, layer: number);
+    public allocate2(channel: Allocation);
+    public allocate2(channel: ChannelResolvable, layer: number);
 
-    public allocate2(arg1: BasicLayer | BasicChannel | number, arg2?: number) {
+    public allocate2(arg1: Allocation, arg2?: number) {
         this.allocation2 = BasicLayer.from(arg1, arg2);
         return this;
     }

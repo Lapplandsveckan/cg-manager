@@ -132,7 +132,7 @@ export class Channel extends BasicChannel{
     }
 
     public getLayers() {
-        return this.currentOrder.map(id => this.layers.get(id)).filter(layer => layer !== undefined) as Layer[];
+        return this.currentOrder.map(id => this.layers.get(id)).filter(layer => layer !== undefined);
     }
 
     public getLayerIndex(layer: Layer) {
@@ -182,8 +182,7 @@ export class Channel extends BasicChannel{
     }
 
     public deallocateLayers(layers: Layer[]): void {
-        for (let i = 0; i < layers.length; i++) {
-            const layer = layers[i];
+        for (const layer of layers) {
             const index = this.currentOrder.indexOf(layer.id);
 
             this.currentOrder[index] = undefined;

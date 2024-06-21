@@ -1,7 +1,6 @@
 import {EventEmitter} from 'events';
-import {Injection} from './ui';
+import {Injection, UIInjector} from './ui';
 import {EffectRegistry} from '../effect';
-import {UIInjector} from './ui';
 import {Logger} from './log';
 import {MediaScanner} from './scanner/scanner';
 import {DirectoryManager} from './scanner/dir';
