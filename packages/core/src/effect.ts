@@ -1,8 +1,10 @@
 import {v4 as uuid} from 'uuid';
 import {Transform} from './transform';
 import {EffectGroup, Layer} from './layers';
+import {Command} from './command';
+import {EventEmitter} from 'events';
 
-export abstract class Effect {
+export abstract class Effect extends EventEmitter {
     private _active: boolean = false;
     private _disposed: boolean = false;
     public readonly id: string = uuid();
@@ -39,6 +41,7 @@ export abstract class Effect {
     }
 
     protected constructor(effectGroup: EffectGroup) {
+        super();
         this.effectGroup = effectGroup;
         this.group.addEffect(this);
     }
@@ -101,8 +104,8 @@ export abstract class Effect {
         this.group.channel.deallocateLayers(layers);
     }
 
-    public updatePositions() {
-
+    public updatePositions(): Command[] {
+        return [];
     }
 
     public getName() {

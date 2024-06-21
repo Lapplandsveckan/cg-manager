@@ -1,5 +1,5 @@
 import {EventEmitter} from 'events';
-import {EffectConstructor} from './effect';
+import {Effect, EffectConstructor} from './effect';
 import {noTry} from 'no-try';
 import {Logger, CasparManager} from './types';
 import {Method} from 'rest-exchange-protocol';
@@ -170,9 +170,9 @@ export class PluginAPI extends EventEmitter {
         this._manager.ui.unregister(id);
     }
 
-    public createEffect(name: string, group: string, options: any) {
+    public createEffect<T = Effect>(name: string, group: string, options: any) {
         const effectGroup = this._manager.executor.getEffectGroup(group);
-        return this._manager.effects.create(name, effectGroup, options);
+        return this._manager.effects.create(name, effectGroup, options) as T;
     }
 
     public getEffect(id: string) {

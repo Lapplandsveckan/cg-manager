@@ -246,10 +246,11 @@ export class Channel extends BasicChannel{
             layer['setCasparLayer'](i + 1);
         }
 
+        for (const effect of this.executor.getEffects())
+            commands.push(...effect.updatePositions());
+
         const commandGroup = new CommandGroup(commands);
         this.executor.execute(commandGroup);
-
-        // TODO: call all effects to update their layers
     }
 
     public toJSON() {

@@ -1,5 +1,6 @@
 export const UI_INJECTION_ZONE = {
     EFFECT_CREATOR: 'effect-creator',
+    PLUGIN_PAGE: 'plugin-page',
 } as const;
 
 export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];
