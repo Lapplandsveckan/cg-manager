@@ -5,6 +5,7 @@ import {Logger, CasparManager} from './types';
 import {Method} from 'rest-exchange-protocol';
 import {Route} from 'rest-exchange-protocol/dist/route';
 import {UI_INJECTION_ZONE} from './types/ui';
+import {RundownItem} from './types/rundown';
 
 export class CasparPlugin {
     private _api: PluginAPI;
@@ -177,5 +178,9 @@ export class PluginAPI extends EventEmitter {
 
     public getEffect(id: string) {
         return this._manager.executor.getEffect(id);
+    }
+
+    public registerRundownAction(name: string, handler: (item: RundownItem) => Promise<void> | void) {
+        this._manager.rundowns.executor.registerAction(name, handler);
     }
 }

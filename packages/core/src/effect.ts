@@ -75,6 +75,8 @@ export abstract class Effect extends EventEmitter {
         this.group.removeEffect(this);
         this.effectGroup = null;
         this.transform = null;
+
+        this.removeAllListeners();
     }
 
     protected layers: Layer[] = [];
