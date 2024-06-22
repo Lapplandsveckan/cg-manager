@@ -50,10 +50,6 @@ export default class VideoPlugin extends CasparPlugin {
             return effect.toJSON();
         }, Method.ACTION);
 
-        this.api.registerFile('template', path.join(__dirname, 'templates', 'test.html'))
-            .then(data => this.logger.info(`Registered file: ${data.id} (${data.identifier})`))
-            .catch(err => this.logger.error(err));
-
         this.api.registerUI(UI_INJECTION_ZONE.PLUGIN_PAGE, path.join(__dirname, 'ui', 'test'));
     }
 }

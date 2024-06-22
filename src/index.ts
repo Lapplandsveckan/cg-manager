@@ -58,13 +58,13 @@ async function main() {
 
         process.on('uncaughtException', (e) => {
             Logger.error(e);
-            stop();
+            if (config.dev) stop();
             return false;
         });
 
         process.on('unhandledRejection', (e) => {
             Logger.error(typeof e === 'object' ? JSON.stringify(e) : e as Error);
-            stop();
+            if (config.dev) stop();
             return false;
         });
 

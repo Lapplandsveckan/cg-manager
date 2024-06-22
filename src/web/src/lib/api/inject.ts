@@ -12,9 +12,13 @@ if (typeof window !== 'undefined') {
 
 export const UI_INJECTION_ZONE = {
     PLUGIN_PAGE: 'plugin-page',
+
+    RUNDOWN_ITEM: 'rundown-item',
+    RUNDOWN_EDITOR: 'rundown-editor',
 } as const;
 
 export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];
+export type UI_INJECTION_ZONE_KEY = UI_INJECTION_ZONE | `${UI_INJECTION_ZONE}.${string}`;
 
 export interface Injection {
     zone: UI_INJECTION_ZONE;
@@ -77,12 +81,12 @@ export class PluginInjectionAPI {
         return component;
     }
 
-    public async getInjects(zone: UI_INJECTION_ZONE, plugin: string | null = null): Promise<Injection[]> {
+    public async getInjects(zone: UI_INJECTION_ZONE_KEY, plugin: string | null = null): Promise<Injection[]> {
         await this._pluginPromise;
         return Array.from(this._plugins.values()).filter(p => p.zone === zone && (!plugin || p.plugin === plugin));
     }
 
-    public async inject(zone: UI_INJECTION_ZONE, plugin: string | null = null) {
+    public async inject(zone: UI_INJECTION_ZONE_KEY, plugin: string | null = null) {
         const injects = await this.getInjects(zone, plugin);
         return await Promise.all(
             injects.map(i =>
@@ -93,7 +97,7 @@ export class PluginInjectionAPI {
     }
 }
 
-export const Injections: React.FC<{zone: UI_INJECTION_ZONE, plugin?: string | null}> = ({zone, plugin}) => {
+export const Injections: React.FC<{zone: UI_INJECTION_ZONE_KEY, plugin?: string | null, props?: any}> = ({zone, plugin, props}) => {
     const [components, setComponents] = useState<{id: string, component: ComponentType}[]>([]);
     const socket = useSocket();
 
@@ -109,7 +113,7 @@ export const Injections: React.FC<{zone: UI_INJECTION_ZONE, plugin?: string | nu
         Fragment,
         null,
         components.map((inject) =>
-            inject.component ? createElement(inject.component, {key: inject.id}) : null,
+            inject.component ? createElement(inject.component, {key: inject.id, ...props}) : null,
         ),
     );
 };

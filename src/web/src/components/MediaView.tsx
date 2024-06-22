@@ -1,10 +1,16 @@
-import {Grid, Stack} from '@mui/material';
+import {Button, Grid, Modal, Stack, Typography} from '@mui/material';
 import {useSocket} from '../lib/hooks/useSocket';
 import React, {useEffect, useMemo, useState} from 'react';
 import {MediaDoc} from '../lib/api/caspar';
 import {MediaCard} from '../components/MediaCard';
+import {Box} from '@mui/system';
 
-export const MediaView: React.FC = () => {
+interface MediaViewProps {
+    columns?: number;
+    onClipSelect?: (clip: MediaDoc) => void;
+}
+
+export const MediaView: React.FC<MediaViewProps> = ({columns, onClipSelect}) => {
     const socket = useSocket();
     const [media, setMedia] = useState<MediaDoc[]>([]);
 
@@ -41,10 +47,12 @@ export const MediaView: React.FC = () => {
                 data.length > 0 ? (
                     <Grid container spacing={2}>
                         {
-                            data.map(media => (
+                            data.map((clip, index) => (
                                 <MediaCard
-                                    key={media.name}
-                                    {...media}
+                                    key={clip.name}
+                                    {...clip}
+                                    columns={columns}
+                                    onClick={() => onClipSelect?.(media[index])}
                                 />
                             ))
                         }
@@ -63,3 +71,72 @@ export const MediaView: React.FC = () => {
         </Stack>
     );
 };
+
+interface MediaSelectProps {
+    clip?: MediaDoc | null;
+    onClipSelect: (clip: MediaDoc) => void;
+}
+
+export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) => {
+    const [open, setOpen] = useState<boolean>(false);
+    return (
+        <>
+            <Stack>
+                <Button
+                    onClick={() => {
+                        setOpen(true);
+                    }}
+                >
+                    Select Media
+                </Button>
+
+                <Typography>
+                    {clip?.id ?? 'No media selected'}
+                </Typography>
+            </Stack>
+            <Modal
+                open={open}
+                onClose={() => {
+                    setOpen(false);
+                }}
+            >
+                <Stack
+                    sx={{
+                        position: 'absolute',
+
+                        top: '50%',
+                        left: '50%',
+
+                        transform: 'translate(-50%, -50%)',
+
+                        width: '100vw',
+                        height: '100vh',
+                    }}
+
+                    alignItems="center"
+                    justifyContent="center"
+                >
+                    <Box
+                        m={4}
+                        p={2}
+
+                        sx={{
+                            backgroundColor: '#272930',
+                            borderRadius: 4,
+
+                            width: '75%',
+                            height: '60%',
+
+                            overflowY: 'auto',
+                        }}
+                    >
+                        <MediaView columns={4} onClipSelect={clip => {
+                            setOpen(false);
+                            onClipSelect?.(clip);
+                        }} />
+                    </Box>
+                </Stack>
+            </Modal>
+        </>
+    );
+}

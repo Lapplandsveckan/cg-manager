@@ -3,12 +3,13 @@ import {MediaScanner} from './scanner';
 import {CasparProcess} from './caspar/process';
 import {EventEmitter} from 'events';
 import {CasparExecutor} from './caspar/executor';
-import {PluginManager} from './amcp/plugin';
+import {PluginManager} from './plugins/plugin';
 import {CGServer} from '../api/server';
 import {DirectoryManager} from './scanner/dir';
 import {FileDatabase} from './scanner/db';
-import {UIInjector} from './amcp/ui';
+import {UIInjector} from './plugins/ui';
 import {EffectRegistry} from '@lappis/cg-manager';
+import {RundownManager} from './rundown/rundown';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
@@ -18,6 +19,8 @@ export class CasparManager extends EventEmitter {
     public plugins: PluginManager;
     public server: CGServer;
     public ui: UIInjector;
+    public rundowns: RundownManager;
+
     public get db() {
         return FileDatabase.db;
     }
@@ -37,6 +40,7 @@ export class CasparManager extends EventEmitter {
         this.executor = new CasparExecutor();
         this.plugins = new PluginManager();
         this.ui = new UIInjector();
+        this.rundowns = new RundownManager();
 
         this.caspar.on('status', (status) => this.emit('caspar-status', status));
         this.caspar.on('status', (status) => status.running ? setTimeout(() => this.executor.connect(), 500) : setTimeout(() => this.executor.disconnect(), 500));

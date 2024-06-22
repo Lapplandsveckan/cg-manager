@@ -7,6 +7,7 @@ export interface Config {
     'caspar-path'?: string | null; // Path to CasparCG
     'temp'? : true; // Whether this config is temporary from dev mode
     'db-file': string; // Path to the database file
+    'rundown-dir'?: string; // Directory to store rundowns in
 }
 
 export default {
@@ -18,4 +19,5 @@ export default {
     'caspar-path': null,
     'temp': true,
     'db-file': './media-cache.json',
+    'rundown-dir': './rundowns',
 } as Config;

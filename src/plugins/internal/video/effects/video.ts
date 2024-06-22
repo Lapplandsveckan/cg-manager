@@ -20,6 +20,7 @@ type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N 
 export interface VideoEffectOptions extends PlayoutOptions {
     media: MediaDoc;
     disposeOnStop?: boolean;
+    holdLastFrame?: boolean;
     transform?: Tuple<number, 8>;
 }
 
@@ -71,12 +72,20 @@ export class VideoEffect extends Effect {
         return this.executor.execute(cmd);
     }
 
+    public waitForFinish() {
+        return new Promise<void>(resolve => {
+            if (!this.active) return resolve();
+            this.once('video:finish', resolve);
+        });
+    }
+
     private playTimeout: any;
 
     protected handlePlay() {
         this.playing = true;
         this.paused = false;
 
+        this.emit('video:play');
         if (this.options.loop) return;
 
         const duration = this.options.media.mediainfo.format.duration;
@@ -89,12 +98,17 @@ export class VideoEffect extends Effect {
 
     protected handleFinish() {
         if (!this.active) return;
-        this.deactivate();
+        this.emit('video:finish');
+
+        this.playing = false;
+        if (!this.options.holdLastFrame) this.deactivate();
     }
 
     public pause() {
         if (!this.active) return;
         if (!this.playing) return;
+        this.emit('video:pause');
+
         this.playing = false;
         this.paused = true;
 
@@ -108,6 +122,8 @@ export class VideoEffect extends Effect {
     public resume() {
         if (!this.active) return;
         if (!this.paused) return;
+        this.emit('video:resume');
+
         this.playing = true;
         this.paused = false;
 
@@ -124,15 +140,12 @@ export class VideoEffect extends Effect {
 
     public deactivate() {
         if (!super.deactivate()) return;
+        this.emit('video:deactivate');
 
         clearTimeout(this.playTimeout);
-
-        let cmd: Command = new ClearCommand(this.layer);
-        if (this.playing) cmd = new StopCommand(this.layer);
-        // TODO: do we want this ^^^?
-
         this.playing = false;
 
+        const cmd: Command = new ClearCommand(this.layer);
         const result = this.executor.execute(cmd);
         if (this.options.disposeOnStop) result.then(() => !this.active && this.dispose());
 

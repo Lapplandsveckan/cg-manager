@@ -27,13 +27,20 @@ export interface MediaCardProps {
     duration: number;
 
     backgroundUrl: string;
+
+    columns?: number;
+    onClick?: () => void;
 }
 
-export const MediaCard: React.FC<MediaCardProps> = ({name, duration, backgroundUrl}) => {
+export const MediaCard: React.FC<MediaCardProps> = ({name, duration, backgroundUrl, columns, onClick}) => {
     const durationString = useMemo(() => getDurationString(duration), [duration]);
+    columns = 60 / (columns ?? 5);
 
     return (
-        <Grid item xs={12} sm={6} md={4} lg={3} xl={2.4}>
+        <Grid
+            item xs={columns} sm={columns / 2} md={columns / 3} lg={columns  / 4} xl={columns / 5}
+            onClick={() => onClick?.()}
+        >
             <Card
                 sx={{
                     aspectRatio: '16/9',
