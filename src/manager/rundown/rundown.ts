@@ -35,6 +35,7 @@ export interface RundownInstance {
 
 export class RundownManager {
     private rundowns = new Map<string, RundownInstance>();
+    private timer: NodeJS.Timeout;
     public executor = new RundownExecutor();
 
     public createRundown(name: string): Rundown {
@@ -52,6 +53,18 @@ export class RundownManager {
 
     public getRundown(id: string): Rundown | null {
         return this.rundowns.get(id)?.rundown ?? null;
+    }
+
+    public getRundowns(): Rundown[] {
+        return Array.from(this.rundowns.values()).map(({rundown}) => rundown);
+    }
+
+    public async updateRundown(id: string, name: string) {
+        const rundown = this.getRundown(id);
+        if (!rundown) return;
+
+        rundown.name = name;
+        await this.saveRundown(rundown);
     }
 
     public async loadRundowns() {
@@ -78,6 +91,14 @@ export class RundownManager {
             .forEach(rundown => this.rundowns.set(rundown.id, {rundown, state: {}}));
     }
 
+    public startAutosave() {
+        this.timer = setInterval(() => this.saveAllRundowns(), 1000 * 60);
+    }
+
+    public stopAutosave() {
+        clearInterval(this.timer);
+    }
+
     public async saveRundown(rundown: Rundown) {
         const dir = config['rundown-dir'];
         const file = path.join(dir, `${rundown.id}.json`);
@@ -90,7 +111,13 @@ export class RundownManager {
         Logger.error(err);
     }
 
+    public async saveAllRundowns() {
+        await Promise.all(Array.from(this.rundowns.values()).map(({rundown}) => this.saveRundown(rundown)));
+    }
+
     public async deleteRundown(id: string) {
+        this.rundowns.delete(id);
+
         const dir = config['rundown-dir'];
         const file = path.join(dir, `${id}.json`);
 
@@ -104,6 +131,9 @@ export class RundownManager {
 
 export class RundownExecutor {
     private actions = new Map<string, (item: RundownItem) => Promise<void> | void>();
+    public getActionTypes() {
+        return Array.from(this.actions.keys());
+    }
 
     public registerAction(type: string, action: (item: RundownItem) => Promise<void> | void) {
         this.actions.set(type, action);

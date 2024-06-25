@@ -47,6 +47,10 @@ export class CasparManager extends EventEmitter {
         this.caspar.on('log', (log) => this.emit('caspar-logs', log));
     }
 
+    public getServer() {
+        return this.server;
+    }
+
     async start() {
         Logger.info('Starting media scanner...');
         await this.scanner.start();
@@ -56,6 +60,10 @@ export class CasparManager extends EventEmitter {
         Logger.info('Starting Caspar CG process...');
         await this.caspar.start();
 
+        Logger.info('Starting rundown auto save...');
+        this.rundowns.startAutosave();
+        await this.rundowns.loadRundowns();
+
         for (let i = 0; i < this.caspar.config.channels.length; i++)
             this.executor.allocateChannel(i + 1);
     }
@@ -63,6 +71,9 @@ export class CasparManager extends EventEmitter {
     async stop() {
         await this.scanner.stop();
         await this.caspar.stop();
+
+        this.rundowns.stopAutosave();
+        await this.rundowns.saveAllRundowns();
 
         this.scanner = null;
         this.caspar = null;

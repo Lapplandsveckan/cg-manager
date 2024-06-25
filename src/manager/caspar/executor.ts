@@ -1,7 +1,7 @@
 import net from 'net';
 import {Logger} from '../../util/log';
 import {getTemplatesWithContent} from '../scanner/scanner';
-import {CommandExecutor} from '@lappis/cg-manager';
+import {Command, CommandExecutor} from '@lappis/cg-manager';
 
 export class CasparExecutor extends CommandExecutor {
     private client: net.Socket;
@@ -55,6 +55,9 @@ export class CasparExecutor extends CommandExecutor {
         if (!this.client) return this.buffer += data;
         if (this.buffer) data = this.buffer + data;
         this.client.write(data);
+
+        const lines = data.replace(/\r/g, '').split('\n');
+        for (const line of lines) if (line) Logger.scope('AMCP').debug(line);
 
         this.buffer = '';
     }

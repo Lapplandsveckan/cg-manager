@@ -24,6 +24,10 @@ export class ManagerApi {
         return ManagerApi.instance;
     }
 
+    public get routes() {
+        return this.socket.routes;
+    }
+
     constructor(host: string) {
         ManagerApi.instance = this;
 

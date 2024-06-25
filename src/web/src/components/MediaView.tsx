@@ -8,9 +8,10 @@ import {Box} from '@mui/system';
 interface MediaViewProps {
     columns?: number;
     onClipSelect?: (clip: MediaDoc) => void;
+    prefix?: string;
 }
 
-export const MediaView: React.FC<MediaViewProps> = ({columns, onClipSelect}) => {
+export const MediaView: React.FC<MediaViewProps> = ({columns, onClipSelect, prefix}) => {
     const socket = useSocket();
     const [media, setMedia] = useState<MediaDoc[]>([]);
 
@@ -28,7 +29,7 @@ export const MediaView: React.FC<MediaViewProps> = ({columns, onClipSelect}) => 
     useEffect(() => {
         const load = () => socket.caspar
             .getMedia()
-            .then(media => setMedia([...media.values()]))
+            .then(media => setMedia([...media.values()].filter(media => media.id.startsWith(prefix ?? ''))))
             .catch(console.error);
 
         load();
@@ -79,6 +80,20 @@ interface MediaSelectProps {
 
 export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) => {
     const [open, setOpen] = useState<boolean>(false);
+    const data = useMemo(() => {
+        if (!clip || !clip.id) return null;
+
+        const background = clip._attachments['thumb.png'];
+        const data = Buffer.from(background.data).toString('base64');
+        const url = background ? `data:${background.content_type};base64,${data}` : 'https://via.placeholder.com/1920x1080';
+
+        return {
+            name: clip.id,
+            duration: clip.mediainfo.format.duration,
+            backgroundUrl: url,
+        };
+    }, [clip]);
+
     return (
         <>
             <Stack>
@@ -90,9 +105,22 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                     Select Media
                 </Button>
 
-                <Typography>
-                    {clip?.id ?? 'No media selected'}
-                </Typography>
+                {/*<Typography>*/}
+                {/*    {clip?.id ?? 'No media selected'}*/}
+                {/*</Typography>*/}
+
+                {
+                    data ? (
+                        <MediaCard
+                            {...data}
+                            columns={1}
+                        />
+                    ) : (
+                        <Typography variant="body1">
+                            No Media Selected
+                        </Typography>
+                    )
+                }
             </Stack>
             <Modal
                 open={open}
