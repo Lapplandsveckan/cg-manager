@@ -42,7 +42,7 @@ export class SwapCommand extends BasicCommand {
         if (!position1 || !position2) return [];
 
         const args = [position1, position2];
-        if (this.transforms) args.push('TRANSFORM');
+        if (this.transforms) args.push('TRANSFORMS');
 
         return args;
     }
