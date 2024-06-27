@@ -183,4 +183,12 @@ export class PluginAPI extends EventEmitter {
     public registerRundownAction(name: string, handler: (item: RundownItem) => Promise<void> | void) {
         this._manager.rundowns.executor.registerAction(name, handler);
     }
+
+    public enableVideoRoute(id: string) {
+        this._manager.routes.enableVideoRoute(id);
+    }
+
+    public disableVideoRoute(id: string) {
+        this._manager.routes.disableVideoRoute(id);
+    }
 }

@@ -10,6 +10,7 @@ import {CasparProcess} from './caspar/process';
 import {CasparExecutor} from './caspar/executor';
 import {FileDatabase} from './scanner/db';
 import {RundownManager} from './rundown';
+import {VideoRoutesManager} from './routes';
 
 export declare class CasparManager extends EventEmitter {
     public effects: EffectRegistry;
@@ -21,6 +22,7 @@ export declare class CasparManager extends EventEmitter {
     public executor: CasparExecutor;
     public db: FileDatabase;
     public rundowns: RundownManager;
+    public routes: VideoRoutesManager;
 
     // This is a static method, so it will not be available from the plugin
     // public static getManager(): CasparManager;
