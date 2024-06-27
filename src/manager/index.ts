@@ -10,6 +10,7 @@ import {FileDatabase} from './scanner/db';
 import {UIInjector} from './plugins/ui';
 import {EffectRegistry} from '@lappis/cg-manager';
 import {RundownManager} from './rundown/rundown';
+import {VideoRoutesManager} from './routes/routes';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
@@ -20,6 +21,7 @@ export class CasparManager extends EventEmitter {
     public server: CGServer;
     public ui: UIInjector;
     public rundowns: RundownManager;
+    public routes: VideoRoutesManager;
 
     public get db() {
         return FileDatabase.db;
@@ -41,6 +43,7 @@ export class CasparManager extends EventEmitter {
         this.plugins = new PluginManager();
         this.ui = new UIInjector();
         this.rundowns = new RundownManager();
+        this.routes = new VideoRoutesManager(this);
 
         this.caspar.on('status', (status) => this.emit('caspar-status', status));
         this.caspar.on('status', (status) => status.running ? setTimeout(() => this.executor.connect(), 500) : setTimeout(() => this.executor.disconnect(), 500));
@@ -64,6 +67,8 @@ export class CasparManager extends EventEmitter {
         this.rundowns.startAutosave();
         await this.rundowns.loadRundowns();
 
+        Logger.info('Allocating channels...');
+        Logger.debug(`There are ${this.caspar.config.channels.length} channels`)
         for (let i = 0; i < this.caspar.config.channels.length; i++)
             this.executor.allocateChannel(i + 1);
     }

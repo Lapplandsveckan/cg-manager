@@ -15,7 +15,7 @@ export class ConfigParser {
 
     private parseChannel(channel: any) {
         const values = Object
-            .entries(typeof channel.consumers[0] === 'object' ? channel.consumers[0] : {})
+            .entries(typeof channel.consumers?.[0] === 'object' ? channel.consumers[0] : {})
             .map(([k, v]) =>
                 (v as any)
                     .map((v: any) => ({

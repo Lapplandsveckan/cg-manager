@@ -4,16 +4,17 @@ import {
     PlayCommand,
     StopCommand,
     Transform,
-    BasicLayer, Command,
+    BasicChannel, MixerCommand,
 } from '@lappis/cg-manager';
 
 type Tuple<T, N extends number> = N extends N ? number extends N ? T[] : _TupleOf<T, N, []> : never;
 type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _TupleOf<T, N, [T, ...R]>;
 
 export interface RouteEffectOptions {
-    source: BasicLayer;
+    channel: BasicChannel;
+
+    edgeblend?: Tuple<number, 7>;
     transform?: Tuple<number, 8>;
-    disposeOnStop?: boolean;
 }
 
 export class RouteEffect extends Effect {
@@ -32,10 +33,27 @@ export class RouteEffect extends Effect {
         return this.layers[0];
     }
 
+    protected applyEdgeblend() {
+        if (!this.active) return;
+        if (!this.options.edgeblend) return;
+
+        const [...points] = this.options.edgeblend.slice(0, 4) as [number, number, number, number];
+        const [g, p, a] = this.options.edgeblend.slice(4);
+
+        for (const layer of this.layers)
+            this.executor.execute(
+                MixerCommand
+                    .create()
+                    .edgeblend({ edgeblend: points, g, p, a })
+                    .allocate(layer)
+            );
+    }
+
     public activate() {
         if (!super.activate()) return;
+        this.applyEdgeblend();
 
-        const cmd = PlayCommand.route(this.options.source);
+        const cmd = PlayCommand.route(this.options.channel);
         cmd.allocate(this.layer);
 
         return this.executor.execute(cmd);
@@ -45,22 +63,10 @@ export class RouteEffect extends Effect {
         if (!super.deactivate()) return;
 
         const cmd = new StopCommand(this.layer);
-        const result = this.executor.execute(cmd);
-        if (this.options.disposeOnStop) result.then(() => !this.active && this.dispose());
-
-        return result;
+        return this.executor.execute(cmd);
     }
 
     public getMetadata(): {} {
         return {};
-    }
-
-    public updatePositions(): Command[] {
-        if (!this.active) return [];
-        return [
-            PlayCommand
-                .route(this.options.source)
-                .allocate(this.layer),
-        ];
     }
 }

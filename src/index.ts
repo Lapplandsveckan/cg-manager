@@ -28,7 +28,11 @@ async function start() {
     const discovery = new Discovery();
     await discovery.start();
 
+    Logger.info('Loading plugins...');
     await loadPlugins();
+
+    Logger.info('Loading video routes...');
+    await manager.routes.loadVideoRoutes();
 
     Logger.info('Gateway started!');
 
