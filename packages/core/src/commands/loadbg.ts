@@ -102,6 +102,11 @@ export class LoadBGCommand extends LayeredCommand {
             .setArguments(video, ...Video.getVideoArguments(options));
     }
 
+    public static decklink(device: number, format: string) {
+        return new this()
+            .setArguments('DECKLINK', 'DEVICE', device.toString(), 'FORMAT', format);
+    }
+
     public static route(source: BasicLayer | BasicChannel) {
         return new this()
             .setArguments(`route://${source.getCommandString()}`);

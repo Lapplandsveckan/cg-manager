@@ -57,28 +57,36 @@ export class Transform {
         this.cropTransition = cropTween;
     }
 
-    private getFill(rect: Rect) {
+    private getFill(rect: Rect, crop: Rect) {
+        crop = crop ?? Transform.normalRect();
+
+        const x = rect.start.x - crop.start.x;
+        const y = rect.start.y - crop.start.y;
+
+        const xScale = (rect.end.x - rect.start.x) / (crop.end.x - crop.start.x);
+        const yScale = (rect.end.y - rect.start.y) / (crop.end.y - crop.start.y);
+
         return {
-            x: rect.start.x,
-            y: rect.start.y,
-            x_scale: rect.end.x - rect.start.x,
-            y_scale: rect.end.y - rect.start.y,
+            x: x * xScale,
+            y: y * yScale,
+            x_scale: xScale,
+            y_scale: yScale,
         };
     }
 
-    private getCrop(rect: Rect) {
+    private getClip(rect: Rect) {
         return {
-            left_edge: rect.start.x,
-            top_edge: rect.start.y,
-            right_edge: rect.end.x,
-            bottom_edge: rect.end.y,
+            x: rect.start.x,
+            y: rect.start.y,
+            width: rect.end.x - rect.start.x,
+            height: rect.end.y - rect.start.y,
         };
     }
 
     public getCommand() {
         return MixerCommand
             .create()
-            .crop(this.getCrop(this.source), this.cropTransition)
-            .fill(this.getFill(this.destination), this.fillTransition);
+            .fill(this.getFill(this.destination, this.source), this.fillTransition)
+            .clip(this.getClip(this.destination), this.cropTransition);
     }
 }

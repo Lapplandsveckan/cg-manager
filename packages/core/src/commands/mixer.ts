@@ -64,6 +64,13 @@ export type Tween = {
     duration: number;
 } | number;
 
+export interface EdgeBlendOptions {
+    edgeblend: [number, number, number, number];
+    g?: number;
+    p?: number;
+    a?: number;
+}
+
 class MixerSingleCommand extends LayeredCommand {
     private readonly command: string;
     private readonly args: string[];
@@ -268,6 +275,21 @@ export class MixerCommand extends CommandGroup {
 
     public straightAlphaOutput(enabled: boolean) {
         return this.single('STRAIGHT_ALPHA_OUTPUT', [enabled ? '1' : '0']);
+    }
+
+    public edgeblend(edgeblend: EdgeBlendOptions) {
+        const points = edgeblend.edgeblend.slice(0, 4);
+        while (points.length < 4) points.push(0);
+
+        const args = [
+            ...points,
+
+            edgeblend.g ?? 1.8,
+            edgeblend.p ?? 3.0,
+            edgeblend.a ?? 0.5,
+        ] as any[];
+
+        return this.single('EDGEBLEND', args.map(arg => arg.toString()));
     }
 
     public clear() {
