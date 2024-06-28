@@ -1,6 +1,7 @@
 import {
+    Client,
     Method, Middleware,
-    TypedClient,
+    TypedClient, WebsocketOutboundMethod,
 } from 'rest-exchange-protocol';
 import {CasparManager} from './manager';
 import {Route} from 'rest-exchange-protocol/dist/route';
@@ -10,6 +11,8 @@ export declare class CGServer {
     // constructor will not be available from plugin
     // constructor(manager: CasparManager, port?: number);
     private constructor(manager: CasparManager, port?: number);
+
+    public broadcast<T>(target: string, method: WebsocketOutboundMethod, data: T, exclude?: Client);
 
     log(): Middleware;
     upload(): Middleware;

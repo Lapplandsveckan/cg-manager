@@ -2,7 +2,7 @@ import {EventEmitter} from 'events';
 import {Effect, EffectConstructor} from './effect';
 import {noTry} from 'no-try';
 import {Logger, CasparManager} from './types';
-import {Method} from 'rest-exchange-protocol';
+import {Method, WebsocketOutboundMethod} from 'rest-exchange-protocol';
 import {Route} from 'rest-exchange-protocol/dist/route';
 import {UI_INJECTION_ZONE} from './types/ui';
 import {RundownItem} from './types/rundown';
@@ -120,6 +120,10 @@ export class PluginAPI extends EventEmitter {
 
         this.routes.splice(index, 1);
         this._manager.server.unregisterRoute(route);
+    }
+
+    public broadcast(target: string, method: WebsocketOutboundMethod, data: any, exclude?: any) {
+        this._manager.server.broadcast(`plugin/${this._plugin.pluginName}/${target}`, method, data, exclude);
     }
 
     public registerFile(type: 'media' | 'template', path: string) {
