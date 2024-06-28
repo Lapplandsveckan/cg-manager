@@ -60,15 +60,15 @@ export class Transform {
     private getFill(rect: Rect, crop: Rect) {
         crop = crop ?? Transform.normalRect();
 
-        const x = rect.start.x - crop.start.x;
-        const y = rect.start.y - crop.start.y;
-
         const xScale = (rect.end.x - rect.start.x) / (crop.end.x - crop.start.x);
         const yScale = (rect.end.y - rect.start.y) / (crop.end.y - crop.start.y);
 
+        const x = rect.start.x - crop.start.x * xScale;
+        const y = rect.start.y - crop.start.y * yScale;
+
         return {
-            x: x * xScale,
-            y: y * yScale,
+            x,
+            y,
             x_scale: xScale,
             y_scale: yScale,
         };
@@ -84,9 +84,15 @@ export class Transform {
     }
 
     public getCommand() {
-        return MixerCommand
+        const base = MixerCommand
             .create()
-            .fill(this.getFill(this.destination, this.source), this.fillTransition)
-            .clip(this.getClip(this.destination), this.cropTransition);
+            .fill(this.getFill(this.destination, this.source), this.fillTransition);
+
+        let clipping = false;
+        if (this.source.start.x > 0 || this.source.start.y > 0) clipping = true;
+        if (this.source.end.x < 1 || this.source.end.y < 1) clipping = true;
+
+        if (!clipping) return base;
+        return base.clip(this.getClip(this.destination), this.cropTransition);
     }
 }
