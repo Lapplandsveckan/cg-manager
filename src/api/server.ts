@@ -60,11 +60,11 @@ export class CGServer {
         });
     }
 
-    public broadcast<T>(type: string, method: WebsocketOutboundMethod, data: T, exclude?: Client) {
+    public broadcast<T>(target: string, method: WebsocketOutboundMethod, data: T, exclude?: Client) {
         const clients = this.server.getClients();
         clients.forEach((client) => {
             if (client === exclude || !(client instanceof WebsocketClient)) return;
-            client.send(type, method, data, false);
+            client.send(target, method, data, false);
         });
     }
 

@@ -9,6 +9,8 @@ export const UI_INJECTION_ZONE = {
 
     RUNDOWN_ITEM: 'rundown-item',
     RUNDOWN_EDITOR: 'rundown-editor',
+
+    RUNDOWN_SIDE: 'rundown-side',
 } as const;
 
 export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];

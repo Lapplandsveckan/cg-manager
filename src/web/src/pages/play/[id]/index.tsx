@@ -34,6 +34,10 @@ const Page = () => {
                     <h1>Quick Actions</h1>
                     <QuickActions />
                 </Stack>
+
+                <Stack direction="column">
+                    <Injections zone={UI_INJECTION_ZONE.RUNDOWN_SIDE} />
+                </Stack>
             </Stack>
 
             <RundownModals

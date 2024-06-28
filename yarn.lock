@@ -1328,10 +1328,10 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@lappis/cg-manager@0.0.24":
-  version "0.0.24"
-  resolved "https://registry.yarnpkg.com/@lappis/cg-manager/-/cg-manager-0.0.24.tgz#927081d203f566fa7c6832dc125ac0f0f05aa1c5"
-  integrity sha512-Hy69WenncNeCgN6FM+62CZILcbuuNCQc/+NBxRM5SiN4WSszT+LC1jBF0vRMIjoSCuU9s49k2pIyDx3odvDRWg==
+"@lappis/cg-manager@^0.0.26":
+  version "0.0.26"
+  resolved "https://registry.yarnpkg.com/@lappis/cg-manager/-/cg-manager-0.0.26.tgz#1dee2f3b61e1ac5fc7fc4d9347aa4ebd74116990"
+  integrity sha512-iK2tN1ikDjrG3bgfFxDeCtirwffQVlaC2vpgqDYJa/ZBIXBlWBd0lwqmXO9ZGwU45iFu35KMyYdk3841Tjyf8w==
   dependencies:
     babel-loader "^8.2.5"
     no-try "^3.1.0"
