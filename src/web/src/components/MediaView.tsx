@@ -74,7 +74,7 @@ export const MediaView: React.FC<MediaViewProps> = ({columns, onClipSelect, pref
                 };
             })
             .filter(media => !showAsDirectories || media.name.indexOf('/') < 0),
-        [media, prefix]
+    [media, prefix],
     );
 
     useEffect(() => {

@@ -58,7 +58,7 @@ const Page = () => {
             <MediaView
                 prefix={path}
                 showAsDirectories
-                onNavigate={folder => navigate(path + folder + '/')}
+                onNavigate={folder => navigate(`${path}${folder}/`)}
             />
         </DefaultContentLayout>
     );
