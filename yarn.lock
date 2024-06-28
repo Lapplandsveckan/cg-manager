@@ -1328,10 +1328,10 @@
     "@jridgewell/resolve-uri" "^3.1.0"
     "@jridgewell/sourcemap-codec" "^1.4.14"
 
-"@lappis/cg-manager@^0.0.4":
-  version "0.0.4"
-  resolved "https://registry.yarnpkg.com/@lappis/cg-manager/-/cg-manager-0.0.4.tgz#c9592ff88dee2bf0c71a04f8af4b1fa72308b77b"
-  integrity sha512-LRf7xpVrq+1RQYjSu/A4LQmmUOOVn6Mz6hRQNcFzkzTA3k11gc5JF83loIFut1hcg+DCH/Mxd8MhyZNLCqNLSQ==
+"@lappis/cg-manager@^0.0.26":
+  version "0.0.26"
+  resolved "https://registry.yarnpkg.com/@lappis/cg-manager/-/cg-manager-0.0.26.tgz#1dee2f3b61e1ac5fc7fc4d9347aa4ebd74116990"
+  integrity sha512-iK2tN1ikDjrG3bgfFxDeCtirwffQVlaC2vpgqDYJa/ZBIXBlWBd0lwqmXO9ZGwU45iFu35KMyYdk3841Tjyf8w==
   dependencies:
     babel-loader "^8.2.5"
     no-try "^3.1.0"
@@ -1778,6 +1778,13 @@
   dependencies:
     "@types/http-errors" "*"
     "@types/mime" "*"
+    "@types/node" "*"
+
+"@types/xml2js@^0.4.14":
+  version "0.4.14"
+  resolved "https://registry.yarnpkg.com/@types/xml2js/-/xml2js-0.4.14.tgz#5d462a2a7330345e2309c6b549a183a376de8f9a"
+  integrity sha512-4YnrRemBShWRO2QjvUin8ESA41rH+9nQGLUGZV/1IDhi3SL9OhdpNC/MrulTWuptXKwhx/aDxE7toV0f/ypIXQ==
+  dependencies:
     "@types/node" "*"
 
 "@typescript-eslint/eslint-plugin@^5.52.0":

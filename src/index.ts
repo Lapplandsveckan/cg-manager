@@ -10,7 +10,7 @@ Logger.debug('Debug mode enabled!');
 async function start() {
     if (process.env.CASPAR_DIR) process.chdir(process.env.CASPAR_DIR);
 
-    Logger.info('Starting Caspar CG Gateway...');
+    Logger.info('Starting Caspar CG manager...');
     await loadConfig();
 
     const manager = CasparManager.getManager();
@@ -28,7 +28,11 @@ async function start() {
     const discovery = new Discovery();
     await discovery.start();
 
+    Logger.info('Loading plugins...');
     await loadPlugins();
+
+    Logger.info('Loading video routes...');
+    await manager.routes.loadVideoRoutes();
 
     Logger.info('Gateway started!');
 
@@ -58,7 +62,13 @@ async function main() {
 
         process.on('uncaughtException', (e) => {
             Logger.error(e);
-            stop();
+            if (config.dev) stop();
+            return false;
+        });
+
+        process.on('unhandledRejection', (e) => {
+            Logger.error(typeof e === 'object' ? JSON.stringify(e) : e as Error);
+            if (config.dev) stop();
             return false;
         });
 

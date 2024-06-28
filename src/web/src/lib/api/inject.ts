@@ -11,10 +11,16 @@ if (typeof window !== 'undefined') {
 }
 
 export const UI_INJECTION_ZONE = {
-    EFFECT_CREATOR: 'effect-creator',
+    PLUGIN_PAGE: 'plugin-page',
+
+    RUNDOWN_ITEM: 'rundown-item',
+    RUNDOWN_EDITOR: 'rundown-editor',
+
+    RUNDOWN_SIDE: 'rundown-side',
 } as const;
 
 export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];
+export type UI_INJECTION_ZONE_KEY = UI_INJECTION_ZONE | `${UI_INJECTION_ZONE}.${string}`;
 
 export interface Injection {
     zone: UI_INJECTION_ZONE;
@@ -77,13 +83,13 @@ export class PluginInjectionAPI {
         return component;
     }
 
-    public async getInjects(zone: UI_INJECTION_ZONE): Promise<Injection[]> {
+    public async getInjects(zone: UI_INJECTION_ZONE_KEY, plugin: string | null = null): Promise<Injection[]> {
         await this._pluginPromise;
-        return Array.from(this._plugins.values()).filter(p => p.zone === zone);
+        return Array.from(this._plugins.values()).filter(p => p.zone === zone && (!plugin || p.plugin === plugin));
     }
 
-    public async inject(zone: UI_INJECTION_ZONE) {
-        const injects = await this.getInjects(zone);
+    public async inject(zone: UI_INJECTION_ZONE_KEY, plugin: string | null = null) {
+        const injects = await this.getInjects(zone, plugin);
         return await Promise.all(
             injects.map(i =>
                 this.import(i.id)
@@ -93,20 +99,29 @@ export class PluginInjectionAPI {
     }
 }
 
-export const Injections: React.FC<{zone: UI_INJECTION_ZONE}> = ({zone}) => {
+interface InjectionsProps {
+    zone: UI_INJECTION_ZONE_KEY;
+    plugin?: string | null;
+    props?: any;
+}
+
+export const Injections: React.FC<InjectionsProps> = ({zone, plugin, props}) => {
     const [components, setComponents] = useState<{id: string, component: ComponentType}[]>([]);
     const socket = useSocket();
 
     useEffect(() => {
-        socket.injects.inject(zone)
-            .then(setComponents);
-    }, [zone]);
+        let mounted = true;
+        socket.injects.inject(zone, plugin)
+            .then(components => mounted && setComponents(components));
+
+        return () => void (mounted = false);
+    }, [zone, plugin]);
 
     return createElement(
         Fragment,
         null,
-        components.map((inject, i) =>
-            inject.component ? createElement(inject.component, {key: inject.id}) : null,
+        components.map((inject) =>
+            inject.component ? createElement(inject.component, {key: inject.id, ...props}) : null,
         ),
     );
 };

@@ -1,5 +1,5 @@
 import {EventEmitter} from 'events';
-import {hashFile} from './util';
+import {noTry} from 'no-try';
 
 export interface MediaDoc {
     id: string;
@@ -145,7 +145,8 @@ export class FileDatabase extends EventEmitter {
     }
 
     load(data: string) {
-        const hash = JSON.parse(data);
+        const [err, parsed] = noTry(() => JSON.parse(data));
+        const hash = err ? {} : parsed;
         for (const [key, value] of Object.entries(hash))
             this.put(key, {...(value as MediaDoc), _invalidate: true});
     }

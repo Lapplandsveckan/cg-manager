@@ -83,7 +83,8 @@ export const UploadButton: React.FC<UploadButtonProps> = ({ types, createUpload 
                     <Typography id="parent-modal-description" variant="body1" component="p" color={error ? 'error' : 'initial'}>
                         {
                             upload ? `Uploading... ${progress ? `${progress}%` : ''}` :
-                                error ? `Error: ${error}` : 'Successfully uploaded'
+                                error ? `Error: ${error}`
+                                    : 'Successfully uploaded'
                         }
                     </Typography>
                 </Card>

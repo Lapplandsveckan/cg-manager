@@ -1,20 +1,33 @@
 import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {Card, Stack, Typography} from '@mui/material';
 import {UploadButton} from '../components/Upload';
-import React from 'react';
+import React, {useEffect} from 'react';
 import {MediaView} from '../components/MediaView';
-import {useSocket} from '../lib/hooks/useSocket';
+import {useSocket} from '../lib';
+import {useRouter} from 'next/router';
 
 const Page = () => {
     const socket = useSocket();
+    const router = useRouter();
+
+    const [path, setPath] = React.useState<string>('');
+
+    const navigate = (path: string) => {
+        setPath(path);
+        router.push({
+            query: { ...router.query, path },
+        });
+    };
+
+    useEffect(() => setPath(router.query.path as string ?? ''), [router.query.path]);
 
     return (
         <DefaultContentLayout>
             <Typography
                 fontSize="32px"
                 fontWeight={600}
-                variant="h1"
                 marginBottom="20px"
+                variant="h1"
             >
                 Media
             </Typography>
@@ -38,11 +51,15 @@ const Page = () => {
                                 },
                             },
                         ]}
-                        createUpload={file => socket.caspar.uploadMedia(file.name, file)}
+                        createUpload={file => socket.caspar.uploadMedia(path + file.name, file)}
                     />
                 </Stack>
             </Card>
-            <MediaView />
+            <MediaView
+                prefix={path}
+                showAsDirectories
+                onNavigate={folder => navigate(`${path}${folder}/`)}
+            />
         </DefaultContentLayout>
     );
 };

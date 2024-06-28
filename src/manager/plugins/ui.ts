@@ -5,23 +5,29 @@ import path from 'path';
 import {Logger} from '../../util/log';
 import {noTryAsync} from 'no-try';
 export const UI_INJECTION_ZONE = {
-    EFFECT_CREATOR: 'effect-creator',
+    PLUGIN_PAGE: 'plugin-page',
+
+    RUNDOWN_ITEM: 'rundown-item',
+    RUNDOWN_EDITOR: 'rundown-editor',
+
+    RUNDOWN_SIDE: 'rundown-side',
 } as const;
 
 export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];
+export type UI_INJECTION_ZONE_KEY = UI_INJECTION_ZONE | `${UI_INJECTION_ZONE}.${string}`;
 
 export interface Injection {
-    zone: UI_INJECTION_ZONE;
+    zone: UI_INJECTION_ZONE_KEY;
     file: string;
     plugin: string;
     id: string;
 }
 export class UIInjector {
-    private _injectionsZones = new Map<UI_INJECTION_ZONE, Injection[]>();
+    private _injectionsZones = new Map<UI_INJECTION_ZONE_KEY, Injection[]>();
     private _injections = new Map<string, Injection>();
     private bundledComponents = new Map<string, string | Promise<string>>();
 
-    public register(zone: UI_INJECTION_ZONE, file: string, plugin: string) {
+    public register(zone: UI_INJECTION_ZONE_KEY, file: string, plugin: string) {
         if (!this._injectionsZones.has(zone)) this._injectionsZones.set(zone, []);
 
         const obj = { zone, file, plugin, id: uuid() };
@@ -46,7 +52,7 @@ export class UIInjector {
         this.bundledComponents.delete(id);
     }
 
-    public getInjections(zone?: UI_INJECTION_ZONE) {
+    public getInjections(zone?: UI_INJECTION_ZONE_KEY) {
         if (zone) return this._injectionsZones.get(zone) || [];
         return Array.from(this._injections.values());
     }
@@ -71,6 +77,10 @@ export class UIInjector {
         Logger.scope('UIInjector').info(`Bundled ${path}`);
 
         return file;
+    }
+
+    public getInjectionZone(zone: UI_INJECTION_ZONE_KEY, key: string): UI_INJECTION_ZONE_KEY {
+        return `${zone}.${key}` as const;
     }
 }
 

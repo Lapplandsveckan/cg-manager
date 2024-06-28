@@ -1,4 +1,5 @@
 import {
+    Client,
     Method, MiddleWareData,
     MiddlewareProhibitFurtherExecution,
     REPServer,
@@ -56,6 +57,14 @@ export class CGServer {
                 if (!(client instanceof WebsocketClient)) return;
                 client.send('caspar/media', WebsocketOutboundMethod.ACTION, { key, value }, false);
             });
+        });
+    }
+
+    public broadcast<T>(target: string, method: WebsocketOutboundMethod, data: T, exclude?: Client) {
+        const clients = this.server.getClients();
+        clients.forEach((client) => {
+            if (client === exclude || !(client instanceof WebsocketClient)) return;
+            client.send(target, method, data, false);
         });
     }
 
