@@ -4,7 +4,7 @@ import {useRouter} from 'next/router';
 import {RundownEditorActionBar, useSocket} from '../../lib';
 import {DefaultContentLayout} from '../../components/DefaultContentLayout';
 
-interface Rundown {
+export interface Rundown {
     id: string;
     name: string;
 
@@ -44,7 +44,7 @@ function useRundowns() {
             path: 'rundown',
             method: 'CREATE',
 
-            handler: request => setRundowns(rundowns => [...rundowns, request.getData()]),
+            handler: request => request.getData().type !== 'quick' && setRundowns(rundowns => [...rundowns, request.getData()]),
         };
 
         conn.routes.register(updateListener);
@@ -144,7 +144,7 @@ const AddRundown: React.FC<{ onCreate: (type: string) => void }> = ({onCreate}) 
     );
 }
 
-const EditRundown: React.FC<{ rundown: Rundown, onUpdate: (rundown: Rundown) => void, onDelete: () => void }> = ({rundown, onUpdate, onDelete}) => {
+export const EditRundown: React.FC<{ rundown: Rundown, onUpdate: (rundown: Rundown) => void, onDelete: () => void }> = ({rundown, onUpdate, onDelete}) => {
     const [name, setName] = useState(rundown.name);
 
     return (

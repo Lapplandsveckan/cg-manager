@@ -39,7 +39,6 @@ export async function loadConfig() {
     if (config['log-dir']) directories.push(config['log-dir']);
     if (config['rundown-dir']) directories.push(config['rundown-dir']);
     if (config['routes-dir']) directories.push(config['routes-dir']);
-    if (config['quick-commands-dir']) directories.push(config['quick-commands-dir']);
 
     await Promise.all(directories.map(directory => fs.mkdir(directory, {recursive: true})))
         .catch(() => Logger.error('Failed to create directories!'));

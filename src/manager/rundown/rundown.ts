@@ -22,6 +22,7 @@ export interface Rundown {
     name: string;
 
     items: RundownItem[];
+    type?: 'rundown' | 'quick';
 }
 
 export interface RundownState {
@@ -38,12 +39,14 @@ export class RundownManager {
     private timer: NodeJS.Timeout;
     public executor = new RundownExecutor();
 
-    public createRundown(name: string): Rundown {
+    public createRundown(name: string, type?: Rundown['type']): Rundown {
         const id = UUID.generate();
         const rundown = {
             id,
             name,
             items: [],
+
+            type,
         };
 
         const state = {};
@@ -56,7 +59,11 @@ export class RundownManager {
     }
 
     public getRundowns(): Rundown[] {
-        return Array.from(this.rundowns.values()).map(({rundown}) => rundown);
+        return Array.from(this.rundowns.values()).map(({rundown}) => rundown).filter(rundown => rundown.type !== 'quick');
+    }
+
+    public getQuickActions(): Rundown[] {
+        return Array.from(this.rundowns.values()).map(({rundown}) => rundown).filter(rundown => rundown.type === 'quick');
     }
 
     public async updateRundown(id: string, name: string) {

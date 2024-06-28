@@ -9,7 +9,6 @@ export interface Config {
     'db-file': string; // Path to the database file
     'rundown-dir'?: string; // Directory to store rundowns in
     'routes-dir': string; // Directory to store routes in
-    'quick-commands-dir': string; // Directory to store quick commands in
 }
 
 export default {
@@ -23,5 +22,4 @@ export default {
     'db-file': './media-cache.json',
     'rundown-dir': './rundowns',
     'routes-dir': './routes',
-    'quick-commands-dir': './quick-commands',
 } as Config;
