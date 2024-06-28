@@ -30,21 +30,30 @@ function useRundowns() {
             path: 'rundown',
             method: 'UPDATE',
 
-            handler: request => setRundowns(rundowns => rundowns.map(v => v.id === request.getData().id ? {...v, name: request.getData().name} : v)),
+            handler: request =>
+                setRundowns(rundowns =>
+                    rundowns.map(v => v.id === request.getData().id ? {...v, name: request.getData().name} : v),
+                ),
         };
 
         const deleteListener = {
             path: 'rundown',
             method: 'DELETE',
 
-            handler: request => setRundowns(rundowns => rundowns.filter(v => v.id !== request.getData())),
-        }
+            handler: request =>
+                setRundowns(rundowns =>
+                    rundowns.filter(v => v.id !== request.getData()),
+                ),
+        };
 
         const createListener = {
             path: 'rundown',
             method: 'CREATE',
 
-            handler: request => request.getData().type !== 'quick' && setRundowns(rundowns => [...rundowns, request.getData()]),
+            handler: request =>
+                request.getData().type !== 'quick' && setRundowns(rundowns =>
+                    [...rundowns, request.getData()],
+                ),
         };
 
         conn.routes.register(updateListener);
@@ -67,7 +76,7 @@ function useRundowns() {
     const deleteRundown = (entry: Rundown) => {
         conn.rawRequest(`/api/rundown/${entry.id}`, 'DELETE', null);
         setRundowns(rundowns.filter(v => v.id !== entry.id));
-    }
+    };
 
     const createRundown = (name: string) => {
         conn.rawRequest('/api/rundown', 'CREATE', name)
@@ -142,9 +151,15 @@ const AddRundown: React.FC<{ onCreate: (type: string) => void }> = ({onCreate}) 
             />
         </>
     );
+};
+
+interface EditRundownProps {
+    rundown: Rundown;
+    onUpdate: (rundown: Rundown) => void;
+    onDelete: () => void;
 }
 
-export const EditRundown: React.FC<{ rundown: Rundown, onUpdate: (rundown: Rundown) => void, onDelete: () => void }> = ({rundown, onUpdate, onDelete}) => {
+export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDelete}) => {
     const [name, setName] = useState(rundown.name);
 
     return (
@@ -213,15 +228,15 @@ const Page = () => {
                     onClose={() => setEditing(null)}
                 >
                     <Stack
-                      justifyContent="center"
-                      alignItems="center"
+                        justifyContent="center"
+                        alignItems="center"
 
-                      sx={{
-                        position: 'absolute' as 'absolute',
-                        top: '50%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                      }}
+                        sx={{
+                            position: 'absolute' as 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                        }}
                     >
 
                         <Stack

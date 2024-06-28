@@ -105,9 +105,9 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                     Select Media
                 </Button>
 
-                {/*<Typography>*/}
-                {/*    {clip?.id ?? 'No media selected'}*/}
-                {/*</Typography>*/}
+                {/* <Typography> */}
+                {/*    {clip?.id ?? 'No media selected'} */}
+                {/* </Typography> */}
 
                 {
                     data ? (
@@ -167,4 +167,4 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
             </Modal>
         </>
     );
-}
+};

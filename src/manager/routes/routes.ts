@@ -76,7 +76,7 @@ export class VideoRoutesManager {
         const id = UUID.generate();
         const route = {
             id,
-            ...data
+            ...data,
         } as VideoRoute;
 
         this.routes.set(id, {route, enabled: route.enabled ?? true});
@@ -196,7 +196,7 @@ export class VideoRoutesManager {
             state._enabled = false;
         }
 
-        if (state._enabled === state.enabled) return
+        if (state._enabled === state.enabled) return;
         state._enabled = state.enabled;
 
         if (state._enabled) state._effect.activate();

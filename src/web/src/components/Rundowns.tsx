@@ -50,7 +50,7 @@ export function useRundownEntries(rundown: string) {
 
                 setEntries(entries => entries.filter(v => v.id !== entry));
             },
-        }
+        };
 
         const createListener = {
             path: 'rundown/entry',
@@ -89,7 +89,7 @@ export function useRundownEntries(rundown: string) {
     const deleteEntry = (entry: RundownEntry) => {
         conn.rawRequest(`/api/rundown/${rundown}/entry`, 'DELETE', entry.id);
         setEntries(entries.filter(v => v.id !== entry.id));
-    }
+    };
 
     return {
         entries,
@@ -190,4 +190,4 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
             </Button>
         </Stack>
     );
-}
+};

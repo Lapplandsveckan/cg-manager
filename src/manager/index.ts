@@ -68,7 +68,7 @@ export class CasparManager extends EventEmitter {
         await this.rundowns.loadRundowns();
 
         Logger.info('Allocating channels...');
-        Logger.debug(`There are ${this.caspar.config.channels.length} channels`)
+        Logger.debug(`There are ${this.caspar.config.channels.length} channels`);
         for (let i = 0; i < this.caspar.config.channels.length; i++)
             this.executor.allocateChannel(i + 1);
     }

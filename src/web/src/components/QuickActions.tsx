@@ -17,21 +17,30 @@ function useQuickActions() {
             path: 'rundown',
             method: 'UPDATE',
 
-            handler: request => setQuickActions(quickActions => quickActions.map(v => v.id === request.getData().id ? {...v, name: request.getData().name} : v)),
+            handler: request =>
+                setQuickActions(quickActions =>
+                    quickActions.map(v => v.id === request.getData().id ? {...v, name: request.getData().name} : v),
+                ),
         };
 
         const deleteListener = {
             path: 'rundown',
             method: 'DELETE',
 
-            handler: request => setQuickActions(quickActions => quickActions.filter(v => v.id !== request.getData())),
-        }
+            handler: request =>
+                setQuickActions(quickActions =>
+                    quickActions.filter(v => v.id !== request.getData()),
+                ),
+        };
 
         const createListener = {
             path: 'rundown',
             method: 'CREATE',
 
-            handler: request => request.getData().type === 'quick' && setQuickActions(quickActions => [...quickActions, request.getData()]),
+            handler: request =>
+                request.getData().type === 'quick' && setQuickActions(
+                    quickActions => [...quickActions, request.getData()],
+                ),
         };
 
         conn.routes.register(updateListener);
@@ -54,7 +63,7 @@ function useQuickActions() {
     const deleteQuickAction = (entry: Rundown) => {
         conn.rawRequest(`/api/rundown/${entry.id}`, 'DELETE', null);
         setQuickActions(quickActions.filter(v => v.id !== entry.id));
-    }
+    };
 
     const createQuickAction = (name: string) => {
         conn.rawRequest('/api/rundown/quick', 'CREATE', name)
@@ -121,7 +130,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({}) => {
                                         if (quickAction !== rundown.id) return;
 
                                         e.preventDefault();
-                                        setQuickEditing(rundown)
+                                        setQuickEditing(rundown);
                                     }}
                                 >
                                     {rundown.name}
@@ -144,7 +153,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({}) => {
                         type={entry.type}
                         active={false}
                         onEdit={() => setEditing(entry)}
-                        onPlay={() => conn.rawRequest(`/api/rundown/execute`, 'ACTION', { entry })}
+                        onPlay={() => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
                     >
                         <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`} props={{entry}} />
                     </RundownEntry>
@@ -215,4 +224,4 @@ export const QuickActions: React.FC<QuickActionsProps> = ({}) => {
             </Modal>
         </>
     );
-}
+};

@@ -97,7 +97,13 @@ export class PluginInjectionAPI {
     }
 }
 
-export const Injections: React.FC<{zone: UI_INJECTION_ZONE_KEY, plugin?: string | null, props?: any}> = ({zone, plugin, props}) => {
+interface InjectionsProps {
+    zone: UI_INJECTION_ZONE_KEY;
+    plugin?: string | null;
+    props?: any;
+}
+
+export const Injections: React.FC<InjectionsProps> = ({zone, plugin, props}) => {
     const [components, setComponents] = useState<{id: string, component: ComponentType}[]>([]);
     const socket = useSocket();
 

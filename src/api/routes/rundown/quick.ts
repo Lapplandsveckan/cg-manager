@@ -24,5 +24,5 @@ export default {
             .getManager()
             .rundowns
             .getQuickActions();
-    }
+    },
 };

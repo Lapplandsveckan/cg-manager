@@ -25,7 +25,7 @@ const Page = () => {
                         entries={entries}
 
                         onEdit={entry => setEditing(entry)}
-                        onPlay={entry => conn.rawRequest(`/api/rundown/execute`, 'ACTION', { entry })}
+                        onPlay={entry => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
                         onAdd={() => setAdding(true)}
                     />
                 </Stack>

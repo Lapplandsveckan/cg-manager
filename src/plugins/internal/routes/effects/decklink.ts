@@ -67,7 +67,7 @@ export class DecklinkEffect extends Effect {
                 MixerCommand
                     .create()
                     .edgeblend({ edgeblend: points, g, p, a })
-                    .allocate(layer)
+                    .allocate(layer),
             );
     }
 

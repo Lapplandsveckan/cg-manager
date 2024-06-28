@@ -50,9 +50,17 @@ const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({onChoo
             </Button>
         </>
     );
-}
+};
 
-const EditorModal: React.FC<BaseModalProps> = ({ editing, setEditing, adding, setAdding, entries, updateEntry, createEntry, deleteEntry }) => {
+const EditorModal: React.FC<BaseModalProps> = ({
+    editing,
+    setEditing, adding,
+    setAdding,
+    entries,
+    updateEntry,
+    createEntry,
+    deleteEntry,
+}) => {
     return (
         <Modal
             open={editing !== null}
@@ -104,7 +112,7 @@ const EditorModal: React.FC<BaseModalProps> = ({ editing, setEditing, adding, se
             </Stack>
         </Modal>
     );
-}
+};
 
 const AddModal: React.FC<BaseModalProps> = ({ setEditing, adding, setAdding }) => {
     return (
@@ -146,7 +154,7 @@ const AddModal: React.FC<BaseModalProps> = ({ setEditing, adding, setAdding }) =
             </Stack>
         </Modal>
     );
-}
+};
 
 export const RundownModals: React.FC<BaseModalProps> = (props) => {
     return (
@@ -155,4 +163,4 @@ export const RundownModals: React.FC<BaseModalProps> = (props) => {
             <AddModal {...props} />
         </>
     );
-}
+};
