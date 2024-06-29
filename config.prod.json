@@ -3,5 +3,8 @@
   "hide-debug": true,
   "port": 5353,
   "log-dir": "./manager-logs",
-  "caspar-path": null
+  "caspar-path": null,
+  "db-file": "./media-cache.json",
+  "rundown-dir": "./rundowns",
+  "routes-dir": "./routes"
 }

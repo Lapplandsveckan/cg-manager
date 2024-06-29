@@ -76,7 +76,8 @@
   "pkg": {
     "assets": [
       "dist/web/.next/**/*",
-      "dist/web/public/**/*"
+      "dist/web/public/**/*",
+      "node_modules/**/*"
     ],
     "targets": [
       "node16"
