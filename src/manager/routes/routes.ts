@@ -12,6 +12,8 @@ interface DecklinkSource {
     device: number;
     format: string;
 
+    keyDevice?: number;
+
     type: 'decklink';
 }
 
