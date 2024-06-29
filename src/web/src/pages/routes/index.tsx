@@ -17,7 +17,6 @@ interface VideoRouteProps {
     onEnabled: (enabled: boolean) => void;
 }
 
-
 function useRoutes() {
     const conn = useSocket();
     const [routes, setRoutes] = useState<VideoRoute[]>([]);
@@ -41,7 +40,7 @@ function useRoutes() {
 
 
     const setRouteEnabled = (id: string, enabled: boolean) => {
-        conn.rawRequest(`/api/routes/${id}`, 'UPDATE', { enabled });
+        conn.rawRequest(`/api/routes/${id}/enabled`, 'UPDATE', { enabled });
         setRoutes(routes.map(v => v.id === id ? {...v, enabled} : v));
     };
 

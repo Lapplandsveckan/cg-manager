@@ -8,6 +8,7 @@ import ImageIcon from '@mui/icons-material/Image';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import ConfigIcon from '@mui/icons-material/Settings';
+import ForkRightIcon from '@mui/icons-material/ForkRight';
 import Link from 'next/link';
 
 const NavbarButton: React.FC<{ href: string, icon: OverridableComponent<SvgIconTypeMap<{}, 'svg'>> }> = ({ href, icon }) => {
@@ -34,6 +35,7 @@ export const Navbar = () => {
                 <NavbarButton href="/server" icon={ComputerIcon} />
                 <NavbarButton href="/media" icon={ImageIcon} />
                 <NavbarButton href="/play" icon={PlayArrowIcon} />
+                <NavbarButton href="/routes" icon={ForkRightIcon} />
                 <NavbarButton href="/plugins" icon={ExtensionIcon} />
                 <NavbarButton href="/config" icon={ConfigIcon} />
             </Stack>
