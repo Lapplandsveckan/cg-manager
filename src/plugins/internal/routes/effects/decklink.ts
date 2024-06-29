@@ -3,11 +3,10 @@ import {
     Command,
     Effect,
     EffectGroup,
-    PauseCommand,
     PlayCommand,
     Transform,
-    LoadBGCommand,
-    ResumeCommand, MixerCommand,
+    MixerCommand,
+    CommandGroup,
 } from '@lappis/cg-manager';
 
 
@@ -18,41 +17,57 @@ export interface DecklinkEffectOptions {
     device: number;
     format: string;
 
+    keyDevice?: number;
+
     edgeblend?: Tuple<number, 7>;
     transform?: Tuple<number, 8>;
 }
 
 export class DecklinkEffect extends Effect {
     protected options: DecklinkEffectOptions;
+    private keyer: boolean;
 
     public constructor(group: EffectGroup, options: DecklinkEffectOptions) {
         super(group);
 
         this.options = options;
-        this.allocateLayers();
+        this.keyer = typeof options.keyDevice === 'number';
+        this.allocateLayers(this.keyer ? 2 : 1);
 
         if (options.transform) this.setTransform(Transform.fromArray(options.transform));
     }
 
-    protected playing: boolean = false;
-    protected paused: boolean = false;
-
-    public activate(play: boolean = true) {
+    public activate() {
         if (!super.activate()) return;
         this.applyEdgeblend();
 
-        let commandType = LoadBGCommand;
-        if (play) commandType = PlayCommand;
+        const cmds = [
+            PlayCommand
+                .decklink(this.options.device, this.options.format)
+                .allocate(this.layer),
+        ];
 
-        const cmd = commandType.decklink(this.options.device, this.options.format);
-        cmd.allocate(this.layer);
+        if (this.keyer)
+            cmds.push(
+                PlayCommand
+                    .decklink(this.options.keyDevice!, this.options.format)
+                    .allocate(this.keyLayer),
 
-        if (play) this.handlePlay();
-        return this.executor.execute(cmd);
+                MixerCommand
+                    .create()
+                    .keyer(1)
+                    .allocate(this.keyLayer),
+            );
+
+        return this.executor.execute(new CommandGroup(cmds));
     }
 
     protected get layer() {
-        return this.layers[0];
+        return this.layers[this.keyer ? 1 : 0];
+    }
+
+    protected get keyLayer() {
+        return this.keyer ? this.layers[0] : null;
     }
 
     protected applyEdgeblend() {
@@ -71,53 +86,8 @@ export class DecklinkEffect extends Effect {
             );
     }
 
-    public play() {
-        if (!this.active) return this.activate(true);
-        if (this.playing) return;
-
-        const cmd = PlayCommand.decklink(this.options.device, this.options.format);
-        cmd.allocate(this.layer);
-
-        this.handlePlay();
-        return this.executor.execute(cmd);
-    }
-
-    protected handlePlay() {
-        this.playing = true;
-        this.paused = false;
-
-        this.emit('video:play');
-    }
-
-    public pause() {
-        if (!this.active) return;
-        if (!this.playing) return;
-        this.emit('video:pause');
-
-        this.playing = false;
-        this.paused = true;
-
-        const cmd = new PauseCommand(this.layer);
-        return this.executor.execute(cmd);
-    }
-
-    public resume() {
-        if (!this.active) return;
-        if (!this.paused) return;
-        this.emit('video:resume');
-
-        this.playing = true;
-        this.paused = false;
-
-        const cmd = new ResumeCommand(this.layer);
-        return this.executor.execute(cmd);
-    }
-
     public deactivate() {
         if (!super.deactivate()) return;
-        this.emit('video:deactivate');
-
-        this.playing = false;
 
         const cmd: Command = new ClearCommand(this.layer);
         return this.executor.execute(cmd);
@@ -125,10 +95,10 @@ export class DecklinkEffect extends Effect {
 
     public getMetadata(): {} {
         return {
-            playing: this.playing,
-
             device: this.options.device,
             format: this.options.format,
+
+            keyDevice: this.options.keyDevice,
         };
     }
 }
