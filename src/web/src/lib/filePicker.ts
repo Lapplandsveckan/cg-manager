@@ -1,8 +1,18 @@
-export const showOpenFilePicker = (options, ...args): Promise<FileSystemFileHandle[]> => {
-    if (typeof window !== 'undefined' && window['showOpenFilePicker']) window['showOpenFilePicker'](options, ...args);
+export const showOpenFilePicker = (options, ...args): Promise<File[]> => {
+    if (typeof window !== 'undefined' && window['showOpenFilePicker'])
+        return window['showOpenFilePicker'](options, ...args).then(files => files.map(file => file.getFile()));
 
-    alert('File selection is not supported in this environment.');
-    return Promise.resolve([]);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.multiple = options.multiple;
+    input.accept = options.types?.map(type =>
+        Object
+            .entries(type.accept)
+            .map(([key, value]: [string, string[]]) => key + value.join(',')).join(','),
+    ).join(',');
+    input.click();
+
+    return new Promise((resolve, reject) => input.onchange = () => resolve(Array.from(input.files)));
 };
 
 export interface ShowOpenFilePickerOptions {

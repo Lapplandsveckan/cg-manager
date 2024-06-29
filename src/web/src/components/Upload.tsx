@@ -29,11 +29,8 @@ export const UploadButton: React.FC<UploadButtonProps> = ({ types, createUpload 
                     if (e) return;
 
                     setOpen(true);
-                    const [err, file] = await noTryAsync(() => files[0].getFile());
-                    if (err || !file) {
-                        setError(err?.message ?? 'File not found');
-                        return;
-                    }
+                    const file = files[0];
+                    if (!file) return setError('File not found');
 
                     const id = await createUpload(file);
 
