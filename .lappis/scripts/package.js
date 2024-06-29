@@ -11,7 +11,8 @@ function cmd(command, ...args) {
     return new Promise((resolve, reject) => {
         exec(`node ${cmdPath}`, (error, stdout, stderr) => {
             if (error) {
-                console.error(error);
+                console.log(stdout);
+                console.error(stderr);
                 reject(error);
                 return;
             }

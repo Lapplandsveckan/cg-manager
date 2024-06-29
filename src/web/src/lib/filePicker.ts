@@ -1,4 +1,4 @@
-export const showOpenFilePicker = (options, ...args) => {
+export const showOpenFilePicker = (options, ...args): Promise<FileSystemFileHandle[]> => {
     if (typeof window !== 'undefined' && window['showOpenFilePicker']) window['showOpenFilePicker'](options, ...args);
 
     alert('File selection is not supported in this environment.');
