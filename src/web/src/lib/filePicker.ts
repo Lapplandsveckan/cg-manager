@@ -1,4 +1,6 @@
-export const showOpenFilePicker = (globalThis.showOpenFilePicker ?? typeof document === 'object' ? (() => {
+export const showOpenFilePicker = (options, ...args) => {
+    if (globalThis.showOpenFilePicker) globalThis.showOpenFilePicker(options, ...args);
+
     const mapOfFiles = new WeakMap();
     const prototypeOfFileSystemHandle = FileSystemHandle.prototype;
     const prototypeOfFileSystemFileHandle = FileSystemFileHandle.prototype;
@@ -16,11 +18,11 @@ export const showOpenFilePicker = (globalThis.showOpenFilePicker ?? typeof docum
         input.addEventListener('change', () => {
             resolve([...input.files].map(getFileHandle));
             input.value = '';
-        }, { once: true });
+        }, {once: true});
 
         input.addEventListener('cancel', () => {
             reject(new DOMException('The user aborted a request.'));
-        }, { once: true });
+        }, {once: true});
     };
 
     const {
@@ -67,15 +69,11 @@ export const showOpenFilePicker = (globalThis.showOpenFilePicker ?? typeof docum
         }),
     });
 
-    return {
-        showOpenFilePicker(options = null) {
-            input.multiple = Boolean(options?.multiple);
-            input.accept = [].concat(options?.types ?? []).map(getAcceptType).join(',');
+    input.multiple = Boolean(options?.multiple);
+    input.accept = [].concat(options?.types ?? []).map(getAcceptType).join(',');
 
-            return new Promise(resolveFilePicker);
-        },
-    }.showOpenFilePicker;
-})() : async () => []) as (options?: ShowOpenFilePickerOptions) => Promise<FileSystemFileHandle[]>;
+    return new Promise(resolveFilePicker);
+};
 
 export interface ShowOpenFilePickerOptions {
     /** A boolean that indicates whether the picker should let the user apply file type filters. By default, this is `false`. */
