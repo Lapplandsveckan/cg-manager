@@ -18,25 +18,31 @@ const Page = () => {
 
     return (
         <DefaultContentLayout>
-            <Stack direction="row" spacing={16}>
+            <Stack direction="row" spacing={8}>
                 <Stack direction="column">
                     <h1>Rundown</h1>
-                    <Rundowns
-                        entries={entries}
+                    <Stack direction="column" flexGrow={1} sx={{ overflowY: 'auto' }}>
+                        <Rundowns
+                            entries={entries}
 
-                        onEdit={entry => setEditing(entry)}
-                        onPlay={entry => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
-                        onAdd={() => setAdding(true)}
-                    />
+                            onEdit={entry => setEditing(entry)}
+                            onPlay={entry => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
+                            onAdd={() => setAdding(true)}
+                        />
+                    </Stack>
                 </Stack>
 
                 <Stack direction="column">
                     <h1>Quick Actions</h1>
-                    <QuickActions />
+                    <Stack direction="column" flexGrow={1} sx={{ overflowY: 'auto' }}>
+                        <QuickActions />
+                    </Stack>
                 </Stack>
 
                 <Stack direction="column">
-                    <Injections zone={UI_INJECTION_ZONE.RUNDOWN_SIDE} />
+                    <Stack direction="column" flexGrow={1} sx={{ overflowY: 'auto' }}>
+                        <Injections zone={UI_INJECTION_ZONE.RUNDOWN_SIDE} />
+                    </Stack>
                 </Stack>
             </Stack>
 
