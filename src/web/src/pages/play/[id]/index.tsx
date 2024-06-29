@@ -18,7 +18,7 @@ const Page = () => {
 
     return (
         <DefaultContentLayout>
-            <Stack direction="row" spacing={8}>
+            <Stack direction="row" spacing={8} sx={{ height: '100%' }}>
                 <Stack direction="column">
                     <h1>Rundown</h1>
                     <Stack direction="column" flexGrow={1} sx={{ overflowY: 'auto' }}>
