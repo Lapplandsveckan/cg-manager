@@ -162,22 +162,18 @@ export class VideoRoutesManager {
         Logger.error(err);
     }
 
-    public enableVideoRoute(id: string) {
+    public setVideoRouteEnabled(id: string, enabled: boolean) {
         const route = this.routes.get(id);
         if (!route) return;
 
-        route.enabled = true;
+        route.enabled = enabled;
         this.checkState(id);
     }
 
-    public disableVideoRoute(id: string) {
+    public getVideoRouteEnabled(id: string): boolean {
         const route = this.routes.get(id);
-        if (!route) return;
-
-        route.enabled = false;
-        this.checkState(id);
+        return route?.enabled ?? false;
     }
-
 
     private checkState(route: string, removal = false) {
         const state = this.routes.get(route);
