@@ -1,78 +1,8 @@
 export const showOpenFilePicker = (options, ...args) => {
-    if (globalThis.showOpenFilePicker) globalThis.showOpenFilePicker(options, ...args);
+    if (typeof window !== 'undefined' && window['showOpenFilePicker']) window['showOpenFilePicker'](options, ...args);
 
-    const mapOfFiles = new WeakMap();
-    const prototypeOfFileSystemHandle = FileSystemHandle.prototype;
-    const prototypeOfFileSystemFileHandle = FileSystemFileHandle.prototype;
-
-    const input = document.createElement('input');
-    const getFileHandle = file => {
-        const fileHandle = create(prototypeOfFileSystemFileHandle);
-        mapOfFiles.set(fileHandle, file);
-
-        return fileHandle;
-    };
-    const getAcceptType = type => values(Object(type?.accept)).join(',');
-    const resolveFilePicker = (resolve, reject) => {
-        input.click();
-        input.addEventListener('change', () => {
-            resolve([...input.files].map(getFileHandle));
-            input.value = '';
-        }, {once: true});
-
-        input.addEventListener('cancel', () => {
-            reject(new DOMException('The user aborted a request.'));
-        }, {once: true});
-    };
-
-    const {
-        create,
-        defineProperties,
-        getOwnPropertyDescriptors,
-        values,
-    } = Object;
-
-    const {
-        name,
-        kind,
-        ...descriptorsOfFileSystemHandle
-    } = getOwnPropertyDescriptors(prototypeOfFileSystemHandle);
-
-    const {
-        getFile,
-        ...descriptorsOfFileSystemFileHandle
-    } = getOwnPropertyDescriptors(prototypeOfFileSystemFileHandle);
-
-    input.type = 'file';
-
-    defineProperties(prototypeOfFileSystemHandle, {
-        ...descriptorsOfFileSystemHandle,
-        ...getOwnPropertyDescriptors({
-            get name() {
-                // @ts-ignore
-                return mapOfFiles.get(this)?.name ?? name.call(this);
-            },
-            get kind() {
-                // @ts-ignore
-                return mapOfFiles.has(this) ? 'file' : kind.call(this);
-            },
-        }),
-    });
-
-    defineProperties(prototypeOfFileSystemFileHandle, {
-        ...descriptorsOfFileSystemFileHandle,
-        ...getOwnPropertyDescriptors({
-            async getFile() {
-                // @ts-ignore
-                return await mapOfFiles.get(this) || getFile.call(this);
-            },
-        }),
-    });
-
-    input.multiple = Boolean(options?.multiple);
-    input.accept = [].concat(options?.types ?? []).map(getAcceptType).join(',');
-
-    return new Promise(resolveFilePicker);
+    alert('File selection is not supported in this environment.');
+    return Promise.resolve([]);
 };
 
 export interface ShowOpenFilePickerOptions {
