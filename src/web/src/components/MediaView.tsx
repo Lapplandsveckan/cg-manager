@@ -71,6 +71,8 @@ export const MediaView: React.FC<MediaViewProps> = ({columns, onClipSelect, pref
                     name: media.id.substring(prefix?.length ?? 0),
                     duration: media.mediainfo.format.duration,
                     backgroundUrl: url,
+
+                    media,
                 };
             })
             .filter(media => !showAsDirectories || media.name.indexOf('/') < 0),
@@ -99,12 +101,12 @@ export const MediaView: React.FC<MediaViewProps> = ({columns, onClipSelect, pref
                 (data.length || folders.length) ? (
                     <Grid container spacing={2}>
                         {
-                            data.map((clip, index) => (
+                            data.map((clip) => (
                                 <MediaCard
                                     key={clip.name}
                                     {...clip}
                                     columns={columns}
-                                    onClick={() => onClipSelect?.(media[index])}
+                                    onClick={() => onClipSelect?.(clip.media)}
                                 />
                             ))
                         }
