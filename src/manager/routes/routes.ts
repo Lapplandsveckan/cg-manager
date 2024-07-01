@@ -7,6 +7,7 @@ import path from 'path';
 import {Effect, EffectGroup} from '@lappis/cg-manager';
 import {CasparManager} from '../index';
 import {CasparExecutor} from '../caspar/executor';
+import {WebError} from 'rest-exchange-protocol';
 
 interface DecklinkSource {
     device: number;
@@ -99,7 +100,7 @@ export class VideoRoutesManager {
 
     public async updateVideoRoute(data: VideoRoute) {
         const route = this.getVideoRoute(data.id);
-        if (!route) return;
+        if (!route) throw new WebError('Route not found', 404);
 
         Object.assign(route, data);
 

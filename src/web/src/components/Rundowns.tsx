@@ -90,6 +90,7 @@ export function useRundownEntries(rundown: string) {
     };
 
     const updateOrder = (data: RundownEntry[]) => {
+        data = data.filter(Boolean);
         conn.rawRequest(`/api/rundown/${rundown}/entry`, 'UPDATE', data);
         const ids = new Set(data.map(item => item.id));
 
