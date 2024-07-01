@@ -1,7 +1,10 @@
 import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
-import {Button, MenuItem, Select, Stack, Typography} from '@mui/material';
+import {Button, IconButton, Stack, Typography} from '@mui/material';
 import React, {useEffect, useState} from 'react';
 import {useSocket} from '../lib';
+import UpIcon from '@mui/icons-material/ArrowDropUp';
+import DownIcon from '@mui/icons-material/ArrowDropDown';
+import Link from 'next/link';
 
 export interface RundownEntry {
     id: string;
@@ -86,6 +89,14 @@ export function useRundownEntries(rundown: string) {
         setEntries(entries.map(v => v.id === entry.id ? entry : v));
     };
 
+    const updateOrder = (entries: RundownEntry[]) => {
+        conn.rawRequest(`/api/rundown/${rundown}/entry`, 'UPDATE', entries);
+        const ids = new Set(entries.map(item => item.id));
+
+        let index = 0;
+        return setEntries(entries => entries.map(item => ids.has(item.id) ? entries[index++] : item));
+    };
+
     const deleteEntry = (entry: RundownEntry) => {
         conn.rawRequest(`/api/rundown/${rundown}/entry`, 'DELETE', entry.id);
         setEntries(entries.filter(v => v.id !== entry.id));
@@ -95,6 +106,7 @@ export function useRundownEntries(rundown: string) {
         entries,
 
         updateEntry,
+        updateOrder,
         deleteEntry,
         createEntry,
     };
@@ -109,46 +121,74 @@ interface RundownEntryProps {
 
     active: boolean;
     children: React.ReactNode;
+
+    canUp?: boolean;
+    canDown?: boolean;
+
+    onUp?: () => void;
+    onDown?: () => void;
 }
 
-export const RundownEntry: React.FC<RundownEntryProps> = ({title, type, onEdit, onPlay, active, children}) => {
+export const RundownEntry: React.FC<RundownEntryProps> = ({
+    title, type, onEdit, onPlay, active, children, canUp, onUp, canDown, onDown
+}) => {
     return (
         <Stack
-            padding={2}
-            direction="column"
-            sx={{
-                backgroundColor: '#272930',
-                borderRadius: 4,
-                width: '500px',
-                cursor: 'pointer',
-            }}
-
-            onClick={e => {
-                e.stopPropagation();
-                onPlay();
-            }}
+            spacing={2}
+            direction="row"
         >
             <Stack
-                direction="row"
-                justifyContent={'space-between'}
-            >
-                <Typography variant="h6">
-                    {title}
-                </Typography>
-                <Button
-                    onClick={e => {
-                        e.stopPropagation();
-                        onEdit();
-                    }}
-                >
-                    Edit
-                </Button>
-            </Stack>
-            <Stack
-                spacing={2}
+                padding={2}
                 direction="column"
+                sx={{
+                    backgroundColor: '#272930',
+                    borderRadius: 4,
+                    width: '500px',
+                    cursor: 'pointer',
+                }}
+
+                onClick={e => {
+                    e.stopPropagation();
+                    onPlay();
+                }}
             >
-                {children}
+                <Stack
+                    direction="row"
+                    justifyContent={'space-between'}
+                >
+                    <Typography variant="h6">
+                        {title}
+                    </Typography>
+                    <Button
+                        onClick={e => {
+                            e.stopPropagation();
+                            onEdit();
+                        }}
+                    >
+                        Edit
+                    </Button>
+                </Stack>
+                <Stack
+                    spacing={2}
+                    direction="column"
+                >
+                    {children}
+                </Stack>
+            </Stack>
+            <Stack direction="column">
+                <IconButton
+                    size="large"
+                    onClick={() => onUp()}
+                >
+                    <UpIcon htmlColor={canUp ? '#FFF' : '#777'} />
+                </IconButton>
+
+                <IconButton
+                    size="large"
+                    onClick={() => onDown()}
+                >
+                    <DownIcon htmlColor={canDown ? '#FFF' : '#777'} />
+                </IconButton>
             </Stack>
         </Stack>
     );
@@ -160,14 +200,16 @@ interface RundownsProps {
     onEdit: (entry: RundownEntry) => void;
     onPlay: (entry: RundownEntry) => void;
     onAdd: () => void;
+
+    onReorder: (a: RundownEntry, b: RundownEntry) => void;
 }
 
-export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAdd}) => {
+export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAdd, onReorder}) => {
     return (
         <Stack
             spacing={3}
         >
-            {entries.map(entry => (
+            {entries.map((entry, index) => (
                 <RundownEntry
                     key={entry.id}
                     title={entry.title}
@@ -175,6 +217,12 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                     active={false}
                     onEdit={() => onEdit(entry)}
                     onPlay={() => onPlay(entry)}
+
+                    canUp={index > 0}
+                    canDown={index < entries.length - 1}
+
+                    onUp={() => onReorder(entry, entries[index - 1])}
+                    onDown={() => onReorder(entries[index + 1], entry)}
                 >
                     <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`} props={{entry}} />
                 </RundownEntry>

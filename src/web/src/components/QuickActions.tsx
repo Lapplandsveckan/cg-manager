@@ -86,7 +86,7 @@ interface QuickActionsProps {
 export const QuickActions: React.FC<QuickActionsProps> = ({}) => {
     const conn = useSocket();
     const [quickAction, setQuickAction] = useState<string | null>(null);
-    const {entries, updateEntry, deleteEntry, createEntry} = useRundownEntries(quickAction);
+    const {entries, updateEntry, updateOrder, deleteEntry, createEntry} = useRundownEntries(quickAction);
 
     useEffect(() => {
         if (quickAction !== null) return window.localStorage.setItem('quickAction', quickAction);
@@ -146,7 +146,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({}) => {
                     </Button>
                 </Stack>
 
-                {entries.map(entry => (
+                {entries.map((entry, index) => (
                     <RundownEntry
                         key={entry.id}
                         title={entry.title}
@@ -154,6 +154,12 @@ export const QuickActions: React.FC<QuickActionsProps> = ({}) => {
                         active={false}
                         onEdit={() => setEditing(entry)}
                         onPlay={() => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
+
+                        canUp={index > 0}
+                        canDown={index < entries.length - 1}
+
+                        onUp={() => updateOrder([entry, entries[index - 1]])}
+                        onDown={() => updateOrder([entries[index + 1], entry])}
                     >
                         <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`} props={{entry}} />
                     </RundownEntry>

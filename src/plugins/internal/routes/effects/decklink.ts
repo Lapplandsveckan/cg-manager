@@ -21,6 +21,7 @@ export interface DecklinkEffectOptions {
 
     edgeblend?: Tuple<number, 7>;
     transform?: Tuple<number, 8>;
+    perspective?: Tuple<number, 8>;
 }
 
 export class DecklinkEffect extends Effect {
@@ -40,6 +41,7 @@ export class DecklinkEffect extends Effect {
     public activate() {
         if (!super.activate()) return;
         this.applyEdgeblend();
+        this.applyPerspective();
 
         const cmds = [
             PlayCommand
@@ -82,6 +84,30 @@ export class DecklinkEffect extends Effect {
                 MixerCommand
                     .create()
                     .edgeblend({ edgeblend: points, g, p, a })
+                    .allocate(layer),
+            );
+    }
+
+    protected applyPerspective() {
+        if (!this.active) return;
+        if (!this.options.perspective) return;
+
+        const perspective = {
+            // eslint-disable-next-line camelcase
+            top_left: { x: this.options.perspective[0], y: this.options.perspective[1] },
+            // eslint-disable-next-line camelcase
+            top_right: { x: this.options.perspective[2], y: this.options.perspective[3] },
+            // eslint-disable-next-line camelcase
+            bottom_right: { x: this.options.perspective[4], y: this.options.perspective[5] },
+            // eslint-disable-next-line camelcase
+            bottom_left: { x: this.options.perspective[6], y: this.options.perspective[7] },
+        };
+
+        for (const layer of this.layers)
+            this.executor.execute(
+                MixerCommand
+                    .create()
+                    .perspective(perspective)
                     .allocate(layer),
             );
     }
