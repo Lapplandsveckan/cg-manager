@@ -89,12 +89,12 @@ export function useRundownEntries(rundown: string) {
         setEntries(entries.map(v => v.id === entry.id ? entry : v));
     };
 
-    const updateOrder = (entries: RundownEntry[]) => {
-        conn.rawRequest(`/api/rundown/${rundown}/entry`, 'UPDATE', entries);
-        const ids = new Set(entries.map(item => item.id));
+    const updateOrder = (data: RundownEntry[]) => {
+        conn.rawRequest(`/api/rundown/${rundown}/entry`, 'UPDATE', data);
+        const ids = new Set(data.map(item => item.id));
 
         let index = 0;
-        return setEntries(entries => entries.map(item => ids.has(item.id) ? entries[index++] : item));
+        return setEntries(entries => entries.map(item => ids.has(item.id) ? data[index++] : item));
     };
 
     const deleteEntry = (entry: RundownEntry) => {
