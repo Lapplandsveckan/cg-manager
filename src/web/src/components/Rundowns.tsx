@@ -130,7 +130,7 @@ interface RundownEntryProps {
 }
 
 export const RundownEntry: React.FC<RundownEntryProps> = ({
-    title, type, onEdit, onPlay, active, children, canUp, onUp, canDown, onDown
+    title, type, onEdit, onPlay, active, children, canUp, onUp, canDown, onDown,
 }) => {
     return (
         <Stack

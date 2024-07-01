@@ -43,5 +43,5 @@ export default {
 
             enabled: manager.routes.getVideoRouteEnabled(route.id),
         };
-    }
+    },
 };
