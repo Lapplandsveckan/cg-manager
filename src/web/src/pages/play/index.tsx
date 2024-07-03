@@ -203,6 +203,7 @@ const Page = () => {
 
             <Stack
                 spacing={3}
+                sx={{ height: '100%' }}
             >
                 {rundowns.map(entry => (
                     <Rundown

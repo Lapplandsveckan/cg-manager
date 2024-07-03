@@ -17,10 +17,14 @@ export interface RundownEntry {
 export function useRundownEntries(rundown: string) {
     const conn = useSocket();
     const [entries, setEntries] = useState<RundownEntry[]>([]);
+    const [name, setName] = useState('');
 
     useEffect(() => {
         if (!rundown) return;
-        conn.rawRequest(`/api/rundown/${rundown}`, 'GET', {}).then(entries => setEntries(entries.data.items ?? []));
+        conn.rawRequest(`/api/rundown/${rundown}`, 'GET', {}).then(result => {
+            setEntries(result.data.items ?? []);
+            setName(result.data.name ?? '');
+        });
 
         const updateListener = {
             path: 'rundown/entry',
@@ -104,6 +108,7 @@ export function useRundownEntries(rundown: string) {
     };
 
     return {
+        name,
         entries,
 
         updateEntry,

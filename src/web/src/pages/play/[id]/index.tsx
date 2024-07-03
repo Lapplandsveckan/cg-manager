@@ -11,7 +11,15 @@ import {QuickActions} from '../../../components/QuickActions';
 const Page = () => {
     const conn = useSocket();
     const router = useRouter();
-    const {entries, updateEntry, updateOrder, deleteEntry, createEntry} = useRundownEntries(router.query.id as string);
+    const {
+        name,
+        entries,
+
+        updateEntry,
+        updateOrder,
+        deleteEntry,
+        createEntry,
+    } = useRundownEntries(router.query.id as string);
 
     const [editing, setEditing] = useState<RundownEntry | null>(null);
     const [adding, setAdding] = useState(false);
@@ -20,7 +28,7 @@ const Page = () => {
         <DefaultContentLayout>
             <Stack direction="row" spacing={8} sx={{ height: '100%' }}>
                 <Stack direction="column">
-                    <h1>Rundown</h1>
+                    <h1>Rundown {name}</h1>
                     <Stack direction="column" flexGrow={1} sx={{ overflowY: 'auto' }}>
                         <Rundowns
                             entries={entries}
