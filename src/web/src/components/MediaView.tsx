@@ -144,6 +144,7 @@ interface MediaSelectProps {
 
 export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) => {
     const [open, setOpen] = useState<boolean>(false);
+    const [path, setPath] = React.useState<string>('');
     const data = useMemo(() => {
         if (!clip || !clip.id) return null;
 
@@ -168,10 +169,6 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                 >
                     Select Media
                 </Button>
-
-                {/* <Typography> */}
-                {/*    {clip?.id ?? 'No media selected'} */}
-                {/* </Typography> */}
 
                 {
                     data ? (
@@ -222,10 +219,17 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                             overflowY: 'auto',
                         }}
                     >
-                        <MediaView columns={4} onClipSelect={clip => {
-                            setOpen(false);
-                            onClipSelect?.(clip);
-                        }} />
+                        <MediaView
+                            columns={4}
+                            prefix={path}
+                            showAsDirectories
+
+                            onNavigate={folder => setPath(`${path}${folder}/`)}
+                            onClipSelect={clip => {
+                                setOpen(false);
+                                onClipSelect?.(clip);
+                            }}
+                        />
                     </Box>
                 </Stack>
             </Modal>
