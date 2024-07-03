@@ -188,11 +188,8 @@ export class PluginAPI extends EventEmitter {
         this._manager.rundowns.executor.registerAction(name, handler);
     }
 
-    public enableVideoRoute(id: string) {
-        this._manager.routes.enableVideoRoute(id);
-    }
-
-    public disableVideoRoute(id: string) {
-        this._manager.routes.disableVideoRoute(id);
+    public setVideoRouteEnabled(id: string, enabled?: boolean) {
+        const value = enabled ?? this._manager.routes.getVideoRoute(id)?.enabled;
+        this._manager.routes.setVideoRouteEnabled(id, value);
     }
 }

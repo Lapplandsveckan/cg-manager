@@ -57,6 +57,5 @@ export declare class VideoRoutesManager {
     public saveVideoRoute(route: VideoRoute): Promise<void>;
     public deleteVideoRoute(id: string): Promise<void>;
 
-    public enableVideoRoute(id: string);
-    public disableVideoRoute(id: string);
+    public setVideoRouteEnabled(id: string, enabled: boolean);
 }
