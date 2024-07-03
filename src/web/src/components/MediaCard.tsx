@@ -45,7 +45,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({name, duration, backgroundU
                 sx={{
                     aspectRatio: '16/9',
                     backgroundImage: `url(${backgroundUrl})`,
-                    backgroundSize: 'cover',
+                    backgroundSize: 'contain',
+                    backgroundPosition: 'center',
+                    backgroundRepeat: 'no-repeat',
                 }}
             >
                 <Stack height="100%" direction="column" alignItems="stretch" justifyContent="end">
