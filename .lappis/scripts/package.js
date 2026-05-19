@@ -106,7 +106,7 @@ async function package() {
     await packageWeb();
 
     console.log('Packaging executable...');
-    await cmd(path.join('pkg', 'lib-es5', 'bin.js'), JSON.stringify(path.join(root, 'package.json')));
+    await cmd(path.join('@yao-pkg', 'pkg', 'lib-es5', 'bin.js'), JSON.stringify(path.join(root, 'package.json')));
 }
 
 async function moveExecutable() {

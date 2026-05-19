@@ -43,9 +43,9 @@ export default {
         if (Array.isArray(data)) { // Batch update, and reordering of the selected items
             const updates = new Map(data.map(item => [item.id, item]));
             rundown.items = rundown.items.map(item => updates.get(item.id) ?? item);
-        } else {
+        } else 
             rundown.items = rundown.items.map(item => item.id === data.id ? data : item);
-        }
+        
 
         await manager.rundowns.saveRundown(rundown);
 

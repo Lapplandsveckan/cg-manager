@@ -102,9 +102,9 @@ export class CasparExecutor extends CommandExecutor {
         const wasConnected = this._connected;
         this._connected = false;
 
-        if (wasConnected) {
+        if (wasConnected) 
             Logger.info('Caspar CG executor disconnected');
-        } else if (this.retry) {
+        else if (this.retry) {
             this.failedAttempts++;
             if (this.failedAttempts === WARN_AFTER_FAILED_ATTEMPTS)
                 Logger.warn(`Caspar CG executor still cannot connect after ${this.failedAttempts} attempts${error ? `: ${error}` : ''}`);

@@ -76,9 +76,9 @@ export class CasparManager extends EventEmitter {
         await this.rundowns.loadRundowns();
 
         const channels = this.caspar.config?.channels;
-        if (!channels) {
+        if (!channels) 
             Logger.warn('Skipping channel allocation: CasparCG did not start.');
-        } else {
+        else {
             Logger.info('Allocating channels...');
             Logger.debug(`There are ${channels.length} channels`);
             for (let i = 0; i < channels.length; i++)
