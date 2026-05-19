@@ -2,6 +2,7 @@ import * as path from 'path';
 import { promises as fs, WriteStream } from 'fs';
 import {Logger} from '../../util/log';
 import {DirectoryManager} from './dir';
+import {resolveSafePath} from './util';
 import * as os from 'os';
 
 interface UploadDestination {
@@ -75,7 +76,7 @@ export class Upload {
     }
 
     private getPath() {
-        return path.join(this.basePath, this.data.destination.uri);
+        return resolveSafePath(this.basePath, this.data.destination.uri);
     }
 
     async openFile() {

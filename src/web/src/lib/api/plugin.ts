@@ -5,7 +5,7 @@ import EventEmitter from 'events';
  * All API calls relevant to CasparCG are handled here.
  */
 
-interface Plugin {
+export interface Plugin {
     name: string;
     enabled: boolean;
 }
@@ -38,5 +38,12 @@ export class PluginApi extends EventEmitter {
     public async getPlugins() {
         if (this._pluginPromise) return this._pluginPromise;
         return this.requestPlugin();
+    }
+
+    public async setEnabled(name: string, enabled: boolean): Promise<boolean> {
+        const res = await this.socket.request(`api/plugins/${encodeURIComponent(name)}/status`, 'ACTION', { enabled });
+        if (typeof res.data !== 'boolean')
+            throw new Error(`Plugin toggle returned unexpected value: ${JSON.stringify(res.data)}`);
+        return res.data;
     }
 }

@@ -42,9 +42,20 @@ interface MediaViewProps {
 
     showAsDirectories?: boolean;
     onNavigate?: (path: string) => void;
+
+    onClipDelete?: (clip: MediaDoc) => void;
+    onClipRename?: (clip: MediaDoc) => void;
 }
 
-export const MediaView: React.FC<MediaViewProps> = ({columns, onClipSelect, prefix, showAsDirectories, onNavigate}) => {
+export const MediaView: React.FC<MediaViewProps> = ({
+    columns,
+    onClipSelect,
+    prefix,
+    showAsDirectories,
+    onNavigate,
+    onClipDelete,
+    onClipRename,
+}) => {
     const socket = useSocket();
     const [media, setMedia] = useState<MediaDoc[]>([]);
 
@@ -104,7 +115,9 @@ export const MediaView: React.FC<MediaViewProps> = ({columns, onClipSelect, pref
                                     key={clip.name}
                                     {...clip}
                                     columns={columns}
-                                    onClick={() => onClipSelect?.(media[index])}
+                                    onClick={onClipSelect ? () => onClipSelect(media[index]) : undefined}
+                                    onDelete={onClipDelete ? () => onClipDelete(media[index]) : undefined}
+                                    onRename={onClipRename ? () => onClipRename(media[index]) : undefined}
                                 />
                             ))
                         }

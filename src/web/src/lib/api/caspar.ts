@@ -6,6 +6,12 @@ import {getChunkCount} from './upload';
  * All API calls relevant to CasparCG are handled here.
  */
 
+export interface CasparStatus {
+    running: boolean;
+    supported: boolean;
+    lastError: string | null;
+}
+
 export interface MediaDoc {
     id: string;
 
@@ -83,7 +89,7 @@ export interface MediaDoc {
 
 export class CasparServerApi extends EventEmitter {
     private socket: REPClient;
-    private status: { running: boolean } = { running: false };
+    private status: CasparStatus = { running: false, supported: true, lastError: null };
     private media = new Map<string, MediaDoc>();
 
     private logs: string = '';
@@ -94,10 +100,8 @@ export class CasparServerApi extends EventEmitter {
         this.socket = socket;
 
         this.socket.routes.action('caspar/status', async (request) => {
-            const status = request.data as { running: boolean };
+            const status = request.data as CasparStatus;
             this.status = status;
-
-            console.log('status', status);
 
             this.emit('status', status);
         });
@@ -189,5 +193,13 @@ export class CasparServerApi extends EventEmitter {
     public async getMedia() {
         if (this._mediaPromise) return this._mediaPromise;
         return this.media;
+    }
+
+    public async deleteMedia(id: string): Promise<void> {
+        await this.socket.request(`api/caspar/media/${encodeURIComponent(id)}`, 'DELETE', {});
+    }
+
+    public async renameMedia(id: string, newName: string): Promise<void> {
+        await this.socket.request(`api/caspar/media/${encodeURIComponent(id)}`, 'UPDATE', { name: newName });
     }
 }

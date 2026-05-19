@@ -100,12 +100,18 @@ const Rundown: React.FC<RundownProps> = ({id, title, onEdit}) => {
         <Stack
             padding={2}
             direction="column"
-            sx={{
-                backgroundColor: '#272930',
-                borderRadius: 4,
-                width: '500px',
+            sx={(theme) => ({
+                bgcolor: theme.palette.surface.paper,
+                borderRadius: 2,
+                border: `1px solid ${theme.palette.divider}`,
+                width: 500,
                 cursor: 'pointer',
-            }}
+                transition: theme.transitions.create(['border-color', 'background-color'], { duration: 120 }),
+                '&:hover': {
+                    bgcolor: theme.palette.surface.elevated,
+                    borderColor: 'primary.main',
+                },
+            })}
 
             onClick={e => {
                 e.stopPropagation();
@@ -114,12 +120,14 @@ const Rundown: React.FC<RundownProps> = ({id, title, onEdit}) => {
         >
             <Stack
                 direction="row"
-                justifyContent={'space-between'}
+                alignItems="center"
+                justifyContent="space-between"
             >
-                <Typography variant="h6">
+                <Typography variant="h4">
                     {title}
                 </Typography>
                 <Button
+                    size="small"
                     onClick={e => {
                         e.stopPropagation();
                         onEdit();
@@ -199,11 +207,20 @@ const Page = () => {
 
     return (
         <DefaultContentLayout>
-            <h1>Play</h1>
+            <Stack spacing={1} mb={4}>
+                <Typography variant="h1">Play</Typography>
+                <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                    Run a rundown of scheduled cues, or jump to one to edit its items.
+                </Typography>
+            </Stack>
 
-            <Stack
-                spacing={3}
-            >
+            <Stack spacing={2}>
+                {rundowns.length === 0 && (
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                        No rundowns yet. Add one below to get started.
+                    </Typography>
+                )}
+
                 {rundowns.map(entry => (
                     <Rundown
                         key={entry.id}
@@ -215,9 +232,8 @@ const Page = () => {
                 ))}
 
                 <Button
-                    sx={{
-                        width: '500px',
-                    }}
+                    variant="contained"
+                    sx={{ width: 500, alignSelf: 'flex-start', mt: 1 }}
                     onClick={() => setAdding(true)}
                 >
                     Add Rundown
@@ -240,14 +256,16 @@ const Page = () => {
                     >
 
                         <Stack
-                            padding={2}
+                            padding={3}
                             spacing={2}
                             direction="column"
-                            sx={{
-                                backgroundColor: '#272930',
-                                borderRadius: 4,
-                                width: '500px',
-                            }}
+                            sx={(theme) => ({
+                                bgcolor: theme.palette.surface.elevated,
+                                border: `1px solid ${theme.palette.divider}`,
+                                borderRadius: 2,
+                                width: 500,
+                                boxShadow: 8,
+                            })}
                         >
                             <EditRundown
                                 rundown={editing}
@@ -280,14 +298,16 @@ const Page = () => {
                         }}
                     >
                         <Stack
-                            padding={2}
+                            padding={3}
                             spacing={2}
                             direction="column"
-                            sx={{
-                                backgroundColor: '#272930',
-                                borderRadius: 4,
-                                width: '500px',
-                            }}
+                            sx={(theme) => ({
+                                bgcolor: theme.palette.surface.elevated,
+                                border: `1px solid ${theme.palette.divider}`,
+                                borderRadius: 2,
+                                width: 500,
+                                boxShadow: 8,
+                            })}
                         >
                             <AddRundown onCreate={name => {
                                 setAdding(false);

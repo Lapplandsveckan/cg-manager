@@ -1,4 +1,4 @@
-import {Stack} from '@mui/material';
+import {Stack, Box, Typography} from '@mui/material';
 import React from 'react';
 import {Navbar} from './Navbar';
 
@@ -22,21 +22,43 @@ class ErrorBoundary extends React.Component<
 }
 
 const ErrorFallback = (
-    <div>
-        <h1>Something went wrong</h1>
-        <p>Sorry about that</p>
-    </div>
+    <Stack
+        sx={(theme) => ({
+            m: 4,
+            p: 4,
+            borderRadius: 2,
+            bgcolor: theme.palette.surface.elevated,
+            border: `1px solid ${theme.palette.divider}`,
+            maxWidth: 480,
+        })}
+        spacing={1}
+    >
+        <Typography variant="h3">Something went wrong</Typography>
+        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+            The page hit an error and stopped rendering. Reload to try again, or
+            check the browser console for details.
+        </Typography>
+    </Stack>
 );
 
 export const DefaultContentLayout = (props: { children: React.ReactNode }) => {
     return (
-        <Stack direction="row" alignItems="stretch" justifyContent="start" width="100%" height="100%" >
+        <Stack
+            direction="row"
+            alignItems="stretch"
+            justifyContent="start"
+            sx={(theme) => ({
+                width: '100%',
+                minHeight: '100vh',
+                bgcolor: theme.palette.background.default,
+            })}
+        >
             <Navbar />
-            <Stack flexGrow="1" p={4}>
+            <Box sx={{ flexGrow: 1, p: 4, minWidth: 0 }}>
                 <ErrorBoundary fallback={ErrorFallback}>
                     {props.children}
                 </ErrorBoundary>
-            </Stack>
+            </Box>
         </Stack>
     );
 };

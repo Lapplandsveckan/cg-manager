@@ -1,5 +1,6 @@
 import {CasparManager} from '../../../../manager';
 import {WebError} from 'rest-exchange-protocol';
+import {Logger} from '../../../../util/log';
 
 export default {
     'GET': async (request) => {
@@ -15,7 +16,7 @@ export default {
 
         return plugin['_enabled'];
     },
-    'POST': async (request) => {
+    'ACTION': async (request) => {
         if (!request.params.id) throw new WebError('No plugin id provided', 400);
 
         const data = request.getData();
@@ -30,8 +31,9 @@ export default {
 
         if (!plugin) throw new WebError('Plugin not found', 404);
 
-        if ((data as any).enabled) plugin['enable']();
-        else plugin['disable']();
+        const logger = Logger.scope('Plugin Loader').scope(plugin.pluginName);
+        if ((data as any).enabled) plugin['enable'](logger);
+        else plugin['disable'](logger);
 
         return plugin['_enabled'];
     },

@@ -1,168 +1,71 @@
-type ShowOpenFilePicker = (options?: ShowOpenFilePickerOptions) => Promise<FileSystemFileHandle[]>;
+// Small wrapper over `<input type="file">`. We previously polyfilled the File
+// System Access API, but that touched browser prototypes and only one call site
+// ever used a single method from the picker handle — overkill. This works in
+// every browser without mutating anything global, and returns plain Files.
 
-function buildPolyfill(): ShowOpenFilePicker {
-    const {
-        create,
-        defineProperties,
-        getOwnPropertyDescriptors,
-        values,
-    } = Object;
+export interface FilePickerAcceptType {
+    /** Human-readable description, kept for API parity with FS Access API. */
+    description?: string;
+    /** Map of MIME type → list of file extensions (e.g. `{"image/*": [".png"]}`). */
+    accept: Record<string, string[]>;
+}
 
-    const mapOfFiles = new WeakMap();
-    const prototypeOfFileSystemHandle = FileSystemHandle.prototype;
-    const prototypeOfFileSystemFileHandle = FileSystemFileHandle.prototype;
+export interface PickFilesOptions {
+    multiple?: boolean;
+    types?: FilePickerAcceptType[];
+}
+
+function buildAcceptAttribute(types?: FilePickerAcceptType[]): string {
+    if (!types?.length) return '';
+    const parts = new Set<string>();
+    for (const type of types) 
+        for (const [mime, exts] of Object.entries(type.accept)) {
+            if (mime) parts.add(mime);
+            for (const ext of exts) {
+                if (!ext) continue;
+                parts.add(ext.startsWith('.') ? ext : `.${ext}`);
+            }
+        }
+    
+    return Array.from(parts).join(',');
+}
+
+/**
+ * Opens a native file picker. Resolves with the selected files, or an empty
+ * array if the user cancels. Must be invoked synchronously inside a user
+ * gesture (e.g. a click handler) — otherwise the browser may block it.
+ */
+export function pickFiles(options: PickFilesOptions = {}): Promise<File[]> {
+    if (typeof document === 'undefined') return Promise.resolve([]);
 
     const input = document.createElement('input');
     input.type = 'file';
+    input.style.display = 'none';
+    if (options.multiple) input.multiple = true;
+    const accept = buildAcceptAttribute(options.types);
+    if (accept) input.accept = accept;
 
-    const getFileHandle = file => {
-        const fileHandle = create(prototypeOfFileSystemFileHandle);
-        mapOfFiles.set(fileHandle, file);
-        return fileHandle;
-    };
-    const getAcceptType = type => values(Object(type?.accept)).join(',');
-    const resolveFilePicker = (resolve, reject) => {
-        input.click();
+    document.body.appendChild(input);
+
+    return new Promise<File[]>((resolve) => {
+        let settled = false;
+        const finish = (files: File[]) => {
+            if (settled) return;
+            settled = true;
+            input.remove();
+            resolve(files);
+        };
+
         input.addEventListener('change', () => {
-            resolve([...input.files].map(getFileHandle));
-            input.value = '';
+            finish(input.files ? Array.from(input.files) : []);
         }, { once: true });
 
-        input.addEventListener('cancel', () => {
-            reject(new DOMException('The user aborted a request.'));
-        }, { once: true });
-    };
+        // Modern browsers (Chrome 113+, Firefox 91+, Safari 17+) fire `cancel`
+        // when the user dismisses the picker. Older browsers won't — the
+        // promise just stays pending in that case, which is acceptable for our
+        // use case (the upload modal won't open until the user picks a file).
+        input.addEventListener('cancel', () => finish([]), { once: true });
 
-    const {
-        name,
-        kind,
-        ...descriptorsOfFileSystemHandle
-    } = getOwnPropertyDescriptors(prototypeOfFileSystemHandle);
-
-    const {
-        getFile,
-        ...descriptorsOfFileSystemFileHandle
-    } = getOwnPropertyDescriptors(prototypeOfFileSystemFileHandle);
-
-    defineProperties(prototypeOfFileSystemHandle, {
-        ...descriptorsOfFileSystemHandle,
-        ...getOwnPropertyDescriptors({
-            get name() {
-                // @ts-ignore
-                return mapOfFiles.get(this)?.name ?? name.call(this);
-            },
-            get kind() {
-                // @ts-ignore
-                return mapOfFiles.has(this) ? 'file' : kind.call(this);
-            },
-        }),
+        input.click();
     });
-
-    defineProperties(prototypeOfFileSystemFileHandle, {
-        ...descriptorsOfFileSystemFileHandle,
-        ...getOwnPropertyDescriptors({
-            async getFile() {
-                // @ts-ignore
-                return await mapOfFiles.get(this) || getFile.call(this);
-            },
-        }),
-    });
-
-    return function showOpenFilePicker(options = null) {
-        input.multiple = Boolean(options?.multiple);
-        input.accept = [].concat(options?.types ?? []).map(getAcceptType).join(',');
-
-        return new Promise(resolveFilePicker);
-    } as ShowOpenFilePicker;
-}
-
-function resolvePicker(): ShowOpenFilePicker {
-    const native = (globalThis as any).showOpenFilePicker;
-    if (typeof native === 'function') return native.bind(globalThis) as ShowOpenFilePicker;
-    if (typeof document === 'undefined' ||
-        typeof (globalThis as any).FileSystemHandle === 'undefined' ||
-        typeof (globalThis as any).FileSystemFileHandle === 'undefined')
-        return async () => [];
-    return buildPolyfill();
-}
-
-let cachedPicker: ShowOpenFilePicker | null = null;
-export const showOpenFilePicker: ShowOpenFilePicker = (options) => {
-    cachedPicker ??= resolvePicker();
-    return cachedPicker(options);
-};
-
-export interface ShowOpenFilePickerOptions {
-    /** A boolean that indicates whether the picker should let the user apply file type filters. By default, this is `false`. */
-    excludeAcceptAllOption?: boolean
-
-    /** An ID to be associated with the directory. If the same ID is used for another picker, it will open the same directory. */
-    id?: boolean
-
-    /** A boolean that indicates whether the user can select multiple files. By default, this is `false`. */
-    multiple?: boolean
-
-    /** A well known directory ("desktop", "downloads") or `FileSystemHandle` to open the dialog in. */
-    startIn?: string | FileSystemDirectoryHandle
-
-    /** An array of file types that can be selected. */
-    types?: FilePickerAcceptType[]
-}
-
-export interface FilePickerAcceptType {
-    /** A string that describes the file type. */
-    description?: string
-
-    /**
-     * An array of content types or file extensions that can be selected.
-     * @example
-     * ```js
-     * [
-     *   {
-     *     description: "Images",
-     *     accept: {
-     *       "image/*": [".png", ".gif", ".jpeg", ".jpg"]
-     *     }
-     *   }
-     * ]
-     * ```
-     */
-    accept: Record<string, string[]>
-}
-
-export interface FileSystemFileHandle {
-    /** A method that returns a File object representing the file's contents. */
-    getFile(): Promise<File>
-
-    /** A method that creates a writable stream for the file. */
-    createWritable(): Promise<FileSystemWritableFileStream>
-
-    /** A boolean that indicates whether the handle is for a directory. */
-    isDirectory: boolean
-
-    /** A property that indicates whether the handle is for a file. */
-    isFile: boolean
-
-    /** A method that returns the name of the file. */
-    name: string
-}
-
-export interface FileSystemWritableFileStream {
-    /** Writes data to the stream. */
-    write(data: BufferSource | Blob | string | WriteParams): Promise<void>
-
-    /** Seeks to a position in the stream. */
-    seek(position: number): Promise<void>
-
-    /** Truncates the file to the specified size. */
-    truncate(size: number): Promise<void>
-
-    /** Closes the stream. */
-    close(): Promise<void>
-}
-
-export interface WriteParams {
-    type: 'write'
-    position?: number
-    data: BufferSource | Blob | string
 }

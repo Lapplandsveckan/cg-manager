@@ -12,6 +12,32 @@ export function getId(fileDir: string, filePath: string) {
         .toUpperCase();
 }
 
+/**
+ * Resolve `relative` against `base` and reject any result that escapes `base`.
+ * Guards against `..`, absolute paths, and symlink-style traversal in input
+ * strings before we hand them to fs operations.
+ */
+export function resolveSafePath(base: string, relative: string): string {
+    const baseAbs = path.resolve(base);
+    const target = path.resolve(baseAbs, relative);
+    if (target !== baseAbs && !target.startsWith(baseAbs + path.sep))
+        throw new Error(`Path escapes allowed root: ${relative}`);
+    return target;
+}
+
+const INVALID_FILENAME_CHARS = /[/\\<>:|?*\x00-\x1f]/;
+
+/**
+ * Validate a single filename component (no directory parts allowed).
+ * Throws on empty, too long, reserved, or character-set violations.
+ */
+export function validateFilename(name: string): void {
+    if (!name || typeof name !== 'string') throw new Error('Name is required');
+    if (name.length > 255) throw new Error('Name is too long');
+    if (name === '.' || name === '..') throw new Error('Invalid name');
+    if (INVALID_FILENAME_CHARS.test(name)) throw new Error('Name contains invalid characters');
+}
+
 export function hashFile(path: string) {
     return new Promise<string>((resolve, reject) => {
         const hash = crypto.createHash('sha1');

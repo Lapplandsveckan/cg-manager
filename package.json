@@ -8,7 +8,7 @@
   "scripts": {
     "build": "tsc",
     "package": "node .lappis/scripts/package.js",
-    "start": "ts-node src/index.ts",
+    "start": "cd test && ts-node ../src/index.ts",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "tsc": "tsc --noEmit"

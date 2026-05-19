@@ -1,6 +1,6 @@
 import {Logger} from '../util/log';
 import {MediaScanner} from './scanner';
-import {CasparProcess} from './caspar/process';
+import {CasparProcess, CasparStatus} from './caspar/process';
 import {EventEmitter} from 'events';
 import {CasparExecutor} from './caspar/executor';
 import {PluginManager} from './plugins/plugin';
@@ -23,9 +23,9 @@ export class CasparManager extends EventEmitter {
     public rundowns: RundownManager;
     public routes: VideoRoutesManager;
 
-    private readonly onCasparStatusBroadcast = (status: { running: boolean }) =>
+    private readonly onCasparStatusBroadcast = (status: CasparStatus) =>
         this.emit('caspar-status', status);
-    private readonly onCasparStatusReconnect = (status: { running: boolean }) =>
+    private readonly onCasparStatusReconnect = (status: CasparStatus) =>
         status.running ? this.executor.connect() : this.executor.disconnect();
     private readonly onCasparLog = (log: string) => this.emit('caspar-logs', log);
     private readonly onDbChange = (key: string, value: unknown) =>
