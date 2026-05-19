@@ -49,9 +49,11 @@ export class DirectoryManager {
         this._created = false;
         this.media.clear();
 
+        if (!this.mediaPath || !this.templatePath) return Promise.resolve([] as void[]);
+
         return Promise.all([
-            fs.rm(path.join(this.mediaPath, '_internal'), {recursive: true}),
-            fs.rm(path.join(this.templatePath, '_internal'), {recursive: true}),
+            fs.rm(path.join(this.mediaPath, '_internal'), {recursive: true, force: true}),
+            fs.rm(path.join(this.templatePath, '_internal'), {recursive: true, force: true}),
         ]);
     }
 

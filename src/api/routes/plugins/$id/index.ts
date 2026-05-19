@@ -11,6 +11,8 @@ export default {
             .plugins
             .find((plugin) => plugin.pluginName === request.params.id);
 
+        if (!plugin) throw new WebError('Plugin not found', 404);
+
         return {
             name: plugin.pluginName,
             enabled: plugin['_enabled'],

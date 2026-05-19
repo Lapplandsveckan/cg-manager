@@ -11,11 +11,16 @@ export default {
             .plugins
             .find((plugin) => plugin.pluginName === request.params.id);
 
+        if (!plugin) throw new WebError('Plugin not found', 404);
+
         return plugin['_enabled'];
     },
     'POST': async (request) => {
         if (!request.params.id) throw new WebError('No plugin id provided', 400);
-        if (typeof request.body.enabled !== 'boolean') throw new WebError('Invalid enabled value', 400);
+
+        const data = request.getData();
+        if (typeof data !== 'object' || typeof (data as any).enabled !== 'boolean')
+            throw new WebError('Invalid enabled value', 400);
 
         const plugin = CasparManager
             .getManager()
@@ -23,7 +28,9 @@ export default {
             .plugins
             .find((plugin) => plugin.pluginName === request.params.id);
 
-        if (request.body.enabled) plugin['enable']();
+        if (!plugin) throw new WebError('Plugin not found', 404);
+
+        if ((data as any).enabled) plugin['enable']();
         else plugin['disable']();
 
         return plugin['_enabled'];

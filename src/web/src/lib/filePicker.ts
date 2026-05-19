@@ -1,13 +1,23 @@
-export const showOpenFilePicker = (globalThis.showOpenFilePicker ?? typeof document === 'object' ? (() => {
+type ShowOpenFilePicker = (options?: ShowOpenFilePickerOptions) => Promise<FileSystemFileHandle[]>;
+
+function buildPolyfill(): ShowOpenFilePicker {
+    const {
+        create,
+        defineProperties,
+        getOwnPropertyDescriptors,
+        values,
+    } = Object;
+
     const mapOfFiles = new WeakMap();
     const prototypeOfFileSystemHandle = FileSystemHandle.prototype;
     const prototypeOfFileSystemFileHandle = FileSystemFileHandle.prototype;
 
     const input = document.createElement('input');
+    input.type = 'file';
+
     const getFileHandle = file => {
         const fileHandle = create(prototypeOfFileSystemFileHandle);
         mapOfFiles.set(fileHandle, file);
-
         return fileHandle;
     };
     const getAcceptType = type => values(Object(type?.accept)).join(',');
@@ -24,13 +34,6 @@ export const showOpenFilePicker = (globalThis.showOpenFilePicker ?? typeof docum
     };
 
     const {
-        create,
-        defineProperties,
-        getOwnPropertyDescriptors,
-        values,
-    } = Object;
-
-    const {
         name,
         kind,
         ...descriptorsOfFileSystemHandle
@@ -40,8 +43,6 @@ export const showOpenFilePicker = (globalThis.showOpenFilePicker ?? typeof docum
         getFile,
         ...descriptorsOfFileSystemFileHandle
     } = getOwnPropertyDescriptors(prototypeOfFileSystemFileHandle);
-
-    input.type = 'file';
 
     defineProperties(prototypeOfFileSystemHandle, {
         ...descriptorsOfFileSystemHandle,
@@ -67,15 +68,29 @@ export const showOpenFilePicker = (globalThis.showOpenFilePicker ?? typeof docum
         }),
     });
 
-    return {
-        showOpenFilePicker(options = null) {
-            input.multiple = Boolean(options?.multiple);
-            input.accept = [].concat(options?.types ?? []).map(getAcceptType).join(',');
+    return function showOpenFilePicker(options = null) {
+        input.multiple = Boolean(options?.multiple);
+        input.accept = [].concat(options?.types ?? []).map(getAcceptType).join(',');
 
-            return new Promise(resolveFilePicker);
-        },
-    }.showOpenFilePicker;
-})() : async () => []) as (options?: ShowOpenFilePickerOptions) => Promise<FileSystemFileHandle[]>;
+        return new Promise(resolveFilePicker);
+    } as ShowOpenFilePicker;
+}
+
+function resolvePicker(): ShowOpenFilePicker {
+    const native = (globalThis as any).showOpenFilePicker;
+    if (typeof native === 'function') return native.bind(globalThis) as ShowOpenFilePicker;
+    if (typeof document === 'undefined' ||
+        typeof (globalThis as any).FileSystemHandle === 'undefined' ||
+        typeof (globalThis as any).FileSystemFileHandle === 'undefined')
+        return async () => [];
+    return buildPolyfill();
+}
+
+let cachedPicker: ShowOpenFilePicker | null = null;
+export const showOpenFilePicker: ShowOpenFilePicker = (options) => {
+    cachedPicker ??= resolvePicker();
+    return cachedPicker(options);
+};
 
 export interface ShowOpenFilePickerOptions {
     /** A boolean that indicates whether the picker should let the user apply file type filters. By default, this is `false`. */

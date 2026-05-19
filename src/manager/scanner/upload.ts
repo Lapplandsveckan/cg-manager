@@ -87,10 +87,13 @@ export class Upload {
     }
 
     async closeFile(deleteFile = false) {
-        const { stream, handle } = this.file;
+        if (this.file) {
+            const { stream, handle } = this.file;
+            this.file = undefined;
 
-        await new Promise<void>((res) => stream.end(() => res()));
-        await handle.close();
+            await new Promise<void>((res) => stream.end(() => res()));
+            await handle.close().catch(() => {});
+        }
 
         if (deleteFile)
             await fs.unlink(this.getTemporaryPath())
@@ -99,6 +102,7 @@ export class Upload {
 
     public async cancel() {
         if (this.timeout) clearTimeout(this.timeout);
+        if (!Upload.uploads.has(this.id)) return;
         Upload.uploads.delete(this.id);
 
         await this.closeFile(true);

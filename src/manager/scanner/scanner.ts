@@ -130,7 +130,7 @@ function generateCinf(doc, json) {
         JSON.stringify(getId(config.paths.media, doc.mediaPath)),
         ` ${type} `,
         doc.mediaSize,
-        moment(doc.thumbTime).format('YYYYMMDDHHmmss'),
+        moment(doc.mediaTime).format('YYYYMMDDHHmmss'),
         frames,
         tb.join('/'),
     ];

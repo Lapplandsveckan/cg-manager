@@ -23,6 +23,14 @@ export class CasparManager extends EventEmitter {
     public rundowns: RundownManager;
     public routes: VideoRoutesManager;
 
+    private readonly onCasparStatusBroadcast = (status: { running: boolean }) =>
+        this.emit('caspar-status', status);
+    private readonly onCasparStatusReconnect = (status: { running: boolean }) =>
+        status.running ? this.executor.connect() : this.executor.disconnect();
+    private readonly onCasparLog = (log: string) => this.emit('caspar-logs', log);
+    private readonly onDbChange = (key: string, value: unknown) =>
+        this.emit('media', key, value);
+
     public get db() {
         return FileDatabase.db;
     }
@@ -45,9 +53,9 @@ export class CasparManager extends EventEmitter {
         this.rundowns = new RundownManager();
         this.routes = new VideoRoutesManager(this);
 
-        this.caspar.on('status', (status) => this.emit('caspar-status', status));
-        this.caspar.on('status', (status) => status.running ? setTimeout(() => this.executor.connect(), 500) : setTimeout(() => this.executor.disconnect(), 500));
-        this.caspar.on('log', (log) => this.emit('caspar-logs', log));
+        this.caspar.on('status', this.onCasparStatusBroadcast);
+        this.caspar.on('status', this.onCasparStatusReconnect);
+        this.caspar.on('log', this.onCasparLog);
     }
 
     public getServer() {
@@ -58,7 +66,7 @@ export class CasparManager extends EventEmitter {
         Logger.info('Starting media scanner...');
         await this.scanner.start();
 
-        FileDatabase.db.on('change', (key, value) => this.emit('media', key, value));
+        FileDatabase.db.on('change', this.onDbChange);
 
         Logger.info('Starting Caspar CG process...');
         await this.caspar.start();
@@ -67,24 +75,35 @@ export class CasparManager extends EventEmitter {
         this.rundowns.startAutosave();
         await this.rundowns.loadRundowns();
 
-        Logger.info('Allocating channels...');
-        Logger.debug(`There are ${this.caspar.config.channels.length} channels`);
-        for (let i = 0; i < this.caspar.config.channels.length; i++)
-            this.executor.allocateChannel(i + 1);
+        const channels = this.caspar.config?.channels;
+        if (!channels) {
+            Logger.warn('Skipping channel allocation: CasparCG did not start.');
+        } else {
+            Logger.info('Allocating channels...');
+            Logger.debug(`There are ${channels.length} channels`);
+            for (let i = 0; i < channels.length; i++)
+                this.executor.allocateChannel(i + 1);
+        }
     }
 
     async stop() {
-        await this.scanner.stop();
-        await this.caspar.stop();
-
         this.rundowns.stopAutosave();
         await this.rundowns.saveAllRundowns();
 
-        this.scanner = null;
-        this.caspar = null;
+        this.routes.disposeAll();
+        this.executor.disconnect();
 
-        // TODO: fix this
-        // this.executor.deallocateAllChannels();
+        await this.scanner.stop();
+        await this.caspar.stop();
+
+        this.caspar.off('status', this.onCasparStatusBroadcast);
+        this.caspar.off('status', this.onCasparStatusReconnect);
+        this.caspar.off('log', this.onCasparLog);
+        FileDatabase.db.off('change', this.onDbChange);
+
+        // Drop listeners the server (and anything else) attached on the manager
+        // — caspar-status, caspar-logs, media — so they don't pin us in memory.
+        this.removeAllListeners();
     }
 
     public getMediaScanner() {

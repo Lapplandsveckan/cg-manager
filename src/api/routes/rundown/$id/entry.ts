@@ -17,6 +17,7 @@ export default {
 
         if (!rundown) throw new WebError('Rundown not found', 404);
         rundown.items = rundown.items.filter(item => item.id !== data);
+        await manager.rundowns.saveRundown(rundown);
 
         manager
             .server
@@ -39,20 +40,19 @@ export default {
 
         if (!rundown) throw new WebError('Rundown not found', 404);
 
+        if (Array.isArray(data)) { // Batch update, and reordering of the selected items
+            const updates = new Map(data.map(item => [item.id, item]));
+            rundown.items = rundown.items.map(item => updates.get(item.id) ?? item);
+        } else {
+            rundown.items = rundown.items.map(item => item.id === data.id ? data : item);
+        }
+
+        await manager.rundowns.saveRundown(rundown);
+
         manager
             .server
             .broadcast('rundown/entry', 'UPDATE', { id: request.params.id, entry: data }, request.getClient());
 
-        if (Array.isArray(data)) { // Batch update, and reordering of the selected items
-            const ids = new Set(data.map(item => item.id));
-
-            let index = 0;
-            rundown.items = rundown.items.map(item => ids.has(item.id) ? data[index++] : item);
-
-            return rundown;
-        }
-
-        rundown.items = rundown.items.map(item => item.id === data.id ? data : item);
         return rundown;
     },
     'CREATE': async (request) => {
@@ -70,11 +70,13 @@ export default {
 
         if (!rundown) throw new WebError('Rundown not found', 404);
 
+        rundown.items.push(data);
+        await manager.rundowns.saveRundown(rundown);
+
         manager
             .server
             .broadcast('rundown/entry', 'CREATE', { id: request.params.id, entry: data }, request.getClient());
 
-        rundown.items.push(data);
         return rundown;
     },
 };

@@ -82,7 +82,8 @@ export class Logger {
     }
 
     public static formatError(error: Error) {
-        return `${error.name} (${error.message}) caused by ${error.cause}, stack: ${error.stack}`;
+        const cause = error.cause ? ` caused by ${error.cause}` : '';
+        return `${error.name} (${error.message})${cause}, stack: ${error.stack}`;
     }
 
     private static flushingLogs: boolean = false;

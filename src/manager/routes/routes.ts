@@ -137,7 +137,7 @@ export class VideoRoutesManager {
     }
 
     public async saveVideoRoute(route: VideoRoute) {
-        const dir = config['route-dir'];
+        const dir = config['routes-dir'];
         const file = path.join(dir, `${route.id}.json`);
 
         const content = JSON.stringify(route, null, 2);
@@ -152,7 +152,7 @@ export class VideoRoutesManager {
         this.checkState(id, true);
         this.routes.delete(id);
 
-        const dir = config['route-dir'];
+        const dir = config['routes-dir'];
         const file = path.join(dir, `${id}.json`);
 
         const [err] = await noTryAsync(() => fs.unlink(file));
@@ -176,6 +176,11 @@ export class VideoRoutesManager {
 
         route.enabled = false;
         this.checkState(id);
+    }
+
+    public disposeAll() {
+        for (const id of this.routes.keys()) this.checkState(id, true);
+        this.routes.clear();
     }
 
 

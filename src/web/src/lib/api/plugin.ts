@@ -1,6 +1,5 @@
 import {REPClient} from 'rest-exchange-protocol-client';
 import EventEmitter from 'events';
-import {getChunkCount} from './upload';
 
 /**
  * All API calls relevant to CasparCG are handled here.
@@ -15,7 +14,6 @@ export class PluginApi extends EventEmitter {
     private socket: REPClient;
     private plugins = [] as Plugin[];
 
-    private logs: string = '';
     private _pluginPromise: Promise<Plugin[]>;
 
     constructor(socket: REPClient) {

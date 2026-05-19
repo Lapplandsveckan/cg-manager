@@ -29,10 +29,8 @@ export function useRundownEntries(rundown: string) {
                 if (id !== rundown) return;
 
                 if (Array.isArray(entry)) { // Batch update, and reordering of the selected items
-                    const ids = new Set(entry.map(item => item.id));
-
-                    let index = 0;
-                    return setEntries(entries => entries.map(item => ids.has(item.id) ? entry[index++] : item));
+                    const updates = new Map<string, RundownEntry>(entry.map(item => [item.id, item]));
+                    return setEntries(entries => entries.map(item => updates.get(item.id) ?? item));
                 }
 
                 setEntries(entries => entries.map(item => item.id === entry.id ? entry : item));

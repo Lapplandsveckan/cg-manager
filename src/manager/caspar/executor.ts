@@ -3,6 +3,12 @@ import {Logger} from '../../util/log';
 import {getTemplatesWithContent} from '../scanner/scanner';
 import {Command, CommandExecutor} from '@lappis/cg-manager';
 
+// AMCP socket usually accepts within a few hundred ms of CasparCG starting,
+// so retry briefly while it warms up and only surface a warning if it stays
+// down for longer than that.
+const RETRY_INTERVAL_MS = 500;
+const WARN_AFTER_FAILED_ATTEMPTS = 10;
+
 export class CasparExecutor extends CommandExecutor {
     private client: net.Socket;
     private _connected: boolean = false;
@@ -12,6 +18,7 @@ export class CasparExecutor extends CommandExecutor {
 
     private retryTimeout: NodeJS.Timeout;
     private retry = true;
+    private failedAttempts = 0;
     private buffer = '';
 
     protected _fetchTemplates(): Promise<any[]> {
@@ -30,7 +37,9 @@ export class CasparExecutor extends CommandExecutor {
     }
 
     public connect() {
+        if (this.retryTimeout) clearTimeout(this.retryTimeout);
         this.retry = true;
+        this.failedAttempts = 0;
         this._internalConnect();
     }
 
@@ -67,6 +76,7 @@ export class CasparExecutor extends CommandExecutor {
         clearTimeout(this.retryTimeout);
 
         this._connected = true;
+        this.failedAttempts = 0;
         this.send(''); // Flush buffer
         this.fetchTemplates();
 
@@ -87,15 +97,21 @@ export class CasparExecutor extends CommandExecutor {
         if (!this.client) return;
 
         this.client.destroy();
-
         this.client = null;
+
+        const wasConnected = this._connected;
         this._connected = false;
 
-        if (error) Logger.error(`Caspar CG executor failed to connect: ${error}`);
-        Logger.info('Caspar CG executor disconnected');
+        if (wasConnected) {
+            Logger.info('Caspar CG executor disconnected');
+        } else if (this.retry) {
+            this.failedAttempts++;
+            if (this.failedAttempts === WARN_AFTER_FAILED_ATTEMPTS)
+                Logger.warn(`Caspar CG executor still cannot connect after ${this.failedAttempts} attempts${error ? `: ${error}` : ''}`);
+        }
 
         if (this.retryTimeout) clearTimeout(this.retryTimeout);
-        if (this.retry) this.retryTimeout = setTimeout(() => this._internalConnect(), 5000);
+        if (this.retry) this.retryTimeout = setTimeout(() => this._internalConnect(), RETRY_INTERVAL_MS);
     }
 
     public getEffectGroup(identifier: string, index?: number) {
