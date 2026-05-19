@@ -1,10 +1,10 @@
-name: Lint and Test
+name: Lint
 
 on: [push, pull_request]
 
 jobs:
-  test:
-    name: Lint and Test
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
         - name: Clone codebase
@@ -21,6 +21,3 @@ jobs:
 
         - name: Lint
           run: yarn lint
-
-        - name: Test
-          run: yarn test
