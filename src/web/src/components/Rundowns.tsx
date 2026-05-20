@@ -128,7 +128,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({title, type, onEdit, 
                 bgcolor: theme.palette.surface.paper,
                 border: `1px solid ${theme.palette.divider}`,
                 borderRadius: 1.5,
-                width: 500,
+                width: '100%',
                 cursor: cardClickable ? 'pointer' : 'default',
                 transition: theme.transitions.create(['border-color', 'background-color'], { duration: 120 }),
                 '&:hover': cardClickable ? {
@@ -224,7 +224,8 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
 
             <Button
                 variant="contained"
-                sx={{ width: 500, alignSelf: 'flex-start', mt: 0.5 }}
+                fullWidth
+                sx={{ mt: 0.5 }}
                 onClick={() => onAdd()}
             >
                 Add item

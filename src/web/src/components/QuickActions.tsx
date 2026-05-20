@@ -229,7 +229,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
 
                         <Button
                             variant="contained"
-                            sx={{ width: 500, alignSelf: 'flex-start', mt: 0.5 }}
+                            fullWidth
+                            sx={{ mt: 0.5 }}
                             onClick={() => setAdding(true)}
                         >
                             Add item
