@@ -195,10 +195,10 @@ export const Navbar = () => {
             </Stack>
 
             <Stack
-                direction={collapsed ? 'column' : 'row'}
+                direction="row"
                 alignItems="center"
-                justifyContent={collapsed ? 'center' : 'space-between'}
-                gap={collapsed ? 1 : 0}
+                justifyContent={collapsed ? 'center' : 'flex-start'}
+                gap={1}
                 sx={(theme) => ({
                     px: collapsed ? 0 : 2,
                     pt: 1.5,
@@ -206,10 +206,7 @@ export const Navbar = () => {
                 })}
             >
                 <Tooltip
-                    title={collapsed
-                        ? `CasparCG ${status.label.toLowerCase()} · v${version}`
-                        : `CasparCG ${status.label.toLowerCase()}`
-                    }
+                    title={`CasparCG ${status.label.toLowerCase()} · v${version}`}
                     placement="right"
                 >
                     <Stack direction="row" alignItems="center" gap={1}>
@@ -223,17 +220,18 @@ export const Navbar = () => {
                             }}
                         />
                         {!collapsed && (
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
                                 {status.label}
+                                <Box
+                                    component="span"
+                                    sx={{ color: 'text.disabled', ml: 0.75 }}
+                                >
+                                    · v{version}
+                                </Box>
                             </Typography>
                         )}
                     </Stack>
                 </Tooltip>
-                {!collapsed && (
-                    <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                        v{version}
-                    </Typography>
-                )}
             </Stack>
         </Stack>
     );
