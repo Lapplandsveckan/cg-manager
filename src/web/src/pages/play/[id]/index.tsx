@@ -158,7 +158,7 @@ const Page = () => {
             >
                 <Stack spacing={1}>
                     <Stack direction="row" alignItems="center" gap={2}>
-                        <Typography variant="h1">Run rundown</Typography>
+                        <Typography variant="h1">{locked ? 'Edit rundown' : 'Play rundown'}</Typography>
                         {!locked && <LiveIndicator />}
                     </Stack>
                     <Typography variant="body1" sx={{ color: 'text.secondary' }}>
