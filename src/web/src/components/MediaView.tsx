@@ -1,9 +1,10 @@
-import {Button, Card, Grid, Modal, Stack, Typography} from '@mui/material';
+import {Box, Button, Card, Grid, IconButton, Modal, Stack, Tooltip, Typography, alpha} from '@mui/material';
+import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
+import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import {useSocket} from '../lib/hooks/useSocket';
 import React, {useEffect, useMemo, useState} from 'react';
 import {MediaDoc} from '../lib/api/caspar';
 import {MediaCard} from '../components/MediaCard';
-import {Box} from '@mui/system';
 
 
 export interface MediaFolderProps {
@@ -14,20 +15,35 @@ export interface MediaFolderProps {
 }
 
 export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick}) => {
-    columns = 60 / (columns ?? 5);
+    const span = 60 / (columns ?? 5);
 
     return (
         <Grid
-            item xs={columns} sm={columns / 2} md={columns / 3} lg={columns  / 4} xl={columns / 5}
-            onClick={() => onClick?.()}
+            item xs={span} sm={span / 2} md={span / 3} lg={span / 4} xl={span / 5}
         >
             <Card
-                sx={{
+                onClick={() => onClick?.()}
+                sx={(theme) => ({
                     aspectRatio: '16/9',
-                }}
+                    cursor: onClick ? 'pointer' : 'default',
+                    transition: theme.transitions.create(['border-color', 'background-color'], { duration: 120 }),
+                    '&:hover': onClick ? {
+                        borderColor: alpha(theme.palette.primary.main, 0.45),
+                        bgcolor: theme.palette.surface.elevated,
+                    } : undefined,
+                })}
             >
-                <Stack height="100%" direction="column" alignItems="center" justifyContent="center">
-                    <Typography fontSize="24px" color="#ccc">{name}</Typography>
+                <Stack
+                    height="100%"
+                    direction="column"
+                    alignItems="center"
+                    justifyContent="center"
+                    gap={1}
+                >
+                    <FolderOutlinedIcon sx={{ color: 'text.secondary', fontSize: 28 }} />
+                    <Typography variant="body1" sx={{ color: 'text.primary', wordBreak: 'break-word', textAlign: 'center', px: 1 }}>
+                        {name}
+                    </Typography>
                 </Stack>
             </Card>
         </Grid>
@@ -134,9 +150,15 @@ export const MediaView: React.FC<MediaViewProps> = ({
                         direction="column"
                         alignItems="center"
                         justifyContent="center"
-                        height="100%"
+                        sx={{ py: 6 }}
+                        spacing={0.5}
                     >
-                        <h1>No media</h1>
+                        <Typography variant="h3" sx={{ color: 'text.secondary' }}>
+                            No media
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                            Upload files from the Media page to make them available here.
+                        </Typography>
                     </Stack>
                 )
             }
@@ -154,87 +176,109 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
     const data = useMemo(() => {
         if (!clip || !clip.id) return null;
 
-        const background = clip._attachments['thumb.png'];
-        const data = Buffer.from(background.data).toString('base64');
-        const url = background ? `data:${background.content_type};base64,${data}` : 'https://via.placeholder.com/1920x1080';
+        const background = clip._attachments?.['thumb.png'];
+        const url = background
+            ? `data:${background.content_type};base64,${Buffer.from(background.data).toString('base64')}`
+            : 'https://via.placeholder.com/1920x1080';
 
         return {
             name: clip.id,
-            duration: clip.mediainfo.format.duration,
+            duration: clip.mediainfo?.format?.duration ?? 0,
             backgroundUrl: url,
         };
     }, [clip]);
 
     return (
         <>
-            <Stack>
-                <Button
-                    onClick={() => {
-                        setOpen(true);
-                    }}
-                >
-                    Select Media
-                </Button>
-
-                {/* <Typography> */}
-                {/*    {clip?.id ?? 'No media selected'} */}
-                {/* </Typography> */}
-
-                {
-                    data ? (
-                        <MediaCard
-                            {...data}
-                            columns={1}
-                        />
-                    ) : (
-                        <Typography variant="body1">
-                            No Media Selected
+            <Stack spacing={1}>
+                {data ? (
+                    <MediaCard
+                        {...data}
+                        columns={1}
+                        onClick={() => setOpen(true)}
+                    />
+                ) : (
+                    <Box
+                        onClick={() => setOpen(true)}
+                        sx={(theme) => ({
+                            aspectRatio: '16/9',
+                            border: `1px dashed ${theme.palette.divider}`,
+                            borderRadius: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            cursor: 'pointer',
+                            transition: theme.transitions.create(['border-color', 'background-color'], { duration: 120 }),
+                            '&:hover': {
+                                borderColor: alpha(theme.palette.primary.main, 0.45),
+                                bgcolor: theme.palette.surface.elevated,
+                            },
+                        })}
+                    >
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            No media selected — click to choose
                         </Typography>
-                    )
-                }
+                    </Box>
+                )}
+                <Button
+                    variant="outlined"
+                    color="inherit"
+                    size="small"
+                    onClick={() => setOpen(true)}
+                >
+                    {data ? 'Change media' : 'Select media'}
+                </Button>
             </Stack>
-            <Modal
-                open={open}
-                onClose={() => {
-                    setOpen(false);
-                }}
-            >
-                <Stack
-                    sx={{
-                        position: 'absolute',
 
+            <Modal open={open} onClose={() => setOpen(false)}>
+                <Card
+                    sx={(theme) => ({
+                        position: 'absolute',
                         top: '50%',
                         left: '50%',
-
                         transform: 'translate(-50%, -50%)',
 
-                        width: '100vw',
-                        height: '100vh',
-                    }}
+                        width: 'min(1100px, 85vw)',
+                        height: 'min(720px, 75vh)',
+                        display: 'flex',
+                        flexDirection: 'column',
 
-                    alignItems="center"
-                    justifyContent="center"
+                        bgcolor: theme.palette.surface.elevated,
+                        border: `1px solid ${theme.palette.divider}`,
+                    })}
                 >
-                    <Box
-                        m={4}
-                        p={2}
-
-                        sx={{
-                            backgroundColor: '#272930',
-                            borderRadius: 4,
-
-                            width: '75%',
-                            height: '60%',
-
-                            overflowY: 'auto',
-                        }}
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        gap={2}
+                        sx={(theme) => ({
+                            px: 3,
+                            py: 2,
+                            borderBottom: `1px solid ${theme.palette.divider}`,
+                            flexShrink: 0,
+                        })}
                     >
+                        <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+                            <Typography variant="h3">Select media</Typography>
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                Pick a clip from the CasparCG media library.
+                            </Typography>
+                        </Stack>
+                        <Tooltip title="Close">
+                            <IconButton onClick={() => setOpen(false)} sx={{ color: 'text.secondary' }}>
+                                <CloseRoundedIcon />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
+
+                    <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3 }}>
                         <MediaView columns={4} onClipSelect={clip => {
                             setOpen(false);
                             onClipSelect?.(clip);
                         }} />
                     </Box>
-                </Stack>
+                </Card>
             </Modal>
         </>
     );
