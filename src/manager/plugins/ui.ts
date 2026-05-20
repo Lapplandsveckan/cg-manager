@@ -74,7 +74,7 @@ export class UIInjector {
         if (err) return null;
 
         this.bundledComponents.set(id, file);
-        Logger.scope('UIInjector').info(`Bundled ${path}`);
+        Logger.scope('UIInjector').debug(`Bundled ${path}`);
 
         return file;
     }
