@@ -163,19 +163,25 @@ export class VideoRoutesManager {
     }
 
     public enableVideoRoute(id: string) {
-        const route = this.routes.get(id);
-        if (!route) return;
+        const state = this.routes.get(id);
+        if (!state) return;
 
-        route.enabled = true;
+        // Keep the wrapper's runtime flag and the inner route's persisted
+        // flag in sync, and write to disk so the choice survives a restart.
+        state.enabled = true;
+        state.route.enabled = true;
         this.checkState(id);
+        this.saveVideoRoute(state.route);
     }
 
     public disableVideoRoute(id: string) {
-        const route = this.routes.get(id);
-        if (!route) return;
+        const state = this.routes.get(id);
+        if (!state) return;
 
-        route.enabled = false;
+        state.enabled = false;
+        state.route.enabled = false;
         this.checkState(id);
+        this.saveVideoRoute(state.route);
     }
 
     public disposeAll() {

@@ -13,6 +13,7 @@ import ComputerIcon from '@mui/icons-material/Computer';
 import ImageIcon from '@mui/icons-material/Image';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExtensionIcon from '@mui/icons-material/Extension';
+import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 
 type NavIcon = OverridableComponent<SvgIconTypeMap<{}, 'svg'>>;
 
@@ -27,6 +28,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: '/server',  label: 'Server',  icon: ComputerIcon },
     { href: '/media',   label: 'Media',   icon: ImageIcon },
     { href: '/play',    label: 'Play',    icon: PlayArrowIcon },
+    { href: '/routes',  label: 'Routes',  icon: HubOutlinedIcon },
     { href: '/plugins', label: 'Plugins', icon: ExtensionIcon },
 ];
 

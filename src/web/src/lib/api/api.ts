@@ -6,6 +6,7 @@ import {REPClient} from 'rest-exchange-protocol-client';
 import {CasparServerApi} from './caspar';
 import {PluginInjectionAPI} from './inject';
 import {PluginApi} from './plugin';
+import {VideoRoutesApi} from './videoRoutes';
 
 
 /**
@@ -18,6 +19,7 @@ export class ManagerApi {
     public caspar: CasparServerApi;
     public injects: PluginInjectionAPI;
     public plugin: PluginApi;
+    public videoRoutes: VideoRoutesApi;
 
     private static instance: ManagerApi;
     public static getConnection() {
@@ -38,6 +40,7 @@ export class ManagerApi {
         this.caspar = new CasparServerApi(this.socket);
         this.injects = new PluginInjectionAPI(this.socket);
         this.plugin = new PluginApi(this.socket);
+        this.videoRoutes = new VideoRoutesApi(this.socket);
     }
 
     public async rawRequest(path: string, method: string, data: any) {
