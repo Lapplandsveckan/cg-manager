@@ -7,6 +7,8 @@ import {useRouter} from 'next/router';
 import {LiveIndicator, LockToggle, RundownEntry, Rundowns, useRundownEntries} from '../../../components/Rundowns';
 import {RundownModals} from '../../../components/RundownModals';
 import {QuickActions} from '../../../components/QuickActions';
+import {BottomPanel} from '../../../components/BottomPanel';
+import {RundownItemDragPayload} from '../../../lib/dragPayload';
 
 // Default sizes target ~80% of the previous defaults (560/560/480) so the
 // three columns fit comfortably side-by-side on a standard 1440px viewport
@@ -147,36 +149,65 @@ const Page = () => {
 
     const [widths, setWidth] = useColumnWidths();
 
+    const openEditorForDrop = (payload: RundownItemDragPayload) => {
+        setEditing({
+            id: Math.random().toString(36).substring(2, 11),
+            title: payload.title ?? 'New Rundown Item',
+            type: payload.type,
+            data: payload.data ?? {},
+        });
+    };
+
     return (
         <DefaultContentLayout>
-            <Stack
-                direction="row"
-                alignItems="flex-start"
-                justifyContent="space-between"
-                gap={2}
-                mb={4}
-            >
-                <Stack spacing={1}>
-                    <Stack direction="row" alignItems="center" gap={2}>
-                        <Typography variant="h1">{locked ? 'Edit rundown' : 'Play rundown'}</Typography>
-                        {!locked && <LiveIndicator />}
+            <Stack sx={{ height: '100%', minHeight: 0 }}>
+                <Stack
+                    direction="row"
+                    alignItems="flex-start"
+                    justifyContent="space-between"
+                    gap={2}
+                    mb={3}
+                    sx={{ flexShrink: 0 }}
+                >
+                    <Stack spacing={1}>
+                        <Stack direction="row" alignItems="center" gap={2}>
+                            <Typography variant="h1">{locked ? 'Edit rundown' : 'Play rundown'}</Typography>
+                            {!locked && <LiveIndicator />}
+                        </Stack>
+                        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                            {locked
+                                ? 'Editing safely — items only fire from the play button. Unlock for one-click playback.'
+                                : 'Live — click anywhere on a card to fire it. Lock for safe editing.'}
+                        </Typography>
                     </Stack>
-                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                        {locked
-                            ? 'Editing safely — items only fire from the play button. Unlock for one-click playback.'
-                            : 'Live — click anywhere on a card to fire it. Lock for safe editing.'}
-                    </Typography>
+                    <LockToggle locked={locked} onToggle={() => setLocked(l => !l)} label="Items" />
                 </Stack>
-                <LockToggle locked={locked} onToggle={() => setLocked(l => !l)} label="Items" />
-            </Stack>
 
-            <Stack
-                direction="row"
-                alignItems="stretch"
-                sx={{ overflowX: 'auto', overflowY: 'visible', minHeight: 0, pb: 1 }}
-            >
-                <Box sx={{ width: widths[0], flexShrink: 0 }}>
-                    <Stack direction="column" spacing={2}>
+                <Stack
+                    direction="row"
+                    alignItems="stretch"
+                    sx={{
+                        flex: 1,
+                        minHeight: 0,
+                        overflowX: 'auto',
+                        overflowY: 'auto',
+                        pb: 1,
+                        // Small left/right insets so the drop-zone outline
+                        // (outlineOffset: 4) on the edge columns isn't clipped
+                        // by the row's overflow.
+                        px: 1,
+                    }}
+                >
+                    <Box
+                        sx={{
+                            width: widths[0],
+                            flexShrink: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minHeight: 0,
+                            gap: 2,
+                        }}
+                    >
                         <Typography variant="h2">Rundown</Typography>
                         <Rundowns
                             entries={entries}
@@ -184,20 +215,28 @@ const Page = () => {
                             onEdit={entry => setEditing(entry)}
                             onPlay={entry => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
                             onAdd={() => setAdding(true)}
+                            onDropItem={openEditorForDrop}
                         />
-                    </Stack>
-                </Box>
+                    </Box>
 
-                <ResizeHandle
-                    startWidth={widths[0]}
-                    minWidth={MIN_COLUMN_WIDTH}
-                    maxWidth={MAX_COLUMN_WIDTH}
-                    onResize={(w) => setWidth(0, w)}
-                    onReset={() => setWidth(0, COLUMN_DEFAULTS[0])}
-                />
+                    <ResizeHandle
+                        startWidth={widths[0]}
+                        minWidth={MIN_COLUMN_WIDTH}
+                        maxWidth={MAX_COLUMN_WIDTH}
+                        onResize={(w) => setWidth(0, w)}
+                        onReset={() => setWidth(0, COLUMN_DEFAULTS[0])}
+                    />
 
-                <Box sx={{ width: widths[1], flexShrink: 0 }}>
-                    <Stack direction="column" spacing={2}>
+                    <Box
+                        sx={{
+                            width: widths[1],
+                            flexShrink: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minHeight: 0,
+                            gap: 2,
+                        }}
+                    >
                         <Stack spacing={0.5}>
                             <Typography variant="h2">Quick actions</Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -205,20 +244,22 @@ const Page = () => {
                             </Typography>
                         </Stack>
                         <QuickActions locked={locked} />
-                    </Stack>
-                </Box>
+                    </Box>
 
-                <ResizeHandle
-                    startWidth={widths[1]}
-                    minWidth={MIN_COLUMN_WIDTH}
-                    maxWidth={MAX_COLUMN_WIDTH}
-                    onResize={(w) => setWidth(1, w)}
-                    onReset={() => setWidth(1, COLUMN_DEFAULTS[1])}
-                />
+                    <ResizeHandle
+                        startWidth={widths[1]}
+                        minWidth={MIN_COLUMN_WIDTH}
+                        maxWidth={MAX_COLUMN_WIDTH}
+                        onResize={(w) => setWidth(1, w)}
+                        onReset={() => setWidth(1, COLUMN_DEFAULTS[1])}
+                    />
 
-                <Box sx={{ width: widths[2], flexShrink: 0 }}>
-                    <Injections zone={UI_INJECTION_ZONE.RUNDOWN_SIDE} />
-                </Box>
+                    <Box sx={{ width: widths[2], flexShrink: 0 }}>
+                        <Injections zone={UI_INJECTION_ZONE.RUNDOWN_SIDE} />
+                    </Box>
+                </Stack>
+
+                <BottomPanel />
             </Stack>
 
             <RundownModals

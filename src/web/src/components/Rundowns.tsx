@@ -7,6 +7,7 @@ import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
 import React, {useEffect, useState} from 'react';
 import {useSocket} from '../lib';
+import {RundownItemDragPayload, hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
 
 export interface RundownEntry {
     id: string;
@@ -196,15 +197,64 @@ interface RundownsProps {
     onPlay: (entry: RundownEntry) => void;
     onAdd: () => void;
 
+    /** Called when a drag payload is dropped onto the list. The handler should
+     *  produce a new RundownEntry from the payload (e.g. open the editor modal
+     *  with the pre-filled fields). When omitted, the drop zone is inert. */
+    onDropItem?: (payload: RundownItemDragPayload) => void;
+
     locked?: boolean;
 }
 
-export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAdd, locked}) => {
+export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAdd, onDropItem, locked}) => {
+    const [dragOver, setDragOver] = useState(false);
+
+    const acceptsDrop = Boolean(onDropItem);
+
+    const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        if (!acceptsDrop) return;
+        if (!hasRundownItemPayload(e.dataTransfer)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        if (!dragOver) setDragOver(true);
+    };
+    const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+        // Only flip off when the drag actually leaves the wrapper, not when
+        // moving between nested children.
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setDragOver(false);
+    };
+    const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        if (!acceptsDrop) return;
+        const payload = parseRundownItemPayload(e.dataTransfer);
+        setDragOver(false);
+        if (!payload) return;
+        e.preventDefault();
+        onDropItem?.(payload);
+    };
+
     return (
-        <Stack spacing={1.5}>
+        <Stack
+            spacing={1.5}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            sx={(theme) => ({
+                position: 'relative',
+                flex: 1,
+                minHeight: 0,
+                borderRadius: 1.5,
+                outline: dragOver
+                    ? `2px dashed ${alpha(theme.palette.primary.main, 0.6)}`
+                    : '2px dashed transparent',
+                outlineOffset: 4,
+                transition: theme.transitions.create('outline-color', { duration: 120 }),
+            })}
+        >
             {entries.length === 0 && (
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    No items yet. Add one below to get started.
+                    {acceptsDrop
+                        ? 'No items yet. Drop something from the bottom panel, or add one below.'
+                        : 'No items yet. Add one below to get started.'}
                 </Typography>
             )}
 

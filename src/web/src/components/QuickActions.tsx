@@ -7,6 +7,7 @@ import {useSocket} from '../lib';
 import {EditRundown, Rundown} from '../pages/play';
 import {RundownModals} from './RundownModals';
 import {RundownEntry, useRundownEntries} from './Rundowns';
+import {hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
 
 function useQuickActions() {
     const conn = useSocket();
@@ -150,9 +151,57 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     const [editing, setEditing] = useState<RundownEntry | null>(null);
     const [adding, setAdding] = useState(false);
 
+    const [dragOver, setDragOver] = useState(false);
+    // Only accept drops when a quick action is selected — there's no target
+    // list to add to otherwise.
+    const acceptsDrop = Boolean(selected);
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        if (!acceptsDrop) return;
+        if (!hasRundownItemPayload(e.dataTransfer)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        if (!dragOver) setDragOver(true);
+    };
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+        setDragOver(false);
+    };
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        if (!acceptsDrop) return;
+        const payload = parseRundownItemPayload(e.dataTransfer);
+        setDragOver(false);
+        if (!payload) return;
+        e.preventDefault();
+        // Open the editor modal that belongs to *this* QuickActions component
+        // so the eventual save goes to the selected quick action's createEntry,
+        // not the page's main rundown.
+        setEditing({
+            id: Math.random().toString(36).substring(2, 11),
+            title: payload.title ?? 'New Rundown Item',
+            type: payload.type,
+            data: payload.data ?? {},
+        });
+    };
+
     return (
         <>
-            <Stack spacing={2}>
+            <Stack
+                spacing={2}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                sx={(theme) => ({
+                    flex: 1,
+                    minHeight: 0,
+                    borderRadius: 1.5,
+                    outline: dragOver
+                        ? `2px dashed ${alpha(theme.palette.primary.main, 0.6)}`
+                        : '2px dashed transparent',
+                    outlineOffset: 4,
+                    transition: theme.transitions.create('outline-color', { duration: 120 }),
+                })}
+            >
                 <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
                     {quickActions.map(rundown => (
                         <QuickActionTab
@@ -206,7 +255,10 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                     <Stack spacing={1.5}>
                         {entries.length === 0 && (
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                No items in <strong>{selected.name}</strong> yet. Add one below.
+                                No items in <strong>{selected.name}</strong> yet.
+                                {acceptsDrop
+                                    ? ' Drop something from the bottom panel, or add one below.'
+                                    : ' Add one below.'}
                             </Typography>
                         )}
 
