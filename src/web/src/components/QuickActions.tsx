@@ -1,12 +1,11 @@
-import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
-import {Button, ButtonBase, IconButton, Modal, Stack, Tooltip, Typography, alpha} from '@mui/material';
+import {ButtonBase, IconButton, Modal, Stack, Tooltip, Typography, alpha} from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import React, {useEffect, useState} from 'react';
 import {useSocket} from '../lib';
 import {EditRundown, Rundown} from '../pages/play';
 import {RundownModals} from './RundownModals';
-import {RundownEntry, useRundownEntries} from './Rundowns';
+import {RundownEntry, Rundowns, useRundownEntries} from './Rundowns';
 import {hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
 
 function useQuickActions() {
@@ -125,7 +124,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     } = useQuickActions();
 
     const [quickAction, setQuickAction] = useState<string | null>(null);
-    const {entries, updateEntry, deleteEntry, createEntry} = useRundownEntries(quickAction);
+    const {entries, updateEntry, deleteEntry, createEntry, reorderEntries} = useRundownEntries(quickAction);
 
     // Restore the last selected quick action on mount; reconcile if it no
     // longer exists in the list once it arrives.
@@ -151,57 +150,31 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     const [editing, setEditing] = useState<RundownEntry | null>(null);
     const [adding, setAdding] = useState(false);
 
-    const [dragOver, setDragOver] = useState(false);
-    // Only accept drops when a quick action is selected — there's no target
-    // list to add to otherwise.
-    const acceptsDrop = Boolean(selected);
+    // Drop-to-insert is now owned by the inner <Rundowns /> — when an item is
+    // dropped on a specific spot we remember the index here and use it when
+    // the editor saves so the new entry lands in the right place.
+    const [pendingDropIndex, setPendingDropIndex] = useState<number | undefined>(undefined);
 
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        if (!acceptsDrop) return;
-        if (!hasRundownItemPayload(e.dataTransfer)) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
-        if (!dragOver) setDragOver(true);
-    };
-    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-        setDragOver(false);
-    };
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        if (!acceptsDrop) return;
-        const payload = parseRundownItemPayload(e.dataTransfer);
-        setDragOver(false);
-        if (!payload) return;
-        e.preventDefault();
-        // Open the editor modal that belongs to *this* QuickActions component
-        // so the eventual save goes to the selected quick action's createEntry,
-        // not the page's main rundown.
+    const openEditorForDrop = (payload: { type: string; data?: unknown; title?: string }, index?: number) => {
         setEditing({
             id: Math.random().toString(36).substring(2, 11),
             title: payload.title ?? 'New Rundown Item',
             type: payload.type,
             data: payload.data ?? {},
         });
+        setPendingDropIndex(index);
     };
+
+    const handleSetEditing = (next: RundownEntry | null) => {
+        setEditing(next);
+        if (next === null) setPendingDropIndex(undefined);
+    };
+
+    const createEntryAtPending = (entry: RundownEntry) => createEntry(entry, pendingDropIndex);
 
     return (
         <>
-            <Stack
-                spacing={2}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                sx={(theme) => ({
-                    flex: 1,
-                    minHeight: 0,
-                    borderRadius: 1.5,
-                    outline: dragOver
-                        ? `2px dashed ${alpha(theme.palette.primary.main, 0.6)}`
-                        : '2px dashed transparent',
-                    outlineOffset: 4,
-                    transition: theme.transitions.create('outline-color', { duration: 120 }),
-                })}
-            >
+            <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
                 <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
                     {quickActions.map(rundown => (
                         <QuickActionTab
@@ -252,42 +225,15 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                 )}
 
                 {selected && (
-                    <Stack spacing={1.5}>
-                        {entries.length === 0 && (
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                No items in <strong>{selected.name}</strong> yet.
-                                {acceptsDrop
-                                    ? ' Drop something from the bottom panel, or add one below.'
-                                    : ' Add one below.'}
-                            </Typography>
-                        )}
-
-                        {entries.map(entry => (
-                            <RundownEntry
-                                key={entry.id}
-                                title={entry.title}
-                                type={entry.type}
-                                active={false}
-                                locked={locked}
-                                onEdit={() => setEditing(entry)}
-                                onPlay={() => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
-                            >
-                                <Injections
-                                    zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`}
-                                    props={{entry}}
-                                />
-                            </RundownEntry>
-                        ))}
-
-                        <Button
-                            variant="contained"
-                            fullWidth
-                            sx={{ mt: 0.5 }}
-                            onClick={() => setAdding(true)}
-                        >
-                            Add item
-                        </Button>
-                    </Stack>
+                    <Rundowns
+                        entries={entries}
+                        locked={locked}
+                        onEdit={entry => setEditing(entry)}
+                        onPlay={entry => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
+                        onAdd={() => setAdding(true)}
+                        onDropItem={openEditorForDrop}
+                        onReorder={reorderEntries}
+                    />
                 )}
 
                 {!selected && quickActions.length > 0 && (
@@ -299,14 +245,14 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
 
             <RundownModals
                 editing={editing}
-                setEditing={setEditing}
+                setEditing={handleSetEditing}
 
                 adding={adding}
                 setAdding={setAdding}
 
                 entries={entries}
                 updateEntry={updateEntry}
-                createEntry={createEntry}
+                createEntry={createEntryAtPending}
                 deleteEntry={deleteEntry}
             />
 

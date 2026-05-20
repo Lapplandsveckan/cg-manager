@@ -1,5 +1,6 @@
 import {WebError} from 'rest-exchange-protocol';
 import {CasparManager} from '../../../../manager';
+import {RundownItem} from '../../../../manager/rundown/rundown';
 
 export default {
     'DELETE': async (request) => {
@@ -59,7 +60,7 @@ export default {
         if (!request.params.id) throw new WebError('Invalid request data', 400);
 
         const data = request.getData();
-        if (typeof data !== 'object') throw new WebError('Invalid request data', 400);
+        if (typeof data !== 'object' || data === null) throw new WebError('Invalid request data', 400);
 
         const manager = CasparManager
             .getManager();
@@ -70,12 +71,30 @@ export default {
 
         if (!rundown) throw new WebError('Rundown not found', 404);
 
-        rundown.items.push(data);
+        // Accept either a bare entry (legacy: append to the end) or
+        // { entry, index } to insert at a specific position. The index is
+        // clamped so out-of-range values silently fall back to append/prepend.
+        const wrapped = data as { entry?: unknown; index?: unknown };
+        const hasWrapper = wrapped.entry !== undefined && typeof wrapped.entry === 'object';
+        const entry = hasWrapper ? (wrapped.entry as RundownItem) : (data as RundownItem);
+        const rawIndex = hasWrapper ? wrapped.index : undefined;
+        const index = typeof rawIndex === 'number' && Number.isFinite(rawIndex)
+            ? Math.max(0, Math.min(rundown.items.length, Math.floor(rawIndex)))
+            : undefined;
+
+        if (index !== undefined) rundown.items.splice(index, 0, entry);
+        else rundown.items.push(entry);
+
         await manager.rundowns.saveRundown(rundown);
 
         manager
             .server
-            .broadcast('rundown/entry', 'CREATE', { id: request.params.id, entry: data }, request.getClient());
+            .broadcast(
+                'rundown/entry',
+                'CREATE',
+                { id: request.params.id, entry, index },
+                request.getClient(),
+            );
 
         return rundown;
     },

@@ -141,7 +141,13 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({ startWidth, minWidth, maxWi
 const Page = () => {
     const conn = useSocket();
     const router = useRouter();
-    const {entries, updateEntry, deleteEntry, createEntry} = useRundownEntries(router.query.id as string);
+    const {
+        entries,
+        updateEntry,
+        deleteEntry,
+        createEntry,
+        reorderEntries,
+    } = useRundownEntries(router.query.id as string);
 
     const [editing, setEditing] = useState<RundownEntry | null>(null);
     const [adding, setAdding] = useState(false);
@@ -149,14 +155,28 @@ const Page = () => {
 
     const [widths, setWidth] = useColumnWidths();
 
-    const openEditorForDrop = (payload: RundownItemDragPayload) => {
+    // When the user drops a payload onto a specific spot in the list we
+    // remember the target index here so that whenever the editor modal saves
+    // (after pre-fill / edit) the new entry lands at that position rather
+    // than at the end. Cleared whenever the modal closes.
+    const [pendingDropIndex, setPendingDropIndex] = useState<number | undefined>(undefined);
+
+    const openEditorForDrop = (payload: RundownItemDragPayload, index?: number) => {
         setEditing({
             id: Math.random().toString(36).substring(2, 11),
             title: payload.title ?? 'New Rundown Item',
             type: payload.type,
             data: payload.data ?? {},
         });
+        setPendingDropIndex(index);
     };
+
+    const handleSetEditing = (next: RundownEntry | null) => {
+        setEditing(next);
+        if (next === null) setPendingDropIndex(undefined);
+    };
+
+    const createEntryAtPending = (entry: RundownEntry) => createEntry(entry, pendingDropIndex);
 
     return (
         <DefaultContentLayout>
@@ -216,6 +236,7 @@ const Page = () => {
                             onPlay={entry => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
                             onAdd={() => setAdding(true)}
                             onDropItem={openEditorForDrop}
+                            onReorder={reorderEntries}
                         />
                     </Box>
 
@@ -264,14 +285,14 @@ const Page = () => {
 
             <RundownModals
                 editing={editing}
-                setEditing={setEditing}
+                setEditing={handleSetEditing}
 
                 adding={adding}
                 setAdding={setAdding}
 
                 entries={entries}
                 updateEntry={updateEntry}
-                createEntry={createEntry}
+                createEntry={createEntryAtPending}
                 deleteEntry={deleteEntry}
             />
         </DefaultContentLayout>
