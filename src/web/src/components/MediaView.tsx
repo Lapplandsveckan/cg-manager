@@ -101,11 +101,7 @@ export const MediaView: React.FC<MediaViewProps> = ({
     }, []);
 
     return (
-        <Stack
-            sx={{
-                overflowY: 'auto',
-            }}
-        >
+        <Stack>
             {
                 (data.length || folders.length) ? (
                     <Grid container spacing={2}>

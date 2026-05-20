@@ -1,48 +1,18 @@
-/*
- * @NOTE: Prepend a `~` to css file paths that are in your node_modules
- *        See https://github.com/webpack-contrib/sass-loader#imports
- */
-
-:root,
 html,
 body,
 #__next {
-    height: 100vh;
-    width: 100vw;
+    height: 100%;
+    margin: 0;
+    padding: 0;
 }
 
 body {
-    background-color: #121212;
-    color: #fff;
-
-    margin: 0;
-    padding: 0;
-    font-family: sans-serif;
-
+    /* Match theme.palette.surface.base so the brief paint before React mounts
+       doesn't flash a different colour. */
+    background-color: #18191c;
+    color: #e8eaed;
+    font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+    /* Page-level scroll happens inside DefaultContentLayout so the navbar can
+       stay pinned. body itself doesn't scroll. */
     overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.app {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-
-    height: 100vh;
-
-    overflow-y: scroll;
-}
-
-.status-button {
-    position: absolute;
-    border: 1px fuchsia dotted;
-    border-radius: 5%;
-    font-size: 2vh;
-}
-
-.logs {
-    left: 10vw;
 }

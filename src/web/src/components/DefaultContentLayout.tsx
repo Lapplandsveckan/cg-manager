@@ -49,12 +49,23 @@ export const DefaultContentLayout = (props: { children: React.ReactNode }) => {
             justifyContent="start"
             sx={(theme) => ({
                 width: '100%',
-                minHeight: '100vh',
+                // Fixed viewport height: the Navbar stays pinned while the
+                // content Box scrolls internally.
+                height: '100vh',
                 bgcolor: theme.palette.background.default,
             })}
         >
             <Navbar />
-            <Box sx={{ flexGrow: 1, p: 4, minWidth: 0 }}>
+            <Box
+                sx={{
+                    flexGrow: 1,
+                    minWidth: 0,
+                    height: '100%',
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    p: 4,
+                }}
+            >
                 <ErrorBoundary fallback={ErrorFallback}>
                     {props.children}
                 </ErrorBoundary>
