@@ -201,7 +201,9 @@ export const Navbar = () => {
                 gap={1}
                 sx={(theme) => ({
                     px: collapsed ? 0 : 2,
-                    pt: 1.5,
+                    // Hand-tuned so the version line sits flush with the
+                    // bottom-panel divider across the columns.
+                    pt: collapsed ? '16px' : '13px',
                     borderTop: `1px solid ${theme.palette.divider}`,
                 })}
             >
