@@ -56,14 +56,19 @@ export const MediaCard: React.FC<MediaCardProps> = ({
         >
             <Card
                 onClick={() => onClick?.()}
-                sx={{
+                sx={(theme) => ({
                     position: 'relative',
                     aspectRatio: '16/9',
                     backgroundImage: `url(${backgroundUrl})`,
-                    backgroundSize: 'cover',
+                    // Show the whole thumbnail (letterbox/pillarbox the gaps)
+                    // instead of cropping it to fill the 16:9 card.
+                    backgroundSize: 'contain',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'center',
+                    backgroundColor: theme.palette.surface.base,
                     cursor: onClick ? 'pointer' : 'default',
                     '&:hover .media-card-actions': hasActions ? { opacity: 1 } : {},
-                }}
+                })}
             >
                 {hasActions && (
                     <Stack
