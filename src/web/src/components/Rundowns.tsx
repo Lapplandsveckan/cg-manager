@@ -1,5 +1,10 @@
 import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
-import {Button, MenuItem, Select, Stack, Typography} from '@mui/material';
+import {Box, Button, IconButton, Stack, Tooltip, Typography, alpha} from '@mui/material';
+import {keyframes} from '@mui/system';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import LockRoundedIcon from '@mui/icons-material/LockRounded';
+import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
 import React, {useEffect, useState} from 'react';
 import {useSocket} from '../lib';
 
@@ -106,48 +111,80 @@ interface RundownEntryProps {
     onPlay: () => void;
 
     active: boolean;
+    /** When true, clicking the card body does nothing; only the explicit play button fires onPlay. */
+    locked?: boolean;
     children: React.ReactNode;
 }
 
-export const RundownEntry: React.FC<RundownEntryProps> = ({title, type, onEdit, onPlay, active, children}) => {
+export const RundownEntry: React.FC<RundownEntryProps> = ({title, type, onEdit, onPlay, active, locked, children}) => {
+    const cardClickable = !locked;
+
     return (
         <Stack
             padding={2}
+            spacing={1.5}
             direction="column"
-            sx={{
-                backgroundColor: '#272930',
-                borderRadius: 4,
-                width: '500px',
-                cursor: 'pointer',
-            }}
+            sx={(theme) => ({
+                bgcolor: theme.palette.surface.paper,
+                border: `1px solid ${theme.palette.divider}`,
+                borderRadius: 1.5,
+                width: 500,
+                cursor: cardClickable ? 'pointer' : 'default',
+                transition: theme.transitions.create(['border-color', 'background-color'], { duration: 120 }),
+                '&:hover': cardClickable ? {
+                    bgcolor: theme.palette.surface.elevated,
+                    borderColor: 'primary.main',
+                } : {
+                    bgcolor: theme.palette.surface.elevated,
+                },
+            })}
 
             onClick={e => {
+                if (!cardClickable) return;
                 e.stopPropagation();
                 onPlay();
             }}
         >
             <Stack
                 direction="row"
-                justifyContent={'space-between'}
+                alignItems="center"
+                justifyContent="space-between"
+                gap={1}
             >
-                <Typography variant="h6">
+                <Typography variant="h4" sx={{ minWidth: 0, wordBreak: 'break-word' }}>
                     {title}
                 </Typography>
-                <Button
-                    onClick={e => {
-                        e.stopPropagation();
-                        onEdit();
-                    }}
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    gap={0.5}
+                    sx={{ flexShrink: 0 }}
+                    onClick={e => e.stopPropagation()}
                 >
-                    Edit
-                </Button>
+                    <Tooltip title="Edit">
+                        <IconButton size="small" onClick={onEdit} sx={{ color: 'text.secondary' }}>
+                            <EditOutlinedIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title={locked ? 'Play (rundown is locked — items only fire from this button)' : 'Play'}>
+                        <IconButton
+                            size="small"
+                            onClick={onPlay}
+                            sx={{ color: 'primary.main' }}
+                        >
+                            <PlayArrowRoundedIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                </Stack>
             </Stack>
-            <Stack
-                spacing={2}
-                direction="column"
-            >
-                {children}
-            </Stack>
+            {children && (
+                <Stack
+                    spacing={1.5}
+                    direction="column"
+                >
+                    {children}
+                </Stack>
+            )}
         </Stack>
     );
 };
@@ -158,19 +195,26 @@ interface RundownsProps {
     onEdit: (entry: RundownEntry) => void;
     onPlay: (entry: RundownEntry) => void;
     onAdd: () => void;
+
+    locked?: boolean;
 }
 
-export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAdd}) => {
+export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAdd, locked}) => {
     return (
-        <Stack
-            spacing={3}
-        >
+        <Stack spacing={1.5}>
+            {entries.length === 0 && (
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    No items yet. Add one below to get started.
+                </Typography>
+            )}
+
             {entries.map(entry => (
                 <RundownEntry
                     key={entry.id}
                     title={entry.title}
                     type={entry.type}
                     active={false}
+                    locked={locked}
                     onEdit={() => onEdit(entry)}
                     onPlay={() => onPlay(entry)}
                 >
@@ -179,13 +223,85 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
             ))}
 
             <Button
-                sx={{
-                    width: '500px',
-                }}
+                variant="contained"
+                sx={{ width: 500, alignSelf: 'flex-start', mt: 0.5 }}
                 onClick={() => onAdd()}
             >
-                Add Rundown Entry
+                Add item
             </Button>
         </Stack>
     );
 };
+
+const LIVE_RED = '#e0463a';
+
+const livePulse = keyframes`
+    0%, 100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 ${alpha(LIVE_RED, 0.6)}; }
+    50% { transform: scale(1.15); opacity: 0.85; box-shadow: 0 0 0 6px ${alpha(LIVE_RED, 0)}; }
+`;
+
+/** Shown when the rundown is unlocked — items will fire on card click. */
+export const LiveIndicator: React.FC = () => (
+    <Stack
+        direction="row"
+        alignItems="center"
+        gap={0.75}
+        sx={{
+            px: 1.25,
+            py: 0.5,
+            borderRadius: 999,
+            bgcolor: alpha(LIVE_RED, 0.14),
+            border: `1px solid ${alpha(LIVE_RED, 0.45)}`,
+            color: LIVE_RED,
+        }}
+    >
+        <Box
+            sx={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                bgcolor: LIVE_RED,
+                animation: `${livePulse} 1.4s ease-in-out infinite`,
+            }}
+        />
+        <Typography
+            variant="caption"
+            sx={{ fontWeight: 700, letterSpacing: '0.12em', fontSize: '0.7rem' }}
+        >
+            LIVE
+        </Typography>
+    </Stack>
+);
+
+interface LockToggleProps {
+    locked: boolean;
+    onToggle: () => void;
+    label?: string;
+}
+
+export const LockToggle: React.FC<LockToggleProps> = ({ locked, onToggle, label }) => (
+    <Tooltip title={
+        locked
+            ? `${label ?? 'Items'} are locked — clicking a card won\'t fire it. Use the play button.`
+            : `${label ?? 'Items'} are unlocked — click anywhere on a card to fire it.`
+    }>
+        <IconButton
+            size="small"
+            onClick={onToggle}
+            sx={(theme) => ({
+                color: locked ? theme.palette.primary.main : 'text.secondary',
+                border: `1px solid ${locked ? theme.palette.primary.main : theme.palette.divider}`,
+                borderRadius: 1.5,
+                px: 1.25,
+                py: 0.5,
+                gap: 0.75,
+                '&:hover': { borderColor: theme.palette.primary.main, color: theme.palette.primary.main },
+            })}
+        >
+            {locked ? <LockRoundedIcon fontSize="small" /> : <LockOpenRoundedIcon fontSize="small" />}
+            <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                {locked ? 'Locked' : 'Unlocked'}
+            </Typography>
+        </IconButton>
+    </Tooltip>
+);

@@ -1,4 +1,4 @@
-import {Button, MenuItem, Modal, Select, Stack, Typography} from '@mui/material';
+import {Card, Modal, Stack, Typography, alpha} from '@mui/material';
 import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 import React, {useEffect, useState} from 'react';
 import {RundownEntry} from './Rundowns';
@@ -17,45 +17,120 @@ interface BaseModalProps {
     deleteEntry: (entry: RundownEntry) => void;
 }
 
+// Best-effort prettifier for raw plugin action ids until plugins ship metadata
+// (display name, description, category). Handles kebab-case, snake_case, and
+// camelCase. The original id is shown underneath as a code-like hint.
+function formatTypeLabel(id: string): string {
+    return id
+        .replace(/[-_]+/g, ' ')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+const TypeTile: React.FC<{ id: string; onPick: () => void }> = ({ id, onPick }) => (
+    <Card
+        onClick={onPick}
+        sx={(theme) => ({
+            p: 2,
+            cursor: 'pointer',
+            transition: theme.transitions.create(['background-color', 'border-color'], { duration: 120 }),
+            '&:hover': {
+                bgcolor: theme.palette.surface.raised,
+                borderColor: alpha(theme.palette.primary.main, 0.45),
+            },
+        })}
+    >
+        <Stack spacing={0.5}>
+            <Typography variant="h5" sx={{ wordBreak: 'break-word' }}>{formatTypeLabel(id)}</Typography>
+            <Typography
+                variant="caption"
+                sx={(theme) => ({
+                    fontFamily: '"SF Mono", "Menlo", "Consolas", monospace',
+                    color: theme.palette.text.disabled,
+                    wordBreak: 'break-all',
+                })}
+            >
+                {id}
+            </Typography>
+        </Stack>
+    </Card>
+);
+
 const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({onChoose}) => {
     const conn = useSocket();
-    const [type, setType] = useState<string>('null');
-    const [types, setTypes] = useState<string[]>([]);
+    const [types, setTypes] = useState<string[] | null>(null);
 
     useEffect(() => {
-        conn.rawRequest('/api/rundown/types', 'GET', {}).then(types => setTypes(types.data ?? []));
+        conn.rawRequest('/api/rundown/types', 'GET', {})
+            .then(res => setTypes(res.data ?? []))
+            .catch(() => setTypes([]));
     }, []);
 
     return (
-        <>
-            <Typography variant="h6">Select Rundown Entry Type</Typography>
-            <Select
-                variant="outlined"
-                label="Type"
-                color="primary"
-                value={type}
-                onChange={async (event) => setType(event.target.value as string)}
-            >
-                <MenuItem value={'null'}>(Select Type)</MenuItem>
-                {
-                    types.map(t => (
-                        <MenuItem value={t} key={t}>{t}</MenuItem>
-                    ))
-                }
-            </Select>
-            <Button
-                onClick={() => onChoose(type)}
-            >
-                Continue
-            </Button>
-        </>
+        <Stack spacing={2}>
+            <Stack spacing={0.5}>
+                <Typography variant="h3">Add item</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    Pick the type of item to add. Each plugin registers its own item types.
+                </Typography>
+            </Stack>
+
+            {types === null && (
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>Loading types…</Typography>
+            )}
+
+            {types?.length === 0 && (
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    No item types are registered. Enable a plugin that provides rundown items.
+                </Typography>
+            )}
+
+            {types && types.length > 0 && (
+                <Stack
+                    sx={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                        gap: 1.25,
+                    }}
+                >
+                    {types.map(t => (
+                        <TypeTile key={t} id={t} onPick={() => onChoose(t)} />
+                    ))}
+                </Stack>
+            )}
+        </Stack>
     );
 };
 
+const ModalShell: React.FC<{ children: React.ReactNode; width?: number }> = ({ children, width = 500 }) => (
+    <Stack
+        justifyContent="center"
+        alignItems="center"
+        sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+        }}
+    >
+        <Card
+            sx={(theme) => ({
+                padding: 3,
+                width,
+                bgcolor: theme.palette.surface.elevated,
+                border: `1px solid ${theme.palette.divider}`,
+            })}
+        >
+            {children}
+        </Card>
+    </Stack>
+);
+
 const EditorModal: React.FC<BaseModalProps> = ({
     editing,
-    setEditing, adding,
-    setAdding,
+    setEditing,
     entries,
     updateEntry,
     createEntry,
@@ -66,50 +141,26 @@ const EditorModal: React.FC<BaseModalProps> = ({
             open={editing !== null}
             onClose={() => setEditing(null)}
         >
-            <Stack
-                justifyContent="center"
-                alignItems="center"
+            <ModalShell>
+                {editing !== null && (
+                    <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${editing.type}`} props={{
+                        entry: editing,
+                        creating: !entries.some(e => e.id === editing.id),
 
-                sx={{
-                    position: 'absolute' as 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                }}
-            >
+                        updateEntry: (entry: RundownEntry) => {
+                            setEditing(null);
+                            if (entries.some(e => e.id === entry.id)) return updateEntry(entry);
 
-                <Stack
-                    padding={2}
-                    spacing={2}
-                    direction="column"
-                    sx={{
-                        backgroundColor: '#272930',
-                        borderRadius: 4,
-                        width: '500px',
-                    }}
-                >
-                    {
-                        editing !== null && (
-                            <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${editing.type}`} props={{
-                                entry: editing,
-                                creating: !entries.some(e => e.id === editing.id),
+                            createEntry(entry);
+                        },
 
-                                updateEntry: (entry: RundownEntry) => {
-                                    setEditing(null);
-                                    if (entries.some(e => e.id === entry.id)) return updateEntry(entry);
-
-                                    createEntry(entry);
-                                },
-
-                                deleteEntry: (entry: RundownEntry) => {
-                                    setEditing(null);
-                                    deleteEntry(entry);
-                                },
-                            }} />
-                        )
-                    }
-                </Stack>
-            </Stack>
+                        deleteEntry: (entry: RundownEntry) => {
+                            setEditing(null);
+                            deleteEntry(entry);
+                        },
+                    }} />
+                )}
+            </ModalShell>
         </Modal>
     );
 };
@@ -120,38 +171,17 @@ const AddModal: React.FC<BaseModalProps> = ({ setEditing, adding, setAdding }) =
             open={adding}
             onClose={() => setAdding(false)}
         >
-            <Stack
-                justifyContent="center"
-                alignItems="center"
-
-                sx={{
-                    position: 'absolute' as 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                }}
-            >
-                <Stack
-                    padding={2}
-                    spacing={2}
-                    direction="column"
-                    sx={{
-                        backgroundColor: '#272930',
-                        borderRadius: 4,
-                        width: '500px',
-                    }}
-                >
-                    <AddRundownEntry onChoose={type => {
-                        setAdding(false);
-                        setEditing({
-                            id: Math.random().toString(36).substring(7),
-                            title: 'New Rundown Item',
-                            data: {},
-                            type,
-                        });
-                    }} />
-                </Stack>
-            </Stack>
+            <ModalShell width={560}>
+                <AddRundownEntry onChoose={type => {
+                    setAdding(false);
+                    setEditing({
+                        id: Math.random().toString(36).substring(7),
+                        title: 'New Rundown Item',
+                        data: {},
+                        type,
+                    });
+                }} />
+            </ModalShell>
         </Modal>
     );
 };

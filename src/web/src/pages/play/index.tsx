@@ -1,4 +1,5 @@
 import {Button, Modal, Stack, TextField, Typography} from '@mui/material';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import React, {useEffect, useState} from 'react';
 import {useRouter} from 'next/router';
 import {RundownEditorActionBar, useSocket} from '../../lib';
@@ -142,20 +143,24 @@ const Rundown: React.FC<RundownProps> = ({id, title, onEdit}) => {
 
 const AddRundown: React.FC<{ onCreate: (type: string) => void }> = ({onCreate}) => {
     const [name, setName] = useState('');
+    const trimmed = name.trim();
 
     return (
         <>
+            <Typography variant="h3">New rundown</Typography>
             <TextField
                 label="Name"
                 value={name}
-                onChange={e => setName(e.target['value'])}
+                onChange={e => setName(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' && trimmed) onCreate(trimmed);
+                }}
             />
 
             <RundownEditorActionBar
-                exists={true}
-
-                onDelete={() => onCreate('')}
-                onSave={() => onCreate(name)}
+                onCancel={() => onCreate('')}
+                onSave={() => trimmed && onCreate(trimmed)}
             />
         </>
     );
@@ -165,30 +170,86 @@ interface EditRundownProps {
     rundown: Rundown;
     onUpdate: (rundown: Rundown) => void;
     onDelete: () => void;
+    /** Closes the editor without saving or deleting. */
+    onCancel: () => void;
 }
 
-export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDelete}) => {
+export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDelete, onCancel}) => {
     const [name, setName] = useState(rundown.name);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+
+    const canSave = name.trim().length > 0 && name !== rundown.name;
 
     return (
         <>
+            <Typography variant="h3">Rename rundown</Typography>
             <TextField
-                label="Namn"
+                label="Name"
                 value={name}
-                onChange={e => setName(e.target['value'])}
+                onChange={e => setName(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' && canSave) onUpdate({ ...rundown, name: name.trim() });
+                }}
             />
 
             <RundownEditorActionBar
-                exists={true}
-
-                onDelete={onDelete}
-                onSave={() => {
-                    onUpdate({
-                        ...rundown,
-                        name,
-                    });
-                }}
+                onCancel={onCancel}
+                onSave={() => canSave && onUpdate({ ...rundown, name: name.trim() })}
+                onDelete={() => setConfirmingDelete(true)}
             />
+
+            <Modal
+                open={confirmingDelete}
+                onClose={() => setConfirmingDelete(false)}
+            >
+                <Stack
+                    justifyContent="center"
+                    alignItems="center"
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                    }}
+                >
+                    <Stack
+                        padding={3}
+                        spacing={2}
+                        direction="column"
+                        sx={(theme) => ({
+                            bgcolor: theme.palette.surface.raised,
+                            border: `1px solid ${theme.palette.divider}`,
+                            borderRadius: 1.5,
+                            width: 460,
+                        })}
+                    >
+                        <Stack direction="row" alignItems="center" gap={1.5}>
+                            <WarningAmberRoundedIcon sx={{ color: '#e88c8c' }} />
+                            <Typography variant="h3">Delete this rundown?</Typography>
+                        </Stack>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            <strong style={{ color: 'inherit' }}>{rundown.name}</strong> and all of
+                            its items will be removed. This can&apos;t be undone.
+                        </Typography>
+                        <Stack direction="row" justifyContent="flex-end" gap={1}>
+                            <Button color="inherit" onClick={() => setConfirmingDelete(false)}>
+                                Cancel
+                            </Button>
+                            <Button
+                                variant="contained"
+                                color="error"
+                                onClick={() => {
+                                    setConfirmingDelete(false);
+                                    onDelete();
+                                }}
+                            >
+                                Delete
+                            </Button>
+                        </Stack>
+                    </Stack>
+                </Stack>
+            </Modal>
         </>
     );
 };
@@ -277,6 +338,7 @@ const Page = () => {
                                     deleteRundown(editing);
                                     setEditing(null);
                                 }}
+                                onCancel={() => setEditing(null)}
                             />
                         </Stack>
                     </Stack>
