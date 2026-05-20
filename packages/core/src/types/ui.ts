@@ -5,6 +5,7 @@ export const UI_INJECTION_ZONE = {
     RUNDOWN_EDITOR: 'rundown-editor',
 
     RUNDOWN_SIDE: 'rundown-side',
+    RUNDOWN_BOTTOM_PANEL: 'rundown-bottom-panel',
 } as const;
 
 export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];
