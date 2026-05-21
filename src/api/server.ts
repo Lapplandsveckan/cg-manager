@@ -26,6 +26,11 @@ export type CGClient = TypedClient<{}>;
 // `tune zerolatency` + `preset ultrafast` keeps the encode pipeline flat
 // (no B-frames, single-pass, minimal look-ahead). `g 30` keeps a keyframe
 // every ~2s at 15fps so MSE doesn't have to wait long for a sync point.
+// MPEG-TS defaults to MP2 audio (mono/stereo only), and the consumer's
+// audio sink doesn't constrain channel layouts (TODO comment at
+// ffmpeg_consumer.cpp:261), so CasparCG's 16-ch hexadecagonal input
+// would otherwise blow up `avcodec_open2`. `filter:a` forces stereo so
+// the auto-inserted resampler handles the downmix.
 const MPEGTS_PREVIEW_ARGS = [
     '-format',
     'mpegts',
@@ -45,6 +50,8 @@ const MPEGTS_PREVIEW_ARGS = [
     '1500k',
     '-filter:v',
     'scale=640:-2',
+    '-filter:a',
+    'aformat=channel_layouts=stereo',
 ];
 
 export class CGServer {
