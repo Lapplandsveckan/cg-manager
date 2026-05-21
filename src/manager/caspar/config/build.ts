@@ -61,6 +61,15 @@ export class ConfigBuilder {
                         protocol: 'amcp',
                     },
                 },
+                // Manager-controlled: CasparCG must talk to our scanner on
+                // :8000 — losing this block would silently break media
+                // discovery for the running channel.
+                amcp: {
+                    'media-server': {
+                        host: '127.0.0.1',
+                        port: 8000,
+                    },
+                },
                 html: {
                     'remote-debugging-port': this.config.html?.remoteDebuggingPort ?? 9222,
                     'enable-gpu': this.config.html?.enableGpu ?? false,

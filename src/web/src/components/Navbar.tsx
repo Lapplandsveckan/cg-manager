@@ -14,6 +14,7 @@ import ImageIcon from '@mui/icons-material/Image';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
+import TuneIcon from '@mui/icons-material/Tune';
 
 type NavIcon = OverridableComponent<SvgIconTypeMap<{}, 'svg'>>;
 
@@ -30,6 +31,7 @@ const NAV_ITEMS: NavItem[] = [
     { href: '/play',    label: 'Play',    icon: PlayArrowIcon },
     { href: '/routes',  label: 'Routes',  icon: HubOutlinedIcon },
     { href: '/plugins', label: 'Plugins', icon: ExtensionIcon },
+    { href: '/config',  label: 'Config',  icon: TuneIcon },
 ];
 
 const EXPANDED_WIDTH = 200;

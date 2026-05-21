@@ -1,6 +1,9 @@
 import {REPClient} from 'rest-exchange-protocol-client';
 import EventEmitter from 'events';
 import {getChunkCount} from './upload';
+import type {Config} from '../../../../manager/caspar/config/types';
+
+export type CasparConfig = Omit<Config, '_raw'>;
 
 /**
  * All API calls relevant to CasparCG are handled here.
@@ -177,6 +180,16 @@ export class CasparServerApi extends EventEmitter {
         this.logs = await this.socket.request('api/caspar/logs', 'GET', {}).then(v => v.data);
 
         return this.logs;
+    }
+
+    public async getConfig(): Promise<CasparConfig> {
+        const res = await this.socket.request('api/caspar/config', 'GET', {});
+        return res.data as CasparConfig;
+    }
+
+    public async updateConfig(config: CasparConfig): Promise<CasparConfig> {
+        const res = await this.socket.request('api/caspar/config', 'UPDATE', config);
+        return res.data as CasparConfig;
     }
 
     public async cancelUpload(id: string) {

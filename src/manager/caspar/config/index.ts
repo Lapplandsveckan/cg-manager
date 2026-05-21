@@ -76,12 +76,21 @@ export class ConfigManager {
         return this.config;
     }
 
+    public async set(config: Config) {
+        // Preserve _raw so subsequent reads stay consistent — clients never
+        // get _raw back over the wire, but ConfigManager itself uses it.
+        const raw = this.config?._raw;
+        this.config = {...config, _raw: raw};
+        await this.save();
+        return this.config;
+    }
+
     public async save() {
         if (!this.config) return;
 
         const stat = await fs.stat(this.path).catch(() => null);
         if (stat?.isDirectory()) this.path = path.join(this.path, 'casparcg.config');
-        
+
         const builder = new ConfigBuilder(this.config);
         const content = builder.build();
 
