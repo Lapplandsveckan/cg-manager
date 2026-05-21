@@ -95,12 +95,18 @@ export class CGServer {
 
         // this.server.use(this.log());
 
-        this.server.use(this.web());
-        this.server.use(this.cors());
-        this.server.use(this.upload());
+        // Preview middlewares MUST run before web(): web() forwards every
+        // non-/api HTTP request to Next.js and throws
+        // MiddlewareProhibitFurtherExecution, which would otherwise eat
+        // /preview-whep/:ch (and /preview/:ch) before they can be handled.
+        // The WS variants are unaffected because web() only catches
+        // /_next/* upgrades, but we keep them grouped for clarity.
         this.server.use(this.preview());
         this.server.use(this.previewWs());
         this.server.use(this.previewWhep());
+        this.server.use(this.cors());
+        this.server.use(this.upload());
+        this.server.use(this.web());
 
         this.manager.on('caspar-status', (status) => {
             const clients = this.server.getClients();
