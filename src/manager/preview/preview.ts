@@ -169,20 +169,47 @@ export class PreviewManager {
             iceServers: [],
         });
         const track = new MediaStreamTrack({kind: 'video'});
-        pc.addTransceiver(track, {direction: 'sendonly'});
+        const transceiver = pc.addTransceiver(track, {direction: 'sendonly'});
+        const sender = transceiver.sender;
 
         const packetizer = new H264Packetizer({
             payloadType: WEBRTC_VIDEO_CODEC.payloadType,
             ssrc: Math.floor(Math.random() * 0xffffffff),
             fps: PREVIEW_FPS,
         });
-        let ffmpegSocket: net.Socket | null = null;
 
+        // We bypass `track.writeRtp` and push packets through the sender
+        // directly. writeRtp dispatches via a non-awaited event emitter, so
+        // calling it in a synchronous loop kicks off N concurrent
+        // sender.sendRtp promises that race on SRTP state and the UDP
+        // socket — fragments end up wire-reordered, which on a single
+        // large slice manifests as "top of frame correct, rest is the
+        // previous frame's last decoded row". A single drain promise that
+        // awaits each send fixes that.
+        const queue: import('werift').RtpPacket[] = [];
+        let draining = false;
+        const drain = async () => {
+            if (draining) return;
+            draining = true;
+            try {
+                while (queue.length > 0) {
+                    const pkt = queue.shift();
+                    if (pkt) await sender.sendRtp(pkt);
+                }
+            } catch (e) {
+                logger.warn(`send failed: ${(e as Error).message}`);
+            } finally {
+                draining = false;
+            }
+        };
+
+        let ffmpegSocket: net.Socket | null = null;
         server.on('connection', (socket) => {
             ffmpegSocket = socket;
             socket.on('data', (chunk) => {
                 try {
-                    for (const pkt of packetizer.push(chunk)) track.writeRtp(pkt);
+                    for (const pkt of packetizer.push(chunk)) queue.push(pkt);
+                    void drain();
                 } catch (e) {
                     logger.warn(`packetize failed: ${(e as Error).message}`);
                 }
