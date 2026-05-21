@@ -2,9 +2,18 @@ export const schema = {
     string: () => 'string',
     number: () => 1,
     boolean: () => true,
-    array: <T>(schema: T, name: string) => [{...schema, _name: name} as T],
     enum: <T>(values: readonly T[]) => values[0],
     schema: <T>(schema: T): Partial<T> => schema,
+
+    // Array of items wrapped in `<name>...</name>` inside the parent element.
+    // `_name` is stored on the outer array (not the inner item schema) so
+    // primitive item schemas like `schema.number()` survive — needed for
+    // `<universes><universe>0</universe><universe>1</universe></universes>`.
+    array: <T>(item: T, name: string): T[] => {
+        const arr: any = [item];
+        arr._name = name;
+        return arr;
+    },
 };
 
 export const schemas = {
@@ -84,7 +93,7 @@ export const schemas = {
         args: schema.string(),
     }),
     artnet: schema.schema({
-        universe: schema.number(),
+        universes: schema.array(schema.number(), 'universe'),
         host: schema.string(),
         port: schema.number(),
         refreshRate: schema.number(),
@@ -93,16 +102,22 @@ export const schemas = {
             schema.schema({
                 type: schema.enum(['DIMMER', 'RGB', 'RGBW'] as const),
                 startAddress: schema.number(),
-                fixtureCount: schema.number(),
+                // Format: "N" for a strip or "WxH" for a grid.
+                fixtureCount: schema.string(),
                 fixtureChannels: schema.number(),
 
-                x: schema.number(),
-                y: schema.number(),
+                flux: schema.schema({
+                    r: schema.number(),
+                    g: schema.number(),
+                    b: schema.number(),
+                    w: schema.number(),
+                }),
+
+                left: schema.number(),
+                top: schema.number(),
 
                 width: schema.number(),
                 height: schema.number(),
-
-                rotation: schema.number(),
             }),
             'fixture',
         ),

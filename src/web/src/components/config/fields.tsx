@@ -21,16 +21,16 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 export type RecordData = Record<string, any>;
 
 export type FieldDef =
-    | { key: string; label: string; type: 'string' | 'number' | 'boolean' }
+    | { key: string; label: string; type: 'string' | 'number' | 'integer' | 'boolean' }
     | { key: string; label: string; type: 'enum'; options: readonly (string | number)[] }
     | { key: string; label: string; type: 'object'; fields: FieldDef[] }
     | { key: string; label: string; type: 'array'; itemLabel: string; fields: FieldDef[] };
 
-const isScalar = (def: FieldDef): boolean =>
-    def.type === 'string' || def.type === 'number' || def.type === 'boolean' || def.type === 'enum';
+const SCALAR_TYPES = ['string', 'number', 'integer', 'boolean', 'enum'];
+const isScalar = (def: FieldDef): boolean => SCALAR_TYPES.includes(def.type);
 
 interface ScalarFieldProps {
-    def: Extract<FieldDef, {type: 'string' | 'number' | 'boolean' | 'enum'}>;
+    def: Extract<FieldDef, {type: 'string' | 'number' | 'integer' | 'boolean' | 'enum'}>;
     value: any;
     onChange: (value: any) => void;
 }
@@ -64,7 +64,8 @@ export const ScalarField: React.FC<ScalarFieldProps> = ({def, value, onChange}) 
             </FormControl>
         );
 
-    if (def.type === 'number')
+    if (def.type === 'number' || def.type === 'integer') {
+        const isInt = def.type === 'integer';
         return (
             <TextField
                 label={def.label}
@@ -72,14 +73,17 @@ export const ScalarField: React.FC<ScalarFieldProps> = ({def, value, onChange}) 
                 type="number"
                 fullWidth
                 value={value ?? ''}
+                inputProps={isInt ? {step: 1} : {step: 'any'}}
                 onChange={(e) => {
                     const raw = e.target.value;
                     if (raw === '') return onChange(undefined);
                     const n = Number(raw);
-                    onChange(Number.isFinite(n) ? n : undefined);
+                    if (!Number.isFinite(n)) return onChange(undefined);
+                    onChange(isInt ? Math.round(n) : n);
                 }}
             />
         );
+    }
 
     return (
         <TextField
@@ -257,16 +261,35 @@ const DECKLINK_PORT_FIELDS: FieldDef[] = [
     {key: 'subregion', label: 'Subregion', type: 'object', fields: SUBREGION_FIELDS},
 ];
 
-const ARTNET_FIXTURE_FIELDS: FieldDef[] = [
+export const ARTNET_FIXTURE_FIELDS: FieldDef[] = [
     {key: 'type', label: 'Type', type: 'enum', options: ['DIMMER', 'RGB', 'RGBW']},
     {key: 'startAddress', label: 'Start address', type: 'number'},
-    {key: 'fixtureCount', label: 'Fixture count', type: 'number'},
-    {key: 'fixtureChannels', label: 'Fixture channels', type: 'number'},
-    {key: 'x', label: 'X', type: 'number'},
-    {key: 'y', label: 'Y', type: 'number'},
+    {key: 'fixtureCount', label: 'Count (N or WxH)', type: 'string'},
+    {key: 'fixtureChannels', label: 'Channels per fixture', type: 'number'},
+    {key: 'left', label: 'Left', type: 'number'},
+    {key: 'top', label: 'Top', type: 'number'},
     {key: 'width', label: 'Width', type: 'number'},
     {key: 'height', label: 'Height', type: 'number'},
-    {key: 'rotation', label: 'Rotation', type: 'number'},
+    {
+        key: 'flux',
+        label: 'Flux',
+        type: 'object',
+        fields: [
+            {key: 'r', label: 'R', type: 'number'},
+            {key: 'g', label: 'G', type: 'number'},
+            {key: 'b', label: 'B', type: 'number'},
+            {key: 'w', label: 'W', type: 'number'},
+        ],
+    },
+];
+
+// Host/port/refresh-rate only — universes is handled by the artnet editor
+// directly (chip input), since the generic FieldDef system doesn't model
+// arrays of primitives.
+export const ARTNET_SCALAR_FIELDS: FieldDef[] = [
+    {key: 'host', label: 'Host', type: 'string'},
+    {key: 'port', label: 'Port', type: 'number'},
+    {key: 'refreshRate', label: 'Refresh rate', type: 'number'},
 ];
 
 const DECKLINK_FIELDS: FieldDef[] = [
@@ -330,10 +353,7 @@ const FFMPEG_FIELDS: FieldDef[] = [
 ];
 
 const ARTNET_FIELDS: FieldDef[] = [
-    {key: 'universe', label: 'Universe', type: 'number'},
-    {key: 'host', label: 'Host', type: 'string'},
-    {key: 'port', label: 'Port', type: 'number'},
-    {key: 'refreshRate', label: 'Refresh rate', type: 'number'},
+    ...ARTNET_SCALAR_FIELDS,
     {key: 'fixtures', label: 'Fixtures', type: 'array', itemLabel: 'Fixture', fields: ARTNET_FIXTURE_FIELDS},
 ];
 

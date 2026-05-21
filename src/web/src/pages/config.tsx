@@ -8,11 +8,19 @@ import {HtmlEditor} from '../components/config/HtmlEditor';
 import {VideoModesEditor} from '../components/config/VideoModesEditor';
 import {ChannelEditor} from '../components/config/ChannelEditor';
 import {ConsumerModal} from '../components/config/ConsumerModal';
+import {ConsumerTypePicker} from '../components/config/ConsumerTypePicker';
+import {ConsumerType} from '../components/config/fields';
 
 type Channel = CasparConfig['channels'][number];
 type Consumer = Channel['consumers'][number];
 
 const blankChannel = (videoMode: string): Channel => ({videoMode, consumers: []});
+
+interface EditingConsumer {
+    channelIndex: number;
+    consumerIndex: number | null; // null = creating
+    newType?: ConsumerType;        // set when creating — chosen in the type picker
+}
 
 const Page = () => {
     const socket = useSocket();
@@ -20,10 +28,11 @@ const Page = () => {
     const [draft, setDraft] = useState<CasparConfig | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
-    const [editingConsumer, setEditingConsumer] = useState<{
-        channelIndex: number;
-        consumerIndex: number | null; // null = creating
-    } | null>(null);
+    const [editingConsumer, setEditingConsumer] = useState<EditingConsumer | null>(null);
+    // Channel index whose "Add consumer" was clicked — shows the type picker.
+    // Once the user chooses, transitions into editingConsumer with the picked
+    // type baked in.
+    const [pickingForChannel, setPickingForChannel] = useState<number | null>(null);
 
     useEffect(() => {
         if (!socket) return;
@@ -103,6 +112,19 @@ const Page = () => {
         return draft.channels[channelIndex]?.consumers[consumerIndex] ?? null;
     })();
 
+    // Visual editors (artnet canvas, etc.) need the channel's output
+    // resolution. Look it up via the channel's videoMode → videoModes entry,
+    // falling back to 1080p when not found.
+    const canvasSize: {width: number; height: number} = (() => {
+        const fallback = {width: 1920, height: 1080};
+        if (!editingConsumer || !draft) return fallback;
+        const channel = draft.channels[editingConsumer.channelIndex];
+        if (!channel) return fallback;
+        const mode = draft.videoModes.find((m) => m.id === channel.videoMode);
+        if (!mode) return fallback;
+        return {width: mode.width, height: mode.height};
+    })();
+
     return (
         <DefaultContentLayout>
             <Stack spacing={3} sx={{maxWidth: 1040}}>
@@ -116,8 +138,7 @@ const Page = () => {
                     <Stack spacing={1}>
                         <Typography variant="h1">Config</Typography>
                         <Typography variant="body1" sx={{color: 'text.secondary'}}>
-                            CasparCG configuration. Manager-controlled bits
-                            (paths, AMCP, media scanner) are intentionally hidden — we set those.
+                            CasparCG Configuration.
                         </Typography>
                     </Stack>
                     <Stack direction="row" gap={1}>
@@ -196,9 +217,7 @@ const Page = () => {
                                         onEditConsumer={(consumerIndex) =>
                                             setEditingConsumer({channelIndex: i, consumerIndex})
                                         }
-                                        onAddConsumer={() =>
-                                            setEditingConsumer({channelIndex: i, consumerIndex: null})
-                                        }
+                                        onAddConsumer={() => setPickingForChannel(i)}
                                         onDeleteConsumer={(consumerIndex) => {
                                             const ch = draft.channels[i];
                                             updateChannel(i, {
@@ -216,9 +235,26 @@ const Page = () => {
                 )}
             </Stack>
 
+            <ConsumerTypePicker
+                open={pickingForChannel !== null}
+                onClose={() => setPickingForChannel(null)}
+                onSelect={(type) => {
+                    if (pickingForChannel === null) return;
+                    setEditingConsumer({
+                        channelIndex: pickingForChannel,
+                        consumerIndex: null,
+                        newType: type,
+                    });
+                    setPickingForChannel(null);
+                }}
+            />
+
             <ConsumerModal
                 open={editingConsumer !== null}
                 consumer={editingExistingConsumer}
+                newType={editingConsumer?.newType}
+                canvasWidth={canvasSize.width}
+                canvasHeight={canvasSize.height}
                 onClose={() => setEditingConsumer(null)}
                 onSave={consumerSave}
                 onDelete={editingExistingConsumer ? consumerDelete : undefined}

@@ -14,17 +14,20 @@ const utils = {
     valueMap: (obj: Record<string, any>, map: (value: any, key: string) => any) =>
         Object.fromEntries(Object.entries(obj).map(([k, v]) => [k, map(v, k)])),
 
-    array: (arr: any, name: string) => arr?.map((v: any) => ({[name]: v})),
-
     defaultSerialize: (value: any, schema: any) => {
         if (schema === undefined)
             return value;
 
+        if (Array.isArray(schema)) {
+            const name = (schema as any)._name;
+            const items = (value ?? []).map((v: any) => utils.defaultSerialize(v, schema[0]));
+            // xml2js Builder turns {name: [...]} into <name>...</name> repeated
+            // for each item — the inverse of how the parse branch reads them.
+            return {[name]: items};
+        }
+
         if (typeof value !== 'object')
             return value;
-
-        if (Array.isArray(schema))
-            return utils.array(value.map((v: any) => utils.defaultSerialize(v, schema[0])), schema[0]._name);
 
         value = utils.keyMap(value, utils.hyphenate);
         value = utils.valueMap(value, (v, k) => utils.defaultSerialize(v, schema?.[k]));
@@ -35,8 +38,16 @@ const utils = {
         if (schema === undefined)
             return value;
 
-        if (Array.isArray(schema))
-            return value.map((v: any) => utils.defaultParse(v[schema[0]._name], schema[0]));
+        if (Array.isArray(schema)) {
+            // xml2js gives `<parent><name>a</name><name>b</name></parent>` as
+            // `[{name: [a, b]}]`. Unwrap the outer single-element array, pull
+            // the inner item list, and parse each item against schema[0].
+            const wrapper = Array.isArray(value) ? value[0] : value;
+            const name = (schema as any)._name;
+            const inner = wrapper?.[name];
+            if (!Array.isArray(inner)) return [];
+            return inner.map((v: any) => utils.defaultParse(v, schema[0]));
+        }
 
         value = utils.escape(value);
 
