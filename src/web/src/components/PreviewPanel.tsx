@@ -98,11 +98,22 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                     url,
                 }, {
                     enableWorker: true,
-                    // Aggressively drain ahead-of-time buffer when latency
-                    // grows — keeps us close to live without manual seeking.
+                    // MSE buffers grow whenever the network/decoder gets
+                    // ahead of playback; without aggressive chasing the
+                    // preview drifts seconds behind within a minute. The
+                    // server-side encoder shoots one keyframe per second
+                    // (`-g:v 15` @ 15fps) so the chaser always has a sync
+                    // point close to the live edge to jump to.
                     liveBufferLatencyChasing: true,
-                    liveBufferLatencyMaxLatency: 1.0,
-                    liveBufferLatencyMinRemain: 0.3,
+                    liveBufferLatencyChasingOnPaused: true,
+                    liveBufferLatencyMaxLatency: 0.5,
+                    liveBufferLatencyMinRemain: 0.1,
+                    // Also drop any data still buffered on the loader side
+                    // — keeps the source <-> demuxer pipeline tight.
+                    stashInitialSize: 16,
+                    autoCleanupSourceBuffer: true,
+                    autoCleanupMaxBackwardDuration: 3,
+                    autoCleanupMinBackwardDuration: 2,
                 });
 
                 player.on(mpegts.Events.ERROR, (type: string, detail: string) => {

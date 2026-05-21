@@ -23,14 +23,27 @@ export type CGClient = TypedClient<{}>;
 // stream-suffix (see modules/ffmpeg/consumer/ffmpeg_consumer.cpp:502 + :517),
 // so short forms like `-f` / `-c:v` / `-vf` are silently ignored — we have
 // to spell every option in full (`format`, `codec:v`, `filter:v`, …).
-// `tune zerolatency` + `preset ultrafast` keeps the encode pipeline flat
-// (no B-frames, single-pass, minimal look-ahead). `g 30` keeps a keyframe
-// every ~2s at 15fps so MSE doesn't have to wait long for a sync point.
-// MPEG-TS defaults to MP2 audio (mono/stereo only), and the consumer's
-// audio sink doesn't constrain channel layouts (TODO comment at
-// ffmpeg_consumer.cpp:261), so CasparCG's 16-ch hexadecagonal input
-// would otherwise blow up `avcodec_open2`. `filter:a` forces stereo so
-// the auto-inserted resampler handles the downmix.
+//
+// Latency notes:
+// - `-r:v 15` only sets the encoder context's frame-rate; it does NOT
+//   downsample fps. Putting `fps=15` *in the filter chain* is what makes
+//   libx264 actually see 15 frames per second instead of all 60 from the
+//   source. Without this we'd encode 4× the frames and the MSE buffer
+//   would drift behind live within seconds.
+// - `flush_packets` + `muxdelay` 0 stop the MPEG-TS muxer from holding
+//   PES packets back waiting for "a bit more" before shipping them.
+// - `g:v 15` = one keyframe per second @ 15fps. mpegts.js / MSE has to
+//   wait for the next keyframe to chase forward, so shorter GOP means
+//   live-edge catch-up settles sooner at the cost of some bitrate.
+// - `bf:v 0` disables B-frames (already implied by `tune zerolatency`,
+//   but explicit so reordering can't be reintroduced).
+// - `tune zerolatency` + `preset ultrafast` keep the encode pipeline flat
+//   (single-pass, minimal look-ahead).
+// - MPEG-TS defaults to MP2 audio (mono/stereo only); the consumer's
+//   audio sink doesn't constrain channel layouts (TODO at
+//   ffmpeg_consumer.cpp:261), so CasparCG's 16-ch hexadecagonal input
+//   would otherwise blow up `avcodec_open2`. `filter:a` forces stereo so
+//   the auto-inserted resampler handles the downmix.
 const MPEGTS_PREVIEW_ARGS = [
     '-format',
     'mpegts',
@@ -42,14 +55,20 @@ const MPEGTS_PREVIEW_ARGS = [
     'zerolatency',
     '-pix_fmt:v',
     'yuv420p',
-    '-r:v',
-    '15',
+    '-bf:v',
+    '0',
     '-g:v',
-    '30',
+    '15',
     '-b:v',
-    '1500k',
+    '800k',
     '-filter:v',
-    'scale=640:-2',
+    'fps=15,scale=640:-2',
+    '-flush_packets',
+    '1',
+    '-muxdelay',
+    '0',
+    '-muxpreload',
+    '0',
     '-filter:a',
     'aformat=channel_layouts=stereo',
 ];
@@ -162,8 +181,15 @@ export class CGServer {
                             return;
                         }
                         session = s;
+                        // Drop chunks when the client can't keep up — without
+                        // this, a slow browser balloons `bufferedAmount` and
+                        // the preview falls minutes behind. The MPEG-TS muxer
+                        // is keyframe-resilient (1s GOP), so dropping a few
+                        // packets shows up as a glitch and self-resyncs.
+                        const HIGH_WATER_MARK = 4 * 1024 * 1024; // 4MB
                         s.onData((chunk) => {
                             if (ws.readyState !== ws.OPEN) return;
+                            if (ws.bufferedAmount > HIGH_WATER_MARK) return;
                             ws.send(chunk, {binary: true});
                         });
                     })
