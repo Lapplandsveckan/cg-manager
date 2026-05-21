@@ -73,6 +73,14 @@ export class PluginAPI extends EventEmitter {
         this._plugin['logger'] = _manager.getLogger('Plugin').scope(this._plugin.pluginName);
     }
 
+    public onReconnect(handler: () => void) {
+        this._manager.on('caspar-reconnect', handler);
+    }
+
+    public offReconnect(handler: () => void) {
+        this._manager.off('caspar-reconnect', handler);
+    }
+
     private _effects: string[] = [];
     private routes: Route[] = [];
     public registerEffect(name: string, effect: EffectConstructor) {
