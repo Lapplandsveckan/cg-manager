@@ -11,6 +11,10 @@ export abstract class BasicCommand {
     protected abstract getCommandType(): string;
     protected abstract getArguments(): string[];
 
+    public static construct(command: string, ...args: string[]): ReturnType<typeof BasicCommand.create> {
+        return this.create(command, ...args);
+    }
+
     private static create(command: string, ...args: string[]) {
         return new class extends BasicCommand {
             protected getCommandType() {
