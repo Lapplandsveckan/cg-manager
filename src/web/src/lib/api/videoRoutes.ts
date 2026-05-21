@@ -60,6 +60,11 @@ export class VideoRoutesApi {
         return (res.data as VideoRoute[]) ?? [];
     }
 
+    public async create(data: Omit<VideoRoute, 'id'>): Promise<VideoRoute> {
+        const res = await this.socket.request('api/routes', 'CREATE', data);
+        return res.data as VideoRoute;
+    }
+
     public async get(id: string): Promise<VideoRoute> {
         const res = await this.socket.request(`api/routes/${encodeURIComponent(id)}`, 'GET', {});
         return res.data as VideoRoute;
