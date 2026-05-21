@@ -14,11 +14,41 @@ import {Logger} from '../util/log';
 import {Upload} from '../manager/scanner/upload';
 import {PreviewSession} from '../manager/preview/preview';
 import {noTry} from 'no-try';
+import {WebSocketServer} from 'ws';
 
 export type CGClient = TypedClient<{}>;
+
+// MPEG-TS preview args: lowest-latency H.264 we can muster from ffmpeg. The
+// `tune zerolatency` + `preset ultrafast` combo trades compression ratio
+// for a near-flat encode pipeline (no B-frames, single-pass, minimal
+// look-ahead). `g 30` keeps a keyframe every ~2s @ 15fps so a new browser
+// client doesn't have to wait too long for MSE to find a sync point.
+const MPEGTS_PREVIEW_ARGS = [
+    '-f',
+    'mpegts',
+    '-c:v',
+    'libx264',
+    '-preset',
+    'ultrafast',
+    '-tune',
+    'zerolatency',
+    '-pix_fmt',
+    'yuv420p',
+    '-r',
+    '15',
+    '-g',
+    '30',
+    '-b:v',
+    '1500k',
+    '-vf',
+    'scale=640:-2',
+    '-an',
+].join(' ');
+
 export class CGServer {
     private server: REPServer;
     private manager: CasparManager;
+    private wss: WebSocketServer;
 
     constructor(manager: CasparManager, port?: number) {
         this.manager = manager;
@@ -26,6 +56,11 @@ export class CGServer {
         this.server = new REPServer({
             port,
         });
+
+        // No internal http.Server — we hand-off upgrade events via
+        // `wss.handleUpgrade(req, socket, head, cb)` from the websocket-upgrade
+        // middleware. `noServer: true` is the canonical pattern for this.
+        this.wss = new WebSocketServer({noServer: true});
 
         const routes = loadRoutes();
         routes.forEach((route) => this.server.register(route));
@@ -36,6 +71,7 @@ export class CGServer {
         this.server.use(this.cors());
         this.server.use(this.upload());
         this.server.use(this.preview());
+        this.server.use(this.previewWs());
 
         this.manager.on('caspar-status', (status) => {
             const clients = this.server.getClients();
@@ -74,6 +110,61 @@ export class CGServer {
         return async (data: MiddleWareData) => {
             if (data.type !== 'pre-route') return;
             Logger.scope('API').debug(`${data.route.method} ${data.route.path}`);
+        };
+    }
+
+    previewWs() {
+        // ws://host/preview-ws/:channel — MPEG-TS stream over WebSocket
+        // binary frames. Browser uses mpegts.js + MSE to play.
+        return async (data: MiddleWareData) => {
+            if (data.type !== 'websocket-upgrade') return;
+
+            const match = data.request.url?.match(/^\/preview-ws\/(\d+)(?:\?.*)?$/);
+            if (!match) return;
+
+            const channel = parseInt(match[1], 10);
+            if (!Number.isFinite(channel) || channel < 1) {
+                data.socket.destroy();
+                throw new MiddlewareProhibitFurtherExecution();
+            }
+
+            this.wss.handleUpgrade(data.request, data.socket, data.head, (ws) => {
+                let session: PreviewSession | null = null;
+                let alive = true;
+
+                const cleanup = () => {
+                    if (!alive) return;
+                    alive = false;
+                    session?.close().catch(() => undefined);
+                    if (ws.readyState === ws.OPEN || ws.readyState === ws.CONNECTING) 
+                        ws.close();
+                    
+                };
+
+                ws.on('close', cleanup);
+                ws.on('error', cleanup);
+
+                this.manager.preview.openSession({channel, ffmpegArgs: MPEGTS_PREVIEW_ARGS})
+                    .then((s) => {
+                        if (!alive) {
+                            // Client gave up before we got the session — tear it
+                            // down immediately so we don't leak an encoder.
+                            s.close().catch(() => undefined);
+                            return;
+                        }
+                        session = s;
+                        s.onData((chunk) => {
+                            if (ws.readyState !== ws.OPEN) return;
+                            ws.send(chunk, {binary: true});
+                        });
+                    })
+                    .catch((err: Error) => {
+                        Logger.scope('Preview').warn(`WS session failed: ${err.message}`);
+                        ws.close(1011, err.message?.slice(0, 120) ?? 'Preview unavailable');
+                    });
+            });
+
+            throw new MiddlewareProhibitFurtherExecution();
         };
     }
 

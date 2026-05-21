@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
     Box,
     Button,
@@ -44,16 +44,23 @@ const ViewportPlaceholder: React.FC<ViewportPlaceholderProps> = ({icon, title, d
     </Stack>
 );
 
+const wsUrlForChannel = (channel: number, nonce: number): string => {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}/preview-ws/${channel}?t=${nonce}`;
+};
+
 const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
     const [enabled, setEnabled] = useState(false);
-    // Bump on each (re)load to cache-bust the same URL and to force the
-    // <img> element to remount, so the browser actually re-issues the GET.
+    // Bump on each (re)load — used in the WS URL so a Retry forces a fresh
+    // upgrade rather than reusing whatever the browser cached.
     const [reloadKey, setReloadKey] = useState(0);
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Server going offline mid-preview won't trigger img onError reliably
-    // (the multipart connection just stalls). Auto-disable so the UI doesn't
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+
+    // Server going offline mid-preview won't reliably fire mpegts.js error
+    // (the WS just stalls or closes silently). Auto-disable so the UI doesn't
     // sit on a frozen frame pretending it's live.
     useEffect(() => {
         if (!running && enabled) {
@@ -62,6 +69,71 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
             setError(null);
         }
     }, [running, enabled]);
+
+    const live = enabled && running;
+
+    // Spin up the mpegts.js player whenever we transition into a live state.
+    // The dynamic import isolates the (browser-only) library from Next's SSR
+    // pass; the cleanup tears everything down on toggle-off / unmount.
+    useEffect(() => {
+        if (!live) return;
+
+        let cancelled = false;
+        let player: any = null;
+
+        (async () => {
+            const mpegts = (await import('mpegts.js')).default;
+            if (cancelled) return;
+            if (!mpegts.isSupported()) {
+                setError('Your browser does not support MSE — preview unavailable here.');
+                return;
+            }
+
+            const url = wsUrlForChannel(channel, reloadKey);
+
+            try {
+                player = mpegts.createPlayer({
+                    type: 'mpegts',
+                    isLive: true,
+                    url,
+                }, {
+                    enableWorker: true,
+                    // Aggressively drain ahead-of-time buffer when latency
+                    // grows — keeps us close to live without manual seeking.
+                    liveBufferLatencyChasing: true,
+                    liveBufferLatencyMaxLatency: 1.0,
+                    liveBufferLatencyMinRemain: 0.3,
+                });
+
+                player.on(mpegts.Events.ERROR, (type: string, detail: string) => {
+                    if (cancelled) return;
+                    setError(`${type}: ${detail}`);
+                });
+
+                const video = videoRef.current;
+                if (!video) return;
+
+                player.attachMediaElement(video);
+                player.load();
+                player.play().catch((e: Error) => { if (!cancelled) setError(e.message); });
+            } catch (e) {
+                if (!cancelled) setError((e as Error).message ?? 'Failed to start preview');
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+            if (player) {
+                // mpegts.js throws if you call lifecycle methods out of
+                // order (e.g. destroy before unload). Wrap each so cleanup
+                // is always best-effort.
+                try { player.pause(); } catch { /* noop */ }
+                try { player.unload(); } catch { /* noop */ }
+                try { player.detachMediaElement(); } catch { /* noop */ }
+                try { player.destroy(); } catch { /* noop */ }
+            }
+        };
+    }, [live, channel, reloadKey]);
 
     const handleToggle = (next: boolean) => {
         setEnabled(next);
@@ -75,9 +147,6 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
         setLoaded(false);
         setReloadKey((k) => k + 1);
     };
-
-    const live = enabled && running;
-    const showImg = live && !error;
 
     const switchLabel = !running ? 'Server off' : enabled ? 'Live' : 'Off';
 
@@ -109,31 +178,25 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                         overflow: 'hidden',
                     })}
                 >
-                    {showImg && (
-                        <Box
-                            component="img"
-                            // Key remount + cache-bust query so the browser
-                            // doesn't reuse a previously aborted MJPEG stream.
-                            key={reloadKey}
-                            src={`/preview/${channel}?t=${reloadKey}`}
-                            alt={`Channel ${channel} preview`}
-                            onLoad={() => setLoaded(true)}
-                            onError={() => setError(
-                                'Preview unavailable — check that CasparCG is running and the channel exists.',
-                            )}
-                            sx={{
-                                position: 'absolute',
-                                inset: 0,
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'contain',
-                                // Hide the partially-rendered img until the
-                                // first frame arrives — keeps the placeholder
-                                // visible during the encoder warm-up.
-                                visibility: loaded ? 'visible' : 'hidden',
-                            }}
-                        />
-                    )}
+                    <Box
+                        component="video"
+                        ref={videoRef}
+                        muted
+                        autoPlay
+                        playsInline
+                        onLoadedData={() => setLoaded(true)}
+                        sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'contain',
+                            // Hide the partially-rendered video element until
+                            // the first frame arrives; the placeholder/spinner
+                            // covers the gap during encoder warm-up.
+                            visibility: live && loaded && !error ? 'visible' : 'hidden',
+                        }}
+                    />
 
                     {!running && (
                         <ViewportPlaceholder
@@ -164,7 +227,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                         />
                     )}
 
-                    {showImg && !loaded && (
+                    {live && !loaded && !error && (
                         <Stack
                             sx={{
                                 position: 'absolute',
@@ -216,8 +279,8 @@ export const PreviewPanel: React.FC = () => {
                 <Stack spacing={0.5}>
                     <Typography variant="h3">Preview</Typography>
                     <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                        Low-latency MJPEG preview. Enabling spins up a per-client ffmpeg encoder
-                        on the channel — leave off when you don't need it.
+                        Low-latency MPEG-TS preview over WebSocket. Enabling spins up a per-client
+                        H.264 encoder on the channel — leave off when you don't need it.
                     </Typography>
                 </Stack>
                 <Stack direction="row" gap={2} flexWrap="wrap">
