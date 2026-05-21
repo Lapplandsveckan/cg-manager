@@ -158,4 +158,21 @@ export class CasparExecutor extends CommandExecutor {
 
         return channel.getGroup(group, index);
     }
+
+    // CasparCG may not be running (dev on macOS, or pre-boot). The parent's
+    // getChannel returns undefined for unallocated channels, which crashes
+    // plugins that assume the Channel is always there. Lazy-allocate so
+    // plugins get a real Channel object; commands it issues go through the
+    // executor's buffered send() and are dropped on the next disconnect tick.
+    public getChannel(casparChannel: number) {
+        let channel = super.getChannel(casparChannel);
+        if (!channel) {
+            Logger.scope('AMCP').warn(
+                `Channel ${casparChannel} not allocated — lazy-allocating ` +
+                '(Caspar likely offline).',
+            );
+            channel = this.allocateChannel(casparChannel);
+        }
+        return channel;
+    }
 }
