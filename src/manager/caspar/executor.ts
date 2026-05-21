@@ -1,7 +1,7 @@
 import net from 'net';
 import {Logger} from '../../util/log';
 import {getTemplatesWithContent} from '../scanner/scanner';
-import {Command, CommandExecutor} from '@lappis/cg-manager';
+import {CommandExecutor} from '@lappis/cg-manager';
 
 // AMCP socket usually accepts within a few hundred ms of CasparCG starting,
 // so retry briefly while it warms up and only surface a warning if it stays
@@ -174,5 +174,17 @@ export class CasparExecutor extends CommandExecutor {
             channel = this.allocateChannel(casparChannel);
         }
         return channel;
+    }
+
+    /**
+     * Drop the current AMCP socket and immediately try to re-establish it.
+     * Used by the global unhandled-rejection trap when a CasparResponseError
+     * escapes plugin code — bouncing the connection puts host-side state
+     * back in sync (effects re-init on reconnect) without taking the manager
+     * down.
+     */
+    public bounce() {
+        this.disconnect();
+        this.connect();
     }
 }
