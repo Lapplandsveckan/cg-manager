@@ -1,11 +1,11 @@
 import net from 'net';
-import dgram from 'dgram';
 import {BasicCommand} from '@lappis/cg-manager';
 import {
     MediaStreamTrack,
     RTCPeerConnection,
     RTCRtpCodecParameters,
 } from 'werift';
+import {H264Packetizer} from './h264-packetizer';
 import {Logger} from '../../util/log';
 import {CasparExecutor} from '../caspar/executor';
 
@@ -23,11 +23,13 @@ const WEBRTC_VIDEO_CODEC = new RTCRtpCodecParameters({
     parameters: 'level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f',
 });
 
-// ffmpeg args for the RTP egress side. Same low-latency H.264 config as the
-// MPEG-TS path but written for RTP: -format rtp + payload type 96 so the
-// wire packets match WEBRTC_VIDEO_CODEC's advertised PT. CasparCG's consumer
-// parses option names long-form (ffmpeg_consumer.cpp:502 + :517), so every
-// option is spelled in full.
+// ffmpeg args for the WebRTC egress. We can't use the `rtp` muxer here
+// because CasparCG's consumer unconditionally creates an audio Stream when
+// `oformat->audio_codec != NONE` (the RTP muxer's default is PCM_MULAW)
+// and the RTP muxer refuses multi-stream output. The `h264` muxer is
+// video-only (audio_codec = NONE) so the consumer skips audio entirely;
+// the manager then parses the raw Annex-B byte stream into NALUs and
+// packetizes them as H.264/RTP itself.
 //
 // `format=yuv420p` HAS to be in the filter chain (not `-pix_fmt:v`): the
 // consumer's buffersink offers every pixel format the encoder supports, and
@@ -36,9 +38,10 @@ const WEBRTC_VIDEO_CODEC = new RTCRtpCodecParameters({
 // Baseline is 4:2:0 only — and Baseline is what every browser's WebRTC
 // stack will accept. Forcing the filter chain to emit yuv420p makes the
 // sink hand 4:2:0 frames straight through, satisfying libx264 + browsers.
-const RTP_PREVIEW_ARGS = [
+const PREVIEW_FPS = 15;
+const H264_PREVIEW_ARGS = [
     '-format',
-    'rtp',
+    'h264',
     '-codec:v',
     'libx264',
     '-profile:v',
@@ -52,13 +55,11 @@ const RTP_PREVIEW_ARGS = [
     '-bf:v',
     '0',
     '-g:v',
-    '15',
+    String(PREVIEW_FPS),
     '-b:v',
     '800k',
     '-filter:v',
-    'fps=15,scale=640:-2,format=yuv420p',
-    '-payload_type',
-    '96',
+    `fps=${PREVIEW_FPS},scale=640:-2,format=yuv420p`,
 ];
 
 // Consumer slot index for preview sessions starts well above the typical
@@ -114,7 +115,8 @@ export interface WebRTCSession {
 interface InternalWebRTCSession extends WebRTCSession {
     channel: number;
     consumerIndex: number;
-    socket: dgram.Socket;
+    server: net.Server;
+    getFfmpegSocket: () => net.Socket | null;
     pc: RTCPeerConnection;
     closed: boolean;
 }
@@ -126,13 +128,20 @@ export class PreviewManager {
     public constructor(private executor: CasparExecutor) {}
 
     /**
-     * WebRTC variant: instead of forwarding raw MPEG-TS over WebSocket,
-     * spin up an in-process werift peer connection that receives H.264/RTP
-     * from CasparCG's ffmpeg consumer on loopback UDP and republishes it
-     * over the WebRTC transport directly to the browser. Sub-second latency
-     * vs. the MPEG-TS+MSE pipeline's several seconds, no Media Source
-     * Extensions involvement, no native peer dependencies (werift is pure
-     * JS so the pkg-packaged binary stays single-file).
+     * WebRTC variant: spin up an in-process werift peer connection that
+     * receives raw H.264 (Annex-B) from CasparCG's ffmpeg consumer over
+     * loopback TCP, packetizes it as H.264/RTP per RFC 6184, and forwards
+     * to the browser via WebRTC. Sub-second latency vs. the MPEG-TS+MSE
+     * pipeline's several seconds, no Media Source Extensions involvement,
+     * no native peer dependencies (werift is pure JS so the pkg-packaged
+     * binary stays single-file).
+     *
+     * We don't use ffmpeg's `rtp` muxer because the CasparCG consumer
+     * always creates an audio Stream alongside video when oformat's
+     * audio_codec isn't NONE, and the RTP muxer rejects multi-stream
+     * output. The `h264` muxer is video-only (audio_codec = NONE), so the
+     * consumer skips audio entirely and we get a clean Annex-B byte stream
+     * to packetize ourselves.
      */
     public async openWebRTC(opts: WebRTCSessionOptions): Promise<WebRTCSession> {
         if (!this.executor.connected)
@@ -140,23 +149,21 @@ export class PreviewManager {
 
         const consumerIndex = nextConsumerIndex++;
 
-        // UDP receiver for the RTP stream ffmpeg sends. Bind to a free port
-        // on loopback only — ffmpeg also wants to send RTCP to port+1; we
-        // don't bind that port, so those packets are dropped harmlessly.
-        const socket = dgram.createSocket('udp4');
+        // Listen on a free port on loopback for ffmpeg's Annex-B byte stream.
+        const server = net.createServer();
         await new Promise<void>((resolve, reject) => {
-            socket.once('error', reject);
-            socket.bind(0, '127.0.0.1', () => {
-                socket.removeListener('error', reject);
+            server.once('error', reject);
+            server.listen(0, '127.0.0.1', () => {
+                server.removeListener('error', reject);
                 resolve();
             });
         });
-        const port = socket.address().port;
-        const url = `rtp://127.0.0.1:${port}`;
+        const port = (server.address() as net.AddressInfo).port;
+        const url = `tcp://127.0.0.1:${port}`;
 
         // Peer connection + sendonly video track. Pre-configuring `codecs`
         // pins the SDP answer's m=video to H.264 PT 96 with the fmtp line
-        // that matches what ffmpeg emits.
+        // that matches what we emit via the packetizer.
         const pc = new RTCPeerConnection({
             codecs: {video: [WEBRTC_VIDEO_CODEC]},
             iceServers: [],
@@ -164,15 +171,24 @@ export class PreviewManager {
         const track = new MediaStreamTrack({kind: 'video'});
         pc.addTransceiver(track, {direction: 'sendonly'});
 
-        socket.on('message', (buf) => {
-            // RTCP packets share port+0/+1 typically; filter out the RTCP
-            // payload-type range (72-95 / 200-209 reserved) so we only feed
-            // RTP data into the track. ffmpeg already aims RTCP at port+1
-            // but defending against misconfig is cheap.
-            const pt = buf[1] & 0x7f;
-            if (pt >= 72 && pt <= 95) return;
-            try { track.writeRtp(buf); }
-            catch (e) { logger.warn(`writeRtp failed: ${(e as Error).message}`); }
+        const packetizer = new H264Packetizer({
+            payloadType: WEBRTC_VIDEO_CODEC.payloadType,
+            ssrc: Math.floor(Math.random() * 0xffffffff),
+            fps: PREVIEW_FPS,
+        });
+        let ffmpegSocket: net.Socket | null = null;
+
+        server.on('connection', (socket) => {
+            ffmpegSocket = socket;
+            socket.on('data', (chunk) => {
+                try {
+                    for (const pkt of packetizer.push(chunk)) track.writeRtp(pkt);
+                } catch (e) {
+                    logger.warn(`packetize failed: ${(e as Error).message}`);
+                }
+            });
+            socket.on('close', () => { ffmpegSocket = null; });
+            socket.on('error', (e) => logger.warn(`ffmpeg socket error: ${e.message}`));
         });
 
         // SDP exchange. werift mirrors the browser API closely.
@@ -181,18 +197,16 @@ export class PreviewManager {
         const sdpAnswer = pc.localDescription?.sdp;
         if (!sdpAnswer) throw new Error('werift failed to produce an SDP answer');
 
-        // Hand off to CasparCG. The consumer slot is pinned the same way
-        // the MPEG-TS path does it so REMOVE targets exactly this stream.
         const cmd = BasicCommand.construct(
             'ADD',
             `${opts.channel}-${consumerIndex}`,
             'STREAM',
             url,
-            ...RTP_PREVIEW_ARGS,
+            ...H264_PREVIEW_ARGS,
         );
         try { await this.executor.execute(cmd); }
         catch (e) {
-            socket.close();
+            server.close();
             await pc.close().catch(() => undefined);
             throw new Error(`AMCP ADD failed: ${(e as Error).message ?? e}`);
         }
@@ -200,7 +214,8 @@ export class PreviewManager {
         const session: InternalWebRTCSession = {
             channel: opts.channel,
             consumerIndex,
-            socket,
+            server,
+            getFfmpegSocket: () => ffmpegSocket,
             pc,
             closed: false,
             sdpAnswer,
@@ -235,7 +250,8 @@ export class PreviewManager {
         }
 
         try { await session.pc.close(); } catch { /* noop */ }
-        try { session.socket.close(); } catch { /* noop */ }
+        try { session.getFfmpegSocket()?.destroy(); } catch { /* noop */ }
+        try { session.server.close(); } catch { /* noop */ }
 
         logger.debug(`Closed WebRTC preview ch=${session.channel} idx=${session.consumerIndex}`);
     }
