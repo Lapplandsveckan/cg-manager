@@ -193,6 +193,21 @@ export class VideoRoutesManager {
         this.routes.clear();
     }
 
+    /**
+     * Called when CasparCG reconnects after a disconnect: existing Effect
+     * instances are now stale references against a CasparCG that has just
+     * been wiped. Tear them down and re-create from the persisted route
+     * data so enabled routes start playing again automatically.
+     */
+    public refreshAfterReconnect() {
+        if (this.routes.size === 0) return;
+        Logger.info(`Refreshing ${this.routes.size} video route${this.routes.size === 1 ? '' : 's'} after CasparCG reconnect`);
+        for (const id of this.routes.keys()) {
+            this.checkState(id, true); // dispose stale effect
+            this.checkState(id);        // re-create + re-activate if enabled
+        }
+    }
+
 
     private checkState(route: string, removal = false) {
         const state = this.routes.get(route);

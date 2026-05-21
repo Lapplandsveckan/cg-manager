@@ -20,6 +20,8 @@ export class CasparExecutor extends CommandExecutor {
     private retry = true;
     private failedAttempts = 0;
     private buffer = '';
+    private hasConnectedBefore = false;
+    private reconnectListeners: Array<() => void> = [];
 
     protected _fetchTemplates(): Promise<any[]> {
         return getTemplatesWithContent();
@@ -75,6 +77,8 @@ export class CasparExecutor extends CommandExecutor {
     protected onConnect() {
         clearTimeout(this.retryTimeout);
 
+        const isReconnect = this.hasConnectedBefore;
+        this.hasConnectedBefore = true;
         this._connected = true;
         this.failedAttempts = 0;
         this.send(''); // Flush buffer
@@ -83,7 +87,16 @@ export class CasparExecutor extends CommandExecutor {
         for (const listener of this.connectListeners) listener();
         this.connectListeners = [];
 
-        Logger.info('Caspar CG executor connected');
+        Logger.info(`Caspar CG executor ${isReconnect ? 'reconnected' : 'connected'}`);
+
+        if (isReconnect) {
+            // Snapshot the listener list so a handler that subscribes/
+            // unsubscribes during dispatch doesn't disturb iteration.
+            const handlers = this.reconnectListeners.slice();
+            for (const handler of handlers) 
+                try { handler(); } catch (e) { Logger.error(e as Error); }
+            
+        }
     }
 
     public awaitConnection() {
@@ -91,6 +104,20 @@ export class CasparExecutor extends CommandExecutor {
             if (this.connected) return resolve();
             this.connectListeners.push(resolve);
         });
+    }
+
+    /**
+     * Subscribe to AMCP reconnect events. The handler fires whenever the
+     * executor re-establishes a socket to CasparCG *after* having lost one —
+     * i.e. when CasparCG has restarted. The first connection on boot does
+     * NOT trigger this. Returns an unsubscribe function.
+     */
+    public onReconnect(handler: () => void): () => void {
+        this.reconnectListeners.push(handler);
+        return () => {
+            const i = this.reconnectListeners.indexOf(handler);
+            if (i >= 0) this.reconnectListeners.splice(i, 1);
+        };
     }
 
     protected onDisconnect(error?: Error) {
@@ -102,7 +129,13 @@ export class CasparExecutor extends CommandExecutor {
         const wasConnected = this._connected;
         this._connected = false;
 
-        if (wasConnected) 
+        // Any buffered commands belong to the pre-disconnect state, and
+        // CasparCG has just forgotten everything anyway. Discard them so the
+        // reconnect-handlers can replay state from scratch without old AMCP
+        // strings being flushed first.
+        this.buffer = '';
+
+        if (wasConnected)
             Logger.info('Caspar CG executor disconnected');
         else if (this.retry) {
             this.failedAttempts++;

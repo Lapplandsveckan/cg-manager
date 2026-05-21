@@ -15,6 +15,14 @@ export default class EdgeblendPlugin extends CasparPlugin {
     private layouts: Layout[] = [];
     private effects: WeakMap<Layout, EdgeblendEffect[]> = new WeakMap();
 
+    // Tear down + rebuild edgeblend effects whenever CasparCG comes back from
+    // a restart — its layer state was just wiped, so the EdgeblendEffect
+    // instances we hold point at nothing.
+    private readonly handleReconnect = () => {
+        this.disableLayouts();
+        void this.enableLayouts();
+    };
+
     public static get pluginName() {
         return 'edgeblend';
     }
@@ -24,6 +32,12 @@ export default class EdgeblendPlugin extends CasparPlugin {
             'edgeblend',
             (group, options) => new EdgeblendEffect(group, options as EdgeBlendEffectOptions),
         );
+
+        this.api.onReconnect(this.handleReconnect);
+    }
+
+    protected onDisable() {
+        this.api.offReconnect(this.handleReconnect);
     }
 
     public enableLayouts() {
