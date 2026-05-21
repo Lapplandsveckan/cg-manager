@@ -34,14 +34,26 @@ export default {
         const existing = manager.routes.getVideoRoute(request.params.id);
         if (!existing) throw new WebError('Route not found', 404);
 
-        // Merge incoming patch over the existing route. Force the id from the
-        // URL to win over any id the body tries to set.
-        await manager.routes.updateVideoRoute({
-            ...existing,
-            ...(data as Record<string, unknown>),
+        // Required fields fall back to the existing route (so legacy
+        // partial patches still work). Optional fields (transform / edgeblend
+        // / perspective / metadata) are deliberately NOT carried over — the
+        // payload is the source of truth, and absence means "cleared". That's
+        // the only way the geometry editor's "reset to identity" can actually
+        // remove a previously-set transform from the saved route.
+        const payload = data as Partial<typeof existing>;
+        const next: typeof existing = {
             id: existing.id,
-        } as typeof existing);
+            name: payload.name ?? existing.name,
+            source: payload.source ?? existing.source,
+            destination: payload.destination ?? existing.destination,
+            enabled: payload.enabled ?? existing.enabled,
+            ...(payload.transform   ? {transform:   payload.transform}   : {}),
+            ...(payload.edgeblend   ? {edgeblend:   payload.edgeblend}   : {}),
+            ...(payload.perspective ? {perspective: payload.perspective} : {}),
+            ...(payload.metadata    ? {metadata:    payload.metadata}    : {}),
+        };
 
+        await manager.routes.updateVideoRoute(next);
         return manager.routes.getVideoRoute(existing.id);
     },
 };
