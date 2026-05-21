@@ -57,9 +57,6 @@ export function stop() {
 let stopHandler: () => Promise<void> | void;
 async function main() {
     try {
-        const stop = await start();
-        stopHandler = stop;
-
         process.on('uncaughtException', (e) => {
             Logger.error(e);
             if (config.dev) stop();
@@ -75,6 +72,9 @@ async function main() {
         process.on('exit', () => {
             Logger.info('Exiting...');
         });
+
+        const stop = await start();
+        stopHandler = stop;
 
         const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
         signals.forEach((signal) => {
