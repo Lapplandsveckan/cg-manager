@@ -43,7 +43,7 @@ const MPEGTS_PREVIEW_ARGS = [
     '-vf',
     'scale=640:-2',
     '-an',
-].join(' ');
+];
 
 export class CGServer {
     private server: REPServer;
@@ -187,7 +187,7 @@ export class CGServer {
 
             // Modest output: 640px-wide MJPEG at 15fps, qscale 5 (good
             // quality for preview, low bandwidth). Tunable later.
-            const args = '-f mpjpeg -q:v 5 -r 15 -vf scale=640:-1';
+            const args = ['-f', 'mpjpeg', '-q:v', '5', '-r', '15', '-vf', 'scale=640:-1'];
 
             let session: PreviewSession | null = null;
             const [err] = await noTry(async () => {

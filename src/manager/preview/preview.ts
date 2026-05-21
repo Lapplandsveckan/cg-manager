@@ -1,5 +1,5 @@
 import net from 'net';
-import {RawCommand} from '@lappis/cg-manager';
+import {BasicCommand} from '@lappis/cg-manager';
 import {Logger} from '../../util/log';
 import {CasparExecutor} from '../caspar/executor';
 
@@ -14,11 +14,13 @@ let nextConsumerIndex = 100;
 export interface PreviewSessionOptions {
     channel: number;
     /**
-     * Raw ffmpeg args appended after the STREAM URL. Drives the output
-     * muxer/codec — e.g. `-f mpjpeg -q:v 5` for MJPEG over HTTP, or
-     * `-f mpegts -c:v libx264 -tune zerolatency` for the WebSocket path.
+     * ffmpeg args appended after the STREAM URL. Drives the output
+     * muxer/codec — e.g. `['-f', 'mpjpeg', '-q:v', '5']` for MJPEG over HTTP,
+     * or `['-f', 'mpegts', '-c:v', 'libx264', '-tune', 'zerolatency']` for
+     * the WebSocket path. Pre-tokenised so `BasicCommand.construct` can
+     * pass each as a separate AMCP arg.
      */
-    ffmpegArgs: string;
+    ffmpegArgs: string[];
 }
 
 export interface PreviewSession {
@@ -95,12 +97,19 @@ export class PreviewManager {
             socket.on('error', (e) => logger.warn(`ffmpeg socket error: ${e.message}`));
         });
 
-        // Issue ADD. Path/URL is quoted so spaces (rare here) and the colon
-        // don't trip AMCP parsing. The `<ch>-<consumerIndex>` syntax pins
-        // the consumer slot so REMOVE later targets exactly this one.
-        const cmd = `ADD ${opts.channel}-${consumerIndex} STREAM "${url}" ${opts.ffmpegArgs}`;
+        // The `<ch>-<consumerIndex>` syntax pins the consumer slot so REMOVE
+        // later targets exactly this one. BasicCommand.construct handles
+        // arg quoting + the trailing \r\n so the AMCP parser actually
+        // dispatches and we get a 202 back.
+        const cmd = BasicCommand.construct(
+            'ADD',
+            `${opts.channel}-${consumerIndex}`,
+            'STREAM',
+            url,
+            ...opts.ffmpegArgs,
+        );
         try {
-            await this.executor.execute(new RawCommand(cmd));
+            await this.executor.execute(cmd);
         } catch (e) {
             // Clean up the listener if AMCP refused the command.
             server.close();
@@ -123,7 +132,7 @@ export class PreviewManager {
         // already be gone) but we still want to drop our local resources.
         try {
             await this.executor.execute(
-                new RawCommand(`REMOVE ${session.channel}-${session.consumerIndex}`),
+                BasicCommand.construct('REMOVE', `${session.channel}-${session.consumerIndex}`),
             );
         } catch (e) {
             logger.warn(`AMCP REMOVE failed for ${session.channel}-${session.consumerIndex}: ${(e as Error).message ?? e}`);
