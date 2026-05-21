@@ -16,7 +16,7 @@ function getDefaults() {
                 height: 1080,
                 timeScale: 6000,
                 duration: 1000,
-                cadence: 800,
+                cadence: 8000,
             },
         ],
         channels: [
