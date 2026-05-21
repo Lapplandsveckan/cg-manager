@@ -18,31 +18,33 @@ import {WebSocketServer} from 'ws';
 
 export type CGClient = TypedClient<{}>;
 
-// MPEG-TS preview args: lowest-latency H.264 we can muster from ffmpeg. The
-// `tune zerolatency` + `preset ultrafast` combo trades compression ratio
-// for a near-flat encode pipeline (no B-frames, single-pass, minimal
-// look-ahead). `g 30` keeps a keyframe every ~2s @ 15fps so a new browser
-// client doesn't have to wait too long for MSE to find a sync point.
+// MPEG-TS preview args: lowest-latency H.264 we can muster from ffmpeg.
+// CasparCG's ffmpeg consumer parses `-name value` pairs by long name and
+// stream-suffix (see modules/ffmpeg/consumer/ffmpeg_consumer.cpp:502 + :517),
+// so short forms like `-f` / `-c:v` / `-vf` are silently ignored — we have
+// to spell every option in full (`format`, `codec:v`, `filter:v`, …).
+// `tune zerolatency` + `preset ultrafast` keeps the encode pipeline flat
+// (no B-frames, single-pass, minimal look-ahead). `g 30` keeps a keyframe
+// every ~2s at 15fps so MSE doesn't have to wait long for a sync point.
 const MPEGTS_PREVIEW_ARGS = [
-    '-f',
+    '-format',
     'mpegts',
-    '-c:v',
+    '-codec:v',
     'libx264',
-    '-preset',
+    '-preset:v',
     'ultrafast',
-    '-tune',
+    '-tune:v',
     'zerolatency',
-    '-pix_fmt',
+    '-pix_fmt:v',
     'yuv420p',
-    '-r',
+    '-r:v',
     '15',
-    '-g',
+    '-g:v',
     '30',
     '-b:v',
     '1500k',
-    '-vf',
+    '-filter:v',
     'scale=640:-2',
-    '-an',
 ];
 
 export class CGServer {
@@ -186,8 +188,18 @@ export class CGServer {
             }
 
             // Modest output: 640px-wide MJPEG at 15fps, qscale 5 (good
-            // quality for preview, low bandwidth). Tunable later.
-            const args = ['-f', 'mpjpeg', '-q:v', '5', '-r', '15', '-vf', 'scale=640:-1'];
+            // quality for preview, low bandwidth). Tunable later. Long-form
+            // option names — see MPEGTS_PREVIEW_ARGS for why.
+            const args = [
+                '-format',
+                'mpjpeg',
+                '-qscale:v',
+                '5',
+                '-r:v',
+                '15',
+                '-filter:v',
+                'scale=640:-1',
+            ];
 
             let session: PreviewSession | null = null;
             const [err] = await noTry(async () => {
