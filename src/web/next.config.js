@@ -5,4 +5,10 @@
 // those imports to concrete files.
 module.exports = {
     transpilePackages: ['mui-color-input'],
+    logging: {
+        // Silences the dev " GET /path 200 in Nms" access log lines. Only
+        // available in Next 15+ — for older versions you'd have to filter
+        // stdout manually.
+        incomingRequests: false,
+    },
 };
