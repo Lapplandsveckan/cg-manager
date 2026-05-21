@@ -101,16 +101,22 @@ export class VideoRoutesManager {
     }
 
     public async updateVideoRoute(data: VideoRoute) {
-        const route = this.getVideoRoute(data.id);
-        if (!route) return;
+        const state = this.routes.get(data.id);
+        if (!state) return;
 
-        Object.assign(route, data);
+        // Replace the route reference instead of mutating it with
+        // Object.assign — Object.assign leaves any field that's missing from
+        // `data` in place, which makes it impossible to clear a
+        // previously-set transform/perspective/edgeblend. The StatefulVideoRoute
+        // wrapper stays the same, so anything keying off the state map
+        // (effects, persistence) keeps working.
+        state.route = data;
+        state.enabled = data.enabled ?? state.enabled;
 
-        // remove old state, and reapply
-        this.checkState(route.id, true);
-        this.checkState(route.id);
+        this.checkState(data.id, true);
+        this.checkState(data.id);
 
-        await this.saveVideoRoute(route);
+        await this.saveVideoRoute(data);
     }
 
     public async loadVideoRoutes() {
