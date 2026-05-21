@@ -1,60 +1,69 @@
-import {Button, Modal, Stack, TextField, Typography} from '@mui/material';
+import {
+    Box,
+    Button,
+    Card,
+    CardActionArea,
+    Chip,
+    IconButton,
+    Modal,
+    Stack,
+    TextField,
+    Tooltip,
+    Typography,
+    alpha,
+} from '@mui/material';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {useRouter} from 'next/router';
 import {RundownEditorActionBar, useSocket} from '../../lib';
 import {DefaultContentLayout} from '../../components/DefaultContentLayout';
 
+export interface RundownItem {
+    id: string;
+    title: string;
+    type: string;
+    data: unknown;
+    metadata?: { autoNext?: boolean };
+}
+
 export interface Rundown {
     id: string;
     name: string;
-
-    entries: any[]; // RundownEntry[]
+    items: RundownItem[];
+    type?: 'rundown' | 'quick';
 }
-
-interface RundownProps {
-    id: string;
-    title: string;
-
-    onEdit: () => void;
-}
-
 
 function useRundowns() {
     const conn = useSocket();
     const [rundowns, setRundowns] = useState<Rundown[]>([]);
 
     useEffect(() => {
-        conn.rawRequest('/api/rundown', 'GET', {}).then(rundowns => setRundowns(rundowns.data ?? []));
+        conn.rawRequest('/api/rundown', 'GET', {}).then(res => setRundowns(res.data ?? []));
 
         const updateListener = {
             path: 'rundown',
             method: 'UPDATE',
-
             handler: request =>
-                setRundowns(rundowns =>
-                    rundowns.map(v => v.id === request.getData().id ? {...v, name: request.getData().name} : v),
+                setRundowns(prev =>
+                    prev.map(v => v.id === request.getData().id ? {...v, name: request.getData().name} : v),
                 ),
         };
 
         const deleteListener = {
             path: 'rundown',
             method: 'DELETE',
-
             handler: request =>
-                setRundowns(rundowns =>
-                    rundowns.filter(v => v.id !== request.getData()),
-                ),
+                setRundowns(prev => prev.filter(v => v.id !== request.getData())),
         };
 
         const createListener = {
             path: 'rundown',
             method: 'CREATE',
-
             handler: request =>
-                request.getData().type !== 'quick' && setRundowns(rundowns =>
-                    [...rundowns, request.getData()],
-                ),
+                request.getData().type !== 'quick' && setRundowns(prev => [...prev, request.getData()]),
         };
 
         conn.routes.register(updateListener);
@@ -68,80 +77,125 @@ function useRundowns() {
         };
     }, []);
 
-
     const updateRundown = (entry: Rundown) => {
         conn.rawRequest(`/api/rundown/${entry.id}`, 'UPDATE', entry.name);
-        setRundowns(rundowns.map(v => v.id === entry.id ? {...v, name: entry.name} : v));
+        setRundowns(prev => prev.map(v => v.id === entry.id ? {...v, name: entry.name} : v));
     };
 
     const deleteRundown = (entry: Rundown) => {
         conn.rawRequest(`/api/rundown/${entry.id}`, 'DELETE', null);
-        setRundowns(rundowns.filter(v => v.id !== entry.id));
+        setRundowns(prev => prev.filter(v => v.id !== entry.id));
     };
 
     const createRundown = (name: string) => {
         conn.rawRequest('/api/rundown', 'CREATE', name)
-            .then(({ data }) => setRundowns([...rundowns, data]));
+            .then(({ data }) => setRundowns(prev => [...prev, data]));
     };
 
-    return {
-        rundowns,
-
-        updateRundown,
-        deleteRundown,
-        createRundown,
-    };
+    return { rundowns, updateRundown, deleteRundown, createRundown };
 }
 
+function formatItemType(type: string): string {
+    if (!type) return 'unknown';
+    return type
+        .split(/[-_]/)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ');
+}
 
-const Rundown: React.FC<RundownProps> = ({id, title, onEdit}) => {
-    const router = useRouter();
+function summariseTypes(items: RundownItem[]): { label: string; count: number }[] {
+    const counts = new Map<string, number>();
+    for (const item of items) counts.set(item.type, (counts.get(item.type) ?? 0) + 1);
+    // Sort by descending count, then alphabetical — keeps the dominant type
+    // visually first, but stable when counts tie.
+    return Array.from(counts.entries())
+        .sort(([a, ca], [b, cb]) => cb - ca || a.localeCompare(b))
+        .map(([type, count]) => ({label: formatItemType(type), count}));
+}
+
+interface RundownCardProps {
+    rundown: Rundown;
+    onOpen: () => void;
+    onEdit: () => void;
+    onDelete: () => void;
+}
+
+const RundownCard: React.FC<RundownCardProps> = ({rundown, onOpen, onEdit, onDelete}) => {
+    const stop = (e: React.MouseEvent | React.SyntheticEvent) => e.stopPropagation();
+    const itemCount = rundown.items?.length ?? 0;
+    const typeBreakdown = useMemo(() => summariseTypes(rundown.items ?? []), [rundown.items]);
 
     return (
-        <Stack
-            padding={2}
-            direction="column"
-            sx={(theme) => ({
-                bgcolor: theme.palette.surface.paper,
-                borderRadius: 2,
-                border: `1px solid ${theme.palette.divider}`,
-                width: 500,
-                cursor: 'pointer',
-                transition: theme.transitions.create(['border-color', 'background-color'], { duration: 120 }),
-                '&:hover': {
-                    bgcolor: theme.palette.surface.elevated,
-                    borderColor: 'primary.main',
-                },
-            })}
+        <Card sx={{p: 0}}>
+            <CardActionArea onClick={onOpen} sx={{p: 2.5, alignItems: 'stretch'}}>
+                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2}>
+                    <Stack spacing={1.25} sx={{minWidth: 0, flexGrow: 1}}>
+                        <Stack direction="row" alignItems="baseline" gap={1.25} flexWrap="wrap">
+                            <Typography variant="h4" sx={{wordBreak: 'break-word'}}>
+                                {rundown.name || '(unnamed rundown)'}
+                            </Typography>
+                            <Typography variant="caption" sx={{color: 'text.disabled'}}>
+                                {itemCount === 0 ? 'empty' : `${itemCount} item${itemCount === 1 ? '' : 's'}`}
+                            </Typography>
+                        </Stack>
 
-            onClick={e => {
-                e.stopPropagation();
-                router.push(`/play/${id}`);
-            }}
-        >
-            <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-            >
-                <Typography variant="h4">
-                    {title}
-                </Typography>
-                <Button
-                    size="small"
-                    onClick={e => {
-                        e.stopPropagation();
-                        onEdit();
-                    }}
-                >
-                    Edit
-                </Button>
-            </Stack>
-        </Stack>
+                        {typeBreakdown.length === 0 ? (
+                            <Typography variant="body2" sx={{color: 'text.disabled'}}>
+                                No items yet. Click to add some.
+                            </Typography>
+                        ) : (
+                            <Stack direction="row" gap={0.75} flexWrap="wrap">
+                                {typeBreakdown.map(({label, count}) => (
+                                    <Chip
+                                        key={label}
+                                        size="small"
+                                        label={count > 1 ? `${label} × ${count}` : label}
+                                        sx={(theme) => ({
+                                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                            borderColor: alpha(theme.palette.primary.main, 0.25),
+                                            color: 'text.secondary',
+                                        })}
+                                        variant="outlined"
+                                    />
+                                ))}
+                            </Stack>
+                        )}
+                    </Stack>
+
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        gap={0.5}
+                        sx={{flexShrink: 0}}
+                        onClick={stop}
+                        onMouseDown={stop}
+                    >
+                        <Tooltip title="Rename">
+                            <IconButton
+                                size="small"
+                                onClick={(e) => { stop(e); onEdit(); }}
+                                sx={{color: 'text.secondary'}}
+                            >
+                                <EditRoundedIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                            <IconButton
+                                size="small"
+                                onClick={(e) => { stop(e); onDelete(); }}
+                                sx={{color: '#e88c8c'}}
+                            >
+                                <DeleteOutlineRoundedIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
+                </Stack>
+            </CardActionArea>
+        </Card>
     );
 };
 
-const AddRundown: React.FC<{ onCreate: (type: string) => void }> = ({onCreate}) => {
+const AddRundown: React.FC<{ onCreate: (name: string) => void; onCancel: () => void }> = ({onCreate, onCancel}) => {
     const [name, setName] = useState('');
     const trimmed = name.trim();
 
@@ -159,26 +213,22 @@ const AddRundown: React.FC<{ onCreate: (type: string) => void }> = ({onCreate}) 
             />
 
             <RundownEditorActionBar
-                onCancel={() => onCreate('')}
+                onCancel={onCancel}
                 onSave={() => trimmed && onCreate(trimmed)}
             />
         </>
     );
 };
 
-interface EditRundownProps {
+interface RenameRundownProps {
     rundown: Rundown;
     onUpdate: (rundown: Rundown) => void;
-    onDelete: () => void;
-    /** Closes the editor without saving or deleting. */
     onCancel: () => void;
 }
 
-export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDelete, onCancel}) => {
+const RenameRundown: React.FC<RenameRundownProps> = ({rundown, onUpdate, onCancel}) => {
     const [name, setName] = useState(rundown.name);
-    const [confirmingDelete, setConfirmingDelete] = useState(false);
-
-    const canSave = name.trim().length > 0 && name !== rundown.name;
+    const canSave = name.trim().length > 0 && name.trim() !== rundown.name;
 
     return (
         <>
@@ -189,20 +239,206 @@ export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDe
                 onChange={e => setName(e.target.value)}
                 autoFocus
                 onKeyDown={(e) => {
-                    if (e.key === 'Enter' && canSave) onUpdate({ ...rundown, name: name.trim() });
+                    if (e.key === 'Enter' && canSave) onUpdate({...rundown, name: name.trim()});
                 }}
             />
 
             <RundownEditorActionBar
                 onCancel={onCancel}
-                onSave={() => canSave && onUpdate({ ...rundown, name: name.trim() })}
+                onSave={() => canSave && onUpdate({...rundown, name: name.trim()})}
+            />
+        </>
+    );
+};
+
+interface ModalShellProps {
+    open: boolean;
+    onClose: () => void;
+    children: React.ReactNode;
+}
+
+const ModalShell: React.FC<ModalShellProps> = ({open, onClose, children}) => (
+    <Modal open={open} onClose={onClose}>
+        <Stack
+            justifyContent="center"
+            alignItems="center"
+            sx={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+            }}
+        >
+            <Stack
+                padding={3}
+                spacing={2}
+                direction="column"
+                sx={(theme) => ({
+                    bgcolor: theme.palette.surface.elevated,
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: 2,
+                    width: 500,
+                    boxShadow: 8,
+                })}
+            >
+                {children}
+            </Stack>
+        </Stack>
+    </Modal>
+);
+
+const Page = () => {
+    const router = useRouter();
+    const { rundowns, updateRundown, deleteRundown, createRundown } = useRundowns();
+
+    const [editing, setEditing] = useState<Rundown | null>(null);
+    const [adding, setAdding] = useState(false);
+    const [deleting, setDeleting] = useState<Rundown | null>(null);
+
+    return (
+        <DefaultContentLayout>
+            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} mb={4}>
+                <Stack spacing={1}>
+                    <Typography variant="h1">Play</Typography>
+                    <Typography variant="body1" sx={{color: 'text.secondary'}}>
+                        Rundowns of cues you can step through live. Click one to edit or play
+                        its items.
+                    </Typography>
+                </Stack>
+                <Button
+                    variant="contained"
+                    startIcon={<AddRoundedIcon />}
+                    onClick={() => setAdding(true)}
+                >
+                    New rundown
+                </Button>
+            </Stack>
+
+            {rundowns.length === 0 ? (
+                <Card sx={{p: 3, textAlign: 'center', maxWidth: 720}}>
+                    <Typography variant="body1" sx={{color: 'text.secondary'}}>
+                        No rundowns yet. Click <strong>New rundown</strong> to add one.
+                    </Typography>
+                </Card>
+            ) : (
+                <Stack spacing={1.5} sx={{maxWidth: 820}}>
+                    {rundowns.map(rundown => (
+                        <RundownCard
+                            key={rundown.id}
+                            rundown={rundown}
+                            onOpen={() => router.push(`/play/${rundown.id}`)}
+                            onEdit={() => setEditing(rundown)}
+                            onDelete={() => setDeleting(rundown)}
+                        />
+                    ))}
+                </Stack>
+            )}
+
+            <ModalShell open={editing !== null} onClose={() => setEditing(null)}>
+                {editing && (
+                    <RenameRundown
+                        rundown={editing}
+                        onUpdate={(entry) => { updateRundown(entry); setEditing(null); }}
+                        onCancel={() => setEditing(null)}
+                    />
+                )}
+            </ModalShell>
+
+            <ModalShell open={adding} onClose={() => setAdding(false)}>
+                <AddRundown
+                    onCreate={name => { setAdding(false); createRundown(name); }}
+                    onCancel={() => setAdding(false)}
+                />
+            </ModalShell>
+
+            <Modal open={deleting !== null} onClose={() => setDeleting(null)}>
+                <Stack
+                    justifyContent="center"
+                    alignItems="center"
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                    }}
+                >
+                    <Card
+                        sx={(theme) => ({
+                            p: 3,
+                            width: 460,
+                            bgcolor: theme.palette.surface.elevated,
+                            border: `1px solid ${theme.palette.divider}`,
+                        })}
+                    >
+                        <Stack spacing={2}>
+                            <Stack direction="row" alignItems="center" gap={1.5}>
+                                <WarningAmberRoundedIcon sx={{color: '#e88c8c'}} />
+                                <Typography variant="h3">Delete rundown?</Typography>
+                            </Stack>
+                            <Typography variant="body1" sx={{color: 'text.secondary'}}>
+                                <strong style={{color: 'inherit'}}>{deleting?.name}</strong> and
+                                all of its items will be removed. This can&apos;t be undone.
+                            </Typography>
+                            <Stack direction="row" justifyContent="flex-end" gap={1}>
+                                <Button color="inherit" onClick={() => setDeleting(null)}>
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    color="error"
+                                    onClick={() => {
+                                        if (deleting) deleteRundown(deleting);
+                                        setDeleting(null);
+                                    }}
+                                >
+                                    Delete
+                                </Button>
+                            </Stack>
+                        </Stack>
+                    </Card>
+                </Stack>
+            </Modal>
+        </DefaultContentLayout>
+    );
+};
+
+export default Page;
+
+interface EditRundownProps {
+    rundown: Rundown;
+    onUpdate: (rundown: Rundown) => void;
+    onDelete: () => void;
+    onCancel: () => void;
+}
+
+// QuickActions still drives delete from inside this dialog rather than from
+// a per-card icon. Kept as a separate export so the new rundown card UX
+// (split rename / delete) doesn't bleed into the quick-actions modal.
+export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDelete, onCancel}) => {
+    const [name, setName] = useState(rundown.name);
+    const [confirmingDelete, setConfirmingDelete] = useState(false);
+    const canSave = name.trim().length > 0 && name.trim() !== rundown.name;
+
+    return (
+        <>
+            <Typography variant="h3">Rename rundown</Typography>
+            <TextField
+                label="Name"
+                value={name}
+                onChange={e => setName(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' && canSave) onUpdate({...rundown, name: name.trim()});
+                }}
+            />
+
+            <RundownEditorActionBar
+                onCancel={onCancel}
+                onSave={() => canSave && onUpdate({...rundown, name: name.trim()})}
                 onDelete={() => setConfirmingDelete(true)}
             />
 
-            <Modal
-                open={confirmingDelete}
-                onClose={() => setConfirmingDelete(false)}
-            >
+            <Modal open={confirmingDelete} onClose={() => setConfirmingDelete(false)}>
                 <Stack
                     justifyContent="center"
                     alignItems="center"
@@ -225,11 +461,11 @@ export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDe
                         })}
                     >
                         <Stack direction="row" alignItems="center" gap={1.5}>
-                            <WarningAmberRoundedIcon sx={{ color: '#e88c8c' }} />
+                            <WarningAmberRoundedIcon sx={{color: '#e88c8c'}} />
                             <Typography variant="h3">Delete this rundown?</Typography>
                         </Stack>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            <strong style={{ color: 'inherit' }}>{rundown.name}</strong> and all of
+                        <Typography variant="body2" sx={{color: 'text.secondary'}}>
+                            <strong style={{color: 'inherit'}}>{rundown.name}</strong> and all of
                             its items will be removed. This can&apos;t be undone.
                         </Typography>
                         <Stack direction="row" justifyContent="flex-end" gap={1}>
@@ -239,10 +475,7 @@ export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDe
                             <Button
                                 variant="contained"
                                 color="error"
-                                onClick={() => {
-                                    setConfirmingDelete(false);
-                                    onDelete();
-                                }}
+                                onClick={() => { setConfirmingDelete(false); onDelete(); }}
                             >
                                 Delete
                             </Button>
@@ -253,136 +486,3 @@ export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDe
         </>
     );
 };
-
-const Page = () => {
-    const {
-        rundowns,
-
-        updateRundown,
-        deleteRundown,
-        createRundown,
-    } = useRundowns();
-
-    const [editing, setEditing] = useState<Rundown | null>(null);
-    const [adding, setAdding] = useState(false);
-
-    return (
-        <DefaultContentLayout>
-            <Stack spacing={1} mb={4}>
-                <Typography variant="h1">Play</Typography>
-                <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                    Run a rundown of scheduled cues, or jump to one to edit its items.
-                </Typography>
-            </Stack>
-
-            <Stack spacing={2}>
-                {rundowns.length === 0 && (
-                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                        No rundowns yet. Add one below to get started.
-                    </Typography>
-                )}
-
-                {rundowns.map(entry => (
-                    <Rundown
-                        key={entry.id}
-                        id={entry.id}
-                        title={entry.name}
-
-                        onEdit={() => setEditing(entry)}
-                    />
-                ))}
-
-                <Button
-                    variant="contained"
-                    sx={{ width: 500, alignSelf: 'flex-start', mt: 1 }}
-                    onClick={() => setAdding(true)}
-                >
-                    Add Rundown
-                </Button>
-
-                <Modal
-                    open={editing !== null}
-                    onClose={() => setEditing(null)}
-                >
-                    <Stack
-                        justifyContent="center"
-                        alignItems="center"
-
-                        sx={{
-                            position: 'absolute' as 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                        }}
-                    >
-
-                        <Stack
-                            padding={3}
-                            spacing={2}
-                            direction="column"
-                            sx={(theme) => ({
-                                bgcolor: theme.palette.surface.elevated,
-                                border: `1px solid ${theme.palette.divider}`,
-                                borderRadius: 2,
-                                width: 500,
-                                boxShadow: 8,
-                            })}
-                        >
-                            <EditRundown
-                                rundown={editing}
-                                onUpdate={(entry) => {
-                                    updateRundown(entry);
-                                    setEditing(null);
-                                }}
-                                onDelete={() => {
-                                    deleteRundown(editing);
-                                    setEditing(null);
-                                }}
-                                onCancel={() => setEditing(null)}
-                            />
-                        </Stack>
-                    </Stack>
-                </Modal>
-
-                <Modal
-                    open={adding}
-                    onClose={() => setAdding(false)}
-                >
-                    <Stack
-                        justifyContent="center"
-                        alignItems="center"
-
-                        sx={{
-                            position: 'absolute' as 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                        }}
-                    >
-                        <Stack
-                            padding={3}
-                            spacing={2}
-                            direction="column"
-                            sx={(theme) => ({
-                                bgcolor: theme.palette.surface.elevated,
-                                border: `1px solid ${theme.palette.divider}`,
-                                borderRadius: 2,
-                                width: 500,
-                                boxShadow: 8,
-                            })}
-                        >
-                            <AddRundown onCreate={name => {
-                                setAdding(false);
-                                if (!name) return;
-
-                                createRundown(name);
-                            }} />
-                        </Stack>
-                    </Stack>
-                </Modal>
-            </Stack>
-        </DefaultContentLayout>
-    );
-};
-
-export default Page;
