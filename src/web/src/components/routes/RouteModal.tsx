@@ -12,9 +12,11 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
+import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import {VideoRoute, VideoRouteSource, VideoRouteDestination} from '../../lib/api/videoRoutes';
 import type {SourceType} from './RouteSourceTypePicker';
 import {DraftSource, SourceFields, defaultSourceFor, sourceToDraft} from './RouteSourceFields';
+import {GeometryEditor, GeometryValues} from './GeometryEditor';
 
 interface DraftDestination {
     channel: string;
@@ -30,10 +32,15 @@ interface RouteModalProps {
     channels: number[];
     /** Video-mode ids from the CG config — used for the decklink format dropdown. */
     videoModes: string[];
+    /** Per-channel output resolution. Drives the GeometryEditor stage canvas
+     *  size for the route's destination channel. Falls back to 1920×1080. */
+    channelSizes: Record<number, {width: number; height: number}>;
     onClose: () => void;
     onSave: (data: Omit<VideoRoute, 'id'>) => Promise<void>;
     onDelete?: () => void;
 }
+
+const FALLBACK_CANVAS = {width: 1920, height: 1080};
 
 function intOrUndef(raw: string): number | undefined {
     if (raw.trim() === '') return undefined;
@@ -121,6 +128,7 @@ export const RouteModal: React.FC<RouteModalProps> = ({
     newType,
     channels,
     videoModes,
+    channelSizes,
     onClose,
     onSave,
     onDelete,
@@ -128,6 +136,8 @@ export const RouteModal: React.FC<RouteModalProps> = ({
     const [name, setName] = useState('');
     const [source, setSource] = useState<DraftSource>(defaultSourceFor('color'));
     const [destination, setDestination] = useState<DraftDestination>(emptyDestinationDraft([]));
+    const [geometry, setGeometry] = useState<GeometryValues>({});
+    const [geometryOpen, setGeometryOpen] = useState(false);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -138,13 +148,28 @@ export const RouteModal: React.FC<RouteModalProps> = ({
             setName(route.name ?? '');
             setSource(sourceToDraft(route.source));
             setDestination(destinationToDraft(route.destination));
+            setGeometry({
+                ...(route.transform   ? {transform:   route.transform}   : {}),
+                ...(route.perspective ? {perspective: route.perspective} : {}),
+                ...(route.edgeblend   ? {edgeblend:   route.edgeblend}   : {}),
+            });
         } else {
             const type = newType ?? 'color';
             setName('');
             setSource(defaultSourceFor(type));
             setDestination(emptyDestinationDraft(channels));
+            setGeometry({});
         }
     }, [open, route, newType, channels]);
+
+    // Canvas size tracks the currently-selected destination channel so the
+    // GeometryEditor stage matches its output resolution.
+    const canvasSize = useMemo(() => {
+        const ch = Number(destination.channel);
+        return Number.isFinite(ch) ? (channelSizes[ch] ?? FALLBACK_CANVAS) : FALLBACK_CANVAS;
+    }, [destination.channel, channelSizes]);
+
+    const geometryActive = Boolean(geometry.transform || geometry.perspective || geometry.edgeblend);
 
     // The persisted route's source type wins over the picker choice when
     // editing — the user can't change a route's source type after the fact
@@ -211,10 +236,10 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                 // when editing. The Switch on the card is still the canonical
                 // toggle for live activation.
                 enabled: route?.enabled ?? true,
-                ...(route?.transform   ? {transform:   route.transform}   : {}),
-                ...(route?.edgeblend   ? {edgeblend:   route.edgeblend}   : {}),
-                ...(route?.perspective ? {perspective: route.perspective} : {}),
-                ...(route?.metadata    ? {metadata:    route.metadata}    : {}),
+                ...(geometry.transform   ? {transform:   geometry.transform}   : {}),
+                ...(geometry.perspective ? {perspective: geometry.perspective} : {}),
+                ...(geometry.edgeblend   ? {edgeblend:   geometry.edgeblend}   : {}),
+                ...(route?.metadata      ? {metadata:    route.metadata}       : {}),
             });
             onClose();
         } catch (e) {
@@ -225,112 +250,137 @@ export const RouteModal: React.FC<RouteModalProps> = ({
     };
 
     const titleVerb = route ? 'Edit' : 'Add';
-    const hasAdvanced = Boolean(route?.transform || route?.edgeblend || route?.perspective);
 
     return (
-        <Modal open={open} onClose={busy ? undefined : onClose}>
-            <Box
-                sx={{
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    width: 'min(720px, 95vw)',
-                    maxHeight: '95vh',
-                    overflowY: 'auto',
-                }}
-            >
-                <Card sx={{p: 3}}>
-                    <Stack spacing={3}>
-                        <Stack spacing={0.5}>
-                            <Stack direction="row" alignItems="baseline" gap={1.5} flexWrap="wrap">
-                                <Typography variant="h3">
-                                    {titleVerb} {SOURCE_TITLE[activeType].toLowerCase()} route
-                                </Typography>
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        color: 'text.secondary',
-                                        fontFamily: 'monospace',
-                                        textTransform: 'lowercase',
-                                    }}
-                                >
-                                    {activeType}
-                                </Typography>
-                            </Stack>
-                            <Typography variant="body2" sx={{color: 'text.secondary'}}>
+        <>
+            <Modal open={open} onClose={busy ? undefined : onClose}>
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 'min(720px, 95vw)',
+                        maxHeight: '95vh',
+                        overflowY: 'auto',
+                    }}
+                >
+                    <Card sx={{p: 3}}>
+                        <Stack spacing={3}>
+                            <Stack spacing={0.5}>
+                                <Stack direction="row" alignItems="baseline" gap={1.5} flexWrap="wrap">
+                                    <Typography variant="h3">
+                                        {titleVerb} {SOURCE_TITLE[activeType].toLowerCase()} route
+                                    </Typography>
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            color: 'text.secondary',
+                                            fontFamily: 'monospace',
+                                            textTransform: 'lowercase',
+                                        }}
+                                    >
+                                        {activeType}
+                                    </Typography>
+                                </Stack>
+                                <Typography variant="body2" sx={{color: 'text.secondary'}}>
                                 Routes are persisted to disk and take effect immediately. Source
                                 type can&apos;t be changed after creation.
-                            </Typography>
-                        </Stack>
+                                </Typography>
+                            </Stack>
 
-                        <TextField
-                            label="Name"
-                            size="small"
-                            fullWidth
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                        />
-
-                        <Stack spacing={1.5}>
-                            <Typography variant="h4">Source</Typography>
-                            <SourceFields
-                                draft={source}
-                                channels={channels}
-                                videoModes={videoModes}
-                                setDraft={setSource}
+                            <TextField
+                                label="Name"
+                                size="small"
+                                fullWidth
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
                             />
-                        </Stack>
 
-                        <Stack spacing={1.5}>
-                            <Typography variant="h4">Destination</Typography>
-                            <DestinationFields
-                                draft={destination}
-                                channels={channels}
-                                onChange={setDestination}
-                            />
-                            <Typography variant="caption" sx={{color: 'text.disabled'}}>
+                            <Stack spacing={1.5}>
+                                <Typography variant="h4">Source</Typography>
+                                <SourceFields
+                                    draft={source}
+                                    channels={channels}
+                                    videoModes={videoModes}
+                                    setDraft={setSource}
+                                />
+                            </Stack>
+
+                            <Stack spacing={1.5}>
+                                <Typography variant="h4">Destination</Typography>
+                                <DestinationFields
+                                    draft={destination}
+                                    channels={channels}
+                                    onChange={setDestination}
+                                />
+                                <Typography variant="caption" sx={{color: 'text.disabled'}}>
                                 Effect-group layer is &quot;channel:group&quot;. Index disambiguates
                                 multiple groups with the same name on a channel.
-                            </Typography>
-                        </Stack>
+                                </Typography>
+                            </Stack>
 
-                        {hasAdvanced && (
-                            <Typography variant="caption" sx={{color: 'text.secondary'}}>
-                                This route has transform / edgeblend / perspective data set. The
-                                UI doesn&apos;t expose these yet — they&apos;re preserved on save.
-                                Visual editor TODO.
-                            </Typography>
-                        )}
-
-                        {error && (
-                            <Typography variant="body2" color="error">{error}</Typography>
-                        )}
-
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
-                            <Box>
-                                {onDelete && route && (
+                            <Stack spacing={1}>
+                                <Typography variant="h4">Geometry</Typography>
+                                <Stack direction="row" alignItems="center" gap={1.5} flexWrap="wrap">
                                     <Button
-                                        color="error"
-                                        disabled={busy}
-                                        onClick={() => { onDelete(); onClose(); }}
+                                        variant="outlined"
+                                        color="inherit"
+                                        size="small"
+                                        startIcon={<TuneRoundedIcon />}
+                                        onClick={() => setGeometryOpen(true)}
                                     >
-                                        Delete
+                                        {geometryActive ? 'Edit geometry…' : 'Add geometry…'}
                                     </Button>
-                                )}
-                            </Box>
-                            <Stack direction="row" gap={1}>
-                                <Button onClick={onClose} color="inherit" disabled={busy}>
+                                    <Typography variant="caption" sx={{color: 'text.secondary'}}>
+                                        {geometryActive
+                                            ? [
+                                                geometry.transform   ? 'position'    : null,
+                                                geometry.perspective ? 'perspective' : null,
+                                                geometry.edgeblend   ? 'edge blend'  : null,
+                                            ].filter(Boolean).join(' · ')
+                                            : 'Position, perspective warp, edge blending — none set.'}
+                                    </Typography>
+                                </Stack>
+                            </Stack>
+
+                            {error && (
+                                <Typography variant="body2" color="error">{error}</Typography>
+                            )}
+
+                            <Stack direction="row" justifyContent="space-between" alignItems="center">
+                                <Box>
+                                    {onDelete && route && (
+                                        <Button
+                                            color="error"
+                                            disabled={busy}
+                                            onClick={() => { onDelete(); onClose(); }}
+                                        >
+                                        Delete
+                                        </Button>
+                                    )}
+                                </Box>
+                                <Stack direction="row" gap={1}>
+                                    <Button onClick={onClose} color="inherit" disabled={busy}>
                                     Cancel
-                                </Button>
-                                <Button onClick={handleSave} variant="contained" disabled={busy}>
-                                    {busy ? 'Saving…' : 'Save'}
-                                </Button>
+                                    </Button>
+                                    <Button onClick={handleSave} variant="contained" disabled={busy}>
+                                        {busy ? 'Saving…' : 'Save'}
+                                    </Button>
+                                </Stack>
                             </Stack>
                         </Stack>
-                    </Stack>
-                </Card>
-            </Box>
-        </Modal>
+                    </Card>
+                </Box>
+            </Modal>
+            <GeometryEditor
+                open={geometryOpen}
+                value={geometry}
+                canvasWidth={canvasSize.width}
+                canvasHeight={canvasSize.height}
+                onClose={() => setGeometryOpen(false)}
+                onSave={(v) => setGeometry(v)}
+            />
+        </>
     );
 };

@@ -138,6 +138,7 @@ const Page = () => {
     const [routes, setRoutes] = useState<VideoRoute[] | null>(null);
     const [channels, setChannels] = useState<number[]>([]);
     const [videoModes, setVideoModes] = useState<string[]>([]);
+    const [channelSizes, setChannelSizes] = useState<Record<number, {width: number; height: number}>>({});
     const [error, setError] = useState<string | null>(null);
     const [deleting, setDeleting] = useState<VideoRoute | null>(null);
     const [busy, setBusy] = useState(false);
@@ -166,11 +167,19 @@ const Page = () => {
                 if (cancelled) return;
                 setChannels(cfg.channels.map((_, i) => i + 1));
                 setVideoModes(cfg.videoModes.map((m) => m.id).filter(Boolean));
+                // Build channelIdx → output WxH for the GeometryEditor stage.
+                const sizes: Record<number, {width: number; height: number}> = {};
+                for (let i = 0; i < cfg.channels.length; i++) {
+                    const mode = cfg.videoModes.find((m) => m.id === cfg.channels[i].videoMode);
+                    if (mode) sizes[i + 1] = {width: mode.width, height: mode.height};
+                }
+                setChannelSizes(sizes);
             })
             .catch(() => {
                 if (cancelled) return;
                 setChannels([]);
                 setVideoModes([]);
+                setChannelSizes({});
             });
         return () => { cancelled = true; };
     }, [socket]);
@@ -281,6 +290,7 @@ const Page = () => {
                 newType={newType ?? undefined}
                 channels={channels}
                 videoModes={videoModes}
+                channelSizes={channelSizes}
                 onClose={closeModal}
                 onSave={saveRoute}
                 onDelete={editing ? () => { setDeleting(editing); } : undefined}
