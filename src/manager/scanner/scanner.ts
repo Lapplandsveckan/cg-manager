@@ -1,10 +1,12 @@
 /* eslint-disable camelcase */
 
 import config from './config';
+import managerConfig from '../../util/config';
 import {Logger} from '../../util/log';
 import {noTryAsync} from 'no-try';
 import {extractGDDJSON, getGDDScriptElement, getId, readFile, hashFile} from './util';
 import { promises as fs } from 'fs';
+import { existsSync } from 'fs';
 import ffmpeg from 'fluent-ffmpeg';
 import moment from 'moment';
 import * as path from 'path';
@@ -13,6 +15,27 @@ import * as chokidar from 'chokidar';
 import {FileDatabase, MediaDoc} from './db';
 
 const logger = Logger.scope('Scanner');
+
+// Point fluent-ffmpeg at the ffmpeg/ffprobe binaries shipped alongside the
+// CasparCG executable. Without this, the scanner relies on whatever's on
+// PATH — fine on dev boxes, but the packaged manager runs next to its own
+// CasparCG install and shouldn't depend on a system-wide ffmpeg being
+// present (or matching the version Caspar uses). If `caspar-path` isn't
+// set we fall back to PATH so dev mode keeps working.
+function configureBinaries() {
+    const folder = managerConfig['caspar-path'];
+    if (!folder) return;
+
+    const ext = process.platform === 'win32' ? '.exe' : '';
+    const ffmpegPath  = path.join(folder, `ffmpeg${ext}`);
+    const ffprobePath = path.join(folder, `ffprobe${ext}`);
+
+    if (existsSync(ffmpegPath))  ffmpeg.setFfmpegPath(ffmpegPath);
+    else logger.warn(`ffmpeg not found at ${ffmpegPath} — falling back to PATH lookup`);
+
+    if (existsSync(ffprobePath)) ffmpeg.setFfprobePath(ffprobePath);
+    else logger.warn(`ffprobe not found at ${ffprobePath} — falling back to PATH lookup`);
+}
 
 async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: FileDatabase) {
     if (!mediaId || mediaStat.isDirectory()) return;
@@ -257,6 +280,8 @@ export async function getTemplatesWithContent() {
 }
 
 function Scanner(db: FileDatabase) {
+    configureBinaries();
+
     const stop = createWatcher(async ([mediaPath, mediaStat]) => {
         const mediaId = getId(config.paths.media, mediaPath);
         const [error] = await noTryAsync(async () => {
