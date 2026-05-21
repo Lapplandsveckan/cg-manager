@@ -26,12 +26,24 @@ const Console = {
 export class Logger {
     private static logs: string = '';
 
+    // Generous cap on intercepted console.* output. Without it, accidental
+    // dumps (webpack errors quoting a minified bundle, stray buffer prints)
+    // can balloon a single line to megabytes. Only applies to the console
+    // interception — Logger.* calls are unaffected.
+    private static readonly consoleMessageLimit = 1024;
+
     private static enableConsole() {
         const logger = Logger.scope('Console');
         const test = (method: string) => {
             method = method === 'log' ? 'debug' : method;
             const log = logger[method].bind(logger);
-            return (...args) => log(args.map((arg) => arg?.toString() ?? 'undefined').join(' '));
+            return (...args) => {
+                const joined = args.map((arg) => arg?.toString() ?? 'undefined').join(' ');
+                const truncated = joined.length > Logger.consoleMessageLimit
+                    ? `${joined.slice(0, Logger.consoleMessageLimit)} … [truncated ${joined.length - Logger.consoleMessageLimit} chars]`
+                    : joined;
+                log(truncated);
+            };
         };
 
         global.console.log = test('log');

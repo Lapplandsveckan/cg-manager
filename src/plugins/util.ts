@@ -4,18 +4,35 @@ import {noTry} from 'no-try';
 import {Logger} from '../util/log';
 import {CasparPlugin} from '@lappis/cg-manager';
 
-function loadPluginFolderUnsafe(dir: string) {
-    return fs.readdirSync(dir)
-        .filter((file) => !file.includes('.')) // TODO: better way to check if folder
-        .map((file) => require(path.join(dir, file)).default as typeof CasparPlugin);
-}
-
 export function loadPluginFolder(dir: string) {
-    const [err, files] = noTry(() => loadPluginFolderUnsafe(dir));
-    if (err) {
-        if (!err.message.includes('ENOENT')) Logger.error(`Error loading plugins from ${dir}: ${err}`); // TODO: better way to check for ENOENT code
+    const logger = Logger.scope('Plugin Loader');
+
+    const [readErr, entries] = noTry(() => fs.readdirSync(dir));
+    if (readErr) {
+        if (!readErr.message.includes('ENOENT')) // TODO: better way to check for ENOENT code
+            logger.error(`Failed to read plugin folder ${dir}: ${Logger.formatError(readErr)}`);
         return [];
     }
 
-    return files;
+    const plugins: (typeof CasparPlugin)[] = [];
+    for (const entry of entries) {
+        if (entry.includes('.')) continue; // TODO: better way to check if folder
+
+        const pluginPath = path.join(dir, entry);
+        const [err, mod] = noTry(() => require(pluginPath));
+        if (err) {
+            logger.error(`Failed to load plugin "${entry}" from ${pluginPath}: ${Logger.formatError(err)}`);
+            continue;
+        }
+
+        const plugin = mod?.default as typeof CasparPlugin | undefined;
+        if (!plugin) {
+            logger.error(`Plugin "${entry}" at ${pluginPath} has no default export`);
+            continue;
+        }
+
+        plugins.push(plugin);
+    }
+
+    return plugins;
 }
