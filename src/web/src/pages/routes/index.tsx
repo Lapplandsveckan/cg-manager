@@ -1,10 +1,13 @@
 import {DefaultContentLayout} from '../../components/DefaultContentLayout';
 import {useSocket} from '../../lib/hooks/useSocket';
-import {Box, Button, Card, IconButton, Modal, Stack, Switch, Tooltip, Typography, alpha} from '@mui/material';
+import {Box, Button, Card, CardActionArea, IconButton, Modal, Stack, Switch, Tooltip, Typography, alpha} from '@mui/material';
+import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import {useCallback, useEffect, useState} from 'react';
 import {VideoRoute, VideoRouteSource, VideoRouteDestination} from '../../lib/api/videoRoutes';
+import {RouteSourceTypePicker, SourceType} from '../../components/routes/RouteSourceTypePicker';
+import {RouteModal} from '../../components/routes/RouteModal';
 
 function summariseSource(source: VideoRouteSource): string {
     switch (source.type) {
@@ -51,60 +54,80 @@ const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
 
 interface RouteCardProps {
     route: VideoRoute;
+    onEdit: () => void;
     onToggle: (next: boolean) => void;
     onDelete: () => void;
 }
 
-const RouteCard: React.FC<RouteCardProps> = ({ route, onToggle, onDelete }) => {
-    return (
-        <Card sx={{ p: 2.5 }}>
-            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2}>
-                <Stack spacing={0.75} sx={{ minWidth: 0, flexGrow: 1 }}>
-                    <Stack direction="row" alignItems="center" gap={1.25}>
-                        <Typography variant="h4" sx={{ wordBreak: 'break-word' }}>
-                            {route.name || '(unnamed route)'}
-                        </Typography>
-                        <StatusPill enabled={route.enabled} />
-                    </Stack>
-                    <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
-                        <Typography
-                            variant="body2"
-                            sx={(theme) => ({
-                                fontFamily: '"SF Mono", "Menlo", "Consolas", monospace',
-                                color: theme.palette.text.secondary,
-                                wordBreak: 'break-word',
-                            })}
-                        >
-                            {summariseSource(route.source)}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.disabled' }}>→</Typography>
-                        <Typography
-                            variant="body2"
-                            sx={(theme) => ({
-                                fontFamily: '"SF Mono", "Menlo", "Consolas", monospace',
-                                color: theme.palette.text.secondary,
-                                wordBreak: 'break-word',
-                            })}
-                        >
-                            {summariseDestination(route.destination)}
-                        </Typography>
-                    </Stack>
-                </Stack>
+const RouteCard: React.FC<RouteCardProps> = ({ route, onEdit, onToggle, onDelete }) => {
+    // CardActionArea wraps the whole card so clicking anywhere opens the
+    // editor — except for the inline controls (Switch / Delete) which stop
+    // propagation so they don't double-fire as "edit this".
+    const stop = (e: React.MouseEvent | React.SyntheticEvent) => e.stopPropagation();
 
-                <Stack direction="row" alignItems="center" gap={0.5} sx={{ flexShrink: 0 }}>
-                    <Switch
-                        color="primary"
-                        checked={route.enabled}
-                        onChange={(_, checked) => onToggle(checked)}
-                        inputProps={{ 'aria-label': `Toggle ${route.name}` }}
-                    />
-                    <Tooltip title="Delete">
-                        <IconButton size="small" onClick={onDelete} sx={{ color: '#e88c8c' }}>
-                            <DeleteOutlineRoundedIcon fontSize="small" />
-                        </IconButton>
-                    </Tooltip>
+    return (
+        <Card sx={{ p: 0 }}>
+            <CardActionArea onClick={onEdit} sx={{ p: 2.5, alignItems: 'stretch' }}>
+                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2}>
+                    <Stack spacing={0.75} sx={{ minWidth: 0, flexGrow: 1 }}>
+                        <Stack direction="row" alignItems="center" gap={1.25}>
+                            <Typography variant="h4" sx={{ wordBreak: 'break-word' }}>
+                                {route.name || '(unnamed route)'}
+                            </Typography>
+                            <StatusPill enabled={route.enabled} />
+                        </Stack>
+                        <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+                            <Typography
+                                variant="body2"
+                                sx={(theme) => ({
+                                    fontFamily: '"SF Mono", "Menlo", "Consolas", monospace',
+                                    color: theme.palette.text.secondary,
+                                    wordBreak: 'break-word',
+                                })}
+                            >
+                                {summariseSource(route.source)}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: 'text.disabled' }}>→</Typography>
+                            <Typography
+                                variant="body2"
+                                sx={(theme) => ({
+                                    fontFamily: '"SF Mono", "Menlo", "Consolas", monospace',
+                                    color: theme.palette.text.secondary,
+                                    wordBreak: 'break-word',
+                                })}
+                            >
+                                {summariseDestination(route.destination)}
+                            </Typography>
+                        </Stack>
+                    </Stack>
+
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        gap={0.5}
+                        sx={{ flexShrink: 0 }}
+                        onClick={stop}
+                        onMouseDown={stop}
+                    >
+                        <Switch
+                            color="primary"
+                            checked={route.enabled}
+                            onChange={(_, checked) => onToggle(checked)}
+                            onClick={stop}
+                            inputProps={{ 'aria-label': `Toggle ${route.name}` }}
+                        />
+                        <Tooltip title="Delete">
+                            <IconButton
+                                size="small"
+                                onClick={(e) => { stop(e); onDelete(); }}
+                                sx={{ color: '#e88c8c' }}
+                            >
+                                <DeleteOutlineRoundedIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
                 </Stack>
-            </Stack>
+            </CardActionArea>
         </Card>
     );
 };
@@ -113,9 +136,16 @@ const Page = () => {
     const socket = useSocket();
 
     const [routes, setRoutes] = useState<VideoRoute[] | null>(null);
+    const [channels, setChannels] = useState<number[]>([]);
+    const [videoModes, setVideoModes] = useState<string[]>([]);
+    const [channelSizes, setChannelSizes] = useState<Record<number, {width: number; height: number}>>({});
     const [error, setError] = useState<string | null>(null);
     const [deleting, setDeleting] = useState<VideoRoute | null>(null);
     const [busy, setBusy] = useState(false);
+
+    const [picking, setPicking] = useState(false);
+    const [editing, setEditing] = useState<VideoRoute | null>(null);
+    const [newType, setNewType] = useState<SourceType | null>(null);
 
     const refresh = useCallback(() => {
         if (!socket) return;
@@ -125,6 +155,34 @@ const Page = () => {
     }, [socket]);
 
     useEffect(() => { refresh(); }, [refresh]);
+
+    useEffect(() => {
+        if (!socket) return;
+        let cancelled = false;
+        // Populate the channel dropdown(s) in the modal. Falls back to an
+        // empty list if the CG config can't be read — the modal allows the
+        // current draft channel through anyway.
+        socket.caspar.getConfig()
+            .then((cfg) => {
+                if (cancelled) return;
+                setChannels(cfg.channels.map((_, i) => i + 1));
+                setVideoModes(cfg.videoModes.map((m) => m.id).filter(Boolean));
+                // Build channelIdx → output WxH for the GeometryEditor stage.
+                const sizes: Record<number, {width: number; height: number}> = {};
+                for (let i = 0; i < cfg.channels.length; i++) {
+                    const mode = cfg.videoModes.find((m) => m.id === cfg.channels[i].videoMode);
+                    if (mode) sizes[i + 1] = {width: mode.width, height: mode.height};
+                }
+                setChannelSizes(sizes);
+            })
+            .catch(() => {
+                if (cancelled) return;
+                setChannels([]);
+                setVideoModes([]);
+                setChannelSizes({});
+            });
+        return () => { cancelled = true; };
+    }, [socket]);
 
     const toggle = useCallback(async (id: string, next: boolean) => {
         if (!socket) return;
@@ -154,15 +212,40 @@ const Page = () => {
         }
     };
 
+    const saveRoute = async (data: Omit<VideoRoute, 'id'>) => {
+        if (!socket) return;
+        if (editing) {
+            const updated = await socket.videoRoutes.update(editing.id, data);
+            setRoutes(prev => prev?.map(r => r.id === updated.id ? updated : r) ?? prev);
+        } else {
+            const created = await socket.videoRoutes.create(data);
+            setRoutes(prev => prev ? [...prev, created] : [created]);
+        }
+        setEditing(null);
+        setNewType(null);
+    };
+
+    const modalOpen = editing !== null || newType !== null;
+    const closeModal = () => { setEditing(null); setNewType(null); };
+
     return (
         <DefaultContentLayout>
-            <Stack spacing={1} mb={4}>
-                <Typography variant="h1">Routes</Typography>
-                <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                    Live video routes from sources (decklink inputs, files, channels, colors) to
-                    effect groups on CasparCG channels. Toggle to activate or pause; delete to
-                    remove.
-                </Typography>
+            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} mb={4}>
+                <Stack spacing={1}>
+                    <Typography variant="h1">Routes</Typography>
+                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                        Live video routes from sources (decklink inputs, files, channels, colors)
+                        to effect groups on CasparCG channels. Click a route to edit; toggle to
+                        activate or pause.
+                    </Typography>
+                </Stack>
+                <Button
+                    variant="contained"
+                    startIcon={<AddRoundedIcon />}
+                    onClick={() => { setError(null); setPicking(true); }}
+                >
+                    New route
+                </Button>
             </Stack>
 
             {error && (
@@ -178,11 +261,7 @@ const Page = () => {
             {routes?.length === 0 && (
                 <Card sx={{ p: 3, textAlign: 'center', maxWidth: 720 }}>
                     <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                        No video routes yet. Drop a JSON file in the configured
-                        <Box component="span" sx={{ fontFamily: '"SF Mono", monospace', mx: 0.5 }}>
-                            routes-dir
-                        </Box>
-                        and restart the manager.
+                        No video routes yet. Click <strong>New route</strong> to add one.
                     </Typography>
                 </Card>
             )}
@@ -192,11 +271,30 @@ const Page = () => {
                     <RouteCard
                         key={route.id}
                         route={route}
+                        onEdit={() => { setError(null); setEditing(route); }}
                         onToggle={(next) => toggle(route.id, next)}
                         onDelete={() => { setError(null); setDeleting(route); }}
                     />
                 ))}
             </Stack>
+
+            <RouteSourceTypePicker
+                open={picking}
+                onClose={() => setPicking(false)}
+                onSelect={(type) => { setPicking(false); setNewType(type); }}
+            />
+
+            <RouteModal
+                open={modalOpen}
+                route={editing}
+                newType={newType ?? undefined}
+                channels={channels}
+                videoModes={videoModes}
+                channelSizes={channelSizes}
+                onClose={closeModal}
+                onSave={saveRoute}
+                onDelete={editing ? () => { setDeleting(editing); } : undefined}
+            />
 
             <Modal open={Boolean(deleting)} onClose={() => !busy && setDeleting(null)}>
                 <Stack
@@ -224,11 +322,7 @@ const Page = () => {
                             </Stack>
                             <Typography variant="body1" sx={{ color: 'text.secondary' }}>
                                 <strong style={{ color: 'inherit' }}>{deleting?.name || deleting?.id}</strong> will
-                                be removed and its underlying effect torn down. The JSON file in
-                                <Box component="span" sx={{ fontFamily: '"SF Mono", monospace', mx: 0.5 }}>
-                                    routes-dir
-                                </Box>
-                                will be deleted from disk. This can&apos;t be undone.
+                                be removed and its underlying effect torn down. This can&apos;t be undone.
                             </Typography>
                             {error && <Typography variant="body2" color="error">{error}</Typography>}
                             <Stack direction="row" justifyContent="flex-end" gap={1}>
