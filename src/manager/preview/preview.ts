@@ -28,6 +28,14 @@ const WEBRTC_VIDEO_CODEC = new RTCRtpCodecParameters({
 // wire packets match WEBRTC_VIDEO_CODEC's advertised PT. CasparCG's consumer
 // parses option names long-form (ffmpeg_consumer.cpp:502 + :517), so every
 // option is spelled in full.
+//
+// `format=yuv420p` HAS to be in the filter chain (not `-pix_fmt:v`): the
+// consumer's buffersink offers every pixel format the encoder supports, and
+// for BGRA input the scaler defaults to picking yuv444p (closest match, no
+// chroma subsampling loss). libx264 then refuses Baseline profile because
+// Baseline is 4:2:0 only — and Baseline is what every browser's WebRTC
+// stack will accept. Forcing the filter chain to emit yuv420p makes the
+// sink hand 4:2:0 frames straight through, satisfying libx264 + browsers.
 const RTP_PREVIEW_ARGS = [
     '-format',
     'rtp',
@@ -41,8 +49,6 @@ const RTP_PREVIEW_ARGS = [
     'ultrafast',
     '-tune:v',
     'zerolatency',
-    '-pix_fmt:v',
-    'yuv420p',
     '-bf:v',
     '0',
     '-g:v',
@@ -50,7 +56,7 @@ const RTP_PREVIEW_ARGS = [
     '-b:v',
     '800k',
     '-filter:v',
-    'fps=15,scale=640:-2',
+    'fps=15,scale=640:-2,format=yuv420p',
     '-payload_type',
     '96',
 ];
