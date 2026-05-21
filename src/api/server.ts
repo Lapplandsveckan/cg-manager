@@ -12,6 +12,7 @@ import {handleRequest, onUpgrade} from '../web';
 import {Route} from 'rest-exchange-protocol/dist/route';
 import {Logger} from '../util/log';
 import {Upload} from '../manager/scanner/upload';
+import {PreviewSession} from '../manager/preview/preview';
 import {noTry} from 'no-try';
 
 export type CGClient = TypedClient<{}>;
@@ -34,6 +35,7 @@ export class CGServer {
         this.server.use(this.web());
         this.server.use(this.cors());
         this.server.use(this.upload());
+        this.server.use(this.preview());
 
         this.manager.on('caspar-status', (status) => {
             const clients = this.server.getClients();
@@ -72,6 +74,62 @@ export class CGServer {
         return async (data: MiddleWareData) => {
             if (data.type !== 'pre-route') return;
             Logger.scope('API').debug(`${data.route.method} ${data.route.path}`);
+        };
+    }
+
+    preview() {
+        // GET /preview/:channel — MJPEG HTTP multipart stream. Spins up a
+        // CasparCG ffmpeg consumer per client; tears it down when the
+        // browser closes the connection.
+        return async (data: MiddleWareData) => {
+            if (data.type !== 'http') return;
+
+            const match = data.request.url.match(/^\/preview\/(\d+)(?:\?.*)?$/);
+            if (!match) return;
+
+            const channel = parseInt(match[1], 10);
+            if (!Number.isFinite(channel) || channel < 1) {
+                data.response.statusCode = 400;
+                data.response.end('Invalid channel');
+                throw new MiddlewareProhibitFurtherExecution();
+            }
+
+            // Modest output: 640px-wide MJPEG at 15fps, qscale 5 (good
+            // quality for preview, low bandwidth). Tunable later.
+            const args = '-f mpjpeg -q:v 5 -r 15 -vf scale=640:-1';
+
+            let session: PreviewSession | null = null;
+            const [err] = await noTry(async () => {
+                session = await this.manager.preview.openSession({channel, ffmpegArgs: args});
+            });
+            if (err || !session) {
+                data.response.statusCode = 503;
+                data.response.end((err as Error)?.message ?? 'Failed to open preview');
+                throw new MiddlewareProhibitFurtherExecution();
+            }
+
+            // The mpjpeg muxer uses `ffserver` as the multipart boundary
+            // (encoded in the stream); the browser pairs it with the
+            // Content-Type header we set here.
+            data.response.statusCode = 200;
+            data.response.setHeader('Content-Type', 'multipart/x-mixed-replace; boundary=ffserver');
+            data.response.setHeader('Cache-Control', 'no-cache');
+            data.response.setHeader('Connection', 'close');
+            data.response.setHeader('Pragma', 'no-cache');
+
+            session.onData((chunk) => {
+                // `write` returns false when the kernel buffer fills —
+                // ignoring that is fine for MJPEG since dropped backpressure
+                // just means a momentarily slow client; ffmpeg will keep
+                // pushing the next frame regardless.
+                data.response.write(chunk);
+            });
+
+            const cleanup = () => { session?.close().catch(() => undefined); };
+            data.request.on('close', cleanup);
+            data.response.on('close', cleanup);
+
+            throw new MiddlewareProhibitFurtherExecution();
         };
     }
 

@@ -11,6 +11,7 @@ import {UIInjector} from './plugins/ui';
 import {EffectRegistry} from '@lappis/cg-manager';
 import {RundownManager} from './rundown/rundown';
 import {VideoRoutesManager} from './routes/routes';
+import {PreviewManager} from './preview/preview';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
@@ -22,6 +23,7 @@ export class CasparManager extends EventEmitter {
     public ui: UIInjector;
     public rundowns: RundownManager;
     public routes: VideoRoutesManager;
+    public preview: PreviewManager;
 
     private readonly onCasparStatusBroadcast = (status: CasparStatus) =>
         this.emit('caspar-status', status);
@@ -52,6 +54,7 @@ export class CasparManager extends EventEmitter {
         this.ui = new UIInjector();
         this.rundowns = new RundownManager();
         this.routes = new VideoRoutesManager(this);
+        this.preview = new PreviewManager(this.executor);
 
         this.caspar.on('status', this.onCasparStatusBroadcast);
         this.caspar.on('status', this.onCasparStatusReconnect);
@@ -103,6 +106,7 @@ export class CasparManager extends EventEmitter {
         this.rundowns.stopAutosave();
         await this.rundowns.saveAllRundowns();
 
+        await this.preview.disposeAll();
         this.routes.disposeAll();
         this.executor.disconnect();
 

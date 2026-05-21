@@ -9,6 +9,7 @@ import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import {useSocket} from '../lib/hooks/useSocket';
 import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {CasparStatus} from '../lib/api/caspar';
+import {PreviewPanel} from '../components/PreviewPanel';
 
 type Tone = 'success' | 'error' | 'warning' | 'neutral';
 
@@ -280,6 +281,8 @@ const Page = () => {
                         <Typography variant="body1" color="error">{error}</Typography>
                     </Card>
                 )}
+
+                <PreviewPanel />
 
                 <LogViewer logs={logs} onClear={() => setLogs('')} />
             </Stack>
