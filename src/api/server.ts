@@ -13,7 +13,7 @@ import {Route} from 'rest-exchange-protocol/dist/route';
 import {Logger} from '../util/log';
 import {Upload} from '../manager/scanner/upload';
 import {PreviewSession} from '../manager/preview/preview';
-import {noTry} from 'no-try';
+import {noTry, noTryAsync} from 'no-try';
 import {WebSocketServer} from 'ws';
 
 export type CGClient = TypedClient<{}>;
@@ -100,6 +100,7 @@ export class CGServer {
         this.server.use(this.upload());
         this.server.use(this.preview());
         this.server.use(this.previewWs());
+        this.server.use(this.previewWhep());
 
         this.manager.on('caspar-status', (status) => {
             const clients = this.server.getClients();
@@ -138,6 +139,65 @@ export class CGServer {
         return async (data: MiddleWareData) => {
             if (data.type !== 'pre-route') return;
             Logger.scope('API').debug(`${data.route.method} ${data.route.path}`);
+        };
+    }
+
+    previewWhep() {
+        // POST /preview-whep/:channel — WHEP-style SDP exchange. The browser
+        // POSTs an SDP offer (Content-Type: application/sdp), we hand it to
+        // PreviewManager.openWebRTC, and return 201 + SDP answer. The
+        // resulting peer connection lives until the browser tab closes;
+        // werift tears the underlying CasparCG consumer down via the
+        // connectionStateChange subscription inside the session.
+        //
+        // No DELETE endpoint: ICE/DTLS state transitions handle teardown
+        // automatically. The Location header is included per RFC 9725
+        // so clients can target a DELETE if we add one later.
+        return async (data: MiddleWareData) => {
+            if (data.type !== 'http') return;
+
+            const match = data.request.url.match(/^\/preview-whep\/(\d+)(?:\?.*)?$/);
+            if (!match) return;
+
+            if (data.request.method !== 'POST') {
+                data.response.statusCode = 405;
+                data.response.setHeader('Allow', 'POST');
+                data.response.end('Method Not Allowed');
+                throw new MiddlewareProhibitFurtherExecution();
+            }
+
+            const channel = parseInt(match[1], 10);
+            if (!Number.isFinite(channel) || channel < 1) {
+                data.response.statusCode = 400;
+                data.response.end('Invalid channel');
+                throw new MiddlewareProhibitFurtherExecution();
+            }
+
+            // Collect the SDP offer body.
+            const chunks: Buffer[] = [];
+            for await (const chunk of data.request as unknown as AsyncIterable<Buffer>) chunks.push(chunk);
+            const sdpOffer = Buffer.concat(chunks).toString('utf8');
+            if (!sdpOffer.trim()) {
+                data.response.statusCode = 400;
+                data.response.end('Empty SDP offer');
+                throw new MiddlewareProhibitFurtherExecution();
+            }
+
+            const [err, session] = await noTryAsync(() =>
+                this.manager.preview.openWebRTC({channel, sdpOffer}));
+            if (err || !session) {
+                Logger.scope('Preview').warn(`WHEP session failed: ${(err as Error)?.message}`);
+                data.response.statusCode = 503;
+                data.response.end((err as Error)?.message ?? 'Failed to open preview');
+                throw new MiddlewareProhibitFurtherExecution();
+            }
+
+            data.response.statusCode = 201;
+            data.response.setHeader('Content-Type', 'application/sdp');
+            data.response.setHeader('Location', data.request.url);
+            data.response.end(session.sdpAnswer);
+
+            throw new MiddlewareProhibitFurtherExecution();
         };
     }
 

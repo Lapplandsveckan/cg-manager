@@ -48,6 +48,7 @@
     "rest-exchange-protocol-client": "^0.0.12",
     "uuid": "^9.0.1",
     "webpack": "^5.90.3",
+    "werift": "^0.23.0",
     "ws": "^8.12.1",
     "xml2js": "^0.6.2"
   },

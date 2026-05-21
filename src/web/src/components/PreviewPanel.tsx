@@ -44,24 +44,39 @@ const ViewportPlaceholder: React.FC<ViewportPlaceholderProps> = ({icon, title, d
     </Stack>
 );
 
-const wsUrlForChannel = (channel: number, nonce: number): string => {
-    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${proto}//${window.location.host}/preview-ws/${channel}?t=${nonce}`;
-};
+const whepUrlForChannel = (channel: number, nonce: number): string =>
+    `/preview-whep/${channel}?t=${nonce}`;
+
+/** Standard WHEP exchange: POST the local SDP offer, server replies with the
+ *  SDP answer. No DataChannel, no ICE-restart, no DELETE — keep alive until
+ *  the peer connection itself closes. */
+async function whepExchange(channel: number, offerSdp: string, nonce: number, signal: AbortSignal): Promise<string> {
+    const resp = await fetch(whepUrlForChannel(channel, nonce), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/sdp'},
+        body: offerSdp,
+        signal,
+    });
+    if (!resp.ok) {
+        const text = await resp.text().catch(() => '');
+        throw new Error(`WHEP ${resp.status}: ${text || resp.statusText}`);
+    }
+    return resp.text();
+}
 
 const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
     const [enabled, setEnabled] = useState(false);
-    // Bump on each (re)load — used in the WS URL so a Retry forces a fresh
-    // upgrade rather than reusing whatever the browser cached.
+    // Bump on each (re)load — used in the URL so a Retry forces a fresh
+    // exchange rather than reusing whatever the browser/proxy might cache.
     const [reloadKey, setReloadKey] = useState(0);
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
-    // Server going offline mid-preview won't reliably fire mpegts.js error
-    // (the WS just stalls or closes silently). Auto-disable so the UI doesn't
-    // sit on a frozen frame pretending it's live.
+    // Server going offline mid-preview won't always close the PC instantly
+    // (ICE has its own timeout). Auto-disable on caspar-status:false so the
+    // UI doesn't sit on a frozen frame pretending it's live.
     useEffect(() => {
         if (!running && enabled) {
             setEnabled(false);
@@ -72,77 +87,54 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
 
     const live = enabled && running;
 
-    // Spin up the mpegts.js player whenever we transition into a live state.
-    // The dynamic import isolates the (browser-only) library from Next's SSR
-    // pass; the cleanup tears everything down on toggle-off / unmount.
+    // Spin up a WebRTC peer connection whenever we transition into a live
+    // state. WHEP-style SDP exchange against the manager's `/preview-whep/:ch`
+    // endpoint. Sub-second latency vs the old MPEG-TS+MSE pipeline.
     useEffect(() => {
         if (!live) return;
 
-        let cancelled = false;
-        let player: any = null;
+        const abort = new AbortController();
+        let pc: RTCPeerConnection | null = null;
 
         (async () => {
-            const mpegts = (await import('mpegts.js')).default;
-            if (cancelled) return;
-            if (!mpegts.isSupported()) {
-                setError('Your browser does not support MSE — preview unavailable here.');
-                return;
-            }
-
-            const url = wsUrlForChannel(channel, reloadKey);
-
             try {
-                player = mpegts.createPlayer({
-                    type: 'mpegts',
-                    isLive: true,
-                    url,
-                }, {
-                    enableWorker: true,
-                    // MSE buffers grow whenever the network/decoder gets
-                    // ahead of playback; without aggressive chasing the
-                    // preview drifts seconds behind within a minute. The
-                    // server-side encoder shoots one keyframe per second
-                    // (`-g:v 15` @ 15fps) so the chaser always has a sync
-                    // point close to the live edge to jump to.
-                    liveBufferLatencyChasing: true,
-                    liveBufferLatencyChasingOnPaused: true,
-                    liveBufferLatencyMaxLatency: 0.5,
-                    liveBufferLatencyMinRemain: 0.1,
-                    // Also drop any data still buffered on the loader side
-                    // — keeps the source <-> demuxer pipeline tight.
-                    stashInitialSize: 16,
-                    autoCleanupSourceBuffer: true,
-                    autoCleanupMaxBackwardDuration: 3,
-                    autoCleanupMinBackwardDuration: 2,
-                });
+                pc = new RTCPeerConnection();
+                // recvonly — we never send anything from the browser side.
+                pc.addTransceiver('video', {direction: 'recvonly'});
 
-                player.on(mpegts.Events.ERROR, (type: string, detail: string) => {
-                    if (cancelled) return;
-                    setError(`${type}: ${detail}`);
-                });
+                pc.ontrack = (event) => {
+                    const video = videoRef.current;
+                    if (!video) return;
+                    video.srcObject = event.streams[0] ?? new MediaStream([event.track]);
+                };
 
-                const video = videoRef.current;
-                if (!video) return;
+                pc.onconnectionstatechange = () => {
+                    if (!pc || abort.signal.aborted) return;
+                    if (pc.connectionState === 'failed') setError('WebRTC connection failed');
+                    if (pc.connectionState === 'disconnected') setError('WebRTC disconnected');
+                };
 
-                player.attachMediaElement(video);
-                player.load();
-                player.play().catch((e: Error) => { if (!cancelled) setError(e.message); });
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                const answerSdp = await whepExchange(channel, offer.sdp ?? '', reloadKey, abort.signal);
+                if (abort.signal.aborted) return;
+
+                await pc.setRemoteDescription({type: 'answer', sdp: answerSdp});
             } catch (e) {
-                if (!cancelled) setError((e as Error).message ?? 'Failed to start preview');
+                if (abort.signal.aborted) return;
+                setError((e as Error).message ?? 'Failed to start preview');
             }
         })();
 
         return () => {
-            cancelled = true;
-            if (player) {
-                // mpegts.js throws if you call lifecycle methods out of
-                // order (e.g. destroy before unload). Wrap each so cleanup
-                // is always best-effort.
-                try { player.pause(); } catch { /* noop */ }
-                try { player.unload(); } catch { /* noop */ }
-                try { player.detachMediaElement(); } catch { /* noop */ }
-                try { player.destroy(); } catch { /* noop */ }
+            abort.abort();
+            if (pc) {
+                try { pc.getSenders().forEach((s) => s.track?.stop()); } catch { /* noop */ }
+                try { pc.close(); } catch { /* noop */ }
             }
+            const video = videoRef.current;
+            if (video) video.srcObject = null;
         };
     }, [live, channel, reloadKey]);
 
@@ -204,7 +196,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                             objectFit: 'contain',
                             // Hide the partially-rendered video element until
                             // the first frame arrives; the placeholder/spinner
-                            // covers the gap during encoder warm-up.
+                            // covers the gap during DTLS/ICE handshake.
                             visibility: live && loaded && !error ? 'visible' : 'hidden',
                         }}
                     />
@@ -250,7 +242,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                         >
                             <CircularProgress size={20} />
                             <Typography variant="caption" sx={{color: 'text.disabled'}}>
-                                Starting encoder…
+                                Negotiating…
                             </Typography>
                         </Stack>
                     )}
@@ -290,8 +282,8 @@ export const PreviewPanel: React.FC = () => {
                 <Stack spacing={0.5}>
                     <Typography variant="h3">Preview</Typography>
                     <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                        Low-latency MPEG-TS preview over WebSocket. Enabling spins up a per-client
-                        H.264 encoder on the channel — leave off when you don't need it.
+                        Low-latency H.264 over WebRTC. Enabling spins up a per-client encoder
+                        on the channel — leave off when you don&apos;t need it.
                     </Typography>
                 </Stack>
                 <Stack direction="row" gap={2} flexWrap="wrap">
