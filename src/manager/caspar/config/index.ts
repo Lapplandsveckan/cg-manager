@@ -14,9 +14,9 @@ function getDefaults() {
                 id: '1920x1080p6000',
                 width: 1920,
                 height: 1080,
-                timeScale: 6000,
+                timeScale: 60000,
                 duration: 1000,
-                cadence: 8000,
+                cadence: 800,
             },
         ],
         channels: [
