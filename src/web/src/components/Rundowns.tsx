@@ -22,10 +22,17 @@ export interface RundownEntry {
 export function useRundownEntries(rundown: string) {
     const conn = useSocket();
     const [entries, setEntries] = useState<RundownEntry[]>([]);
+    const [name, setName] = useState<string>('');
 
     useEffect(() => {
-        if (!rundown) return;
-        conn.rawRequest(`/api/rundown/${rundown}`, 'GET', {}).then(entries => setEntries(entries.data.items ?? []));
+        if (!rundown) {
+            setName('');
+            return;
+        }
+        conn.rawRequest(`/api/rundown/${rundown}`, 'GET', {}).then(res => {
+            setEntries(res.data?.items ?? []);
+            setName(res.data?.name ?? '');
+        });
 
         const updateListener = {
             path: 'rundown/entry',
@@ -101,16 +108,31 @@ export function useRundownEntries(rundown: string) {
             },
         };
 
+        // Mirror name changes broadcast on the rundown-level UPDATE so the
+        // displayed title stays in sync with renames from other clients.
+        const renameListener = {
+            path: 'rundown',
+            method: 'UPDATE',
+
+            handler: request => {
+                const data = request.getData();
+                if (!data || data.id !== rundown) return;
+                if (typeof data.name === 'string') setName(data.name);
+            },
+        };
+
         conn.routes.register(updateListener);
         conn.routes.register(deleteListener);
         conn.routes.register(createListener);
         conn.routes.register(orderListener);
+        conn.routes.register(renameListener);
 
         return () => {
             conn.routes.unregister(updateListener);
             conn.routes.unregister(deleteListener);
             conn.routes.unregister(createListener);
             conn.routes.unregister(orderListener);
+            conn.routes.unregister(renameListener);
         };
     }, [rundown]);
 
@@ -151,6 +173,7 @@ export function useRundownEntries(rundown: string) {
     };
 
     return {
+        name,
         entries,
 
         updateEntry,

@@ -15,6 +15,7 @@ export interface ColorEffectOptions {
 
     edgeblend?: Tuple<number, 7>;
     transform?: Tuple<number, 8>;
+    perspective?: Tuple<number, 8>;
 }
 
 export class ColorEffect extends Effect {
@@ -32,6 +33,7 @@ export class ColorEffect extends Effect {
     public activate() {
         if (!super.activate()) return;
         this.applyEdgeblend();
+        this.applyPerspective();
 
         const cmd = PlayCommand.color(this.options.color);
         cmd.allocate(this.layer);
@@ -58,6 +60,29 @@ export class ColorEffect extends Effect {
                     .allocate(layer),
             );
     }
+
+    /* eslint-disable camelcase */
+    protected applyPerspective() {
+        if (!this.active) return;
+        if (!this.options.perspective) return;
+
+        const p = this.options.perspective;
+        const perspective = {
+            top_left:     { x: p[0], y: p[1] },
+            top_right:    { x: p[2], y: p[3] },
+            bottom_right: { x: p[4], y: p[5] },
+            bottom_left:  { x: p[6], y: p[7] },
+        };
+
+        for (const layer of this.layers)
+            this.executor.execute(
+                MixerCommand
+                    .create()
+                    .perspective(perspective)
+                    .allocate(layer),
+            );
+    }
+    /* eslint-enable camelcase */
 
     public deactivate() {
         if (!super.deactivate()) return;

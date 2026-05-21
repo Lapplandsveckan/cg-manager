@@ -48,6 +48,10 @@ interface VideoRoute {
 
     transform?: number[];
     edgeblend?: number[];
+    /** Eight numbers — quad corners in TL, TR, BR, BL order
+     *  (`[tlX, tlY, trX, trY, brX, brY, blX, blY]`). Forwarded to CasparCG's
+     *  MIXER PERSPECTIVE for non-affine warps. */
+    perspective?: number[];
 
     source: Source;
     destination: Destination;
@@ -223,9 +227,9 @@ export class VideoRoutesManager {
     }
 
     private getSource(src: Source, group: EffectGroup, route: VideoRoute): Effect {
-        const { transform, edgeblend } = route;
+        const { transform, edgeblend, perspective } = route;
         const {type, ...data} = src;
-        const options = {transform, edgeblend, ...data};
+        const options = {transform, edgeblend, perspective, ...data};
 
         if (type === 'decklink') return this.manager.effects.create('decklink', group, options);
         if (type === 'video') return this.manager.effects.create('video', group, options);
@@ -235,10 +239,12 @@ export class VideoRoutesManager {
             const channel = this.executor.getChannel((data as ChannelSource).channel);
             if (!channel) {
                 Logger.warn(`Channel not found: ${(data as ChannelSource).channel}`);
-                return this.manager.effects.create('color', group, {color: 'black', transform, edgeblend});
+                return this.manager.effects.create('color', group, {
+                    color: 'black', transform, edgeblend, perspective,
+                });
             }
 
-            return this.manager.effects.create('route', group, {channel, edgeblend, transform});
+            return this.manager.effects.create('route', group, {channel, edgeblend, transform, perspective});
         }
 
         Logger.warn(`Unknown source type: ${type}`);

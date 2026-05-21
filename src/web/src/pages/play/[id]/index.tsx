@@ -142,6 +142,7 @@ const Page = () => {
     const conn = useSocket();
     const router = useRouter();
     const {
+        name,
         entries,
         updateEntry,
         deleteEntry,
@@ -190,8 +191,16 @@ const Page = () => {
                     sx={{ flexShrink: 0 }}
                 >
                     <Stack spacing={1}>
-                        <Stack direction="row" alignItems="center" gap={2}>
+                        <Stack direction="row" alignItems="baseline" gap={2} flexWrap="wrap">
                             <Typography variant="h1">{locked ? 'Edit rundown' : 'Play rundown'}</Typography>
+                            {name && (
+                                <Typography
+                                    variant="h3"
+                                    sx={{ color: 'text.secondary', wordBreak: 'break-word' }}
+                                >
+                                    {name}
+                                </Typography>
+                            )}
                             {!locked && <LiveIndicator />}
                         </Stack>
                         <Typography variant="body1" sx={{ color: 'text.secondary' }}>

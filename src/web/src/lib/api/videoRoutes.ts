@@ -36,6 +36,10 @@ export interface VideoRoute {
 
     transform?: number[];
     edgeblend?: number[];
+    /** Quad corners in TL, TR, BR, BL order
+     *  (`[tlX, tlY, trX, trY, brX, brY, blX, blY]`) — applied via CasparCG's
+     *  MIXER PERSPECTIVE for non-affine warps. */
+    perspective?: number[];
 
     source: VideoRouteSource;
     destination: VideoRouteDestination;
@@ -63,6 +67,17 @@ export class VideoRoutesApi {
 
     public async delete(id: string): Promise<void> {
         await this.socket.request(`api/routes/${encodeURIComponent(id)}`, 'DELETE', {});
+    }
+
+    /** Patch one or more fields on a route. The server merges the patch over
+     *  the existing route, re-creates its effect, and persists to disk. */
+    public async update(id: string, patch: Partial<VideoRoute>): Promise<VideoRoute> {
+        const res = await this.socket.request(
+            `api/routes/${encodeURIComponent(id)}`,
+            'UPDATE',
+            patch,
+        );
+        return res.data as VideoRoute;
     }
 
     public async setEnabled(id: string, enabled: boolean): Promise<VideoRoute> {

@@ -1,6 +1,7 @@
 import {Box, Button, Card, Grid, IconButton, Modal, Stack, Tooltip, Typography, alpha} from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
+import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import {useSocket} from '../lib/hooks/useSocket';
 import React, {useEffect, useMemo, useState} from 'react';
 import {MediaDoc} from '../lib/api/caspar';
@@ -171,8 +172,75 @@ interface MediaSelectProps {
     onClipSelect: (clip: MediaDoc) => void;
 }
 
+const MediaSelectCrumb: React.FC<{
+    label: React.ReactNode;
+    onClick: () => void;
+    active?: boolean;
+}> = ({ label, onClick, active }) => (
+    <Box
+        component="button"
+        onClick={onClick}
+        sx={(theme) => ({
+            appearance: 'none',
+            background: 'transparent',
+            border: 'none',
+            padding: '4px 8px',
+            borderRadius: 1,
+            cursor: 'pointer',
+            color: active ? theme.palette.text.primary : theme.palette.text.secondary,
+            fontWeight: active ? 600 : 400,
+            fontSize: '0.8125rem',
+            lineHeight: 1.4,
+            display: 'inline-flex',
+            alignItems: 'center',
+            '&:hover': {
+                bgcolor: alpha(theme.palette.primary.main, 0.08),
+                color: theme.palette.text.primary,
+            },
+        })}
+    >
+        {label}
+    </Box>
+);
+
+interface MediaSelectBreadcrumbProps {
+    path: string;
+    onNavigate: (next: string) => void;
+}
+
+const MediaSelectBreadcrumb: React.FC<MediaSelectBreadcrumbProps> = ({ path, onNavigate }) => {
+    const segments = path.split('/').filter(Boolean);
+    return (
+        <Stack direction="row" alignItems="center" gap={0.25} flexWrap="wrap">
+            <MediaSelectCrumb
+                label={<HomeRoundedIcon fontSize="small" sx={{ display: 'block' }} />}
+                onClick={() => onNavigate('')}
+                active={segments.length === 0}
+            />
+            {segments.map((segment, index) => (
+                <React.Fragment key={index}>
+                    <Typography variant="caption" sx={{ color: 'text.disabled' }}>/</Typography>
+                    <MediaSelectCrumb
+                        label={segment}
+                        onClick={() => onNavigate(`${segments.slice(0, index + 1).join('/')}/`)}
+                        active={index === segments.length - 1}
+                    />
+                </React.Fragment>
+            ))}
+        </Stack>
+    );
+};
+
 export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) => {
     const [open, setOpen] = useState<boolean>(false);
+    const [path, setPath] = useState<string>('');
+
+    // Reset the folder navigation each time the modal reopens so picking again
+    // doesn't drop the user wherever they last browsed.
+    useEffect(() => {
+        if (!open) setPath('');
+    }, [open]);
+
     const data = useMemo(() => {
         if (!clip || !clip.id) return null;
 
@@ -272,11 +340,28 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                         </Tooltip>
                     </Stack>
 
+                    <Box
+                        sx={(theme) => ({
+                            px: 3,
+                            py: 1,
+                            borderBottom: `1px solid ${theme.palette.divider}`,
+                            flexShrink: 0,
+                        })}
+                    >
+                        <MediaSelectBreadcrumb path={path} onNavigate={setPath} />
+                    </Box>
+
                     <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3 }}>
-                        <MediaView columns={4} onClipSelect={clip => {
-                            setOpen(false);
-                            onClipSelect?.(clip);
-                        }} />
+                        <MediaView
+                            columns={4}
+                            prefix={path}
+                            showAsDirectories
+                            onNavigate={folder => setPath(`${path}${folder}/`)}
+                            onClipSelect={clip => {
+                                setOpen(false);
+                                onClipSelect?.(clip);
+                            }}
+                        />
                     </Box>
                 </Card>
             </Modal>
