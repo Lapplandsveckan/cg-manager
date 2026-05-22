@@ -7,6 +7,7 @@ import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import React, {useEffect, useRef, useState} from 'react';
 import {useSocket} from '../lib';
 import {RundownItemDragPayload, hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
+import {useDragAutoScroll} from '../lib/hooks/useDragAutoScroll';
 
 export {EditIndicator, LiveIndicator, LockToggle} from './RundownChrome';
 export const RUNDOWN_REORDER_MIME = 'application/x-cg-rundown-reorder';
@@ -405,6 +406,12 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
     const acceptsDrop = Boolean(onDropItem);
     const acceptsReorder = Boolean(onReorder);
 
+    // Edge-scroll while dragging — the Stack is the scrollable container
+    // and the dropzone, so pointer position relative to it is what the
+    // auto-scroll logic needs.
+    const stackRef = useRef<HTMLDivElement>(null);
+    useDragAutoScroll(stackRef);
+
     const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
         if (acceptsDrop && hasRundownItemPayload(e.dataTransfer)) {
             e.preventDefault();
@@ -518,6 +525,7 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
 
     return (
         <Stack
+            ref={stackRef}
             spacing={1.5}
             className="no-scrollbar"
             onDragOver={onDragOver}

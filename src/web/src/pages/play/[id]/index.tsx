@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import {useDragAutoScroll} from '../../../lib/hooks/useDragAutoScroll';
 import {Box, Stack, Tooltip, Typography} from '@mui/material';
 import {DefaultContentLayout} from '../../../components/DefaultContentLayout';
 import {useSocket} from '../../../lib/hooks/useSocket';
@@ -155,6 +156,11 @@ const Page = () => {
     const [locked, setLocked] = useState(true);
 
     const [widths, setWidth] = useColumnWidths();
+
+    // Auto-scroll the side-injection column while a drag is in progress.
+    // The two left columns scroll via Rundowns' own ref-driven hook.
+    const sideColumnRef = useRef<HTMLDivElement>(null);
+    useDragAutoScroll(sideColumnRef);
 
     // When the user drops a payload onto a specific spot in the list we
     // remember the target index here so that whenever the editor modal saves
@@ -320,6 +326,7 @@ const Page = () => {
                         }}
                     >
                         <Box
+                            ref={sideColumnRef}
                             className="no-scrollbar"
                             sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
                         >
