@@ -49,9 +49,10 @@ export const DefaultContentLayout = (props: { children: React.ReactNode }) => {
             justifyContent="start"
             sx={(theme) => ({
                 width: '100%',
-                // Fixed viewport height: the Navbar stays pinned while the
-                // content Box scrolls internally.
-                height: '100vh',
+                // Fill the parent column (under any banner mounted by _app):
+                // Navbar stays pinned, content Box scrolls internally.
+                flex: 1,
+                minHeight: 0,
                 bgcolor: theme.palette.background.default,
             })}
         >

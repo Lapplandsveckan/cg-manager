@@ -3,6 +3,7 @@ import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import {useVersion} from '../lib/hooks/useVersion';
 import {useSocket} from '../lib/hooks/useSocket';
+import {useConnection} from './ConnectionProvider';
 import {CasparStatus} from '../lib/api/caspar';
 import {OverridableComponent} from '@mui/material/OverridableComponent';
 import {useRouter} from 'next/router';
@@ -88,6 +89,7 @@ interface StatusInfo {
 
 function useCasparStatus(): StatusInfo {
     const socket = useSocket();
+    const {state: connectionState} = useConnection();
     const [running, setRunning] = useState<boolean | null>(null);
 
     useEffect(() => {
@@ -97,6 +99,14 @@ function useCasparStatus(): StatusInfo {
         socket.caspar.getStatus().then(listener).catch(() => setRunning(null));
         return () => { socket.caspar.off('status', listener); };
     }, [socket]);
+
+    // The websocket retains its last broadcast; once we know the manager is
+    // unreachable, the cached running flag is stale and would otherwise keep
+    // showing a green/red dot from before the outage. Surface as "Unreachable"
+    // until heartbeats recover.
+    if (connectionState === 'disconnected') 
+        return { color: 'rgba(232, 234, 237, 0.3)', label: 'Unreachable', glow: false };
+    
 
     if (running === true) return { color: '#5fc97a', label: 'Running',   glow: true };
     if (running === false) return { color: '#cf5b4a', label: 'Stopped',   glow: false };
