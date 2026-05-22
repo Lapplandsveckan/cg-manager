@@ -1,6 +1,10 @@
 import * as xml2js from 'xml2js';
-import {Config} from './types';
+import {Config, LogLevel} from './types';
 import {transforms} from './transforms';
+
+const LOG_LEVELS: ReadonlySet<LogLevel> = new Set<LogLevel>([
+    'trace', 'debug', 'info', 'warning', 'error', 'fatal',
+]);
 
 export class ConfigParser {
     private config: string | null;
@@ -58,6 +62,10 @@ export class ConfigParser {
         const config: Partial<Config> = {};
         const header = this.header;
         if (header) config.version = header.version;
+
+        const rawLogLevel = xml.configuration['log-level']?.[0];
+        if (typeof rawLogLevel === 'string' && LOG_LEVELS.has(rawLogLevel as LogLevel))
+            config.logLevel = rawLogLevel as LogLevel;
 
         if (xml.configuration.html?.[0]) {
             const html = xml.configuration.html[0];

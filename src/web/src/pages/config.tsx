@@ -5,6 +5,7 @@ import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {useSocket} from '../lib/hooks/useSocket';
 import {CasparConfig} from '../lib/api/caspar';
 import {HtmlEditor} from '../components/config/HtmlEditor';
+import {LoggingEditor} from '../components/config/LoggingEditor';
 import {VideoModesEditor} from '../components/config/VideoModesEditor';
 import {ChannelEditor} from '../components/config/ChannelEditor';
 import {ConsumerModal} from '../components/config/ConsumerModal';
@@ -175,6 +176,11 @@ const Page = () => {
 
                 {draft && (
                     <>
+                        <LoggingEditor
+                            logLevel={draft.logLevel}
+                            onChange={(logLevel) => updateDraft({logLevel})}
+                        />
+
                         <HtmlEditor html={draft.html} onChange={(html) => updateDraft({html})} />
 
                         <VideoModesEditor

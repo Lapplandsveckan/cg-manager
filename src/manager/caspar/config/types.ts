@@ -34,10 +34,13 @@ export interface ConfigVideoMode {
     cadence: number;
 }
 
+export type LogLevel = 'trace' | 'debug' | 'info' | 'warning' | 'error' | 'fatal';
+
 export interface Config {
     version: string;
     videoModes: ConfigVideoMode[];
     channels: ConfigChannel[];
+    logLevel?: LogLevel;
     html?: {
         remoteDebuggingPort?: number;
         enableGpu?: boolean;

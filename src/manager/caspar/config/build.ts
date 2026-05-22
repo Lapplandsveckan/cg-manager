@@ -42,7 +42,7 @@ export class ConfigBuilder {
     private buildConfig() {
         return {
             configuration: {
-                'log-level': 'trace',
+                'log-level': this.config.logLevel ?? 'trace',
                 paths: {
                     'media-path': 'media/',
                     'log-path': 'log/',
