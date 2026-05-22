@@ -378,6 +378,7 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                 value={geometry}
                 canvasWidth={canvasSize.width}
                 canvasHeight={canvasSize.height}
+                previewChannel={Number(destination.channel) || null}
                 onClose={() => setGeometryOpen(false)}
                 onSave={(v) => setGeometry(v)}
             />

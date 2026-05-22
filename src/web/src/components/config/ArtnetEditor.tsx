@@ -7,8 +7,10 @@ import {
     Button,
     Card,
     Chip,
+    FormControlLabel,
     IconButton,
     Stack,
+    Switch,
     TextField,
     Tooltip,
     Typography,
@@ -17,6 +19,7 @@ import {
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import {useStoredBoolean} from '../../lib/hooks/useStoredBoolean';
 import {ArtnetCanvas, Fixture} from './ArtnetCanvas';
 import {ARTNET_SCALAR_FIELDS, Fields, FieldDef, RecordData, ScalarField} from './fields';
 
@@ -29,8 +32,12 @@ interface ArtnetEditorProps {
     data: ArtnetData;
     canvasWidth: number;
     canvasHeight: number;
+    /** 1-based CG channel to stream as the stage backdrop. Falsy disables. */
+    previewChannel?: number | null;
     onChange: (data: ArtnetData) => void;
 }
+
+const PREVIEW_PREF_KEY = 'artnet-editor-preview';
 
 const newFixture = (canvasWidth: number, canvasHeight: number): Fixture => ({
     type: 'RGB',
@@ -51,9 +58,12 @@ const fixtureSummary = (fixture: Fixture, index: number): string => {
     return `${index + 1}. ${type} × ${count} · DMX ${start}`;
 };
 
-export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({data, canvasWidth, canvasHeight, onChange}) => {
+export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
+    data, canvasWidth, canvasHeight, previewChannel, onChange,
+}) => {
     const fixtures = data.fixtures ?? [];
     const [selected, setSelected] = useState<number | null>(null);
+    const [showPreview, setShowPreview] = useStoredBoolean(PREVIEW_PREF_KEY, false);
 
     const updateData = (key: string, value: any) => onChange({...data, [key]: value});
 
@@ -97,14 +107,33 @@ export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({data, canvasWidth, ca
             </Card>
 
             <Stack direction={{xs: 'column', lg: 'row'}} gap={3} alignItems="flex-start">
-                <ArtnetCanvas
-                    fixtures={fixtures}
-                    canvasWidth={canvasWidth}
-                    canvasHeight={canvasHeight}
-                    selectedIndex={selected}
-                    onSelect={setSelected}
-                    onChange={updateFixtures}
-                />
+                <Stack spacing={1} sx={{minWidth: 0, flex: 1}}>
+                    {previewChannel != null && (
+                        <Stack direction="row" justifyContent="flex-end">
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        size="small"
+                                        checked={showPreview}
+                                        onChange={(e) => setShowPreview(e.target.checked)}
+                                    />
+                                }
+                                label={<Typography variant="caption">Live preview · ch {previewChannel}</Typography>}
+                                labelPlacement="start"
+                                sx={{m: 0, '& .MuiFormControlLabel-label': {color: 'text.secondary'}}}
+                            />
+                        </Stack>
+                    )}
+                    <ArtnetCanvas
+                        fixtures={fixtures}
+                        canvasWidth={canvasWidth}
+                        canvasHeight={canvasHeight}
+                        selectedIndex={selected}
+                        onSelect={setSelected}
+                        onChange={updateFixtures}
+                        previewChannel={showPreview ? previewChannel : null}
+                    />
+                </Stack>
 
                 <Stack spacing={2} sx={{width: {xs: '100%', lg: 480}, flexShrink: 0}}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">

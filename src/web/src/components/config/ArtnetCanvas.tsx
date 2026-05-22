@@ -1,5 +1,6 @@
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {Box, Stack, Typography, alpha} from '@mui/material';
+import {ChannelPreview} from '../ChannelPreview';
 
 export interface Fixture {
     type?: string;
@@ -20,6 +21,9 @@ interface ArtnetCanvasProps {
     selectedIndex: number | null;
     onSelect: (index: number | null) => void;
     onChange: (fixtures: Fixture[]) => void;
+    /** When set, stream this 1-based CG channel as the stage backdrop in
+     *  place of the dark gradient. Fixtures render on top. */
+    previewChannel?: number | null;
 }
 
 type Handle = 'move' | 'tl' | 'tr' | 'br' | 'bl';
@@ -261,6 +265,7 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
     selectedIndex,
     onSelect,
     onChange,
+    previewChannel,
 }) => {
     const stageRef = useRef<HTMLDivElement | null>(null);
     const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -356,6 +361,7 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
                     flexShrink: 0,
                 })}
             >
+                {previewChannel != null && <ChannelPreview channel={previewChannel} objectFit="cover" />}
                 {fixtures.map((fixture, i) => (
                     <FixtureView
                         key={i}

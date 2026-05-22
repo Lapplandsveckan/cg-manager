@@ -1,5 +1,6 @@
 import React, {useLayoutEffect, useRef, useState} from 'react';
 import {Box, Stack, Typography} from '@mui/material';
+import {ChannelPreview} from '../ChannelPreview';
 
 interface GeometryStageProps {
     canvasWidth: number;
@@ -8,13 +9,18 @@ interface GeometryStageProps {
      *  on-screen pixels. Stage size in pixels is also passed so handle layers
      *  can place absolute-positioned children directly. */
     children: (ctx: {scale: number; width: number; height: number}) => React.ReactNode;
+    /** When set, stream this 1-based CG channel as the stage backdrop in
+     *  place of the dark gradient. The handles overlay on top. */
+    previewChannel?: number | null;
 }
 
 /** Aspect-correct stage canvas that sizes itself to the parent's width up to
  *  a sensible cap. Used by the geometry editor to host position / perspective
  *  / edge-blend handles on a backdrop matched to the destination channel's
  *  output resolution. */
-export const GeometryStage: React.FC<GeometryStageProps> = ({canvasWidth, canvasHeight, children}) => {
+export const GeometryStage: React.FC<GeometryStageProps> = ({
+    canvasWidth, canvasHeight, children, previewChannel,
+}) => {
     const wrapperRef = useRef<HTMLDivElement | null>(null);
     const [scale, setScale] = useState(1);
 
@@ -64,6 +70,7 @@ export const GeometryStage: React.FC<GeometryStageProps> = ({canvasWidth, canvas
                     flexShrink: 0,
                 })}
             >
+                {previewChannel != null && <ChannelPreview channel={previewChannel} objectFit="cover" />}
                 {/* Subtle quarter/half guides so the user has something to
                     align against without competing with the handles. */}
                 <Box

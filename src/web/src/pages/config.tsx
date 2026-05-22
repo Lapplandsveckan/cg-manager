@@ -255,6 +255,9 @@ const Page = () => {
                 newType={editingConsumer?.newType}
                 canvasWidth={canvasSize.width}
                 canvasHeight={canvasSize.height}
+                previewChannel={
+                    editingConsumer !== null ? editingConsumer.channelIndex + 1 : null
+                }
                 onClose={() => setEditingConsumer(null)}
                 onSave={consumerSave}
                 onDelete={editingExistingConsumer ? consumerDelete : undefined}

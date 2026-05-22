@@ -2,7 +2,9 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Box, IconButton, Stack, Tab, Tabs, Tooltip, Typography} from '@mui/material';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import {noTry} from 'no-try';
 import {useSocket} from '../lib/hooks/useSocket';
+import {useStoredBoolean} from '../lib/hooks/useStoredBoolean';
 import {Injection, Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 
 const DEFAULT_HEIGHT = 280;
@@ -90,38 +92,14 @@ function useStoredNumber(key: string, fallback: number, clamp: (n: number) => nu
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        try {
-            const raw = window.localStorage.getItem(key);
-            if (raw) setValue(clamp(Number(raw)));
-        } catch { /* ignore */ }
+        const [, raw] = noTry(() => window.localStorage.getItem(key));
+        if (raw) setValue(clamp(Number(raw)));
     }, [key, clamp]);
 
     const update = (n: number) => {
         const clamped = clamp(n);
         setValue(clamped);
-        try {
-            window.localStorage.setItem(key, String(clamped));
-        } catch { /* ignore */ }
-    };
-
-    return [value, update];
-}
-
-function useStoredBoolean(key: string, fallback: boolean): [boolean, (b: boolean) => void] {
-    const [value, setValue] = useState(fallback);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        try {
-            const raw = window.localStorage.getItem(key);
-            if (raw === '1') setValue(true);
-            else if (raw === '0') setValue(false);
-        } catch { /* ignore */ }
-    }, [key]);
-
-    const update = (next: boolean) => {
-        setValue(next);
-        try { window.localStorage.setItem(key, next ? '1' : '0'); } catch { /* ignore */ }
+        noTry(() => window.localStorage.setItem(key, String(clamped)));
     };
 
     return [value, update];

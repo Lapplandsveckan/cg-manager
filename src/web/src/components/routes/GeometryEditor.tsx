@@ -3,14 +3,17 @@ import {
     Box,
     Button,
     Card,
+    FormControlLabel,
     Modal,
     Slider,
     Stack,
+    Switch,
     Tab,
     Tabs,
     TextField,
     Typography,
 } from '@mui/material';
+import {useStoredBoolean} from '../../lib/hooks/useStoredBoolean';
 import {GeometryStage} from './GeometryStage';
 import {
     EdgeBlendHandles,
@@ -37,6 +40,9 @@ interface GeometryEditorProps {
     value: GeometryValues;
     canvasWidth: number;
     canvasHeight: number;
+    /** 1-based CG channel to stream as the stage backdrop while editing.
+     *  Falsy disables the toggle. */
+    previewChannel?: number | null;
     onClose: () => void;
     onSave: (value: GeometryValues) => void;
 }
@@ -96,16 +102,20 @@ function isZeroInsets(i: EdgeBlendInsets): boolean {
 
 type Tabkey = 'position' | 'perspective' | 'edgeblend';
 
+const PREVIEW_PREF_KEY = 'geometry-editor-preview';
+
 export const GeometryEditor: React.FC<GeometryEditorProps> = ({
     open,
     value,
     canvasWidth,
     canvasHeight,
+    previewChannel,
     onClose,
     onSave,
 }) => {
     const stageRef = useRef<HTMLDivElement | null>(null);
     const [tab, setTab] = useState<Tabkey>('position');
+    const [showPreview, setShowPreview] = useStoredBoolean(PREVIEW_PREF_KEY, false);
 
     const [destRect, setDestRect] = useState<NormRect>(IDENTITY_RECT);
     const [srcRect, setSrcRect] = useState<NormRect>(IDENTITY_RECT);
@@ -172,9 +182,25 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
                                     changes on the destination channel.
                                 </Typography>
                             </Stack>
-                            <Typography variant="caption" sx={{color: 'text.disabled', fontFamily: 'monospace'}}>
-                                {canvasWidth}×{canvasHeight}
-                            </Typography>
+                            <Stack direction="row" alignItems="center" gap={2}>
+                                {previewChannel != null && (
+                                    <FormControlLabel
+                                        control={
+                                            <Switch
+                                                size="small"
+                                                checked={showPreview}
+                                                onChange={(e) => setShowPreview(e.target.checked)}
+                                            />
+                                        }
+                                        label={<Typography variant="caption">Live preview · ch {previewChannel}</Typography>}
+                                        labelPlacement="start"
+                                        sx={{m: 0, '& .MuiFormControlLabel-label': {color: 'text.secondary'}}}
+                                    />
+                                )}
+                                <Typography variant="caption" sx={{color: 'text.disabled', fontFamily: 'monospace'}}>
+                                    {canvasWidth}×{canvasHeight}
+                                </Typography>
+                            </Stack>
                         </Stack>
 
                         <Tabs value={tab} onChange={(_, v) => setTab(v as Tabkey)}>
@@ -184,7 +210,11 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
                         </Tabs>
 
                         <Box ref={stageRef} sx={{position: 'relative'}}>
-                            <GeometryStage canvasWidth={canvasWidth} canvasHeight={canvasHeight}>
+                            <GeometryStage
+                                canvasWidth={canvasWidth}
+                                canvasHeight={canvasHeight}
+                                previewChannel={showPreview ? previewChannel : null}
+                            >
                                 {({width, height}) => (
                                     <StageContent
                                         tab={tab}

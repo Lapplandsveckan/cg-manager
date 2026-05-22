@@ -21,6 +21,9 @@ interface ConsumerModalProps {
     newType?: ConsumerType;
     canvasWidth: number;
     canvasHeight: number;
+    /** 1-based CG channel this consumer lives on; used by the Artnet editor's
+     *  optional live-preview backdrop. */
+    previewChannel?: number | null;
     onClose: () => void;
     onSave: (consumer: Consumer) => void;
     onDelete?: () => void;
@@ -35,6 +38,7 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
     newType,
     canvasWidth,
     canvasHeight,
+    previewChannel,
     onClose,
     onSave,
     onDelete,
@@ -114,6 +118,7 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
                                 data={data}
                                 canvasWidth={canvasWidth}
                                 canvasHeight={canvasHeight}
+                                previewChannel={previewChannel}
                                 onChange={(next) => setData(next)}
                             />
                         ) : (
