@@ -218,9 +218,11 @@ const Page = () => {
                     sx={{
                         flex: 1,
                         minHeight: 0,
+                        // Horizontal scroll for narrow viewports; vertical
+                        // scrolling lives inside each column so they don't
+                        // share a single scroll state.
                         overflowX: 'auto',
-                        overflowY: 'auto',
-                        pb: 1,
+                        overflowY: 'hidden',
                         // Small left/right insets so the drop-zone outline
                         // (outlineOffset: 4) on the edge columns isn't clipped
                         // by the row's overflow.
@@ -284,8 +286,19 @@ const Page = () => {
                         onReset={() => setWidth(1, COLUMN_DEFAULTS[1])}
                     />
 
-                    <Box sx={{ width: widths[2], flexShrink: 0 }}>
-                        <Injections zone={UI_INJECTION_ZONE.RUNDOWN_SIDE} />
+                    <Box
+                        sx={{
+                            width: widths[2],
+                            flexShrink: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minHeight: 0,
+                        }}
+                    >
+                        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                            <Injections zone={UI_INJECTION_ZONE.RUNDOWN_SIDE} />
+                            <Box aria-hidden sx={{ height: 'calc(100% - 80px)' }} />
+                        </Box>
                     </Box>
                 </Stack>
 

@@ -526,6 +526,9 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                 position: 'relative',
                 flex: 1,
                 minHeight: 0,
+                // Each column scrolls on its own — the page has overflowY
+                // disabled at the row level so this Stack owns the scroll.
+                overflowY: 'auto',
                 borderRadius: 1.5,
                 outline: dragOver
                     ? `2px dashed ${alpha(theme.palette.primary.main, 0.6)}`
@@ -585,6 +588,19 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
             >
                 Add item
             </Button>
+
+            {/* Trailing slack inside the dropzone so the last item ends near
+                the top after a full scroll, leaving room to drop more. The
+                `%` resolves against the Stack's visible content box (it's the
+                overflow:auto element), so this scales with the column. */}
+            <Box
+                aria-hidden
+                sx={{
+                    flexShrink: 0,
+                    height: 'calc(100% - 80px)',
+                    minHeight: 80,
+                }}
+            />
         </Stack>
     );
 };
