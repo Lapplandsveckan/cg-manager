@@ -1,63 +1,139 @@
-import Bonjour from 'bonjour-service';
+import dgram from 'dgram';
+import os from 'os';
 import config from '../util/config';
 import {Logger} from '../util/log';
+import {noTry} from 'no-try';
 
-const PUBLISH_TIMEOUT_MS = 5000;
+/**
+ * LAN discovery beacon. Periodically broadcasts a JSON announcement so
+ * clients on the same subnet can find the manager without DNS / mDNS.
+ *
+ * Replaces a previous Bonjour/mDNS-based scheme that was fragile across
+ * operating systems and firewalls. UDP broadcast is far simpler and gives
+ * us full control over the payload shape.
+ *
+ * Wire format: one JSON object per UDP datagram, sent every
+ * `BEACON_INTERVAL_MS` ms. Clients should bind to UDP `BEACON_PORT` and
+ * parse incoming datagrams. The `id` is regenerated on every manager
+ * start, so a client can tell that the manager restarted.
+ */
+const BEACON_PORT = 5354;
+const BEACON_INTERVAL_MS = 2000;
+const BEACON_TYPE = 'cg-manager';
+
+const logger = Logger.scope('Discovery');
+
+interface BeaconPayload {
+    type: typeof BEACON_TYPE;
+    id: string;
+    name: string;
+    port: number;
+    version: string;
+    t: number;
+}
+
+function readVersion(): string {
+    const [, pkg] = noTry(() => require('../../package.json'));
+    return (pkg as {version?: string} | undefined)?.version ?? '0.0.0';
+}
+
+/** Compute the broadcast address for a given IPv4 + netmask. e.g. for
+ *  192.168.1.10 / 255.255.255.0 returns 192.168.1.255. */
+function broadcastAddress(ip: string, netmask: string): string | null {
+    const [ipErr, ipParts] = noTry(() => ip.split('.').map((p) => {
+        const n = Number(p);
+        if (!Number.isInteger(n) || n < 0 || n > 255) throw new Error('bad octet');
+        return n;
+    }));
+    const [maskErr, maskParts] = noTry(() => netmask.split('.').map((p) => {
+        const n = Number(p);
+        if (!Number.isInteger(n) || n < 0 || n > 255) throw new Error('bad octet');
+        return n;
+    }));
+    if (ipErr || maskErr || ipParts.length !== 4 || maskParts.length !== 4) return null;
+    return ipParts.map((p, i) => (p | (~maskParts[i] & 0xff))).join('.');
+}
+
+/** Collect a deduplicated set of broadcast targets. Always includes
+ *  255.255.255.255 (limited broadcast). Adds each non-internal IPv4
+ *  interface's subnet broadcast so multi-homed hosts (VPN + LAN, etc.)
+ *  reach every connected subnet. */
+function broadcastTargets(): string[] {
+    const targets = new Set<string>(['255.255.255.255']);
+    for (const list of Object.values(os.networkInterfaces())) {
+        if (!list) continue;
+        for (const iface of list) {
+            if (iface.family !== 'IPv4' || iface.internal) continue;
+            const addr = broadcastAddress(iface.address, iface.netmask);
+            if (addr) targets.add(addr);
+        }
+    }
+    return [...targets];
+}
 
 export class Discovery {
-    private instance: Bonjour;
-    constructor() {
-        this.instance = new Bonjour();
-    }
+    private socket: dgram.Socket | null = null;
+    private timer: NodeJS.Timeout | null = null;
+    private readonly id = Math.random().toString(36).substring(2, 10);
+    private readonly version = readVersion();
 
-    start() {
-        return new Promise<void>((resolve) => {
-            const id = Math.random().toString(36).substring(7);
+    async start(): Promise<void> {
+        const socket = dgram.createSocket({type: 'udp4', reuseAddr: true});
 
-            // Use a unique per-instance host name. bonjour-service defaults to
-            // `os.hostname() + '.local'` for the A/AAAA records it advertises,
-            // which collides with the OS's own mDNS responder publishing the
-            // same name — on macOS that surfaces as the "your computer's name
-            // is already in use" notification. Overriding `host` keeps our
-            // records on a name only we own, so the system responder is left
-            // alone.
-            let service;
-            try {
-                service = this.instance.publish({
-                    name: `CG Manager (${id})`,
-                    type: 'cg-manager',
-                    port: config.port,
-                    host: `cg-manager-${id}.local`,
-                });
-            } catch (err) {
-                Logger.warn(`Bonjour publish threw: ${err}; continuing without mDNS.`);
-                resolve();
-                return;
-            }
-
-            let settled = false;
-            const finish = (err?: unknown) => {
-                if (settled) return;
-                settled = true;
-
-                clearTimeout(timer);
-                if (err) Logger.warn(`Bonjour discovery failed to publish: ${err}; continuing without mDNS.`);
-
-                resolve();
-            };
-
-            service.on('up', () => finish());
-            service.on('error', (err: unknown) => finish(err));
-            const timer = setTimeout(() => finish(new Error(`timed out after ${PUBLISH_TIMEOUT_MS}ms`)), PUBLISH_TIMEOUT_MS);
-        });
-    }
-
-    stop() {
-        return new Promise<void>((resolve) => {
-            this.instance.unpublishAll(() => {
-                this.instance.destroy();
+        await new Promise<void>((resolve, reject) => {
+            socket.once('error', reject);
+            // Bind to an ephemeral port — we're the sender, not a listener.
+            // Without bind(), `setBroadcast` would still need an open
+            // descriptor; this also lets us hear back if we ever want
+            // a query/response variant later.
+            socket.bind(0, () => {
+                socket.removeListener('error', reject);
+                socket.setBroadcast(true);
                 resolve();
             });
         });
+
+        socket.on('error', (err) => logger.warn(`beacon socket error: ${err.message}`));
+        this.socket = socket;
+
+        // Emit a beacon immediately so a client launched at roughly the
+        // same moment doesn't wait a full interval to see us.
+        this.broadcast();
+        this.timer = setInterval(() => this.broadcast(), BEACON_INTERVAL_MS);
+
+        logger.info(`Broadcasting beacon on UDP :${BEACON_PORT} every ${BEACON_INTERVAL_MS}ms`);
+    }
+
+    async stop(): Promise<void> {
+        if (this.timer) clearInterval(this.timer);
+        this.timer = null;
+
+        const socket = this.socket;
+        this.socket = null;
+        if (!socket) return;
+
+        await new Promise<void>((resolve) => socket.close(() => resolve()));
+    }
+
+    private broadcast() {
+        const socket = this.socket;
+        if (!socket) return;
+
+        const payload: BeaconPayload = {
+            type: BEACON_TYPE,
+            id: this.id,
+            name: os.hostname(),
+            port: config.port,
+            version: this.version,
+            t: Date.now(),
+        };
+        const buf = Buffer.from(JSON.stringify(payload), 'utf8');
+
+        for (const target of broadcastTargets()) {
+            const [err] = noTry(() => socket.send(buf, BEACON_PORT, target));
+            // ENETUNREACH on a transient interface (VPN dropping etc.) is
+            // expected; log at debug so we don't spam during reconnects.
+            if (err) logger.debug(`beacon send to ${target} failed: ${err.message}`);
+        }
     }
 }
