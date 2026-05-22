@@ -295,9 +295,15 @@ const Page = () => {
                             minHeight: 0,
                         }}
                     >
-                        <Box sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                        <Box
+                            className="no-scrollbar"
+                            sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
+                        >
                             <Injections zone={UI_INJECTION_ZONE.RUNDOWN_SIDE} />
-                            <Box aria-hidden sx={{ height: 'calc(100% - 80px)' }} />
+                            <Box
+                                aria-hidden
+                                sx={{ height: 'calc(100% - 200px)', minHeight: 120 }}
+                            />
                         </Box>
                     </Box>
                 </Stack>

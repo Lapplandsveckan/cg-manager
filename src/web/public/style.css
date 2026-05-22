@@ -16,3 +16,48 @@ body {
        stay pinned. body itself doesn't scroll. */
     overflow: hidden;
 }
+
+/* --- Scrollbars --------------------------------------------------------- */
+
+/* Chromium / WebKit. The track is transparent so the scrollbar feels like an
+   overlay; the thumb is a low-alpha text-tinted bar with no border, sized
+   thin enough to read as a hint rather than a chrome element. The colours
+   mirror text.secondary at 12% / 25% opacity. */
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+    background: rgba(232, 234, 237, 0.12);
+    border-radius: 4px;
+    transition: background 120ms ease;
+}
+*::-webkit-scrollbar-thumb:hover {
+    background: rgba(232, 234, 237, 0.25);
+}
+*::-webkit-scrollbar-thumb:active {
+    background: rgba(232, 234, 237, 0.35);
+}
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* Firefox — no per-state colours, so the thumb just gets the base alpha. */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(232, 234, 237, 0.12) transparent;
+}
+
+/* Opt-in utility: keep the element scrollable but render no visible
+   scrollbar at all. Used on the rundown columns where the bar interferes
+   with the dense layout — `.no-scrollbar` overrides the global rules by
+   specificity (class vs `*`). */
+.no-scrollbar {
+    scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}

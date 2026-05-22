@@ -519,6 +519,7 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
     return (
         <Stack
             spacing={1.5}
+            className="no-scrollbar"
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
             onDrop={onDrop}
@@ -592,13 +593,16 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
             {/* Trailing slack inside the dropzone so the last item ends near
                 the top after a full scroll, leaving room to drop more. The
                 `%` resolves against the Stack's visible content box (it's the
-                overflow:auto element), so this scales with the column. */}
+                overflow:auto element), so this scales with the column.
+                The 200px reserve = Add button + gap + roughly one entry, so
+                the last real entry is still visible at the bottom of full
+                scroll instead of just the Add button. */}
             <Box
                 aria-hidden
                 sx={{
                     flexShrink: 0,
-                    height: 'calc(100% - 80px)',
-                    minHeight: 80,
+                    height: 'calc(100% - 200px)',
+                    minHeight: 120,
                 }}
             />
         </Stack>
