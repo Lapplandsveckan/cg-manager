@@ -90,6 +90,20 @@ export interface MediaDoc {
     }
 }
 
+// Mirror of the server-side cap in `CasparProcess`. Without this, an
+// always-on log listener accumulates an unbounded string for the whole
+// browser session — and since `emit('logs', this.logs)` ships the full
+// buffer to React on every CasparCG line, the LogViewer would re-render
+// a multi-MB pre block on every emit. That blocks navigation and
+// eventually crashes the tab.
+const CLIENT_LOG_BUFFER_MAX = 256 * 1024;
+
+function clampLogs(buf: string): string {
+    return buf.length > CLIENT_LOG_BUFFER_MAX
+        ? buf.slice(buf.length - CLIENT_LOG_BUFFER_MAX)
+        : buf;
+}
+
 export class CasparServerApi extends EventEmitter {
     private socket: REPClient;
     private status: CasparStatus = { running: false, supported: true, lastError: null };
@@ -111,7 +125,7 @@ export class CasparServerApi extends EventEmitter {
 
         this.socket.routes.action('caspar/logs', async (request) => {
             const logs = request.data as string;
-            this.logs += logs;
+            this.logs = clampLogs(this.logs + logs);
 
             this.emit('logs', this.logs);
         });
@@ -177,7 +191,8 @@ export class CasparServerApi extends EventEmitter {
     }
 
     public async getLogs() {
-        this.logs = await this.socket.request('api/caspar/logs', 'GET', {}).then(v => v.data);
+        const raw = await this.socket.request('api/caspar/logs', 'GET', {}).then(v => v.data as string);
+        this.logs = clampLogs(raw ?? '');
 
         return this.logs;
     }

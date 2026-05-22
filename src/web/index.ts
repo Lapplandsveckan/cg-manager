@@ -8,7 +8,10 @@ const port = config.port;
 
 const httpServer = http.createServer(() => {});
 
-const app = next({ dev: config.dev, hostname, port, dir: __dirname, httpServer });
+// Turbopack only runs in dev — pass through when config.dev is on so first
+// visits to a page compile in tens of ms instead of 1-2s. The flag is a
+// no-op for production server mode.
+const app = next({ dev: config.dev, hostname, port, dir: __dirname, httpServer, turbopack: config.dev });
 const handle = app.getRequestHandler();
 
 app.prepare().then(() => {

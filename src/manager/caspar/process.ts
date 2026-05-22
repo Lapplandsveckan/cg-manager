@@ -14,6 +14,12 @@ export interface CasparStatus {
 
 const SUPPORTED_PLATFORMS: NodeJS.Platform[] = ['linux', 'win32'];
 
+// Cap the in-memory log buffer so a long-running CasparCG instance doesn't
+// grow the string unboundedly. The cap is also what `getLogs()` returns and
+// what a newly-loaded client receives as the initial dump, so the browser
+// never has to allocate more than this on first paint of the Server page.
+const LOG_BUFFER_MAX = 256 * 1024;
+
 const logger = Logger.scope('CasparCG');
 export class CasparProcess extends EventEmitter {
     private process: ChildProcessWithoutNullStreams = null;
@@ -23,6 +29,9 @@ export class CasparProcess extends EventEmitter {
 
     appendLog(data: string) {
         this.logs += data;
+        if (this.logs.length > LOG_BUFFER_MAX) 
+            this.logs = this.logs.slice(this.logs.length - LOG_BUFFER_MAX);
+        
         this.emit('log', data);
     }
 
