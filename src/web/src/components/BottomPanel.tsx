@@ -204,16 +204,38 @@ export const BottomPanel: React.FC = () => {
                 direction="row"
                 alignItems="center"
                 justifyContent="space-between"
+                onClick={() => setCollapsed(!collapsed)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        setCollapsed(!collapsed);
+                    }
+                }}
+                role="button"
+                tabIndex={0}
+                aria-expanded={!collapsed}
+                aria-label={collapsed ? 'Expand bottom panel' : 'Collapse bottom panel'}
                 sx={(theme) => ({
                     px: 2,
                     borderBottom: collapsed ? 'none' : `1px solid ${theme.palette.divider}`,
                     minHeight: 40,
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    '&:focus-visible': {
+                        outline: `2px solid ${theme.palette.primary.main}`,
+                        outlineOffset: -2,
+                    },
                 })}
             >
                 {pluginNames.length > 1 ? (
+                    // Tabs swallow their own clicks so switching tabs doesn't
+                    // toggle the panel. The Tabs container fills the bar's
+                    // available width naturally; click-through on empty bar
+                    // gutters still bubbles to the Stack handler.
                     <Tabs
                         value={activePlugin ?? false}
                         onChange={(_, v) => setActivePlugin(v)}
+                        onClick={(e) => e.stopPropagation()}
                         variant="scrollable"
                         scrollButtons="auto"
                         sx={{ minHeight: 36 }}
@@ -240,7 +262,12 @@ export const BottomPanel: React.FC = () => {
                 <Tooltip title={collapsed ? 'Expand panel' : 'Collapse panel'}>
                     <IconButton
                         size="small"
-                        onClick={() => setCollapsed(!collapsed)}
+                        // The icon button delegates to the same toggle as the
+                        // bar; stopPropagation prevents double-toggling.
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setCollapsed(!collapsed);
+                        }}
                         sx={{ color: 'text.secondary', mr: 0.5 }}
                     >
                         {collapsed
