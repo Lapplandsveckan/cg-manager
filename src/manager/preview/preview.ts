@@ -63,6 +63,16 @@ const H264_PREVIEW_ARGS = [
     String(PREVIEW_FPS),
     '-b:v',
     '800k',
+    // VBV cap so keyframes don't get fired as one big burst — without these,
+    // a 1s GOP at 800k average can emit a ~200kB packet train when the
+    // I-frame lands, and a single packet drop over WiFi takes out the
+    // whole keyframe (decoder stalls until next one, ~1s pause). The tight
+    // bufsize (well under 1s × maxrate) flattens the curve at a small
+    // quality cost on motion peaks.
+    '-maxrate:v',
+    '1000k',
+    '-bufsize:v',
+    '500k',
     '-filter:v',
     `fps=${PREVIEW_FPS},scale=640:-2,format=yuv420p`,
 ];
