@@ -9,6 +9,11 @@ export interface Config {
     'db-file': string; // Path to the database file
     'rundown-dir'?: string; // Directory to store rundowns in
     'routes-dir': string; // Directory to store routes in
+    // Shared password for the web UI / API. `null` disables auth entirely —
+    // anyone reachable on the network can poke at the manager. Set to a
+    // string to require that operators present it (via the login screen,
+    // which then sets a session cookie).
+    'password'?: string | null;
 }
 
 export default {
@@ -22,4 +27,5 @@ export default {
     'db-file': './media-cache.json',
     'rundown-dir': './rundowns',
     'routes-dir': './routes',
+    'password': null,
 } as Config;

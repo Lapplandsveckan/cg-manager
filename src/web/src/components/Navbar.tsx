@@ -16,6 +16,8 @@ import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExtensionIcon from '@mui/icons-material/Extension';
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import {noTryAsync} from 'no-try';
 
 type NavIcon = OverridableComponent<SvgIconTypeMap<{}, 'svg'>>;
 
@@ -136,11 +138,35 @@ function useNavbarCollapsed(): [boolean, () => void] {
     return [collapsed, toggle];
 }
 
+async function logout() {
+    await noTryAsync(() => fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+    }));
+    // Hard reload so any in-memory state (socket, caches) is dropped — the
+    // AuthGate on the next paint will redirect to /login.
+    window.location.href = '/login';
+}
+
 export const Navbar = () => {
     const version = useVersion();
     const router = useRouter();
     const status = useCasparStatus();
     const [collapsed, toggleCollapsed] = useNavbarCollapsed();
+    const [authEnabled, setAuthEnabled] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            const [, resp] = await noTryAsync(
+                () => fetch('/api/auth/check', {credentials: 'same-origin'}),
+            );
+            if (cancelled || !resp?.ok) return;
+            const [, json] = await noTryAsync(() => resp.json());
+            if (!cancelled && json?.enabled) setAuthEnabled(true);
+        })();
+        return () => { cancelled = true; };
+    }, []);
 
     const isActive = (item: NavItem) =>
         item.match ? item.match(router.pathname) : router.pathname.startsWith(item.href);
@@ -225,7 +251,7 @@ export const Navbar = () => {
                     title={`CasparCG ${status.label.toLowerCase()} · v${version}`}
                     placement="right"
                 >
-                    <Stack direction="row" alignItems="center" gap={1}>
+                    <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
                         <Box
                             sx={{
                                 width: 8,
@@ -248,6 +274,18 @@ export const Navbar = () => {
                         )}
                     </Stack>
                 </Tooltip>
+
+                {authEnabled && (
+                    <Tooltip title="Sign out" placement="right">
+                        <IconButton
+                            size="small"
+                            onClick={logout}
+                            sx={{ color: 'text.secondary' }}
+                        >
+                            <LogoutRoundedIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                )}
             </Stack>
         </Stack>
     );
