@@ -155,6 +155,7 @@ const Page = () => {
     return (
         <DefaultContentLayout>
             <Dropzone
+                fill
                 onDrop={uploadCtrl.start}
                 accept={['video/*', 'audio/*', 'image/*']}
                 disabled={uploadCtrl.state.phase === 'starting' || uploadCtrl.state.phase === 'uploading'}

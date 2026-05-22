@@ -333,6 +333,10 @@ interface DropzoneProps {
     disabled?: boolean;
     /** Override the overlay text shown while hovering. */
     overlayLabel?: string;
+    /** When true, the zone stretches to at least the parent's full height so
+     *  drops anywhere on the page area land — not just on top of the
+     *  children. The parent needs an explicit/`flex:1` height. */
+    fill?: boolean;
 }
 
 function matchesAccept(file: File, accept: string[]): boolean {
@@ -356,7 +360,7 @@ function matchesAccept(file: File, accept: string[]): boolean {
  * (e.g. text selections, plugin rundown-item payloads).
  */
 export const Dropzone: React.FC<DropzoneProps> = ({
-    onDrop, children, accept = [], multiple = true, disabled, overlayLabel,
+    onDrop, children, accept = [], multiple = true, disabled, overlayLabel, fill,
 }) => {
     const [hovering, setHovering] = useState(false);
     const dragDepth = useRef(0);
@@ -406,7 +410,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
             onDragLeave={onDragLeave}
             onDragOver={onDragOver}
             onDrop={onDropEvt}
-            sx={{position: 'relative'}}
+            sx={{position: 'relative', ...(fill && {minHeight: '100%'})}}
         >
             {children}
             {hovering && (
