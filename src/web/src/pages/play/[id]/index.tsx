@@ -184,30 +184,50 @@ const Page = () => {
             <Stack sx={{ height: '100%', minHeight: 0 }}>
                 <Stack
                     direction="row"
-                    alignItems="flex-start"
+                    alignItems="center"
                     justifyContent="space-between"
                     gap={2}
-                    mb={3}
+                    mb={2}
                     sx={{ flexShrink: 0 }}
                 >
-                    <Stack spacing={1}>
-                        <Stack direction="row" alignItems="baseline" gap={2} flexWrap="wrap">
-                            <Typography variant="h1">{locked ? 'Edit rundown' : 'Play rundown'}</Typography>
-                            {name && (
+                    <Stack
+                        direction="row"
+                        alignItems="center"
+                        gap={1.5}
+                        flexWrap="wrap"
+                        sx={{ minWidth: 0 }}
+                    >
+                        <Typography
+                            variant="h2"
+                            sx={{ fontSize: '1.75rem', lineHeight: 1.2 }}
+                        >
+                            {locked ? 'Edit rundown' : 'Play rundown'}
+                        </Typography>
+                        {name && (
+                            <Stack
+                                direction="row"
+                                alignItems="center"
+                                sx={(theme) => ({
+                                    px: 1.25,
+                                    py: 0.5,
+                                    bgcolor: theme.palette.surface.elevated,
+                                    border: `1px solid ${theme.palette.divider}`,
+                                    borderRadius: 1.5,
+                                    minWidth: 0,
+                                })}
+                            >
                                 <Typography
-                                    variant="h3"
-                                    sx={{ color: 'text.secondary', wordBreak: 'break-word' }}
+                                    variant="body1"
+                                    sx={{
+                                        fontWeight: 500,
+                                        wordBreak: 'break-word',
+                                    }}
                                 >
                                     {name}
                                 </Typography>
-                            )}
-                            {!locked && <LiveIndicator />}
-                        </Stack>
-                        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                            {locked
-                                ? 'Editing safely — items only fire from the play button. Unlock for one-click playback.'
-                                : 'Live — click anywhere on a card to fire it. Lock for safe editing.'}
-                        </Typography>
+                            </Stack>
+                        )}
+                        {!locked && <LiveIndicator />}
                     </Stack>
                     <LockToggle locked={locked} onToggle={() => setLocked(l => !l)} label="Items" />
                 </Stack>
