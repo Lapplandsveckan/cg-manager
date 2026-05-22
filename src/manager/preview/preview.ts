@@ -101,12 +101,29 @@ export interface WebRTCSession {
 interface InternalWebRTCSession extends WebRTCSession {
     channel: number;
     consumerIndex: number;
-    tcpServer: net.Server;
     udpSocket: dgram.Socket;
     ffmpeg: ChildProcess;
-    getCasparSocket: () => net.Socket | null;
     pc: RTCPeerConnection;
     closed: boolean;
+}
+
+/** Bind, read the OS-assigned port, immediately close — we only need a
+ *  free port number to pass to ffmpeg, not the socket itself. There's a
+ *  small race window where another process could grab the port between
+ *  close and ffmpeg's bind, but on loopback that's essentially never an
+ *  issue (and a failed bind surfaces as an ffmpeg error we'd see anyway). */
+async function pickFreeTcpPort(): Promise<number> {
+    const probe = net.createServer();
+    await new Promise<void>((resolve, reject) => {
+        probe.once('error', reject);
+        probe.listen(0, '127.0.0.1', () => {
+            probe.removeListener('error', reject);
+            resolve();
+        });
+    });
+    const port = (probe.address() as net.AddressInfo).port;
+    await new Promise<void>((resolve) => probe.close(() => resolve()));
+    return port;
 }
 
 export class PreviewManager {
@@ -126,10 +143,7 @@ export class PreviewManager {
      *   CasparCG ffmpeg consumer
      *     │ h264 Annex-B over TCP (no audio — `h264` muxer is video-only)
      *     ▼
-     *   manager TCP listener
-     *     │ pipe(socket → child stdin)
-     *     ▼
-     *   sidecar ffmpeg child  (`-f h264 -i - -c copy -an -f rtp ...`)
+     *   sidecar ffmpeg child  (`-i tcp://...?listen=1 -c copy -an -f rtp ...`)
      *     │ packetized H.264/RTP over UDP
      *     ▼
      *   manager UDP listener  →  RtpPacket.deSerialize  →  track.writeRtp
@@ -158,16 +172,10 @@ export class PreviewManager {
         });
         const udpPort = udpSocket.address().port;
 
-        // 2. TCP listener for CasparCG → sidecar's stdin.
-        const tcpServer = net.createServer();
-        await new Promise<void>((resolve, reject) => {
-            tcpServer.once('error', reject);
-            tcpServer.listen(0, '127.0.0.1', () => {
-                tcpServer.removeListener('error', reject);
-                resolve();
-            });
-        });
-        const tcpPort = (tcpServer.address() as net.AddressInfo).port;
+        // 2. Pre-allocate a TCP port for the sidecar to listen on. We don't
+        //    keep the socket — ffmpeg owns it. SDP exchange below gives
+        //    ffmpeg plenty of time to bind before CasparCG tries to connect.
+        const tcpPort = await pickFreeTcpPort();
 
         // 3. Peer connection + sendonly video track. The codec config pins
         //    the SDP answer's m=video to the same params ffmpeg's RTP muxer
@@ -179,10 +187,10 @@ export class PreviewManager {
         const track = new MediaStreamTrack({kind: 'video'});
         pc.addTransceiver(track, {direction: 'sendonly'});
 
-        // 4. Sidecar ffmpeg. `-c copy` so we don't re-encode; ffmpeg just
-        //    packetizes whatever NAL units arrive on stdin into RTP.
-        //    `-fflags +nobuffer -flags low_delay` for minimum demux latency.
-        //    `-an` to suppress any audio path entirely.
+        // 4. Sidecar ffmpeg. Listens on TCP for CasparCG's h264 byte stream,
+        //    `-c copy` packetizes it as RTP, sends UDP to us. `?listen=1` +
+        //    `listen_timeout=0` makes the accept block indefinitely until
+        //    CasparCG connects.
         const ffmpeg = spawn(ffmpegBinary(), [
             '-fflags',
             '+nobuffer',
@@ -191,7 +199,7 @@ export class PreviewManager {
             '-f',
             'h264',
             '-i',
-            'pipe:0',
+            `tcp://127.0.0.1:${tcpPort}?listen=1&listen_timeout=0`,
             '-an',
             '-c:v',
             'copy',
@@ -200,11 +208,9 @@ export class PreviewManager {
             '-f',
             'rtp',
             `rtp://127.0.0.1:${udpPort}`,
-        ], {stdio: ['pipe', 'ignore', 'pipe']});
+        ], {stdio: ['ignore', 'ignore', 'pipe']});
         ffmpeg.on('error', (e) => logger.warn(`sidecar ffmpeg spawn failed: ${e.message}`));
         ffmpeg.stderr?.on('data', (d) => {
-            // Surface ffmpeg's complaints (rare but useful when things break);
-            // happy-path output is throttled to debug level.
             const line = d.toString();
             if (/error|fatal|cannot/i.test(line))
                 logger.warn(`sidecar ffmpeg: ${line.trim()}`);
@@ -213,31 +219,24 @@ export class PreviewManager {
         // 5. UDP → werift. Plain deSerialize + writeRtp (the canonical
         //    werift sendonly pattern, see examples/mediachannel/sendonly).
         //    Because ffmpeg sends one RTP packet per UDP datagram, there's
-        //    no fragmentation/concurrency hazard like with our hand-rolled
-        //    packetizer.
+        //    no fragmentation/concurrency hazard like with hand-rolled
+        //    packetizing.
         udpSocket.on('message', (buf) => {
-            try { track.writeRtp(RtpPacket.deSerialize(buf)); }
-            catch (e) { logger.warn(`writeRtp failed: ${(e as Error).message}`); }
+            const [err] = noTry(() => track.writeRtp(RtpPacket.deSerialize(buf)));
+            if (err) logger.warn(`writeRtp failed: ${err.message}`);
         });
 
-        // 6. CasparCG TCP → sidecar stdin pipe. The first connection wins;
-        //    subsequent connections (shouldn't happen) get closed.
-        let casparSocket: net.Socket | null = null;
-        tcpServer.on('connection', (socket) => {
-            if (casparSocket) { socket.destroy(); return; }
-            casparSocket = socket;
-            if (ffmpeg.stdin) socket.pipe(ffmpeg.stdin);
-            socket.on('close', () => { casparSocket = null; });
-            socket.on('error', (e) => logger.warn(`caspar socket error: ${e.message}`));
-        });
-
-        // 7. SDP exchange.
+        // 6. SDP exchange. Doubles as our "ffmpeg should be bound by now"
+        //    delay — DTLS setup takes tens of ms, ffmpeg's bind syscall
+        //    takes microseconds, so by the time ADD goes out below ffmpeg
+        //    has been listening for a while.
         await pc.setRemoteDescription({type: 'offer', sdp: opts.sdpOffer});
         await pc.setLocalDescription(await pc.createAnswer());
         const sdpAnswer = pc.localDescription?.sdp;
         if (!sdpAnswer) throw new Error('werift failed to produce an SDP answer');
 
-        // 8. Hand off to CasparCG — it'll connect to our TCP listener.
+        // 7. Tell CasparCG to start streaming — it'll connect straight into
+        //    the sidecar's TCP listener.
         const cmd = BasicCommand.construct(
             'ADD',
             `${opts.channel}-${consumerIndex}`,
@@ -245,22 +244,19 @@ export class PreviewManager {
             `tcp://127.0.0.1:${tcpPort}`,
             ...H264_PREVIEW_ARGS,
         );
-        try { await this.executor.execute(cmd); }
-        catch (e) {
-            tcpServer.close();
+        const [addErr] = await noTryAsync(() => this.executor.execute(cmd));
+        if (addErr) {
             udpSocket.close();
             ffmpeg.kill('SIGTERM');
-            await pc.close().catch(() => undefined);
-            throw new Error(`AMCP ADD failed: ${(e as Error).message ?? e}`);
+            await noTryAsync(() => pc.close());
+            throw new Error(`AMCP ADD failed: ${addErr.message ?? addErr}`);
         }
 
         const session: InternalWebRTCSession = {
             channel: opts.channel,
             consumerIndex,
-            tcpServer,
             udpSocket,
             ffmpeg,
-            getCasparSocket: () => casparSocket,
             pc,
             closed: false,
             sdpAnswer,
@@ -289,17 +285,13 @@ export class PreviewManager {
         session.closed = true;
         this.webrtcSessions.delete(session);
 
-        try {
-            await this.executor.execute(
-                BasicCommand.construct('REMOVE', `${session.channel}-${session.consumerIndex}`),
-            );
-        } catch (e) {
-            logger.warn(`AMCP REMOVE failed for ${session.channel}-${session.consumerIndex}: ${(e as Error).message ?? e}`);
-        }
+        const [removeErr] = await noTryAsync(() => this.executor.execute(
+            BasicCommand.construct('REMOVE', `${session.channel}-${session.consumerIndex}`),
+        ));
+        if (removeErr)
+            logger.warn(`AMCP REMOVE failed for ${session.channel}-${session.consumerIndex}: ${removeErr.message ?? removeErr}`);
 
         await noTryAsync(() => session.pc.close());
-        noTry(() => session.getCasparSocket()?.destroy());
-        noTry(() => session.tcpServer.close());
         noTry(() => session.udpSocket.close());
         noTry(() => session.ffmpeg.kill('SIGTERM'));
 
