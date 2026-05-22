@@ -236,30 +236,43 @@ export class PreviewManager {
             if (err) logger.warn(`writeRtp failed: ${err.message}`);
         });
 
-        // 6. SDP exchange. Doubles as our "ffmpeg should be bound by now"
-        //    delay — DTLS setup takes tens of ms, ffmpeg's bind syscall
-        //    takes microseconds, so by the time ADD goes out below ffmpeg
-        //    has been listening for a while.
-        await pc.setRemoteDescription({type: 'offer', sdp: opts.sdpOffer});
-        await pc.setLocalDescription(await pc.createAnswer());
-        const sdpAnswer = pc.localDescription?.sdp;
-        if (!sdpAnswer) throw new Error('werift failed to produce an SDP answer');
+        // 6 + 7. SDP exchange and AMCP ADD have no data dependency on each
+        //    other — werift only needs `pc`, AMCP only needs `tcpPort` and
+        //    a spawned-and-bound sidecar. Firing them in parallel shaves
+        //    the AMCP round-trip off perceived activation time. Both are
+        //    wrapped in noTryAsync so we can handle each failure
+        //    independently below.
+        const sdpPromise = noTryAsync(async () => {
+            await pc.setRemoteDescription({type: 'offer', sdp: opts.sdpOffer});
+            await pc.setLocalDescription(await pc.createAnswer());
+            const sdp = pc.localDescription?.sdp;
+            if (!sdp) throw new Error('werift failed to produce an SDP answer');
+            return sdp;
+        });
+        const addPromise = noTryAsync(() => this.executor.execute(
+            BasicCommand.construct(
+                'ADD',
+                `${opts.channel}-${consumerIndex}`,
+                'STREAM',
+                `tcp://127.0.0.1:${tcpPort}`,
+                ...H264_PREVIEW_ARGS,
+            ),
+        ));
 
-        // 7. Tell CasparCG to start streaming — it'll connect straight into
-        //    the sidecar's TCP listener.
-        const cmd = BasicCommand.construct(
-            'ADD',
-            `${opts.channel}-${consumerIndex}`,
-            'STREAM',
-            `tcp://127.0.0.1:${tcpPort}`,
-            ...H264_PREVIEW_ARGS,
-        );
-        const [addErr] = await noTryAsync(() => this.executor.execute(cmd));
-        if (addErr) {
+        const [sdpErr, sdpAnswer] = await sdpPromise;
+        const [addErr] = await addPromise;
+
+        if (sdpErr || addErr) {
             udpSocket.close();
             ffmpeg.kill('SIGTERM');
             await noTryAsync(() => pc.close());
-            throw new Error(`AMCP ADD failed: ${addErr.message ?? addErr}`);
+            // If ADD landed but SDP failed, undo the consumer so we don't
+            // leave a dangling encoder feeding nothing.
+            if (!addErr) await noTryAsync(() => this.executor.execute(
+                BasicCommand.construct('REMOVE', `${opts.channel}-${consumerIndex}`),
+            ));
+            if (sdpErr) throw sdpErr;
+            throw new Error(`AMCP ADD failed: ${addErr!.message ?? addErr}`);
         }
 
         const session: InternalWebRTCSession = {

@@ -58,6 +58,14 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({channel, objectFi
                     const video = videoRef.current;
                     if (!video) return;
                     video.srcObject = event.streams[0] ?? new MediaStream([event.track]);
+
+                    // Tell the WebRTC stack to paint the first decodable
+                    // frame immediately instead of building up its default
+                    // 150–200ms jitter buffer. We're on LAN/loopback so the
+                    // jitter the buffer would have absorbed isn't there to
+                    // worry about. noTry because older browsers don't ship
+                    // this hint and the property assignment throws.
+                    noTry(() => { (event.receiver as any).playoutDelayHint = 0; });
                 };
 
                 pc.onconnectionstatechange = () => {
