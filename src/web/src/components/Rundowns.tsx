@@ -8,7 +8,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {useSocket} from '../lib';
 import {RundownItemDragPayload, hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
 
-export {LiveIndicator, LockToggle} from './RundownChrome';
+export {EditIndicator, LiveIndicator, LockToggle} from './RundownChrome';
 export const RUNDOWN_REORDER_MIME = 'application/x-cg-rundown-reorder';
 
 export interface RundownEntry {

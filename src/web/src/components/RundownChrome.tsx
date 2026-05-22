@@ -3,6 +3,7 @@ import {Box, IconButton, Stack, Tooltip, Typography, alpha} from '@mui/material'
 import {keyframes} from '@mui/system';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 
 const LIVE_RED = '#e0463a';
 
@@ -40,6 +41,31 @@ export const LiveIndicator: React.FC = () => (
             sx={{ fontWeight: 700, letterSpacing: '0.12em', fontSize: '0.7rem' }}
         >
             LIVE
+        </Typography>
+    </Stack>
+);
+
+/** Shown when the rundown is locked — items only fire from the play button. */
+export const EditIndicator: React.FC = () => (
+    <Stack
+        direction="row"
+        alignItems="center"
+        gap={0.75}
+        sx={(theme) => ({
+            px: 1.25,
+            py: 0.5,
+            borderRadius: 999,
+            bgcolor: alpha(theme.palette.primary.main, 0.14),
+            border: `1px solid ${alpha(theme.palette.primary.main, 0.45)}`,
+            color: theme.palette.primary.main,
+        })}
+    >
+        <EditOutlinedIcon sx={{ fontSize: 14 }} />
+        <Typography
+            variant="caption"
+            sx={{ fontWeight: 700, letterSpacing: '0.12em', fontSize: '0.7rem' }}
+        >
+            EDIT
         </Typography>
     </Stack>
 );

@@ -4,7 +4,7 @@ import {DefaultContentLayout} from '../../../components/DefaultContentLayout';
 import {useSocket} from '../../../lib/hooks/useSocket';
 import {Injections, UI_INJECTION_ZONE} from '../../../lib/api/inject';
 import {useRouter} from 'next/router';
-import {LiveIndicator, LockToggle, RundownEntry, Rundowns, useRundownEntries} from '../../../components/Rundowns';
+import {EditIndicator, LiveIndicator, LockToggle, RundownEntry, Rundowns, useRundownEntries} from '../../../components/Rundowns';
 import {RundownModals} from '../../../components/RundownModals';
 import {QuickActions} from '../../../components/QuickActions';
 import {BottomPanel} from '../../../components/BottomPanel';
@@ -188,7 +188,12 @@ const Page = () => {
                     justifyContent="space-between"
                     gap={2}
                     mb={2}
-                    sx={{ flexShrink: 0 }}
+                    sx={{
+                        flexShrink: 0,
+                        // Match the column row's `px: 1` so the title's left
+                        // edge aligns with the column-title text below it.
+                        px: 1,
+                    }}
                 >
                     <Stack
                         direction="row"
@@ -197,37 +202,36 @@ const Page = () => {
                         flexWrap="wrap"
                         sx={{ minWidth: 0 }}
                     >
-                        <Typography
-                            variant="h2"
-                            sx={{ fontSize: '1.75rem', lineHeight: 1.2 }}
+                        <Stack
+                            direction="row"
+                            alignItems="stretch"
+                            gap={1.5}
+                            sx={{ minWidth: 0 }}
                         >
-                            {locked ? 'Edit rundown' : 'Play rundown'}
-                        </Typography>
-                        {name && (
-                            <Stack
-                                direction="row"
-                                alignItems="center"
+                            <Box
                                 sx={(theme) => ({
-                                    px: 1.25,
-                                    py: 0.5,
-                                    bgcolor: theme.palette.surface.elevated,
-                                    border: `1px solid ${theme.palette.divider}`,
-                                    borderRadius: 1.5,
-                                    minWidth: 0,
+                                    width: 3,
+                                    borderRadius: 2,
+                                    bgcolor: theme.palette.primary.main,
+                                    // The bar anchors the title even when the
+                                    // text is short; stretching to the line
+                                    // box keeps it tied to the text height.
+                                    alignSelf: 'stretch',
                                 })}
+                            />
+                            <Typography
+                                variant="h2"
+                                sx={{
+                                    fontSize: '1.75rem',
+                                    lineHeight: 1.2,
+                                    wordBreak: 'break-word',
+                                    color: name ? 'text.primary' : 'text.disabled',
+                                }}
                             >
-                                <Typography
-                                    variant="body1"
-                                    sx={{
-                                        fontWeight: 500,
-                                        wordBreak: 'break-word',
-                                    }}
-                                >
-                                    {name}
-                                </Typography>
-                            </Stack>
-                        )}
-                        {!locked && <LiveIndicator />}
+                                {name ?? 'Untitled rundown'}
+                            </Typography>
+                        </Stack>
+                        {locked ? <EditIndicator /> : <LiveIndicator />}
                     </Stack>
                     <LockToggle locked={locked} onToggle={() => setLocked(l => !l)} label="Items" />
                 </Stack>
