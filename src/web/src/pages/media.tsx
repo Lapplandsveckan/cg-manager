@@ -2,7 +2,7 @@ import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {Box, Button, Card, Modal, Stack, TextField, Typography, alpha} from '@mui/material';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import {UploadButton} from '../components/Upload';
+import {UploadButton, Dropzone, UploadModal, useFileUpload} from '../components/Upload';
 import React, {useEffect, useState} from 'react';
 import {MediaView} from '../components/MediaView';
 import {useSocket} from '../lib';
@@ -145,41 +145,61 @@ const Page = () => {
         }
     };
 
+    // Shared controller so the Upload button and the page-wide Dropzone feed
+    // the same progress modal. Files dropped or picked land in the current
+    // folder (`path`) — same as the existing button behaviour.
+    const uploadCtrl = useFileUpload({
+        createUpload: file => socket.caspar.uploadMedia(path + file.name, file),
+    });
+
     return (
         <DefaultContentLayout>
-            <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} mb={1}>
-                <Stack spacing={1}>
-                    <Typography variant="h1">Media</Typography>
-                    <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                        Browse media on the CasparCG server and upload new files.
-                    </Typography>
-                </Stack>
-                <UploadButton
-                    label="Upload media"
-                    types={[
-                        {
-                            description: 'Media files',
-                            accept: {
-                                'audio/*': ['mp3', 'wav', 'ogg'],
-                                'video/*': ['mp4', 'webm', 'mkv'],
-                                'image/*': ['png', 'jpg', 'jpeg', 'gif'],
+            <Dropzone
+                onDrop={uploadCtrl.start}
+                accept={['video/*', 'audio/*', 'image/*']}
+                disabled={uploadCtrl.state.phase === 'starting' || uploadCtrl.state.phase === 'uploading'}
+                overlayLabel={`Drop to upload to ${path || '/'}`}
+            >
+                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} mb={1}>
+                    <Stack spacing={1}>
+                        <Typography variant="h1">Media</Typography>
+                        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                            Browse media on the CasparCG server and upload new files.
+                        </Typography>
+                    </Stack>
+                    <UploadButton
+                        label="Upload media"
+                        controller={uploadCtrl}
+                        types={[
+                            {
+                                description: 'Media files',
+                                accept: {
+                                    'audio/*': ['mp3', 'wav', 'ogg'],
+                                    'video/*': ['mp4', 'webm', 'mkv'],
+                                    'image/*': ['png', 'jpg', 'jpeg', 'gif'],
+                                },
                             },
-                        },
-                    ]}
-                    createUpload={file => socket.caspar.uploadMedia(path + file.name, file)}
+                        ]}
+                    />
+                </Stack>
+
+                <Card sx={{ p: 1.5, mb: 3 }}>
+                    <PathBreadcrumb path={path} onNavigate={navigate} />
+                </Card>
+
+                <MediaView
+                    prefix={path}
+                    showAsDirectories
+                    onNavigate={folder => navigate(`${path}${folder}/`)}
+                    onClipDelete={(clip) => { setError(null); setDeleting(clip); }}
+                    onClipRename={(clip) => { setError(null); setRenaming(clip); }}
                 />
-            </Stack>
+            </Dropzone>
 
-            <Card sx={{ p: 1.5, mb: 3 }}>
-                <PathBreadcrumb path={path} onNavigate={navigate} />
-            </Card>
-
-            <MediaView
-                prefix={path}
-                showAsDirectories
-                onNavigate={folder => navigate(`${path}${folder}/`)}
-                onClipDelete={(clip) => { setError(null); setDeleting(clip); }}
-                onClipRename={(clip) => { setError(null); setRenaming(clip); }}
+            <UploadModal
+                state={uploadCtrl.state}
+                onClose={uploadCtrl.reset}
+                onCancel={uploadCtrl.cancel}
             />
 
             <Modal open={Boolean(deleting)} onClose={() => !busy && setDeleting(null)}>
