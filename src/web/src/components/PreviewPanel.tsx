@@ -89,7 +89,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
 
     // Spin up a WebRTC peer connection whenever we transition into a live
     // state. WHEP-style SDP exchange against the manager's `/preview-whep/:ch`
-    // endpoint. Sub-second latency vs the old MPEG-TS+MSE pipeline.
+    // endpoint. Sub-second latency H.264 over WebRTC.
     useEffect(() => {
         if (!live) return;
 
