@@ -236,14 +236,18 @@ export const Navbar = () => {
 
             <Stack
                 direction="row"
-                alignItems="center"
+                alignItems="flex-end"
                 justifyContent={collapsed ? 'center' : 'flex-start'}
                 gap={1}
                 sx={(theme) => ({
                     px: collapsed ? 0 : 2,
-                    // Hand-tuned so the version line sits flush with the
-                    // bottom-panel divider across the columns.
-                    pt: collapsed ? '16px' : '13px',
+                    // Content area is 24px; the 1px borderTop sits *above*
+                    // it (content-box keeps the border out of the height).
+                    // Lines up with the BottomPanel's top border across
+                    // platforms — Mac and Windows render the same.
+                    boxSizing: 'content-box',
+                    height: 24,
+                    flexShrink: 0,
                     borderTop: `1px solid ${theme.palette.divider}`,
                 })}
             >
