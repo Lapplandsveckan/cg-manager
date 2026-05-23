@@ -1,0 +1,28 @@
+{
+    "brand": {
+        "name": "CG Manager",
+        "tagline": "CasparCG control"
+    },
+    "nav": {
+        "server": "Server",
+        "media": "Media",
+        "play": "Play",
+        "routes": "Routes",
+        "plugins": "Plugins",
+        "config": "Config"
+    },
+    "sidebar": {
+        "expand": "Expand sidebar",
+        "collapse": "Collapse sidebar"
+    },
+    "casparStatus": {
+        "unreachable": "Unreachable",
+        "running": "Running",
+        "stopped": "Stopped",
+        "unknown": "Unknown",
+        "tooltip": "CasparCG {{status}} · v{{version}}"
+    },
+    "auth": {
+        "signOut": "Sign out"
+    }
+}

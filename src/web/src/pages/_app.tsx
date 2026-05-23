@@ -11,6 +11,8 @@ import {Stack} from '@mui/material';
 import React from 'react';
 import {ThemeProvider} from '@mui/material/styles';
 import {theme} from '../lib/theme';
+import {appWithTranslation} from 'next-i18next';
+import '../lib/i18n';
 
 function App({ Component, pageProps }: AppProps) {
     const router = useRouter();
@@ -48,4 +50,4 @@ function App({ Component, pageProps }: AppProps) {
     );
 }
 
-export default App;
+export default appWithTranslation(App);
