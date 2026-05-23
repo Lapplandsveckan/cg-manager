@@ -81,7 +81,11 @@ export const RundownPreview: React.FC = () => {
         updateSelected(ch === selected ? null : ch);
     };
 
-    if (!channels || channels.length === 0) return null;
+    // null = initial fetch in flight; render nothing for the brief moment
+    //        before we know whether to show chips or the offline state.
+    if (!channels) return null;
+
+    const offline = channels.length === 0;
 
     // Plain Box (no Card chrome) so the preview reads as a section of the
     // column rather than a floating panel — only the top hairline visually
@@ -171,7 +175,28 @@ export const RundownPreview: React.FC = () => {
                     overflow: 'hidden',
                 })}
             >
-                {selected != null ? (
+                {offline ? (
+                    // CasparCG isn't running (or has no channels). Show a
+                    // clear "this is intentionally empty" placeholder so
+                    // the slot doesn't read as a frozen preview.
+                    <Stack
+                        spacing={0.5}
+                        sx={{
+                            position: 'absolute',
+                            inset: 0,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'text.disabled',
+                            textAlign: 'center',
+                            px: 2,
+                        }}
+                    >
+                        <VideocamOffRoundedIcon fontSize="small" />
+                        <Typography variant="caption">
+                            CasparCG is offline
+                        </Typography>
+                    </Stack>
+                ) : selected != null ? (
                     // ChannelPreview opens a WHEP session on mount and closes
                     // on unmount; changing `channel` re-runs its effect so
                     // switching chips tears down the old session cleanly.
