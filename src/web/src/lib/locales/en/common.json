@@ -119,9 +119,9 @@
         "modals": {
             "addItem": {
                 "title": "Add item",
-                "description": "Pick the type of item to add. Each plugin registers its own item types.",
+                "description": "Pick the type of item to add.",
                 "loading": "Loading types…",
-                "empty": "No item types are registered. Enable a plugin that provides rundown items."
+                "empty": "No item types are registered."
             }
         },
         "preview": {
@@ -153,7 +153,7 @@
         },
         "preview": {
             "title": "Preview",
-            "subtitle": "Low-latency H.264 over WebRTC. Enabling spins up a per-client encoder on the channel — leave off when you don't need it.",
+            "subtitle": "Live preview of your stream. Enabling this uses additional resources — leave off when not needed.",
             "channel": "Channel {{channel}}",
             "switch": {
                 "serverOff": "Server off",
@@ -246,9 +246,9 @@
         "loading": "Loading config…",
         "restartNow": "Restart now",
         "restarting": "Restarting…",
-        "driftMessage": "Saved changes haven't been applied yet. Restart CasparCG to use the new configuration — until then live state (previews, routes) keeps using the running snapshot.",
+        "driftMessage": "Saved changes haven't been applied yet. Restart CasparCG to use the new configuration.",
         "saveInfoBefore": "Saving writes ",
-        "saveInfoAfter": " to disk. Restart CasparCG for changes to take effect — running channels are unaffected until then.",
+        "saveInfoAfter": " to disk. Restart CasparCG for changes to take effect.",
         "advanced": "Advanced",
         "errors": {
             "loadFailed": "Failed to load config",
@@ -271,7 +271,7 @@
             "editTitle": "Edit {{type}}",
             "restartNote": "Restart CasparCG after saving for these changes to take effect.",
             "pickerTitle": "Add consumer",
-            "pickerDescription": "Pick a consumer type. You'll be able to fill in its settings next.",
+            "pickerDescription": "Pick a consumer type.",
             "types": {
                 "decklink": "Decklink",
                 "bluefish": "Bluefish",
@@ -331,7 +331,7 @@
             "fixtures": "Fixtures",
             "fixturesEmpty": "No fixtures yet — click <em>Add</em> to drop one on the stage.",
             "fixtureN": "Fixture {{n}}",
-            "fluxHelp": "Flux — per-channel brightness multiplier (0–1).",
+            "fluxHelp": "Flux — per-channel brightness multiplier (0-1).",
             "livePreview": "Live preview · ch {{channel}}",
             "countW": "Count W",
             "countH": "Count H",
@@ -396,7 +396,7 @@
         }
     },
     "videoRoutes": {
-        "description": "Live video routes from sources (decklink inputs, files, channels, colors) to effect groups on CasparCG channels. Click a route to edit; toggle to activate or pause.",
+        "description": "Live video routes from sources (decklink inputs, files, channels, colors) to CasparCG channels. Click a route to edit; toggle to activate or pause.",
         "newRoute": "New route",
         "unnamed": "(unnamed route)",
         "saving": "Saving…",
@@ -461,7 +461,7 @@
         "destinationHint": "Effect-group layer is \"channel:group\". Index disambiguates multiple groups with the same name on a channel.",
         "geometry": {
             "title": "Geometry",
-            "description": "Drag handles to position, warp, or blend the route output. Coordinates are normalized (0..1) — they survive resolution changes on the destination channel.",
+            "description": "Drag handles to position, warp, or blend the route output. Coordinates are normalized (0..1).",
             "livePreview": "Live preview · ch {{channel}}",
             "tabs": {
                 "position": "Position",
