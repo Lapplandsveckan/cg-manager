@@ -2,12 +2,14 @@ import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {Box, Button, Card, Modal, Stack, TextField, Typography, alpha} from '@mui/material';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import CreateNewFolderRoundedIcon from '@mui/icons-material/CreateNewFolderRounded';
 import {UploadButton, Dropzone, UploadModal, useFileUpload} from '../components/Upload';
 import React, {useEffect, useState} from 'react';
 import {MediaView} from '../components/MediaView';
 import {useSocket} from '../lib';
 import {useRouter} from 'next/router';
 import {MediaDoc} from '../lib/api/caspar';
+import {noTryAsync} from 'no-try';
 
 interface CrumbProps {
     label: React.ReactNode;
@@ -45,7 +47,12 @@ const Crumb: React.FC<CrumbProps> = ({ label, onClick, active }) => {
 };
 
 const PathBreadcrumb: React.FC<{ path: string; onNavigate: (next: string) => void }> = ({ path, onNavigate }) => {
-    const segments = path.split('/').filter(Boolean);
+    // `path` should always be a string from the page's state but the
+    // upstream `router.query.path` can transiently be `undefined` (before
+    // hydration) or `string[]` (`?path=a&path=b`); coerce defensively so
+    // a stray shape can't crash the page.
+    const safePath = typeof path === 'string' ? path : '';
+    const segments = safePath.split('/').filter(Boolean);
 
     return (
         <Stack direction="row" alignItems="center" gap={0.5} flexWrap="wrap">
@@ -96,6 +103,11 @@ const Page = () => {
     const [deleting, setDeleting] = useState<MediaDoc | null>(null);
     const [renaming, setRenaming] = useState<MediaDoc | null>(null);
     const [renameValue, setRenameValue] = useState('');
+    const [creatingFolder, setCreatingFolder] = useState(false);
+    const [folderName, setFolderName] = useState('');
+    // Folder name (no trailing slash, relative to current `path`) the user
+    // has asked to delete. Modal stays open until they confirm or cancel.
+    const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -105,7 +117,15 @@ const Page = () => {
     };
 
     useEffect(() => {
-        setPath(router.query.path as string ?? '');
+        // `router.query.path` is either `string`, `string[]` (when the same
+        // key appears multiple times), or `undefined`. The page state is
+        // always a single string — flatten arrays by joining segments back,
+        // empty otherwise.
+        const raw = router.query.path;
+        const next = typeof raw === 'string'
+            ? raw
+            : Array.isArray(raw) ? raw.join('/') : '';
+        setPath(next);
     }, [router.query.path]);
 
     useEffect(() => {
@@ -145,6 +165,46 @@ const Page = () => {
         }
     };
 
+    const confirmDeleteFolder = async () => {
+        if (!socket || !deletingFolder) return;
+        setBusy(true);
+        setError(null);
+        const target = `${path}${deletingFolder}`;
+        const [err] = await noTryAsync(() => socket.caspar.deleteFolder(target));
+        setBusy(false);
+        if (err) {
+            // The server returns 409 ("Folder is not empty (N items)") when
+            // the user has media or sub-folders inside. Surface that text
+            // verbatim — it tells them why they can't delete.
+            setError(err.message ?? 'Failed to delete folder');
+            return;
+        }
+        setDeletingFolder(null);
+    };
+
+    const confirmCreateFolder = async () => {
+        if (!socket) return;
+        const name = folderName.trim();
+        if (!name) return;
+        setBusy(true);
+        setError(null);
+        // Path is rooted at the folder we're currently viewing — keeps the
+        // operator's mental model "create here" rather than asking them to
+        // type the absolute path.
+        const target = `${path}${name}`;
+        const [err, res] = await noTryAsync(() => socket.caspar.createFolder(target));
+        setBusy(false);
+        if (err || !res) {
+            setError(err?.message ?? 'Failed to create folder');
+            return;
+        }
+        setCreatingFolder(false);
+        setFolderName('');
+        // Drop the user inside the freshly-created folder — that's almost
+        // always what they want next.
+        navigate(res.path);
+    };
+
     // Shared controller so the Upload button and the page-wide Dropzone feed
     // the same progress modal. Files dropped or picked land in the current
     // folder (`path`) — same as the existing button behaviour.
@@ -168,20 +228,33 @@ const Page = () => {
                             Browse media on the CasparCG server and upload new files.
                         </Typography>
                     </Stack>
-                    <UploadButton
-                        label="Upload media"
-                        controller={uploadCtrl}
-                        types={[
-                            {
-                                description: 'Media files',
-                                accept: {
-                                    'audio/*': ['mp3', 'wav', 'ogg'],
-                                    'video/*': ['mp4', 'webm', 'mkv'],
-                                    'image/*': ['png', 'jpg', 'jpeg', 'gif'],
+                    <Stack direction="row" gap={1}>
+                        <Button
+                            color="inherit"
+                            startIcon={<CreateNewFolderRoundedIcon />}
+                            onClick={() => {
+                                setError(null);
+                                setFolderName('');
+                                setCreatingFolder(true);
+                            }}
+                        >
+                            New folder
+                        </Button>
+                        <UploadButton
+                            label="Upload media"
+                            controller={uploadCtrl}
+                            types={[
+                                {
+                                    description: 'Media files',
+                                    accept: {
+                                        'audio/*': ['mp3', 'wav', 'ogg'],
+                                        'video/*': ['mp4', 'webm', 'mkv'],
+                                        'image/*': ['png', 'jpg', 'jpeg', 'gif'],
+                                    },
                                 },
-                            },
-                        ]}
-                    />
+                            ]}
+                        />
+                    </Stack>
                 </Stack>
 
                 <Card sx={{ p: 1.5, mb: 3 }}>
@@ -194,6 +267,7 @@ const Page = () => {
                     onNavigate={folder => navigate(`${path}${folder}/`)}
                     onClipDelete={(clip) => { setError(null); setDeleting(clip); }}
                     onClipRename={(clip) => { setError(null); setRenaming(clip); }}
+                    onFolderDelete={(folder) => { setError(null); setDeletingFolder(folder); }}
                 />
             </Dropzone>
 
@@ -221,6 +295,81 @@ const Page = () => {
                             </Button>
                             <Button onClick={confirmDelete} disabled={busy} variant="contained" color="error">
                                 {busy ? 'Deleting…' : 'Delete'}
+                            </Button>
+                        </Stack>
+                    </Stack>
+                </ModalCard>
+            </Modal>
+
+            <Modal
+                open={Boolean(deletingFolder)}
+                onClose={() => { if (!busy) setDeletingFolder(null); }}
+            >
+                <ModalCard>
+                    <Stack spacing={2}>
+                        <Stack direction="row" alignItems="center" gap={1.5}>
+                            <WarningAmberRoundedIcon sx={{ color: '#e88c8c' }} />
+                            <Typography variant="h3">Delete folder?</Typography>
+                        </Stack>
+                        <Typography variant="body1" sx={{ color: 'text.secondary', wordBreak: 'break-all' }}>
+                            <strong style={{ color: 'inherit' }}>{path}{deletingFolder}</strong> will be
+                            removed. Only works if the folder is empty.
+                        </Typography>
+                        {error && <Typography variant="body2" color="error">{error}</Typography>}
+                        <Stack direction="row" justifyContent="flex-end" gap={1}>
+                            <Button onClick={() => setDeletingFolder(null)} disabled={busy} color="inherit">
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={confirmDeleteFolder}
+                                disabled={busy}
+                                variant="contained"
+                                color="error"
+                            >
+                                {busy ? 'Deleting…' : 'Delete'}
+                            </Button>
+                        </Stack>
+                    </Stack>
+                </ModalCard>
+            </Modal>
+
+            <Modal
+                open={creatingFolder}
+                onClose={() => { if (!busy) { setCreatingFolder(false); setFolderName(''); } }}
+            >
+                <ModalCard>
+                    <Stack spacing={2}>
+                        <Stack direction="row" alignItems="center" gap={1.5}>
+                            <CreateNewFolderRoundedIcon sx={{ color: 'primary.main' }} />
+                            <Typography variant="h3">New folder</Typography>
+                        </Stack>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            Creates a folder under <strong>{path || '/'}</strong>. Names can&apos;t
+                            contain <code>/</code>.
+                        </Typography>
+                        <TextField
+                            label="Folder name"
+                            value={folderName}
+                            onChange={(e) => setFolderName(e.target.value)}
+                            autoFocus
+                            disabled={busy}
+                            onKeyDown={(e) => { if (e.key === 'Enter') confirmCreateFolder(); }}
+                        />
+                        {error && <Typography variant="body2" color="error">{error}</Typography>}
+                        <Stack direction="row" justifyContent="flex-end" gap={1}>
+                            <Button
+                                onClick={() => { setCreatingFolder(false); setFolderName(''); }}
+                                disabled={busy}
+                                color="inherit"
+                            >
+                                Cancel
+                            </Button>
+                            <Button
+                                onClick={confirmCreateFolder}
+                                disabled={busy || !folderName.trim()}
+                                variant="contained"
+                            >
+                                {busy ? 'Creating…' : 'Create'}
                             </Button>
                         </Stack>
                     </Stack>

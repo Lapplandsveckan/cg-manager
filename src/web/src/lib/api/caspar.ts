@@ -230,4 +230,36 @@ export class CasparServerApi extends EventEmitter {
     public async renameMedia(id: string, newName: string): Promise<void> {
         await this.socket.request(`api/caspar/media/${encodeURIComponent(id)}`, 'UPDATE', { name: newName });
     }
+
+    /** Folders the user has created (plus any pre-existing dirs under the
+     *  media root). Returned as upper-cased prefixes with trailing slash —
+     *  matches the convention used by media IDs. The REP response is
+     *  wrapped as `{data: ...}` (see getConfig / getStatus) — `.data` is
+     *  the route's actual return value. */
+    public async getFolders(): Promise<string[]> {
+        const res = await this.socket.request('api/caspar/media/folder', 'GET', {});
+        return (res?.data as { folders?: string[] })?.folders ?? [];
+    }
+
+    /** Create a folder under the media root. `path` is slash-separated and
+     *  relative to the root (e.g. `intro/concerts/2026`). Server drops a
+     *  `.cgkeep` placeholder so the dir survives without media inside it.
+     *  Emits `folders` locally so any MediaView in the same tab refetches. */
+    public async createFolder(folderPath: string): Promise<{ path: string }> {
+        const res = await this.socket.request(
+            'api/caspar/media/folder',
+            'CREATE',
+            { path: folderPath },
+        );
+        this.emit('folders');
+        return { path: (res?.data as { path: string }).path };
+    }
+
+    /** Delete a folder under the media root. Server-side this only succeeds
+     *  if the folder is empty (the `.cgkeep` placeholder doesn't count) —
+     *  any real media or sub-folders inside cause a 409. */
+    public async deleteFolder(folderPath: string): Promise<void> {
+        await this.socket.request('api/caspar/media/folder', 'DELETE', { path: folderPath });
+        this.emit('folders');
+    }
 }

@@ -39,6 +39,10 @@ function configureBinaries() {
 
 async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: FileDatabase) {
     if (!mediaId || mediaStat.isDirectory()) return;
+    // `.cgkeep` is the empty-folder placeholder created by the folder API.
+    // ffprobe can't read 0-byte files and the doc would just be noise in
+    // the DB / logs — skip it entirely.
+    if (path.basename(mediaPath) === '.cgkeep') return;
 
     const mediaLogger = logger.scope(mediaId);
     const hash = await hashFile(mediaPath);

@@ -34,7 +34,7 @@ async function start() {
 
     manager.server = server;
 
-    Logger.info('Starting bonjour discovery service...');
+    Logger.info('Starting discovery beacon...');
 
     const discovery = new Discovery();
     await discovery.start();
