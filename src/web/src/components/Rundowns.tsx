@@ -538,7 +538,6 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                 // Each column scrolls on its own — the page has overflowY
                 // disabled at the row level so this Stack owns the scroll.
                 overflowY: 'auto',
-                borderRadius: 1.5,
                 outline: dragOver
                     ? `2px dashed ${alpha(theme.palette.primary.main, 0.6)}`
                     : '2px dashed transparent',
