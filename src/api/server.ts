@@ -12,8 +12,9 @@ import {handleRequest, onUpgrade} from '../web';
 import {Route} from 'rest-exchange-protocol/dist/route';
 import {Logger} from '../util/log';
 import {Upload} from '../manager/scanner/upload';
+import {AuthManager} from './auth';
 import {isInternalMediaId} from '../manager/scanner/folders';
-import {noTryAsync} from 'no-try';
+import {noTry, noTryAsync} from 'no-try';
 
 export type CGClient = TypedClient<{}>;
 
@@ -33,11 +34,23 @@ export class CGServer {
 
         // this.server.use(this.log());
 
-        // previewWhep() must run before web(): web() forwards every non-/api
-        // HTTP request to Next.js and throws MiddlewareProhibitFurtherExecution,
-        // which would otherwise eat /preview-whep/:ch before it can be handled.
-        this.server.use(this.previewWhep());
+        // Ordering matters:
+        //   cors      — must run first so the OPTIONS preflight short-circuits
+        //               without needing a session cookie.
+        //   auth      — gates everything else (REST + WS upgrade) when
+        //               config.password is set. Login/logout/check are
+        //               whitelisted, as are non-/api paths (Next.js pages
+        //               like /login itself).
+        //   authApi   — handles POST/GET /api/auth/{login,logout,check}.
+        //               Must come after `auth` only because order is fine
+        //               either way (auth() whitelists these paths).
+        //   previewWhep — WHEP SDP exchange. Must run before web().
+        //   upload      — chunked upload sink.
+        //   web         — final fallback: hand everything non-/api to Next.js.
         this.server.use(this.cors());
+        this.server.use(this.auth());
+        this.server.use(this.authApi());
+        this.server.use(this.previewWhep());
         this.server.use(this.upload());
         this.server.use(this.web());
 
@@ -82,6 +95,121 @@ export class CGServer {
             if (data.type !== 'pre-route') return;
             Logger.scope('API').debug(`${data.route.method} ${data.route.path}`);
         };
+    }
+
+    /** Gate every API request and WS upgrade behind a session cookie when
+     *  `config.password` is set.
+     *
+     *  Public (no session needed):
+     *    - /api/auth/*       — login/check/logout endpoints
+     *    - OPTIONS *         — CORS preflight
+     *    - non-/api HTTP     — Next.js pages, static assets, login UI
+     *    - WS /_next/*       — Next.js HMR socket (dev only)
+     *
+     *  Protected:
+     *    - /api/* HTTP        (REST routes + chunked upload)
+     *    - /preview-whep/*    (WHEP SDP exchange — can spin up encoder)
+     *    - all other WS upgrades (REP socket for state + commands)
+     */
+    auth() {
+        return async (data: MiddleWareData) => {
+            if (!AuthManager.enabled) return;
+
+            if (data.type === 'http') {
+                const url = data.request.url ?? '';
+                if (url.startsWith('/api/auth/')) return;
+                if (data.request.method === 'OPTIONS') return;
+
+                const isProtected = url.startsWith('/api') || url.startsWith('/preview-whep');
+                if (!isProtected) return;
+
+                const token = AuthManager.readToken(data.request.headers.cookie);
+                if (AuthManager.touch(token)) return;
+
+                data.response.statusCode = 401;
+                data.response.setHeader('Content-Type', 'application/json');
+                data.response.end(JSON.stringify({error: 'Unauthorized'}));
+                throw new MiddlewareProhibitFurtherExecution();
+            }
+
+            if (data.type === 'websocket-upgrade') {
+                const url = data.request.url ?? '';
+                if (url.startsWith('/_next/')) return;
+
+                const token = AuthManager.readToken(data.request.headers.cookie);
+                if (AuthManager.touch(token)) return;
+
+                // No clean 401 path for WS upgrades — abort the socket.
+                noTry(() => data.socket.destroy());
+                throw new MiddlewareProhibitFurtherExecution();
+            }
+        };
+    }
+
+    /** Three endpoints, all under `/api/auth/`:
+     *    POST /api/auth/login   — { password } → 200 + Set-Cookie | 401
+     *    POST /api/auth/logout  — → 200 + cleared cookie
+     *    GET  /api/auth/check   — → { enabled, authenticated } */
+    authApi() {
+        return async (data: MiddleWareData) => {
+            if (data.type !== 'http') return;
+
+            const url = data.request.url ?? '';
+            if (!url.startsWith('/api/auth/')) return;
+
+            const end = (status: number, body: object) => {
+                data.response.statusCode = status;
+                data.response.setHeader('Content-Type', 'application/json');
+                data.response.end(JSON.stringify(body));
+                throw new MiddlewareProhibitFurtherExecution();
+            };
+
+            if (url === '/api/auth/check' && data.request.method === 'GET') {
+                const token = AuthManager.readToken(data.request.headers.cookie);
+                end(200, {
+                    enabled: AuthManager.enabled,
+                    authenticated: !AuthManager.enabled || AuthManager.touch(token),
+                });
+                return;
+            }
+
+            if (url === '/api/auth/login' && data.request.method === 'POST') {
+                const body = await this.readJsonBody(data.request);
+                const password = (body as { password?: unknown } | null)?.password;
+                if (!(await AuthManager.verifyPassword(password)))
+                    return end(401, {error: 'Invalid password'});
+
+                const token = AuthManager.createSession();
+                data.response.setHeader('Set-Cookie', AuthManager.cookieHeader(token));
+                return end(200, {ok: true});
+            }
+
+            if (url === '/api/auth/logout' && data.request.method === 'POST') {
+                const token = AuthManager.readToken(data.request.headers.cookie);
+                AuthManager.invalidate(token);
+                data.response.setHeader('Set-Cookie', AuthManager.clearCookieHeader());
+                return end(200, {ok: true});
+            }
+
+            // Unknown /api/auth/* request — 404 so we don't fall through to
+            // a route handler that would 404 anyway with worse messaging.
+            return end(404, {error: 'Not found'});
+        };
+    }
+
+    /** Buffer a JSON request body up to a sane cap. Returns null on parse
+     *  failure or empty body so handlers can early-out cleanly. */
+    private async readJsonBody(request: any): Promise<unknown> {
+        const chunks: Buffer[] = [];
+        await new Promise<void>((resolve, reject) => {
+            request.on('data', (chunk: Buffer) => chunks.push(chunk));
+            request.on('end', resolve);
+            request.on('error', reject);
+        });
+        const text = Buffer.concat(chunks).toString('utf8');
+        if (!text.trim()) return null;
+        const [, parsed] = noTry(() => JSON.parse(text));
+        return parsed ?? null;
     }
 
     previewWhep() {
