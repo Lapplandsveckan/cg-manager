@@ -260,10 +260,27 @@ export const PreviewPanel: React.FC = () => {
     useEffect(() => {
         if (!socket) return;
         let cancelled = false;
-        socket.caspar.getConfig()
-            .then((cfg) => { if (!cancelled) setChannels(cfg.channels.map((_, i) => i + 1)); })
-            .catch(() => { if (!cancelled) setChannels([]); });
-        return () => { cancelled = true; };
+
+        // Track live (running) channels rather than the saved config — if
+        // CasparCG is off or starts with a different channel set we don't
+        // want to render preview cards for things that physically aren't
+        // there.
+        const apply = (cfg: { channels: { videoMode: string }[] } | null) => {
+            if (cancelled) return;
+            setChannels(cfg ? cfg.channels.map((_, i) => i + 1) : []);
+        };
+
+        socket.caspar.getRunningConfig()
+            .then(apply)
+            .catch(() => apply(null));
+
+        const listener = (cfg: { channels: { videoMode: string }[] } | null) => apply(cfg);
+        socket.caspar.on('running-config', listener);
+
+        return () => {
+            cancelled = true;
+            socket.caspar.off('running-config', listener);
+        };
     }, [socket]);
 
     useEffect(() => {

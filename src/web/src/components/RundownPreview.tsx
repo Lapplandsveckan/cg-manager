@@ -23,24 +23,47 @@ export const RundownPreview: React.FC = () => {
     const [channels, setChannels] = useState<number[] | null>(null);
     const [selected, setSelected] = useState<number | null>(null);
 
-    // Hydrate selection from localStorage once we know the channel set —
-    // skipping if the stored channel no longer exists (config edited
-    // between sessions).
+    // Track *live* channels — what CasparCG is actually serving right now,
+    // not what's on disk. The chip list shrinks/grows when CasparCG is
+    // started or restarted with a different config. Empty when CasparCG
+    // is stopped, so the operator can't try to preview something that
+    // physically isn't running.
     useEffect(() => {
         if (!socket) return;
         let cancelled = false;
-        socket.caspar.getConfig()
-            .then((cfg) => {
-                if (cancelled) return;
-                const list = cfg.channels.map((_, i) => i + 1);
-                setChannels(list);
+        let hydrated = false;
 
+        const applyConfig = (cfg: { channels: { videoMode: string }[] } | null) => {
+            if (cancelled) return;
+            const list = cfg ? cfg.channels.map((_, i) => i + 1) : [];
+            setChannels(list);
+
+            if (!hydrated) {
+                // First config arriving — restore the operator's last pick
+                // if it's still valid. Doing this here (not on mount) means
+                // we never momentarily open a WHEP session for a channel
+                // that no longer exists.
+                hydrated = true;
                 const [, raw] = noTry(() => window.localStorage.getItem(STORAGE_KEY));
                 const stored = raw ? Number(raw) : NaN;
                 if (Number.isInteger(stored) && list.includes(stored)) setSelected(stored);
-            })
-            .catch(() => { if (!cancelled) setChannels([]); });
-        return () => { cancelled = true; };
+                return;
+            }
+
+            setSelected((current) => (current != null && !list.includes(current) ? null : current));
+        };
+
+        socket.caspar.getRunningConfig()
+            .then(applyConfig)
+            .catch(() => applyConfig(null));
+
+        const listener = (cfg: { channels: { videoMode: string }[] } | null) => applyConfig(cfg);
+        socket.caspar.on('running-config', listener);
+
+        return () => {
+            cancelled = true;
+            socket.caspar.off('running-config', listener);
+        };
     }, [socket]);
 
     const updateSelected = (next: number | null) => {

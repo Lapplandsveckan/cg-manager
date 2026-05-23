@@ -61,6 +61,12 @@ export class CasparProcess extends EventEmitter {
         this.lastError = null;
         this.process = spawn(cmd, [], { cwd: folder });
 
+        // CasparCG read `this.config` from disk at startup — surface it as the
+        // running snapshot so UI consumers (previews, routes) can distinguish
+        // "what's actually live" from "what's on disk". Future edits to disk
+        // don't update this until restart.
+        this.emit('running-config', this.getRunningConfig());
+
         this.process.stdout.on('data', (data) => {
             this.appendLog(data.toString());
             if (config['pipe-caspar']) logger.debug(data.toString());
@@ -81,6 +87,8 @@ export class CasparProcess extends EventEmitter {
             this.process = null;
             if (code !== 0 && code !== null) this.lastError = `CasparCG exited with code ${code}.`;
             this.emit('status', this.getStatus());
+            // Snapshot is null once the process is gone.
+            this.emit('running-config', this.getRunningConfig());
         });
 
         this.emit('status', this.getStatus());
@@ -109,6 +117,13 @@ export class CasparProcess extends EventEmitter {
             supported: this.supported,
             lastError: this.lastError,
         };
+    }
+
+    /** Config CasparCG was last started with. Null when the process isn't
+     *  running. Edits saved to disk after start don't update this until
+     *  the next start/restart — this is the "what's actually live" view. */
+    getRunningConfig(): Config | null {
+        return this.running ? this.config : null;
     }
 
     getLogs() {
