@@ -4,6 +4,7 @@ import Scanner from './scanner';
 import App from './app';
 import {FileDatabase} from './db';
 import {DirectoryManager} from './dir';
+import {ensureFolderPlaceholders} from './folders';
 import fs from 'fs/promises';
 
 export class MediaScanner {
@@ -29,6 +30,12 @@ export class MediaScanner {
         this.server = app.listen(8000); // TODO: do we need this
 
         await DirectoryManager.getManager().initialize(config.paths.media, config.paths.template);
+
+        // One-shot backfill: every existing folder under the media root
+        // gets a .cgkeep so it's persistent even if its real media is
+        // removed later. Idempotent — uses `wx` so existing placeholders
+        // are left alone.
+        await ensureFolderPlaceholders(config.paths.media);
     }
 
     async stop() {

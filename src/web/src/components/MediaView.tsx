@@ -2,6 +2,7 @@ import {Box, Button, Card, Grid, IconButton, Modal, Stack, Tooltip, Typography, 
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import {useSocket} from '../lib/hooks/useSocket';
 import React, {useEffect, useMemo, useState} from 'react';
 import {MediaDoc} from '../lib/api/caspar';
@@ -13,9 +14,10 @@ export interface MediaFolderProps {
 
     columns?: number;
     onClick?: () => void;
+    onDelete?: () => void;
 }
 
-export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick}) => {
+export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick, onDelete}) => {
     const span = 60 / (columns ?? 5);
 
     return (
@@ -25,6 +27,7 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick}
             <Card
                 onClick={() => onClick?.()}
                 sx={(theme) => ({
+                    position: 'relative',
                     aspectRatio: '16/9',
                     cursor: onClick ? 'pointer' : 'default',
                     transition: theme.transitions.create(['border-color', 'background-color'], { duration: 120 }),
@@ -32,8 +35,38 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick}
                         borderColor: alpha(theme.palette.primary.main, 0.45),
                         bgcolor: theme.palette.surface.elevated,
                     } : undefined,
+                    '&:hover .media-folder-actions': onDelete ? { opacity: 1 } : {},
                 })}
             >
+                {onDelete && (
+                    <Stack
+                        className="media-folder-actions"
+                        direction="row"
+                        gap={0.5}
+                        sx={{
+                            position: 'absolute',
+                            top: 6,
+                            right: 6,
+                            opacity: 0,
+                            transition: 'opacity 120ms',
+                            bgcolor: 'rgba(20, 18, 17, 0.7)',
+                            borderRadius: 1,
+                            backdropFilter: 'blur(4px)',
+                            padding: '2px',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <Tooltip title="Delete (only if empty)">
+                            <IconButton
+                                size="small"
+                                onClick={onDelete}
+                                sx={{ color: '#e88c8c' }}
+                            >
+                                <DeleteOutlineRoundedIcon fontSize="small" />
+                            </IconButton>
+                        </Tooltip>
+                    </Stack>
+                )}
                 <Stack
                     height="100%"
                     direction="column"
@@ -62,6 +95,10 @@ interface MediaViewProps {
 
     onClipDelete?: (clip: MediaDoc) => void;
     onClipRename?: (clip: MediaDoc) => void;
+    /** Called with the folder name (single segment, no trailing slash)
+     *  when the user clicks the trash icon on a folder card. Caller is
+     *  responsible for confirmation + invoking deleteFolder on the API. */
+    onFolderDelete?: (folder: string) => void;
 }
 
 export const MediaView: React.FC<MediaViewProps> = ({
@@ -72,21 +109,36 @@ export const MediaView: React.FC<MediaViewProps> = ({
     onNavigate,
     onClipDelete,
     onClipRename,
+    onFolderDelete,
 }) => {
     const socket = useSocket();
     const [media, setMedia] = useState<MediaDoc[]>([]);
+    // Folders are tracked separately from the media listing because the
+    // scanner only indexes files — an empty folder created by the user
+    // would otherwise be invisible. Server returns upper-cased prefixes
+    // with trailing slashes (e.g. `INTRO/CONCERTS/`).
+    const [serverFolders, setServerFolders] = useState<string[]>([]);
 
     const folders = useMemo(() => {
-        const folders = new Set<string>();
+        const set = new Set<string>();
+        const p = prefix ?? '';
 
+        // File-derived folders: any media inside this prefix that has more
+        // path after the prefix.
         media
-            .filter(media => media.id.startsWith(prefix ?? ''))
-            .map(media => media.id.substring(prefix?.length ?? 0).split('/'))
+            .filter(media => media.id.startsWith(p))
+            .map(media => media.id.substring(p.length).split('/'))
             .filter(parts => parts.length > 1)
-            .forEach(parts => folders.add(parts[0]));
+            .forEach(parts => set.add(parts[0]));
 
-        return [...folders.values()];
-    }, [media, prefix]);
+        // Server-listed folders (covers empty ones the scanner can't see).
+        serverFolders
+            .filter(f => f.startsWith(p) && f.length > p.length)
+            .map(f => f.substring(p.length).split('/').filter(Boolean))
+            .forEach(parts => { if (parts.length > 0) set.add(parts[0]); });
+
+        return [...set.values()];
+    }, [media, serverFolders, prefix]);
 
     const data = useMemo(() =>
         media
@@ -106,15 +158,30 @@ export const MediaView: React.FC<MediaViewProps> = ({
     );
 
     useEffect(() => {
-        const load = () => socket.caspar
+        const loadMedia = () => socket.caspar
             .getMedia()
             .then(media => setMedia([...media.values()]))
             .catch(console.error);
 
-        load();
-        socket.caspar.on('media', load);
+        const loadFolders = () => socket.caspar
+            .getFolders()
+            .then(setServerFolders)
+            .catch(console.error);
 
-        return () => void socket.caspar.off('media', load);
+        loadMedia();
+        loadFolders();
+
+        // Media updates also probably implies new folders (uploads create
+        // directories implicitly); refresh both on the broadcast.
+        const onMedia = () => { loadMedia(); loadFolders(); };
+        const onFolders = () => loadFolders();
+        socket.caspar.on('media', onMedia);
+        socket.caspar.on('folders', onFolders);
+
+        return () => {
+            socket.caspar.off('media', onMedia);
+            socket.caspar.off('folders', onFolders);
+        };
     }, []);
 
     return (
@@ -142,6 +209,7 @@ export const MediaView: React.FC<MediaViewProps> = ({
                                     name={folder}
                                     columns={columns}
                                     onClick={() => onNavigate?.(folder)}
+                                    onDelete={onFolderDelete ? () => onFolderDelete(folder) : undefined}
                                 />
                             ))
                         }

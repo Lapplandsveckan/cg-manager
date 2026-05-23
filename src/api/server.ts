@@ -12,6 +12,7 @@ import {handleRequest, onUpgrade} from '../web';
 import {Route} from 'rest-exchange-protocol/dist/route';
 import {Logger} from '../util/log';
 import {Upload} from '../manager/scanner/upload';
+import {isInternalMediaId} from '../manager/scanner/folders';
 import {noTryAsync} from 'no-try';
 
 export type CGClient = TypedClient<{}>;
@@ -57,6 +58,9 @@ export class CGServer {
         });
 
         this.manager.on('media', (key, value) => {
+            // Skip plugin-internal symlinks. They're scanner-only data and
+            // shouldn't surface in the UI's media list.
+            if (isInternalMediaId(key)) return;
             const clients = this.server.getClients();
             clients.forEach((client) => {
                 if (!(client instanceof WebsocketClient)) return;
