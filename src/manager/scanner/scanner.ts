@@ -16,6 +16,42 @@ import {FileDatabase, MediaDoc} from './db';
 
 const logger = Logger.scope('Scanner');
 
+// Extensions the scanner will attempt to probe. Anything else is
+// silently ignored — there's no point running ffprobe + thumbnail
+// extraction on text files, plugin sidecars, READMEs, OS noise, etc.
+// The list covers what CasparCG actually plays back; exotic formats
+// can be added if they ever show up in the wild.
+const MEDIA_EXTENSIONS = new Set([
+    // Video
+    '.mp4',
+    '.mov',
+    '.mkv',
+    '.m4v',
+    '.webm',
+    '.avi',
+    '.wmv',
+    '.mpg',
+    '.mpeg',
+    '.ts',
+    '.m2ts',
+    '.mxf',
+    // Image
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.webp',
+    '.bmp',
+    '.tiff',
+    // Audio
+    '.mp3',
+    '.wav',
+    '.aac',
+    '.ogg',
+    '.flac',
+    '.m4a',
+]);
+
 // Point fluent-ffmpeg at the ffmpeg/ffprobe binaries shipped alongside the
 // CasparCG executable. Without this, the scanner relies on whatever's on
 // PATH — fine on dev boxes, but the packaged manager runs next to its own
@@ -39,10 +75,13 @@ function configureBinaries() {
 
 async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: FileDatabase) {
     if (!mediaId || mediaStat.isDirectory()) return;
-    // `.cgkeep` is the empty-folder placeholder created by the folder API.
-    // ffprobe can't read 0-byte files and the doc would just be noise in
-    // the DB / logs — skip it entirely.
-    if (path.basename(mediaPath) === '.cgkeep') return;
+    // Whitelist by extension so we don't spend CPU probing
+    // non-media files (plugin sidecars, dotfiles, READMEs, etc.).
+    // ffprobe also logs noisy errors for those, which the operator
+    // shouldn't have to read past on every scan. Dotfiles fail the
+    // extension check too (e.g. `.cgkeep` has no extension), so
+    // they're handled by the same gate.
+    if (!MEDIA_EXTENSIONS.has(path.extname(mediaPath).toLowerCase())) return;
 
     const mediaLogger = logger.scope(mediaId);
     const hash = await hashFile(mediaPath);
@@ -66,6 +105,17 @@ async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: 
             mediaLogger.error('Thumbnail Failed');
         }),
     ]);
+
+    // Anything ffprobe couldn't parse (text files, plugin sidecars
+    // like `<file>.cgnoencode`, random binaries that ended up in the
+    // media folder) lacks `mediainfo`. Storing those would surface
+    // them in the UI as broken media cards and crash MediaView when
+    // it tries to read `media.mediainfo.format.duration`. Bail before
+    // the DB write so they never enter the listing at all.
+    if (!doc.mediainfo) {
+        mediaLogger.debug('Skipping unparseable file (no mediainfo)');
+        return;
+    }
 
     db.put(hash, doc);
     mediaLogger.debug(`Scanned (${db.getHash(doc.id)})`);

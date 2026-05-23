@@ -74,6 +74,10 @@ export class CGServer {
             // Skip plugin-internal symlinks. They're scanner-only data and
             // shouldn't surface in the UI's media list.
             if (isInternalMediaId(key)) return;
+            // Skip entries the scanner couldn't actually probe (sidecar
+            // files, .txt etc). `value === null` is a removal — still
+            // broadcast so clients drop their cached entry.
+            if (value !== null && !(value as { mediainfo?: unknown })?.mediainfo) return;
             const clients = this.server.getClients();
             clients.forEach((client) => {
                 if (!(client instanceof WebsocketClient)) return;

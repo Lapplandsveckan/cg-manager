@@ -1,11 +1,18 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Box, Button, Card, LinearProgress, Modal, Stack, Typography, alpha} from '@mui/material';
 import {CloudUploadRounded, CheckCircleRounded, ErrorOutlineRounded} from '@mui/icons-material';
 import {uploadFile} from '../lib/api/upload';
 import {noTryAsync} from 'no-try';
 import {pickFiles, PickFilesOptions} from '../lib/filePicker';
+import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 
-export type UploadPhase = 'idle' | 'starting' | 'uploading' | 'done' | 'error';
+/** `review` is a "user confirms before chunks go out" phase. It's the
+ *  natural place for plugin-driven options (encode-skip, etc.) to take
+ *  effect *before* the server starts receiving the file. The operator
+ *  picks files → modal opens in `review` → they tick whatever they
+ *  want → they confirm → upload proceeds. Cancellation here just
+ *  drops back to idle without any server interaction. */
+export type UploadPhase = 'idle' | 'review' | 'starting' | 'uploading' | 'done' | 'error';
 
 export interface UploadFileResult {
     file: File;
@@ -27,7 +34,11 @@ export interface FileUploadState {
 
 export interface FileUploadController {
     state: FileUploadState;
+    /** Stage `files` for upload. Transitions the modal to the `review`
+     *  phase — the actual chunking happens when `confirm()` is called. */
     start: (files: File[]) => void;
+    /** Begin chunking the staged files. Must be called from `review`. */
+    confirm: () => void;
     cancel: () => void;
     reset: () => void;
 }
@@ -58,12 +69,17 @@ export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadC
     const cancelRef = useRef<(() => unknown) | null>(null);
     const canceledRef = useRef(false);
     const runningRef = useRef(false);
+    // Mirrors `state.queue` for synchronous access from `confirm()`.
+    // Without it `confirm` would have to await React state updates
+    // to know which files to upload, which complicates the flow.
+    const queueRef = useRef<File[]>([]);
 
     useEffect(() => () => { cancelRef.current?.(); }, []);
 
     const reset = () => {
         cancelRef.current = null;
         canceledRef.current = false;
+        queueRef.current = [];
         setState(IDLE_STATE);
     };
 
@@ -72,11 +88,31 @@ export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadC
         cancelRef.current?.();
     };
 
-    const start = async (files: File[]) => {
+    const start = (files: File[]) => {
         if (!files.length || runningRef.current) return;
-        runningRef.current = true;
+        // Stage the files for review. Plugin-driven options (e.g. the
+        // encode plugin's "Skip encoding" checkbox) need a chance to
+        // run *before* chunks go out — `confirm()` is what actually
+        // kicks off the upload.
         canceledRef.current = false;
+        queueRef.current = files;
+        setState({
+            phase: 'review',
+            queue: files,
+            completed: [],
+            currentIndex: -1,
+            currentProgress: 0,
+            currentFile: null,
+            error: null,
+        });
+    };
 
+    const confirm = async () => {
+        if (runningRef.current) return;
+        const files = queueRef.current;
+        if (!files.length) return;
+
+        runningRef.current = true;
         const completed: UploadFileResult[] = [];
 
         setState({
@@ -153,16 +189,24 @@ export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadC
         runningRef.current = false;
     };
 
-    return {state, start, cancel, reset};
+    return {state, start, confirm, cancel, reset};
 }
 
 interface UploadModalProps {
     state: FileUploadState;
     onClose: () => void;
     onCancel?: () => void;
+    /** Called when the operator confirms the staged upload from the
+     *  `review` phase. Pass the controller's `confirm` here. */
+    onConfirm?: () => void;
+    /** Resolve a `File` to the absolute path it'll land at server-side.
+     *  Plugin injections in the UPLOAD_OPTIONS zone receive this as
+     *  `props.targetPaths` so they can act on the about-to-be-uploaded
+     *  files (e.g. write exemption sidecars). */
+    targetPathFor?: (file: File) => string;
 }
 
-export const UploadModal: React.FC<UploadModalProps> = ({state, onClose, onCancel}) => {
+export const UploadModal: React.FC<UploadModalProps> = ({state, onClose, onCancel, onConfirm, targetPathFor}) => {
     const open = state.phase !== 'idle';
     const handleClose = () => {
         if (state.phase === 'uploading' || state.phase === 'starting') onCancel?.();
@@ -184,20 +228,47 @@ export const UploadModal: React.FC<UploadModalProps> = ({state, onClose, onCance
                     border: `1px solid ${theme.palette.divider}`,
                 })}
             >
-                <UploadModalContent state={state} onClose={handleClose} />
+                <UploadModalContent
+                    state={state}
+                    onClose={handleClose}
+                    onConfirm={onConfirm}
+                    targetPathFor={targetPathFor}
+                />
             </Card>
         </Modal>
     );
 };
 
-const UploadModalContent: React.FC<{ state: FileUploadState; onClose: () => void }> = ({state, onClose}) => {
+interface UploadModalContentProps {
+    state: FileUploadState;
+    onClose: () => void;
+    onConfirm?: () => void;
+    targetPathFor?: (file: File) => string;
+}
+
+const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, onConfirm, targetPathFor}) => {
     const {phase, queue, completed, currentIndex, currentProgress, currentFile, error} = state;
     const multi = queue.length > 1;
     const successCount = completed.filter((c) => !c.error).length;
     const failedCount = completed.filter((c) => c.error).length;
 
+    // Resolved server-side paths for the files currently in the queue.
+    // Passed to plugin injections so they can act per-file (e.g. write
+    // an exemption sidecar before the file finishes uploading).
+    const targetPaths = useMemo(
+        () => (targetPathFor ? queue.map(targetPathFor) : []),
+        [queue, targetPathFor],
+    );
+    // Only show plugin options in the `review` phase — once the user
+    // has clicked Upload there's no going back, so toggling sidecars
+    // mid-upload would be misleading. The bundle-load race is no
+    // longer an issue because the operator must explicitly confirm
+    // before any chunks go out, which gives the bundle plenty of time.
+    const showOptions = phase === 'review' && targetPaths.length > 0;
+
     let title: string;
-    if (phase === 'starting')      title = multi ? `Preparing ${currentIndex + 1} of ${queue.length}…` : 'Preparing upload…';
+    if (phase === 'review')         title = multi ? `Upload ${queue.length} files?` : 'Upload file?';
+    else if (phase === 'starting')  title = multi ? `Preparing ${currentIndex + 1} of ${queue.length}…` : 'Preparing upload…';
     else if (phase === 'uploading') title = multi ? `Uploading ${currentIndex + 1} of ${queue.length}…` : 'Uploading…';
     else if (phase === 'done')      title = multi ? `Uploaded ${successCount} files` : 'Upload complete';
     else                            title = failedCount === queue.length ? 'Upload failed' : `Uploaded ${successCount} of ${queue.length}`;
@@ -215,6 +286,23 @@ const UploadModalContent: React.FC<{ state: FileUploadState; onClose: () => void
                 </Typography>
             )}
 
+            {phase === 'review' && (
+                // The full list of staged files. For one-file uploads it
+                // collapses to a single line — same look as the
+                // currentFile preview above during 'uploading'.
+                <Stack spacing={0.25} sx={{maxHeight: 160, overflow: 'auto'}}>
+                    {queue.map((f, idx) => (
+                        <Typography
+                            key={`${f.name}-${idx}`}
+                            variant="body2"
+                            sx={{color: 'text.secondary', wordBreak: 'break-all'}}
+                        >
+                            {f.name}
+                        </Typography>
+                    ))}
+                </Stack>
+            )}
+
             {phase === 'uploading' && (
                 <Stack spacing={0.5}>
                     <LinearProgress variant="determinate" value={currentProgress} />
@@ -223,6 +311,20 @@ const UploadModalContent: React.FC<{ state: FileUploadState; onClose: () => void
             )}
 
             {phase === 'starting' && <LinearProgress />}
+
+            {showOptions && (
+                // Plugin injections rendered inside the modal while
+                // upload is in progress. Toggling a checkbox lands the
+                // change before the file finishes writing on the
+                // server side, so plugins like `encode` see it before
+                // their scanner-driven evaluation runs.
+                <Box>
+                    <Injections
+                        zone={UI_INJECTION_ZONE.UPLOAD_OPTIONS}
+                        props={{ targetPaths }}
+                    />
+                </Box>
+            )}
 
             {(phase === 'done' || phase === 'error') && multi && completed.length > 0 && (
                 // Multi-file summary. Errors first so they don't get buried.
@@ -247,9 +349,22 @@ const UploadModalContent: React.FC<{ state: FileUploadState; onClose: () => void
             )}
 
             <Stack direction="row" justifyContent="flex-end" gap={1}>
-                <Button onClick={onClose} color="inherit">
-                    {phase === 'uploading' || phase === 'starting' ? 'Cancel' : 'Done'}
-                </Button>
+                {phase === 'review' ? (
+                    <>
+                        <Button onClick={onClose} color="inherit">Cancel</Button>
+                        <Button
+                            onClick={() => onConfirm?.()}
+                            variant="contained"
+                            autoFocus
+                        >
+                            Upload
+                        </Button>
+                    </>
+                ) : (
+                    <Button onClick={onClose} color="inherit">
+                        {phase === 'uploading' || phase === 'starting' ? 'Cancel' : 'Done'}
+                    </Button>
+                )}
             </Stack>
         </Stack>
     );
@@ -284,10 +399,13 @@ interface UploadButtonProps {
     /** Allow picking multiple files at once. Defaults true. */
     multiple?: boolean;
     label?: string;
+    /** Forwarded to UploadModal — only used when this button owns its
+     *  own modal (i.e. no `controller` was supplied). */
+    targetPathFor?: (file: File) => string;
 }
 
 export const UploadButton: React.FC<UploadButtonProps> = ({
-    types, createUpload, controller, multiple = true, label = 'Upload',
+    types, createUpload, controller, multiple = true, label = 'Upload', targetPathFor,
 }) => {
     // If an external controller wasn't supplied, create our own. Either way
     // we render an UploadModal — when shared, both the Dropzone and the
@@ -315,127 +433,16 @@ export const UploadButton: React.FC<UploadButtonProps> = ({
             {/* Only render our own modal when we own the controller. When
                 shared, the page owns the modal so we don't double-render. */}
             {!controller && (
-                <UploadModal state={ctrl.state} onClose={ctrl.reset} onCancel={ctrl.cancel} />
+                <UploadModal
+                    state={ctrl.state}
+                    onClose={ctrl.reset}
+                    onCancel={ctrl.cancel}
+                    onConfirm={ctrl.confirm}
+                    targetPathFor={targetPathFor}
+                />
             )}
         </>
     );
 };
 
-interface DropzoneProps {
-    /** Called with the dropped File list (already filtered + multiple-applied). */
-    onDrop: (files: File[]) => void;
-    children: React.ReactNode;
-    /** Optional accept filter (extensions like `.mp4`, MIME types like `video/*`). */
-    accept?: string[];
-    /** If false, only the first dropped file is kept. Defaults true. */
-    multiple?: boolean;
-    /** Skip drag handling entirely (e.g. while a modal is open). */
-    disabled?: boolean;
-    /** Override the overlay text shown while hovering. */
-    overlayLabel?: string;
-    /** When true, the zone stretches to at least the parent's full height so
-     *  drops anywhere on the page area land — not just on top of the
-     *  children. The parent needs an explicit/`flex:1` height. */
-    fill?: boolean;
-}
-
-function matchesAccept(file: File, accept: string[]): boolean {
-    if (!accept.length) return true;
-    return accept.some((a) => {
-        if (a.startsWith('.')) return file.name.toLowerCase().endsWith(a.toLowerCase());
-        if (a.endsWith('/*')) return file.type.startsWith(a.slice(0, -1));
-        return file.type === a;
-    });
-}
-
-/**
- * Generic file-drop target. Renders `children` and shows a copper overlay
- * while a drag-with-files is hovering over the wrapped area. On drop, calls
- * `onDrop` with the (filtered) File list. Pair with `useFileUpload` if you
- * want progress UI; or do whatever else you want with the files.
- *
- * Native HTML5 drag/drop — no react-dnd or dnd-kit needed. Browser drags from
- * the OS file manager fire `dataTransfer.types` containing 'Files', which is
- * what we gate on to avoid lighting up the overlay for unrelated drags
- * (e.g. text selections, plugin rundown-item payloads).
- */
-export const Dropzone: React.FC<DropzoneProps> = ({
-    onDrop, children, accept = [], multiple = true, disabled, overlayLabel, fill,
-}) => {
-    const [hovering, setHovering] = useState(false);
-    const dragDepth = useRef(0);
-
-    const isFileDrag = (e: React.DragEvent) => e.dataTransfer.types?.includes('Files');
-
-    const onDragEnter = (e: React.DragEvent) => {
-        if (disabled || !isFileDrag(e)) return;
-        e.preventDefault();
-        dragDepth.current += 1;
-        setHovering(true);
-    };
-    const onDragLeave = (e: React.DragEvent) => {
-        if (disabled || !isFileDrag(e)) return;
-        e.preventDefault();
-        // relatedTarget is null when the cursor leaves the browser window —
-        // in that case clear immediately instead of waiting for depth to
-        // drain (it won't, because subsequent enter events stop firing).
-        if (e.relatedTarget === null) {
-            dragDepth.current = 0;
-            setHovering(false);
-            return;
-        }
-        dragDepth.current = Math.max(0, dragDepth.current - 1);
-        if (dragDepth.current === 0) setHovering(false);
-    };
-    const onDragOver = (e: React.DragEvent) => {
-        if (disabled || !isFileDrag(e)) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'copy';
-    };
-    const onDropEvt = (e: React.DragEvent) => {
-        if (disabled || !isFileDrag(e)) return;
-        e.preventDefault();
-        dragDepth.current = 0;
-        setHovering(false);
-
-        let files = Array.from(e.dataTransfer.files);
-        if (!multiple) files = files.slice(0, 1);
-        if (accept.length) files = files.filter((f) => matchesAccept(f, accept));
-        if (files.length) onDrop(files);
-    };
-
-    return (
-        <Box
-            onDragEnter={onDragEnter}
-            onDragLeave={onDragLeave}
-            onDragOver={onDragOver}
-            onDrop={onDropEvt}
-            sx={{position: 'relative', ...(fill && {minHeight: '100%'})}}
-        >
-            {children}
-            {hovering && (
-                <Box
-                    sx={(theme) => ({
-                        position: 'absolute',
-                        inset: 0,
-                        bgcolor: alpha(theme.palette.primary.main, 0.12),
-                        border: `2px dashed ${theme.palette.primary.main}`,
-                        borderRadius: 1,
-                        pointerEvents: 'none',
-                        zIndex: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    })}
-                >
-                    <Stack alignItems="center" spacing={1}>
-                        <CloudUploadRounded sx={{fontSize: 48, color: 'primary.main'}} />
-                        <Typography variant="h3" sx={{color: 'primary.main'}}>
-                            {overlayLabel ?? 'Drop to upload'}
-                        </Typography>
-                    </Stack>
-                </Box>
-            )}
-        </Box>
-    );
-};
+export {Dropzone} from './Dropzone';

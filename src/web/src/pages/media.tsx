@@ -275,6 +275,12 @@ const Page = () => {
                 state={uploadCtrl.state}
                 onClose={uploadCtrl.reset}
                 onCancel={uploadCtrl.cancel}
+                onConfirm={uploadCtrl.confirm}
+                // Plugin injections in the modal (e.g. the encode
+                // plugin's "Skip encoding" checkbox) need to know
+                // the absolute path the file will land at server-side.
+                // The scanner stores them upper-cased, so match that.
+                targetPathFor={(file) => `${path}${file.name}`}
             />
 
             <Modal open={Boolean(deleting)} onClose={() => !busy && setDeleting(null)}>

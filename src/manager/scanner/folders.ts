@@ -112,23 +112,30 @@ export function normalizeFolderPath(folderPath: string): string[] {
     return segments;
 }
 
-/** Remove a folder under `root` iff it's empty or only contains the
- *  `.cgkeep` placeholder. Returns the resolved absolute path that was
- *  removed (useful for logging). Throws on:
+/** Remove a folder under `root` iff it contains nothing the user
+ *  would consider "media". Dotfile-named entries — `.cgkeep` (our
+ *  empty-folder placeholder), `.cgnoencode` markers, `.DS_Store`,
+ *  any plugin sidecar — are treated as ignorable noise and are
+ *  swept before `rmdir`. Throws on:
  *    - ENOENT: directory doesn't exist
- *    - non-empty: contains anything other than the placeholder
+ *    - non-empty: contains any non-dotfile entry
  *    - path escapes root: caught by the caller's resolveSafePath
  *  The caller is responsible for safe-path resolution; pass the
  *  pre-resolved absolute path as `targetAbs`.
  */
 export async function removeEmptyFolder(targetAbs: string): Promise<void> {
     const entries = await fs.readdir(targetAbs);
-    const stray = entries.filter((name) => name !== PLACEHOLDER_NAME);
+    // Hidden / dotfile entries are infrastructure (our placeholder,
+    // sidecars, OS noise); they don't count toward "non-empty".
+    const stray = entries.filter((name) => !name.startsWith('.'));
     if (stray.length > 0)
         throw new Error(`Folder is not empty (${stray.length} item${stray.length === 1 ? '' : 's'})`);
 
-    // Delete placeholder (if present) before rmdir — rmdir won't touch
-    // files. Ignore ENOENT in case it was already missing.
-    await noTryAsync(() => fs.unlink(path.join(targetAbs, PLACEHOLDER_NAME)));
+    // Sweep every dotfile so rmdir actually succeeds (it won't touch
+    // files). ENOENT on any of them is fine — they were just gone.
+    const dotfiles = entries.filter((name) => name.startsWith('.'));
+    for (const name of dotfiles)
+        await noTryAsync(() => fs.unlink(path.join(targetAbs, name)));
+
     await fs.rmdir(targetAbs);
 }

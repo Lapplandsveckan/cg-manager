@@ -12,6 +12,11 @@ export const UI_INJECTION_ZONE = {
 
     RUNDOWN_SIDE: 'rundown-side',
     RUNDOWN_BOTTOM_PANEL: 'rundown-bottom-panel',
+
+    // Rendered inside the media upload modal while a file is being
+    // uploaded; the host passes `targetPaths: string[]` (server-side
+    // absolute paths) so injections can act on the in-flight files.
+    UPLOAD_OPTIONS: 'upload-options',
 } as const;
 
 export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];
