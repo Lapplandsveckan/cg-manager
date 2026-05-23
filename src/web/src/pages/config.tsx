@@ -27,8 +27,10 @@ const Page = () => {
     const socket = useSocket();
     const [original, setOriginal] = useState<CasparConfig | null>(null);
     const [draft, setDraft] = useState<CasparConfig | null>(null);
+    const [running, setRunning] = useState<CasparConfig | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const [restarting, setRestarting] = useState(false);
     const [editingConsumer, setEditingConsumer] = useState<EditingConsumer | null>(null);
     // Channel index whose "Add consumer" was clicked — shows the type picker.
     // Once the user chooses, transitions into editingConsumer with the picked
@@ -44,6 +46,33 @@ const Page = () => {
             .catch((err) => { if (!cancelled) setError(err?.message ?? 'Failed to load config'); });
         return () => { cancelled = true; };
     }, [socket]);
+
+    // Running snapshot — used only to detect drift. When CasparCG is off
+    // there's nothing to drift from, so we suppress the banner in that case.
+    useEffect(() => {
+        if (!socket) return;
+        let cancelled = false;
+        socket.caspar.getRunningConfig()
+            .then((r) => { if (!cancelled) setRunning(r); })
+            .catch(() => { if (!cancelled) setRunning(null); });
+
+        const listener = (cfg: CasparConfig | null) => { if (!cancelled) setRunning(cfg); };
+        socket.caspar.on('running-config', listener);
+        return () => {
+            cancelled = true;
+            socket.caspar.off('running-config', listener);
+        };
+    }, [socket]);
+
+    // Drift = saved config differs from what's actually running. Compare
+    // against `original` (last save) so the banner only shows when the
+    // saved-and-on-disk state already differs — un-saved drafts get the
+    // existing Save button, not this banner. Stringify for a structural
+    // compare so deeply-equal configs don't false-positive.
+    const drift = useMemo(() => {
+        if (!original || !running) return false;
+        return JSON.stringify(original) !== JSON.stringify(running);
+    }, [original, running]);
 
     const dirty = useMemo(() => {
         if (!original || !draft) return false;
@@ -156,10 +185,35 @@ const Page = () => {
                     </Stack>
                 </Stack>
 
-                <Alert severity="info" variant="outlined">
-                    Saving writes <code>casparcg.config</code> to disk. Restart CasparCG for changes
-                    to take effect — running channels are unaffected until then.
-                </Alert>
+                {drift ? (
+                    <Alert
+                        severity="warning"
+                        variant="outlined"
+                        action={
+                            <Button
+                                size="small"
+                                color="inherit"
+                                disabled={restarting}
+                                onClick={async () => {
+                                    setRestarting(true);
+                                    try { await socket.caspar.restart(); }
+                                    finally { setRestarting(false); }
+                                }}
+                            >
+                                {restarting ? 'Restarting…' : 'Restart now'}
+                            </Button>
+                        }
+                    >
+                        Saved changes haven&apos;t been applied yet. Restart CasparCG to use
+                        the new configuration — until then live state (previews, routes)
+                        keeps using the running snapshot.
+                    </Alert>
+                ) : (
+                    <Alert severity="info" variant="outlined">
+                        Saving writes <code>casparcg.config</code> to disk. Restart CasparCG for
+                        changes to take effect — running channels are unaffected until then.
+                    </Alert>
+                )}
 
                 {error && (
                     <Alert severity="error" variant="outlined">

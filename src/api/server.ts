@@ -80,6 +80,17 @@ export class CGServer {
                 client.send('caspar/media', WebsocketOutboundMethod.ACTION, { key, value }, false);
             });
         });
+
+        // Running-config snapshot: emitted whenever CasparCG starts or stops.
+        // Lets UI consumers (previews, routes) react to live capability
+        // changes without polling /api/caspar/config/running.
+        this.manager.on('caspar-running-config', (cfg) => {
+            const clients = this.server.getClients();
+            clients.forEach((client) => {
+                if (!(client instanceof WebsocketClient)) return;
+                client.send('caspar/running-config', WebsocketOutboundMethod.ACTION, cfg, false);
+            });
+        });
     }
 
     public broadcast<T>(target: string, method: WebsocketOutboundMethod, data: T, exclude?: Client) {

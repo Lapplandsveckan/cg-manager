@@ -260,10 +260,27 @@ export const PreviewPanel: React.FC = () => {
     useEffect(() => {
         if (!socket) return;
         let cancelled = false;
-        socket.caspar.getConfig()
-            .then((cfg) => { if (!cancelled) setChannels(cfg.channels.map((_, i) => i + 1)); })
-            .catch(() => { if (!cancelled) setChannels([]); });
-        return () => { cancelled = true; };
+
+        // Track live (running) channels rather than the saved config — if
+        // CasparCG is off or starts with a different channel set we don't
+        // want to render preview cards for things that physically aren't
+        // there.
+        const apply = (cfg: { channels: { videoMode: string }[] } | null) => {
+            if (cancelled) return;
+            setChannels(cfg ? cfg.channels.map((_, i) => i + 1) : []);
+        };
+
+        socket.caspar.getRunningConfig()
+            .then(apply)
+            .catch(() => apply(null));
+
+        const listener = (cfg: { channels: { videoMode: string }[] } | null) => apply(cfg);
+        socket.caspar.on('running-config', listener);
+
+        return () => {
+            cancelled = true;
+            socket.caspar.off('running-config', listener);
+        };
     }, [socket]);
 
     useEffect(() => {
@@ -274,7 +291,10 @@ export const PreviewPanel: React.FC = () => {
         return () => { socket.caspar.off('status', listener); };
     }, [socket]);
 
-    if (channels === null || channels.length === 0) return null;
+    // null = initial fetch hasn't resolved yet (avoid a brief empty flash).
+    // []   = CasparCG is off OR has no channels — render the panel chrome
+    //        with an explanatory placeholder rather than disappearing.
+    if (channels === null) return null;
 
     return (
         <Card sx={{p: 3}}>
@@ -286,9 +306,31 @@ export const PreviewPanel: React.FC = () => {
                         on the channel — leave off when you don&apos;t need it.
                     </Typography>
                 </Stack>
-                <Stack direction="row" gap={2} flexWrap="wrap">
-                    {channels.map((ch) => <PreviewCard key={ch} channel={ch} running={running} />)}
-                </Stack>
+                {channels.length === 0 ? (
+                    <Card
+                        sx={(theme) => ({
+                            p: 3,
+                            bgcolor: theme.palette.surface.elevated,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2,
+                        })}
+                    >
+                        <VideocamOffRoundedIcon sx={{color: 'text.disabled', fontSize: 32}} />
+                        <Stack spacing={0.25}>
+                            <Typography variant="body1">CasparCG is offline</Typography>
+                            <Typography variant="body2" sx={{color: 'text.secondary'}}>
+                                Start the server to see channels here.
+                            </Typography>
+                        </Stack>
+                    </Card>
+                ) : (
+                    <Stack direction="row" gap={2} flexWrap="wrap">
+                        {channels.map((ch) => (
+                            <PreviewCard key={ch} channel={ch} running={running} />
+                        ))}
+                    </Stack>
+                )}
             </Stack>
         </Card>
     );

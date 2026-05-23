@@ -30,6 +30,13 @@ export class CasparManager extends EventEmitter {
     private readonly onCasparStatusReconnect = (status: CasparStatus) =>
         status.running ? this.executor.connect() : this.executor.disconnect();
     private readonly onCasparLog = (log: string) => this.emit('caspar-logs', log);
+    // Re-emit the CasparCG running-config event for UI consumers (preview
+    // chips, config drift banner). The executor already buffers / drops
+    // commands aimed at non-existent channels, so routes targeting missing
+    // channels degrade gracefully on their own — no need to re-check
+    // routes here.
+    private readonly onCasparRunningConfig = (cfg: unknown) =>
+        this.emit('caspar-running-config', cfg);
     private readonly onDbChange = (key: string, value: unknown) =>
         this.emit('media', key, value);
 
@@ -59,6 +66,7 @@ export class CasparManager extends EventEmitter {
         this.caspar.on('status', this.onCasparStatusBroadcast);
         this.caspar.on('status', this.onCasparStatusReconnect);
         this.caspar.on('log', this.onCasparLog);
+        this.caspar.on('running-config', this.onCasparRunningConfig);
 
         // Whenever the AMCP socket re-establishes after a disconnect (i.e.
         // CasparCG was restarted) the host-side state — channel layer
@@ -119,6 +127,7 @@ export class CasparManager extends EventEmitter {
         this.caspar.off('status', this.onCasparStatusBroadcast);
         this.caspar.off('status', this.onCasparStatusReconnect);
         this.caspar.off('log', this.onCasparLog);
+        this.caspar.off('running-config', this.onCasparRunningConfig);
         FileDatabase.db.off('change', this.onDbChange);
 
         // Drop listeners the server (and anything else) attached on the manager

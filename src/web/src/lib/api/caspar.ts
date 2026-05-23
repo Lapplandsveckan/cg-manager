@@ -108,6 +108,7 @@ export class CasparServerApi extends EventEmitter {
     private socket: REPClient;
     private status: CasparStatus = { running: false, supported: true, lastError: null };
     private media = new Map<string, MediaDoc>();
+    private runningConfig: CasparConfig | null = null;
 
     private logs: string = '';
     private _mediaPromise: Promise<Map<string, MediaDoc>>;
@@ -137,6 +138,13 @@ export class CasparServerApi extends EventEmitter {
             if (value === null) this.media.delete(key);
 
             this.emit('media', key, value);
+        });
+
+        this.socket.routes.action('caspar/running-config', async (request) => {
+            // Server emits null when CasparCG is stopped — keep that as the
+            // signal so consumers can hide live-only UI without polling.
+            this.runningConfig = (request.data as CasparConfig | null) ?? null;
+            this.emit('running-config', this.runningConfig);
         });
 
         this._mediaPromise = this.requestMedia();
@@ -205,6 +213,22 @@ export class CasparServerApi extends EventEmitter {
     public async updateConfig(config: CasparConfig): Promise<CasparConfig> {
         const res = await this.socket.request('api/caspar/config', 'UPDATE', config);
         return res.data as CasparConfig;
+    }
+
+    /** Snapshot of the config CasparCG was started with. `null` when the
+     *  process isn't running, or when no snapshot has arrived yet. Pair
+     *  with the 'running-config' event for live updates — the snapshot
+     *  refreshes whenever CasparCG starts or stops. */
+    public async getRunningConfig(): Promise<CasparConfig | null> {
+        const res = await this.socket.request('api/caspar/running-config', 'GET', {});
+        this.runningConfig = (res.data as CasparConfig | null) ?? null;
+        return this.runningConfig;
+    }
+
+    /** Cheap synchronous read of the last snapshot we have. Returns the
+     *  same value as the most recent 'running-config' event (or null). */
+    public getCachedRunningConfig(): CasparConfig | null {
+        return this.runningConfig;
     }
 
     public async cancelUpload(id: string) {
