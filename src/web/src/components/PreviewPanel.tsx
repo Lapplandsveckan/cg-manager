@@ -242,7 +242,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                         >
                             <CircularProgress size={20} />
                             <Typography variant="caption" sx={{color: 'text.disabled'}}>
-                                Negotiating…
+                                Loading...
                             </Typography>
                         </Stack>
                     )}
