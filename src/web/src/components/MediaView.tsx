@@ -7,6 +7,7 @@ import {useSocket} from '../lib/hooks/useSocket';
 import React, {useEffect, useMemo, useState} from 'react';
 import {MediaDoc} from '../lib/api/caspar';
 import {MediaCard} from '../components/MediaCard';
+import {useTranslation} from 'next-i18next';
 
 
 export interface MediaFolderProps {
@@ -18,6 +19,7 @@ export interface MediaFolderProps {
 }
 
 export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick, onDelete}) => {
+    const {t} = useTranslation('common');
     const span = 60 / (columns ?? 5);
 
     return (
@@ -56,7 +58,7 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick,
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <Tooltip title="Delete (only if empty)">
+                        <Tooltip title={t('media.folder.deleteTooltip')}>
                             <IconButton
                                 size="small"
                                 onClick={onDelete}
@@ -111,6 +113,7 @@ export const MediaView: React.FC<MediaViewProps> = ({
     onClipRename,
     onFolderDelete,
 }) => {
+    const {t} = useTranslation('common');
     const socket = useSocket();
     const [media, setMedia] = useState<MediaDoc[]>([]);
     // Folders are tracked separately from the media listing because the
@@ -223,10 +226,10 @@ export const MediaView: React.FC<MediaViewProps> = ({
                         spacing={0.5}
                     >
                         <Typography variant="h3" sx={{ color: 'text.secondary' }}>
-                            No media
+                            {t('media.empty.title')}
                         </Typography>
                         <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-                            Upload files from the Media page to make them available here.
+                            {t('media.empty.detail')}
                         </Typography>
                     </Stack>
                 )
@@ -300,6 +303,7 @@ const MediaSelectBreadcrumb: React.FC<MediaSelectBreadcrumbProps> = ({ path, onN
 };
 
 export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) => {
+    const {t} = useTranslation('common');
     const [open, setOpen] = useState<boolean>(false);
     const [path, setPath] = useState<string>('');
 
@@ -352,7 +356,7 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                         })}
                     >
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            No media selected — click to choose
+                            {t('media.select.empty')}
                         </Typography>
                     </Box>
                 )}
@@ -362,7 +366,7 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                     size="small"
                     onClick={() => setOpen(true)}
                 >
-                    {data ? 'Change media' : 'Select media'}
+                    {data ? t('media.select.change') : t('media.select.select')}
                 </Button>
             </Stack>
 
@@ -396,12 +400,12 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                         })}
                     >
                         <Stack spacing={0.25} sx={{ minWidth: 0 }}>
-                            <Typography variant="h3">Select media</Typography>
+                            <Typography variant="h3">{t('media.select.modalTitle')}</Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Pick a clip from the CasparCG media library.
+                                {t('media.select.modalSubtitle')}
                             </Typography>
                         </Stack>
-                        <Tooltip title="Close">
+                        <Tooltip title={t('actions.close')}>
                             <IconButton onClick={() => setOpen(false)} sx={{ color: 'text.secondary' }}>
                                 <CloseRoundedIcon />
                             </IconButton>

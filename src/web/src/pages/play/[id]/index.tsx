@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import {useTranslation} from 'next-i18next';
 import {useDragAutoScroll} from '../../../lib/hooks/useDragAutoScroll';
 import {Box, Stack, Tooltip, Typography} from '@mui/material';
 import {DefaultContentLayout} from '../../../components/DefaultContentLayout';
@@ -70,6 +71,7 @@ interface ResizeHandleProps {
 }
 
 const ResizeHandle: React.FC<ResizeHandleProps> = ({ startWidth, minWidth, maxWidth, onResize, onReset }) => {
+    const {t} = useTranslation('common');
     const dragRef = useRef<{ x: number; w: number } | null>(null);
 
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -101,7 +103,7 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({ startWidth, minWidth, maxWi
     };
 
     return (
-        <Tooltip title="Drag to resize · Double-click to reset" placement="top">
+        <Tooltip title={t('playPage.resizeTooltip')} placement="top">
             <Box
                 role="separator"
                 aria-orientation="vertical"
@@ -141,6 +143,7 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({ startWidth, minWidth, maxWi
 };
 
 const Page = () => {
+    const {t} = useTranslation('common');
     const conn = useSocket();
     const router = useRouter();
     const {
@@ -172,7 +175,7 @@ const Page = () => {
     const openEditorForDrop = (payload: RundownItemDragPayload, index?: number) => {
         setEditing({
             id: Math.random().toString(36).substring(2, 11),
-            title: payload.title ?? 'New Rundown Item',
+            title: payload.title ?? t('playPage.detail.newItemTitle'),
             type: payload.type,
             data: payload.data ?? {},
         });
@@ -235,12 +238,12 @@ const Page = () => {
                                     color: name ? 'text.primary' : 'text.disabled',
                                 }}
                             >
-                                {name ?? 'Untitled rundown'}
+                                {name ?? t('playPage.detail.untitled')}
                             </Typography>
                         </Stack>
                         {locked ? <EditIndicator /> : <LiveIndicator />}
                     </Stack>
-                    <LockToggle locked={locked} onToggle={() => setLocked(l => !l)} label="Items" />
+                    <LockToggle locked={locked} onToggle={() => setLocked(l => !l)} label={t('playPage.detail.itemsLabel')} />
                 </Stack>
 
                 <Stack
@@ -270,7 +273,7 @@ const Page = () => {
                             gap: 2,
                         }}
                     >
-                        <Typography variant="h2">Rundown</Typography>
+                        <Typography variant="h2">{t('playPage.detail.rundownHeading')}</Typography>
                         <Rundowns
                             entries={entries}
                             locked={locked}
@@ -301,9 +304,9 @@ const Page = () => {
                         }}
                     >
                         <Stack spacing={0.5}>
-                            <Typography variant="h2">Quick actions</Typography>
+                            <Typography variant="h2">{t('playPage.detail.quickActionsHeading')}</Typography>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                Reusable cue lists you can trigger with one click.
+                                {t('playPage.detail.quickActionsDescription')}
                             </Typography>
                         </Stack>
                         <QuickActions locked={locked} />

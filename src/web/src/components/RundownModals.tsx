@@ -1,6 +1,7 @@
 import {Card, Modal, Stack, Typography, alpha} from '@mui/material';
 import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 import React, {useEffect, useState} from 'react';
+import {useTranslation} from 'next-i18next';
 import {RundownEntry} from './Rundowns';
 import {useSocket} from '../lib';
 
@@ -29,36 +30,46 @@ function formatTypeLabel(id: string): string {
         .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-const TypeTile: React.FC<{ id: string; onPick: () => void }> = ({ id, onPick }) => (
-    <Card
-        onClick={onPick}
-        sx={(theme) => ({
-            p: 2,
-            cursor: 'pointer',
-            transition: theme.transitions.create(['background-color', 'border-color'], { duration: 120 }),
-            '&:hover': {
-                bgcolor: theme.palette.surface.raised,
-                borderColor: alpha(theme.palette.primary.main, 0.45),
-            },
-        })}
-    >
-        <Stack spacing={0.5}>
-            <Typography variant="h5" sx={{ wordBreak: 'break-word' }}>{formatTypeLabel(id)}</Typography>
-            <Typography
-                variant="caption"
-                sx={(theme) => ({
-                    fontFamily: '"SF Mono", "Menlo", "Consolas", monospace',
-                    color: theme.palette.text.disabled,
-                    wordBreak: 'break-all',
-                })}
-            >
-                {id}
-            </Typography>
-        </Stack>
-    </Card>
-);
+const TypeTile: React.FC<{ id: string; onPick: () => void }> = ({ id, onPick }) => {
+    const {t} = useTranslation('common');
+    // Prefer a per-id translation under rundown.actionLabels.<id>; fall back
+    // to the title-cased id so server-supplied action ids without a mapping
+    // still render readably.
+    const labelKey = `rundown.actionLabels.${id}`;
+    const translated = t(labelKey);
+    const label = translated === labelKey ? formatTypeLabel(id) : translated;
+    return (
+        <Card
+            onClick={onPick}
+            sx={(theme) => ({
+                p: 2,
+                cursor: 'pointer',
+                transition: theme.transitions.create(['background-color', 'border-color'], { duration: 120 }),
+                '&:hover': {
+                    bgcolor: theme.palette.surface.raised,
+                    borderColor: alpha(theme.palette.primary.main, 0.45),
+                },
+            })}
+        >
+            <Stack spacing={0.5}>
+                <Typography variant="h5" sx={{ wordBreak: 'break-word' }}>{label}</Typography>
+                <Typography
+                    variant="caption"
+                    sx={(theme) => ({
+                        fontFamily: '"SF Mono", "Menlo", "Consolas", monospace',
+                        color: theme.palette.text.disabled,
+                        wordBreak: 'break-all',
+                    })}
+                >
+                    {id}
+                </Typography>
+            </Stack>
+        </Card>
+    );
+};
 
 const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({onChoose}) => {
+    const {t} = useTranslation('common');
     const conn = useSocket();
     const [types, setTypes] = useState<string[] | null>(null);
 
@@ -71,19 +82,21 @@ const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({onChoo
     return (
         <Stack spacing={2}>
             <Stack spacing={0.5}>
-                <Typography variant="h3">Add item</Typography>
+                <Typography variant="h3">{t('rundown.modals.addItem.title')}</Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    Pick the type of item to add. Each plugin registers its own item types.
+                    {t('rundown.modals.addItem.description')}
                 </Typography>
             </Stack>
 
             {types === null && (
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>Loading types…</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    {t('rundown.modals.addItem.loading')}
+                </Typography>
             )}
 
             {types?.length === 0 && (
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    No item types are registered. Enable a plugin that provides rundown items.
+                    {t('rundown.modals.addItem.empty')}
                 </Typography>
             )}
 
@@ -166,6 +179,7 @@ const EditorModal: React.FC<BaseModalProps> = ({
 };
 
 const AddModal: React.FC<BaseModalProps> = ({ setEditing, adding, setAdding }) => {
+    const {t} = useTranslation('common');
     return (
         <Modal
             open={adding}
@@ -176,7 +190,7 @@ const AddModal: React.FC<BaseModalProps> = ({ setEditing, adding, setAdding }) =
                     setAdding(false);
                     setEditing({
                         id: Math.random().toString(36).substring(7),
-                        title: 'New Rundown Item',
+                        title: t('rundown.newItemDefaultTitle'),
                         data: {},
                         type,
                     });

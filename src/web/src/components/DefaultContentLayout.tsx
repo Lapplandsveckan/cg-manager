@@ -1,5 +1,6 @@
 import {Stack, Box, Typography} from '@mui/material';
 import React from 'react';
+import {useTranslation} from 'next-i18next';
 import {Navbar} from './Navbar';
 
 class ErrorBoundary extends React.Component<
@@ -21,25 +22,27 @@ class ErrorBoundary extends React.Component<
     }
 }
 
-const ErrorFallback = (
-    <Stack
-        sx={(theme) => ({
-            m: 4,
-            p: 4,
-            borderRadius: 2,
-            bgcolor: theme.palette.surface.elevated,
-            border: `1px solid ${theme.palette.divider}`,
-            maxWidth: 480,
-        })}
-        spacing={1}
-    >
-        <Typography variant="h3">Something went wrong</Typography>
-        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-            The page hit an error and stopped rendering. Reload to try again, or
-            check the browser console for details.
-        </Typography>
-    </Stack>
-);
+const ErrorFallback: React.FC = () => {
+    const {t} = useTranslation('common');
+    return (
+        <Stack
+            sx={(theme) => ({
+                m: 4,
+                p: 4,
+                borderRadius: 2,
+                bgcolor: theme.palette.surface.elevated,
+                border: `1px solid ${theme.palette.divider}`,
+                maxWidth: 480,
+            })}
+            spacing={1}
+        >
+            <Typography variant="h3">{t('layout.error.title')}</Typography>
+            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                {t('layout.error.body')}
+            </Typography>
+        </Stack>
+    );
+};
 
 export const DefaultContentLayout = (props: { children: React.ReactNode }) => {
     return (
@@ -67,7 +70,7 @@ export const DefaultContentLayout = (props: { children: React.ReactNode }) => {
                     p: 4,
                 }}
             >
-                <ErrorBoundary fallback={ErrorFallback}>
+                <ErrorBoundary fallback={<ErrorFallback />}>
                     {props.children}
                 </ErrorBoundary>
             </Box>

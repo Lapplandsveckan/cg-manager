@@ -2,6 +2,7 @@ import React, {useMemo} from 'react';
 import {Card, Grid, IconButton, Stack, Tooltip, Typography} from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
+import {useTranslation} from 'next-i18next';
 
 function getDurationString(duration: number) {
     const hours = Math.floor(duration / 3600);
@@ -45,6 +46,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     onDelete,
     onRename,
 }) => {
+    const {t} = useTranslation('common');
     const durationString = useMemo(() => getDurationString(duration), [duration]);
     const span = 60 / (columns ?? 5);
 
@@ -89,14 +91,14 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                         onClick={(e) => e.stopPropagation()}
                     >
                         {onRename && (
-                            <Tooltip title="Rename">
+                            <Tooltip title={t('actions.rename')}>
                                 <IconButton size="small" onClick={onRename} sx={{ color: 'rgba(232, 234, 237, 0.85)' }}>
                                     <DriveFileRenameOutlineRoundedIcon fontSize="small" />
                                 </IconButton>
                             </Tooltip>
                         )}
                         {onDelete && (
-                            <Tooltip title="Delete">
+                            <Tooltip title={t('actions.delete')}>
                                 <IconButton size="small" onClick={onDelete} sx={{ color: '#e88c8c' }}>
                                     <DeleteOutlineRoundedIcon fontSize="small" />
                                 </IconButton>

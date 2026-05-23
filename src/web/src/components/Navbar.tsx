@@ -9,6 +9,7 @@ import {OverridableComponent} from '@mui/material/OverridableComponent';
 import {useRouter} from 'next/router';
 import Link from 'next/link';
 import {useEffect, useState} from 'react';
+import {useTranslation} from 'next-i18next';
 
 import ComputerIcon from '@mui/icons-material/Computer';
 import ImageIcon from '@mui/icons-material/Image';
@@ -23,18 +24,18 @@ type NavIcon = OverridableComponent<SvgIconTypeMap<{}, 'svg'>>;
 
 interface NavItem {
     href: string;
-    label: string;
+    labelKey: string;
     icon: NavIcon;
     match?: (path: string) => boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
-    { href: '/server',  label: 'Server',  icon: ComputerIcon },
-    { href: '/media',   label: 'Media',   icon: ImageIcon },
-    { href: '/play',    label: 'Play',    icon: PlayArrowIcon },
-    { href: '/routes',  label: 'Routes',  icon: HubOutlinedIcon },
-    { href: '/plugins', label: 'Plugins', icon: ExtensionIcon },
-    { href: '/config',  label: 'Config',  icon: TuneIcon },
+    { href: '/server',  labelKey: 'nav.server',  icon: ComputerIcon },
+    { href: '/media',   labelKey: 'nav.media',   icon: ImageIcon },
+    { href: '/play',    labelKey: 'nav.play',    icon: PlayArrowIcon },
+    { href: '/routes',  labelKey: 'nav.routes',  icon: HubOutlinedIcon },
+    { href: '/plugins', labelKey: 'nav.plugins', icon: ExtensionIcon },
+    { href: '/config',  labelKey: 'nav.config',  icon: TuneIcon },
 ];
 
 const EXPANDED_WIDTH = 200;
@@ -43,6 +44,8 @@ const STORAGE_KEY = 'navbar-collapsed';
 
 const NavbarItem: React.FC<{ item: NavItem; active: boolean; collapsed: boolean }> = ({ item, active, collapsed }) => {
     const Icon = item.icon;
+    const {t} = useTranslation('common');
+    const label = t(item.labelKey);
 
     const inner = (
         <ButtonBase
@@ -70,22 +73,24 @@ const NavbarItem: React.FC<{ item: NavItem; active: boolean; collapsed: boolean 
             <Icon fontSize="small" />
             {!collapsed && (
                 <Typography variant="body1" fontWeight={active ? 600 : 400}>
-                    {item.label}
+                    {label}
                 </Typography>
             )}
         </ButtonBase>
     );
 
     return collapsed ? (
-        <Tooltip title={item.label} placement="right">
+        <Tooltip title={label} placement="right">
             {inner}
         </Tooltip>
     ) : inner;
 };
 
+type StatusKey = 'unreachable' | 'running' | 'stopped' | 'unknown';
+
 interface StatusInfo {
     color: string;
-    label: string;
+    key: StatusKey;
     glow: boolean;
 }
 
@@ -106,13 +111,12 @@ function useCasparStatus(): StatusInfo {
     // unreachable, the cached running flag is stale and would otherwise keep
     // showing a green/red dot from before the outage. Surface as "Unreachable"
     // until heartbeats recover.
-    if (connectionState === 'disconnected') 
-        return { color: 'rgba(232, 234, 237, 0.3)', label: 'Unreachable', glow: false };
-    
+    if (connectionState === 'disconnected')
+        return { color: 'rgba(232, 234, 237, 0.3)', key: 'unreachable', glow: false };
 
-    if (running === true) return { color: '#5fc97a', label: 'Running',   glow: true };
-    if (running === false) return { color: '#cf5b4a', label: 'Stopped',   glow: false };
-    return { color: 'rgba(232, 234, 237, 0.3)', label: 'Unknown', glow: false };
+    if (running === true) return { color: '#5fc97a', key: 'running', glow: true };
+    if (running === false) return { color: '#cf5b4a', key: 'stopped', glow: false };
+    return { color: 'rgba(232, 234, 237, 0.3)', key: 'unknown', glow: false };
 }
 
 function useNavbarCollapsed(): [boolean, () => void] {
@@ -149,9 +153,11 @@ async function logout() {
 }
 
 export const Navbar = () => {
+    const {t} = useTranslation('common');
     const version = useVersion();
     const router = useRouter();
     const status = useCasparStatus();
+    const statusLabel = t(`casparStatus.${status.key}`);
     const [collapsed, toggleCollapsed] = useNavbarCollapsed();
     const [authEnabled, setAuthEnabled] = useState(false);
 
@@ -202,14 +208,14 @@ export const Navbar = () => {
                                 noWrap
                                 sx={{ whiteSpace: 'nowrap' }}
                             >
-                                CG Manager
+                                {t('brand.name')}
                             </Typography>
                             <Typography variant="caption" noWrap sx={{ whiteSpace: 'nowrap' }}>
-                                CasparCG control
+                                {t('brand.tagline')}
                             </Typography>
                         </Stack>
                     )}
-                    <Tooltip title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} placement="right">
+                    <Tooltip title={t(collapsed ? 'sidebar.expand' : 'sidebar.collapse')} placement="right">
                         <IconButton
                             size="small"
                             onClick={toggleCollapsed}
@@ -252,7 +258,7 @@ export const Navbar = () => {
                 })}
             >
                 <Tooltip
-                    title={`CasparCG ${status.label.toLowerCase()} · v${version}`}
+                    title={t('casparStatus.tooltip', { status: statusLabel.toLowerCase(), version })}
                     placement="right"
                 >
                     <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
@@ -267,7 +273,7 @@ export const Navbar = () => {
                         />
                         {!collapsed && (
                             <Typography variant="caption" sx={{ color: 'text.secondary', lineHeight: 1 }}>
-                                {status.label}
+                                {statusLabel}
                                 <Box
                                     component="span"
                                     sx={{ color: 'text.disabled', ml: 0.75 }}
@@ -280,7 +286,7 @@ export const Navbar = () => {
                 </Tooltip>
 
                 {authEnabled && (
-                    <Tooltip title="Sign out" placement="right">
+                    <Tooltip title={t('auth.signOut')} placement="right">
                         <IconButton
                             size="small"
                             onClick={logout}

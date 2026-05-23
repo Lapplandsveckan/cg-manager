@@ -9,6 +9,7 @@ import {
     TextField,
 } from '@mui/material';
 import {MuiColorInput} from 'mui-color-input';
+import {useTranslation} from 'next-i18next';
 import {useSocket} from '../../lib/hooks/useSocket';
 import {VideoRouteSource} from '../../lib/api/videoRoutes';
 import {MediaDoc} from '../../lib/api/caspar';
@@ -97,6 +98,7 @@ interface SourceFieldsProps {
 }
 
 export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, videoModes, setDraft}) => {
+    const {t} = useTranslation('common');
     const socket = useSocket();
     const [videoClip, setVideoClip] = useState<MediaDoc | null>(null);
     const videoId = draft.type === 'video' ? draft.video : '';
@@ -138,7 +140,7 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, vide
         return (
             <Stack direction="row" gap={1.5} flexWrap="wrap">
                 <TextField
-                    label="Device"
+                    label={t('videoRoutes.fields.device')}
                     size="small"
                     type="number"
                     value={draft.device}
@@ -156,13 +158,13 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, vide
                     renderInput={(params) => (
                         <TextField
                             {...params}
-                            label="Format"
+                            label={t('videoRoutes.fields.format')}
                             placeholder="1080i5000"
                         />
                     )}
                 />
                 <TextField
-                    label="Key device (optional)"
+                    label={t('videoRoutes.fields.keyDeviceOptional')}
                     size="small"
                     type="number"
                     value={draft.keyDevice}
@@ -183,9 +185,9 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, vide
 
     if (draft.type === 'channel') return (
         <FormControl size="small" fullWidth>
-            <InputLabel>Channel</InputLabel>
+            <InputLabel>{t('videoRoutes.fields.channel')}</InputLabel>
             <Select
-                label="Channel"
+                label={t('videoRoutes.fields.channel')}
                 value={draft.channel}
                 onChange={(e) => patch('channel', (p) => ({...p, channel: String(e.target.value)}))}
             >
@@ -200,13 +202,13 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, vide
         const hex8 = casparColorToHex8(draft.color);
         return (
             <MuiColorInput
-                label="Color"
+                label={t('videoRoutes.fields.color')}
                 size="small"
                 fullWidth
                 format="hex8"
                 value={hex8}
                 onChange={(v) => patch('color', (p) => ({...p, color: hex8ToCasparColor(v)}))}
-                helperText="Stored as #AARRGGBB for CasparCG."
+                helperText={t('videoRoutes.fields.colorHelper')}
             />
         );
     }

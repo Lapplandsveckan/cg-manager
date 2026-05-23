@@ -1,0 +1,608 @@
+{
+    "brand": {
+        "name": "CG Manager",
+        "tagline": "CasparCG control"
+    },
+    "nav": {
+        "server": "Server",
+        "media": "Media",
+        "play": "Play",
+        "routes": "Routes",
+        "plugins": "Plugins",
+        "config": "Config"
+    },
+    "sidebar": {
+        "expand": "Expand sidebar",
+        "collapse": "Collapse sidebar"
+    },
+    "casparStatus": {
+        "unreachable": "Unreachable",
+        "running": "Running",
+        "stopped": "Stopped",
+        "unknown": "Unknown",
+        "tooltip": "CasparCG {{status}} · v{{version}}"
+    },
+    "auth": {
+        "signOut": "Sign out"
+    },
+    "actions": {
+        "save": "Save",
+        "cancel": "Cancel",
+        "delete": "Delete",
+        "edit": "Edit",
+        "add": "Add",
+        "remove": "Remove",
+        "close": "Close",
+        "confirm": "Confirm",
+        "ok": "OK",
+        "yes": "Yes",
+        "no": "No",
+        "loading": "Loading…",
+        "retry": "Retry",
+        "refresh": "Refresh",
+        "back": "Back",
+        "next": "Next",
+        "submit": "Submit",
+        "apply": "Apply",
+        "clear": "Clear",
+        "reset": "Reset",
+        "search": "Search",
+        "create": "Create",
+        "open": "Open",
+        "rename": "Rename",
+        "browse": "Browse",
+        "hide": "Hide",
+        "show": "Show",
+        "preview": "Preview",
+        "upload": "Upload",
+        "download": "Download",
+        "copy": "Copy",
+        "move": "Move",
+        "select": "Select",
+        "done": "Done",
+        "play": "Play",
+        "pause": "Pause",
+        "stop": "Stop",
+        "start": "Start",
+        "restart": "Restart",
+        "enable": "Enable",
+        "disable": "Disable"
+    },
+    "connection": {
+        "banner": {
+            "disconnected": "Disconnected from CG Manager — retrying…",
+            "reconnecting": "Reconnecting to CG Manager…"
+        }
+    },
+    "layout": {
+        "error": {
+            "title": "Something went wrong",
+            "body": "The page hit an error and stopped rendering. Reload to try again, or check the browser console for details."
+        }
+    },
+    "rundown": {
+        "addItem": "Add item",
+        "newItemDefaultTitle": "New Rundown Item",
+        "empty": {
+            "dropOrAdd": "No items yet. Drop something from the bottom panel, or add one below.",
+            "addOne": "No items yet. Add one below to get started."
+        },
+        "entry": {
+            "dragToReorder": "Drag to reorder",
+            "playLockedTooltip": "Play (rundown is locked — items only fire from this button)"
+        },
+        "indicator": {
+            "live": "LIVE",
+            "edit": "EDIT"
+        },
+        "lockToggle": {
+            "defaultLabel": "Items",
+            "locked": "Locked",
+            "unlocked": "Unlocked",
+            "lockedTooltip": "{{label}} are locked — clicking a card won't fire it. Use the play button.",
+            "unlockedTooltip": "{{label}} are unlocked — click anywhere on a card to fire it."
+        },
+        "bottomPanel": {
+            "resizeHint": "Drag to resize · Double-click to reset",
+            "expand": "Expand panel",
+            "collapse": "Collapse panel",
+            "expandAria": "Expand bottom panel",
+            "collapseAria": "Collapse bottom panel"
+        },
+        "quickActions": {
+            "new": "New quick action",
+            "defaultName": "New quick action",
+            "renameOrDelete": "Rename or delete this quick action",
+            "empty": "No quick actions yet. Click + above to create one.",
+            "selectPrompt": "Select a quick action above to see its items."
+        },
+        "modals": {
+            "addItem": {
+                "title": "Add item",
+                "description": "Pick the type of item to add.",
+                "loading": "Loading types…",
+                "empty": "No item types are registered."
+            }
+        },
+        "preview": {
+            "stop": "Stop preview",
+            "stopChannel": "Stop previewing channel {{channel}}",
+            "previewChannel": "Preview channel {{channel}}",
+            "offline": "CasparCG is offline",
+            "pickChannel": "Pick a channel to preview"
+        },
+        "actionLabels": {}
+    },
+    "media": {
+        "dropzone": {
+            "dropToUpload": "Drop to upload"
+        },
+        "empty": {
+            "title": "No media",
+            "detail": "Upload files from the Media page to make them available here."
+        },
+        "folder": {
+            "deleteTooltip": "Delete (only if empty)"
+        },
+        "select": {
+            "empty": "No media selected — click to choose",
+            "select": "Select media",
+            "change": "Change media",
+            "modalTitle": "Select media",
+            "modalSubtitle": "Pick a clip from the CasparCG media library."
+        },
+        "preview": {
+            "title": "Preview",
+            "subtitle": "Live preview of your stream. Enabling this uses additional resources — leave off when not needed.",
+            "channel": "Channel {{channel}}",
+            "switch": {
+                "serverOff": "Server off",
+                "live": "Live",
+                "off": "Off"
+            },
+            "placeholder": {
+                "notRunning": {
+                    "title": "CasparCG is not running",
+                    "detail": "Start the server to enable preview."
+                },
+                "off": {
+                    "title": "Preview off",
+                    "detail": "Toggle Live to start streaming this channel."
+                },
+                "failed": {
+                    "title": "Preview failed"
+                }
+            },
+            "offline": {
+                "title": "CasparCG is offline",
+                "detail": "Start the server to see channels here."
+            },
+            "errors": {
+                "failed": "WebRTC connection failed",
+                "disconnected": "WebRTC disconnected",
+                "startFailed": "Failed to start preview"
+            }
+        },
+        "upload": {
+            "title": {
+                "reviewOne": "Upload file?",
+                "reviewMulti": "Upload {{count}} files?",
+                "preparingOne": "Preparing upload…",
+                "preparingMulti": "Preparing {{current}} of {{total}}…",
+                "uploadingOne": "Uploading…",
+                "uploadingMulti": "Uploading {{current}} of {{total}}…",
+                "doneOne": "Upload complete",
+                "doneMulti": "Uploaded {{count}} files",
+                "failed": "Upload failed",
+                "partial": "Uploaded {{success}} of {{total}}"
+            },
+            "errors": {
+                "startFailed": "Failed to start upload",
+                "canceled": "Canceled"
+            }
+        },
+        "page": {
+            "title": "Media",
+            "subtitle": "Browse media on the CasparCG server and upload new files.",
+            "dropOverlay": "Drop to upload to {{path}}",
+            "newFolder": "New folder",
+            "uploadMedia": "Upload media",
+            "mediaFiles": "Media files"
+        },
+        "deleteMedia": {
+            "title": "Delete media?",
+            "body": "will be removed from the CasparCG media folder. This can't be undone.",
+            "deleting": "Deleting…"
+        },
+        "deleteFolder": {
+            "title": "Delete folder?",
+            "body": "will be removed. Only works if the folder is empty."
+        },
+        "createFolder": {
+            "title": "New folder",
+            "bodyBefore": "Creates a folder under",
+            "bodyBetween": ". Names can't contain",
+            "bodyAfter": ".",
+            "nameLabel": "Folder name",
+            "creating": "Creating…"
+        },
+        "renameMedia": {
+            "title": "Rename media",
+            "body": "File extension is preserved automatically.",
+            "nameLabel": "New name",
+            "renaming": "Renaming…"
+        },
+        "errors": {
+            "deleteFailed": "Failed to delete",
+            "renameFailed": "Failed to rename",
+            "deleteFolderFailed": "Failed to delete folder",
+            "createFolderFailed": "Failed to create folder"
+        }
+    },
+    "config": {
+        "subtitle": "CasparCG Configuration.",
+        "discard": "Discard",
+        "saving": "Saving…",
+        "loading": "Loading config…",
+        "restartNow": "Restart now",
+        "restarting": "Restarting…",
+        "driftMessage": "Saved changes haven't been applied yet. Restart CasparCG to use the new configuration.",
+        "saveInfoBefore": "Saving writes ",
+        "saveInfoAfter": " to disk. Restart CasparCG for changes to take effect.",
+        "advanced": "Advanced",
+        "errors": {
+            "loadFailed": "Failed to load config",
+            "saveFailed": "Failed to save config"
+        },
+        "channels": {
+            "title": "Channels",
+            "add": "Add channel",
+            "channelN": "Channel {{n}}",
+            "deleteChannel": "Delete channel",
+            "count_one": "{{count}} channel.",
+            "count_other": "{{count}} channels.",
+            "empty": "No channels configured — CasparCG won't start without at least one."
+        },
+        "consumers": {
+            "title": "Consumers",
+            "add": "Add consumer",
+            "empty": "No consumers configured.",
+            "addTitle": "Add {{type}}",
+            "editTitle": "Edit {{type}}",
+            "restartNote": "Restart CasparCG after saving for these changes to take effect.",
+            "pickerTitle": "Add consumer",
+            "pickerDescription": "Pick a consumer type.",
+            "types": {
+                "decklink": "Decklink",
+                "bluefish": "Bluefish",
+                "screen": "Screen",
+                "system-audio": "System audio",
+                "ndi": "NDI",
+                "ffmpeg": "FFmpeg",
+                "artnet": "Art-Net"
+            },
+            "descriptions": {
+                "decklink": "Blackmagic Decklink SDI output.",
+                "bluefish": "Bluefish444 SDI output.",
+                "screen": "On-screen window or fullscreen monitor.",
+                "system-audio": "Default system audio device.",
+                "ndi": "NDI network video output.",
+                "ffmpeg": "Pipe to FFmpeg — files, RTMP, custom args.",
+                "artnet": "DMX lighting via Art-Net."
+            }
+        },
+        "html": {
+            "title": "HTML",
+            "remoteDebuggingPort": "Remote debugging port",
+            "remoteDebuggingPortHelp": "Default 9222 when blank",
+            "enableGpu": "Enable GPU"
+        },
+        "logging": {
+            "title": "Logging",
+            "logLevel": "Log level",
+            "levels": {
+                "trace": "Trace",
+                "debug": "Debug",
+                "info": "Info",
+                "warning": "Warning",
+                "error": "Error",
+                "fatal": "Fatal"
+            },
+            "hints": {
+                "trace": "Everything, including AMCP traffic",
+                "debug": "Verbose diagnostic output",
+                "info": "Default — high-level events",
+                "warning": "Unexpected but recoverable conditions",
+                "error": "Failed operations only",
+                "fatal": "Crashes only"
+            }
+        },
+        "videoModes": {
+            "title": "Video modes",
+            "add": "Add mode",
+            "empty": "No custom video modes (CasparCG built-ins still apply).",
+            "id": "ID",
+            "timeScale": "Time scale",
+            "duration": "Duration",
+            "cadence": "Cadence"
+        },
+        "artnet": {
+            "output": "Output",
+            "fixtures": "Fixtures",
+            "fixturesEmpty": "No fixtures yet — click <em>Add</em> to drop one on the stage.",
+            "fixtureN": "Fixture {{n}}",
+            "fluxHelp": "Flux — per-channel brightness multiplier (0-1).",
+            "livePreview": "Live preview · ch {{channel}}",
+            "countW": "Count W",
+            "countH": "Count H",
+            "universes": "Universes",
+            "universesPlaceholder": "e.g. 0, 1, 2 or 0-3",
+            "universesHelp": "Type numbers, paste lists, or ranges like 0-3",
+            "canvas": {
+                "stage": "Stage · {{width}}×{{height}} px"
+            }
+        },
+        "fields": {
+            "default": "(default)",
+            "addItem": "Add {{item}}",
+            "emptyItems": "No {{item}}s configured.",
+            "type": "Type",
+            "startAddress": "Start address",
+            "fixtureCount": "Count (N or WxH)",
+            "channelsPerFixture": "Channels per fixture",
+            "left": "Left",
+            "top": "Top",
+            "width": "Width",
+            "height": "Height",
+            "flux": "Flux",
+            "fixtures": "Fixtures",
+            "fixture": "Fixture",
+            "host": "Host",
+            "port": "Port",
+            "ports": "Ports",
+            "refreshRate": "Refresh rate",
+            "device": "Device",
+            "keyDevice": "Key device",
+            "embeddedAudio": "Embedded audio",
+            "latency": "Latency",
+            "keyer": "Keyer",
+            "keyOnly": "Key only",
+            "bufferDepth": "Buffer depth",
+            "videoMode": "Video mode",
+            "waitForReference": "Wait for ref",
+            "waitForReferenceDuration": "Wait for ref duration",
+            "subregion": "Subregion",
+            "srcX": "Src X",
+            "srcY": "Src Y",
+            "destX": "Dest X",
+            "destY": "Dest Y",
+            "internalKeyerAudioSource": "Internal keyer audio",
+            "watchdog": "Watchdog",
+            "uhdMode": "UHD mode",
+            "channelLayout": "Channel layout",
+            "aspectRatio": "Aspect ratio",
+            "stretch": "Stretch",
+            "windowed": "Windowed",
+            "borderless": "Borderless",
+            "interactive": "Interactive",
+            "alwaysOnTop": "Always on top",
+            "vsync": "VSync",
+            "sbsKey": "SBS key",
+            "colourSpace": "Colour space",
+            "name": "Name",
+            "allowFields": "Allow fields",
+            "path": "Path",
+            "args": "Args"
+        }
+    },
+    "videoRoutes": {
+        "description": "Live video routes from sources (decklink inputs, files, channels, colors) to CasparCG channels. Click a route to edit; toggle to activate or pause.",
+        "newRoute": "New route",
+        "unnamed": "(unnamed route)",
+        "saving": "Saving…",
+        "deleting": "Deleting…",
+        "toggleAria": "Toggle {{name}}",
+        "status": {
+            "active": "Active",
+            "disabled": "Disabled"
+        },
+        "empty": {
+            "prefix": "No video routes yet. Click",
+            "suffix": " to add one."
+        },
+        "deleteConfirm": {
+            "title": "Delete video route?",
+            "body": "will be removed and its underlying effect torn down. This can't be undone."
+        },
+        "summary": {
+            "decklink": "Decklink #{{device}}",
+            "decklinkWithKey": "Decklink #{{device}} (+key #{{key}})",
+            "video": "Video: {{video}}",
+            "channel": "Channel {{channel}}",
+            "color": "Color {{color}}"
+        },
+        "sourceTypes": {
+            "decklink": "Decklink",
+            "video": "Video file",
+            "channel": "Channel",
+            "color": "Color"
+        },
+        "sourceTypeDescriptions": {
+            "decklink": "Blackmagic Decklink SDI input (optional fill+key).",
+            "video": "Looping clip from the media library.",
+            "channel": "Route the output of another CasparCG channel.",
+            "color": "Solid color fill (CSS name or #RRGGBB)."
+        },
+        "picker": {
+            "title": "Add route",
+            "description": "Pick a source type. You'll fill in its details and the destination next."
+        },
+        "modal": {
+            "addTitle": "Add {{type}} route",
+            "editTitle": "Edit {{type}} route",
+            "description": "Routes are persisted to disk and take effect immediately. Source type can't be changed after creation."
+        },
+        "sections": {
+            "source": "Source",
+            "destination": "Destination",
+            "geometry": "Geometry"
+        },
+        "fields": {
+            "name": "Name",
+            "channel": "Channel",
+            "group": "Group",
+            "indexOptional": "Index (optional)",
+            "device": "Device",
+            "format": "Format",
+            "keyDeviceOptional": "Key device (optional)",
+            "color": "Color",
+            "colorHelper": "Stored as #AARRGGBB for CasparCG."
+        },
+        "destinationHint": "Effect-group layer is \"channel:group\". Index disambiguates multiple groups with the same name on a channel.",
+        "geometry": {
+            "title": "Geometry",
+            "description": "Drag handles to position, warp, or blend the route output. Coordinates are normalized (0..1).",
+            "livePreview": "Live preview · ch {{channel}}",
+            "tabs": {
+                "position": "Position",
+                "perspective": "Perspective",
+                "edgeblend": "Edge blend"
+            },
+            "resetTab": "Reset this tab",
+            "fillLabel": "FILL",
+            "perspectiveHint": "CasparCG MIXER PERSPECTIVE accepts arbitrary 4-corner warps — drag any corner anywhere to deform the quad.",
+            "edgeblendHint": "Drag the dot on each edge to fade that side inward. Gamma / power / alpha shape the blend curve.",
+            "gamma": "Gamma",
+            "power": "Power",
+            "alpha": "Alpha",
+            "addButton": "Add geometry…",
+            "editButton": "Edit geometry…",
+            "noneSet": "Position, perspective warp, edge blending — none set.",
+            "parts": {
+                "position": "position",
+                "perspective": "perspective",
+                "edgeblend": "edge blend"
+            },
+            "readout": {
+                "destination": "Destination (FILL)",
+                "source": "Source (CLIP)",
+                "topLeft": "Top-left",
+                "topRight": "Top-right",
+                "bottomRight": "Bottom-right",
+                "bottomLeft": "Bottom-left",
+                "left": "Left",
+                "right": "Right",
+                "top": "Top",
+                "bottom": "Bottom"
+            }
+        },
+        "stage": {
+            "label": "Stage · {{width}}×{{height}} px"
+        },
+        "errors": {
+            "decklinkDeviceRequired": "Decklink device is required",
+            "decklinkFormatRequired": "Decklink format is required",
+            "videoRequired": "Video file is required",
+            "channelRequired": "Channel is required",
+            "colorRequired": "Color is required",
+            "destinationChannelRequired": "Destination channel is required",
+            "destinationGroupRequired": "Destination group is required",
+            "destinationGroupColon": "Destination group cannot contain `:`",
+            "saveFailed": "Failed to save route"
+        }
+    },
+    "notFound": {
+        "title": "Page not found"
+    },
+    "login": {
+        "subtitle": "Operator sign-in",
+        "password": "Password",
+        "signIn": "Sign in",
+        "signingIn": "Signing in…",
+        "wrongPassword": "Wrong password"
+    },
+    "serverPage": {
+        "title": "Server",
+        "description": "Start, stop, and monitor the CasparCG process this manager wraps.",
+        "status": {
+            "waiting": "Waiting for the server to report state…",
+            "unsupportedLabel": "Unsupported platform",
+            "unsupportedDetail": "CasparCG can't be started on this platform.",
+            "runningDetail": "CasparCG is up and accepting commands.",
+            "stoppedErrorLabel": "Stopped (error)",
+            "stoppedDetail": "CasparCG is not running."
+        },
+        "controls": {
+            "starting": "Starting…",
+            "stopping": "Stopping…",
+            "restarting": "Restarting…"
+        },
+        "unsupported": {
+            "title": "CasparCG can't run on this platform",
+            "body": "{{message}} Run the manager on a supported host (Linux or Windows) to use the server controls. The rest of the UI still works for browsing and editing."
+        },
+        "logs": {
+            "title": "Logs",
+            "scrollToBottom": "Scroll to bottom",
+            "clearTooltip": "Clear log view (server keeps the original)",
+            "empty": "No log output yet."
+        },
+        "errors": {
+            "start": "Failed to start",
+            "stop": "Failed to stop",
+            "restart": "Failed to restart"
+        }
+    },
+    "pluginsPage": {
+        "title": "Plugins",
+        "description": "Plugins extend CG Manager with extra effects, integrations, and UI panels. Toggle them on or off below.",
+        "empty": "No plugins installed.",
+        "loadError": "Failed to load plugins",
+        "togglePlugin": "Toggle {{name}}",
+        "status": {
+            "active": "Active",
+            "disabled": "Disabled"
+        },
+        "card": {
+            "openForConfig": "Open for configuration.",
+            "noUi": "No configuration UI — open for plugin details."
+        },
+        "detail": {
+            "notFoundTitle": "Plugin not found",
+            "notFoundBody": "No plugin called “{{id}}” is registered.",
+            "noUiTitle": "No configuration UI",
+            "noUiBody": "This plugin doesn't provide a configuration panel. It's controlled directly through the plugin's code, the CasparCG config, or a file in the project's plugin folder.",
+            "noUiHint": "You can still enable or disable it with the switch above."
+        }
+    },
+    "playPage": {
+        "title": "Play",
+        "description": "Rundowns of cues you can step through live. Click one to edit or play its items.",
+        "newRundown": "New rundown",
+        "renameRundown": "Rename rundown",
+        "nameLabel": "Name",
+        "unnamedRundown": "(unnamed rundown)",
+        "noItemsHint": "No items yet. Click to add some.",
+        "emptyBefore": "No rundowns yet. Click ",
+        "emptyAfter": " to add one.",
+        "itemCount": {
+            "empty": "empty",
+            "count_one": "{{count}} item",
+            "count_other": "{{count}} items"
+        },
+        "deleteDialog": {
+            "title": "Delete rundown?",
+            "titleAlt": "Delete this rundown?",
+            "bodyAfterName": "and all of its items will be removed. This can't be undone."
+        },
+        "resizeTooltip": "Drag to resize · Double-click to reset",
+        "detail": {
+            "untitled": "Untitled rundown",
+            "itemsLabel": "Items",
+            "rundownHeading": "Rundown",
+            "quickActionsHeading": "Quick actions",
+            "quickActionsDescription": "Reusable cue lists you can trigger with one click.",
+            "newItemTitle": "New Rundown Item"
+        }
+    }
+}

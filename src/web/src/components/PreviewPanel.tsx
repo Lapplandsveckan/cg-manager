@@ -13,6 +13,7 @@ import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import {useSocket} from '../lib/hooks/useSocket';
 import {CasparStatus} from '../lib/api/caspar';
+import {useTranslation} from 'next-i18next';
 
 interface PreviewCardProps {
     channel: number;
@@ -65,6 +66,7 @@ async function whepExchange(channel: number, offerSdp: string, nonce: number, si
 }
 
 const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
+    const {t} = useTranslation('common');
     const [enabled, setEnabled] = useState(false);
     // Bump on each (re)load — used in the URL so a Retry forces a fresh
     // exchange rather than reusing whatever the browser/proxy might cache.
@@ -110,8 +112,8 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
 
                 pc.onconnectionstatechange = () => {
                     if (!pc || abort.signal.aborted) return;
-                    if (pc.connectionState === 'failed') setError('WebRTC connection failed');
-                    if (pc.connectionState === 'disconnected') setError('WebRTC disconnected');
+                    if (pc.connectionState === 'failed') setError(t('media.preview.errors.failed'));
+                    if (pc.connectionState === 'disconnected') setError(t('media.preview.errors.disconnected'));
                 };
 
                 const offer = await pc.createOffer();
@@ -123,7 +125,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                 await pc.setRemoteDescription({type: 'answer', sdp: answerSdp});
             } catch (e) {
                 if (abort.signal.aborted) return;
-                setError((e as Error).message ?? 'Failed to start preview');
+                setError((e as Error).message ?? t('media.preview.errors.startFailed'));
             }
         })();
 
@@ -151,13 +153,17 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
         setReloadKey((k) => k + 1);
     };
 
-    const switchLabel = !running ? 'Server off' : enabled ? 'Live' : 'Off';
+    const switchLabel = !running
+        ? t('media.preview.switch.serverOff')
+        : enabled
+            ? t('media.preview.switch.live')
+            : t('media.preview.switch.off');
 
     return (
         <Card sx={{p: 2, flex: '1 1 320px', minWidth: 280, maxWidth: 480}}>
             <Stack spacing={1.5}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h4">Channel {channel}</Typography>
+                    <Typography variant="h4">{t('media.preview.channel', {channel})}</Typography>
                     <FormControlLabel
                         control={
                             <Switch
@@ -204,27 +210,27 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                     {!running && (
                         <ViewportPlaceholder
                             icon={<VideocamOffRoundedIcon fontSize="large" />}
-                            title="CasparCG is not running"
-                            detail="Start the server to enable preview."
+                            title={t('media.preview.placeholder.notRunning.title')}
+                            detail={t('media.preview.placeholder.notRunning.detail')}
                         />
                     )}
 
                     {running && !enabled && (
                         <ViewportPlaceholder
                             icon={<VideocamOffRoundedIcon fontSize="large" />}
-                            title="Preview off"
-                            detail="Toggle Live to start streaming this channel."
+                            title={t('media.preview.placeholder.off.title')}
+                            detail={t('media.preview.placeholder.off.detail')}
                         />
                     )}
 
                     {running && enabled && error && (
                         <ViewportPlaceholder
                             icon={<WarningAmberRoundedIcon fontSize="large" color="warning" />}
-                            title="Preview failed"
+                            title={t('media.preview.placeholder.failed.title')}
                             detail={error}
                             action={
                                 <Button size="small" variant="outlined" onClick={retry}>
-                                    Retry
+                                    {t('actions.retry')}
                                 </Button>
                             }
                         />
@@ -242,7 +248,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                         >
                             <CircularProgress size={20} />
                             <Typography variant="caption" sx={{color: 'text.disabled'}}>
-                                Loading...
+                                {t('actions.loading')}
                             </Typography>
                         </Stack>
                     )}
@@ -253,6 +259,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
 };
 
 export const PreviewPanel: React.FC = () => {
+    const {t} = useTranslation('common');
     const socket = useSocket();
     const [channels, setChannels] = useState<number[] | null>(null);
     const [running, setRunning] = useState(false);
@@ -300,10 +307,9 @@ export const PreviewPanel: React.FC = () => {
         <Card sx={{p: 3}}>
             <Stack spacing={2}>
                 <Stack spacing={0.5}>
-                    <Typography variant="h3">Preview</Typography>
+                    <Typography variant="h3">{t('media.preview.title')}</Typography>
                     <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                        Low-latency H.264 over WebRTC. Enabling spins up a per-client encoder
-                        on the channel — leave off when you don&apos;t need it.
+                        {t('media.preview.subtitle')}
                     </Typography>
                 </Stack>
                 {channels.length === 0 ? (
@@ -318,9 +324,9 @@ export const PreviewPanel: React.FC = () => {
                     >
                         <VideocamOffRoundedIcon sx={{color: 'text.disabled', fontSize: 32}} />
                         <Stack spacing={0.25}>
-                            <Typography variant="body1">CasparCG is offline</Typography>
+                            <Typography variant="body1">{t('media.preview.offline.title')}</Typography>
                             <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                                Start the server to see channels here.
+                                {t('media.preview.offline.detail')}
                             </Typography>
                         </Stack>
                     </Card>

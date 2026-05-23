@@ -8,19 +8,22 @@ import {useCallback, useEffect, useState} from 'react';
 import {VideoRoute, VideoRouteSource, VideoRouteDestination} from '../../lib/api/videoRoutes';
 import {RouteSourceTypePicker, SourceType} from '../../components/routes/RouteSourceTypePicker';
 import {RouteModal} from '../../components/routes/RouteModal';
+import {useTranslation} from 'next-i18next';
 
-function summariseSource(source: VideoRouteSource): string {
+type Translate = (key: string, options?: Record<string, unknown>) => string;
+
+function summariseSource(t: Translate, source: VideoRouteSource): string {
     switch (source.type) {
         case 'decklink':
             return source.keyDevice !== undefined
-                ? `Decklink #${source.device} (+key #${source.keyDevice})`
-                : `Decklink #${source.device}`;
+                ? t('videoRoutes.summary.decklinkWithKey', {device: source.device, key: source.keyDevice})
+                : t('videoRoutes.summary.decklink', {device: source.device});
         case 'video':
-            return `Video: ${source.video}`;
+            return t('videoRoutes.summary.video', {video: source.video});
         case 'channel':
-            return `Channel ${source.channel}`;
+            return t('videoRoutes.summary.channel', {channel: source.channel});
         case 'color':
-            return `Color ${source.color}`;
+            return t('videoRoutes.summary.color', {color: source.color});
     }
 }
 
@@ -30,6 +33,7 @@ function summariseDestination(destination: VideoRouteDestination): string {
 }
 
 const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
+    const {t} = useTranslation('common');
     const color = enabled ? '#5fc97a' : 'rgba(232, 234, 237, 0.4)';
     return (
         <Stack
@@ -46,7 +50,7 @@ const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
         >
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: color }} />
             <Typography variant="caption" sx={{ color: enabled ? '#5fc97a' : 'text.secondary' }}>
-                {enabled ? 'Active' : 'Disabled'}
+                {enabled ? t('videoRoutes.status.active') : t('videoRoutes.status.disabled')}
             </Typography>
         </Stack>
     );
@@ -60,6 +64,7 @@ interface RouteCardProps {
 }
 
 const RouteCard: React.FC<RouteCardProps> = ({ route, onEdit, onToggle, onDelete }) => {
+    const {t} = useTranslation('common');
     // CardActionArea wraps the whole card so clicking anywhere opens the
     // editor — except for the inline controls (Switch / Delete) which stop
     // propagation so they don't double-fire as "edit this".
@@ -72,7 +77,7 @@ const RouteCard: React.FC<RouteCardProps> = ({ route, onEdit, onToggle, onDelete
                     <Stack spacing={0.75} sx={{ minWidth: 0, flexGrow: 1 }}>
                         <Stack direction="row" alignItems="center" gap={1.25}>
                             <Typography variant="h4" sx={{ wordBreak: 'break-word' }}>
-                                {route.name || '(unnamed route)'}
+                                {route.name || t('videoRoutes.unnamed')}
                             </Typography>
                             <StatusPill enabled={route.enabled} />
                         </Stack>
@@ -85,7 +90,7 @@ const RouteCard: React.FC<RouteCardProps> = ({ route, onEdit, onToggle, onDelete
                                     wordBreak: 'break-word',
                                 })}
                             >
-                                {summariseSource(route.source)}
+                                {summariseSource(t, route.source)}
                             </Typography>
                             <Typography variant="body2" sx={{ color: 'text.disabled' }}>→</Typography>
                             <Typography
@@ -114,9 +119,9 @@ const RouteCard: React.FC<RouteCardProps> = ({ route, onEdit, onToggle, onDelete
                             checked={route.enabled}
                             onChange={(_, checked) => onToggle(checked)}
                             onClick={stop}
-                            inputProps={{ 'aria-label': `Toggle ${route.name}` }}
+                            inputProps={{ 'aria-label': t('videoRoutes.toggleAria', {name: route.name}) }}
                         />
-                        <Tooltip title="Delete">
+                        <Tooltip title={t('actions.delete')}>
                             <IconButton
                                 size="small"
                                 onClick={(e) => { stop(e); onDelete(); }}
@@ -133,6 +138,7 @@ const RouteCard: React.FC<RouteCardProps> = ({ route, onEdit, onToggle, onDelete
 };
 
 const Page = () => {
+    const {t} = useTranslation('common');
     const socket = useSocket();
 
     const [routes, setRoutes] = useState<VideoRoute[] | null>(null);
@@ -232,11 +238,9 @@ const Page = () => {
         <DefaultContentLayout>
             <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} mb={4}>
                 <Stack spacing={1}>
-                    <Typography variant="h1">Routes</Typography>
+                    <Typography variant="h1">{t('nav.routes')}</Typography>
                     <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                        Live video routes from sources (decklink inputs, files, channels, colors)
-                        to effect groups on CasparCG channels. Click a route to edit; toggle to
-                        activate or pause.
+                        {t('videoRoutes.description')}
                     </Typography>
                 </Stack>
                 <Button
@@ -244,7 +248,7 @@ const Page = () => {
                     startIcon={<AddRoundedIcon />}
                     onClick={() => { setError(null); setPicking(true); }}
                 >
-                    New route
+                    {t('videoRoutes.newRoute')}
                 </Button>
             </Stack>
 
@@ -255,13 +259,14 @@ const Page = () => {
             )}
 
             {routes === null && !error && (
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>Loading…</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('actions.loading')}</Typography>
             )}
 
             {routes?.length === 0 && (
                 <Card sx={{ p: 3, textAlign: 'center', maxWidth: 720 }}>
                     <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                        No video routes yet. Click <strong>New route</strong> to add one.
+                        {t('videoRoutes.empty.prefix')} <strong>{t('videoRoutes.newRoute')}</strong>
+                        {t('videoRoutes.empty.suffix')}
                     </Typography>
                 </Card>
             )}
@@ -318,19 +323,19 @@ const Page = () => {
                         <Stack spacing={2}>
                             <Stack direction="row" alignItems="center" gap={1.5}>
                                 <WarningAmberRoundedIcon sx={{ color: '#e88c8c' }} />
-                                <Typography variant="h3">Delete video route?</Typography>
+                                <Typography variant="h3">{t('videoRoutes.deleteConfirm.title')}</Typography>
                             </Stack>
                             <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                                <strong style={{ color: 'inherit' }}>{deleting?.name || deleting?.id}</strong> will
-                                be removed and its underlying effect torn down. This can&apos;t be undone.
+                                <strong style={{ color: 'inherit' }}>{deleting?.name || deleting?.id}</strong>
+                                {' '}{t('videoRoutes.deleteConfirm.body')}
                             </Typography>
                             {error && <Typography variant="body2" color="error">{error}</Typography>}
                             <Stack direction="row" justifyContent="flex-end" gap={1}>
                                 <Button onClick={() => setDeleting(null)} disabled={busy} color="inherit">
-                                    Cancel
+                                    {t('actions.cancel')}
                                 </Button>
                                 <Button onClick={confirmDelete} disabled={busy} variant="contained" color="error">
-                                    {busy ? 'Deleting…' : 'Delete'}
+                                    {busy ? t('videoRoutes.deleting') : t('actions.delete')}
                                 </Button>
                             </Stack>
                         </Stack>

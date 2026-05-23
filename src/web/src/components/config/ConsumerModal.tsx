@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Button, Card, Modal, Stack, Typography} from '@mui/material';
+import {useTranslation} from 'next-i18next';
 import {CasparConfig} from '../../lib/api/caspar';
 import {
     CONSUMER_FIELDS,
@@ -43,6 +44,7 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
     onSave,
     onDelete,
 }) => {
+    const {t} = useTranslation('common');
     // Pinned at open time and never edited from inside the modal — the type
     // picker now decides this up front, so changing it mid-edit (and wiping
     // the user's data with it) isn't a thing anymore.
@@ -75,7 +77,10 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
     };
 
     const fields = CONSUMER_FIELDS[type];
-    const titleVerb = consumer ? 'Edit' : 'Add';
+    const typeLabel = t(`config.consumers.types.${type}`, {defaultValue: formatConsumerType(type)});
+    const title = consumer
+        ? t('config.consumers.editTitle', {type: typeLabel})
+        : t('config.consumers.addTitle', {type: typeLabel});
 
     return (
         <Modal open={open} onClose={onClose}>
@@ -95,7 +100,7 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
                         <Stack spacing={1}>
                             <Stack direction="row" alignItems="baseline" gap={1.5} flexWrap="wrap">
                                 <Typography variant="h3">
-                                    {titleVerb} {formatConsumerType(type)}
+                                    {title}
                                 </Typography>
                                 <Typography
                                     variant="caption"
@@ -109,7 +114,7 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
                                 </Typography>
                             </Stack>
                             <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                                Restart CasparCG after saving for these changes to take effect.
+                                {t('config.consumers.restartNote')}
                             </Typography>
                         </Stack>
 
@@ -133,13 +138,13 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
                             <Box>
                                 {onDelete && consumer && (
                                     <Button color="error" onClick={() => { onDelete(); onClose(); }}>
-                                        Delete
+                                        {t('actions.delete')}
                                     </Button>
                                 )}
                             </Box>
                             <Stack direction="row" gap={1}>
-                                <Button onClick={onClose} color="inherit">Cancel</Button>
-                                <Button onClick={handleSave} variant="contained">Save</Button>
+                                <Button onClick={onClose} color="inherit">{t('actions.cancel')}</Button>
+                                <Button onClick={handleSave} variant="contained">{t('actions.save')}</Button>
                             </Stack>
                         </Stack>
                     </Stack>

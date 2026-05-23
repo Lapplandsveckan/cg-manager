@@ -2,9 +2,11 @@ import React, {useEffect, useState} from 'react';
 import {useRouter} from 'next/router';
 import {Alert, Box, Button, Card, Stack, TextField, Typography} from '@mui/material';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
+import {useTranslation} from 'next-i18next';
 import {noTryAsync} from 'no-try';
 
 const Page = () => {
+    const {t} = useTranslation('common');
     const router = useRouter();
     const [password, setPassword] = useState('');
     const [busy, setBusy] = useState(false);
@@ -51,7 +53,7 @@ const Page = () => {
         setBusy(false);
 
         if (err || !resp.ok) {
-            setError('Wrong password');
+            setError(t('login.wrongPassword'));
             setPassword('');
             return;
         }
@@ -91,15 +93,15 @@ const Page = () => {
                             <LockRoundedIcon fontSize="small" />
                         </Box>
                         <Stack spacing={0}>
-                            <Typography variant="h3">CG Manager</Typography>
+                            <Typography variant="h3">{t('brand.name')}</Typography>
                             <Typography variant="caption" sx={{color: 'text.secondary'}}>
-                                Operator sign-in
+                                {t('login.subtitle')}
                             </Typography>
                         </Stack>
                     </Stack>
 
                     <TextField
-                        label="Password"
+                        label={t('login.password')}
                         type="password"
                         autoFocus
                         size="small"
@@ -118,7 +120,7 @@ const Page = () => {
                         onClick={submit}
                         disabled={busy || !password}
                     >
-                        {busy ? 'Signing in…' : 'Sign in'}
+                        {busy ? t('login.signingIn') : t('login.signIn')}
                     </Button>
                 </Stack>
             </Card>

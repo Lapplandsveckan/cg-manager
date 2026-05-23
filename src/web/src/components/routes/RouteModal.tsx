@@ -13,6 +13,7 @@ import {
     Typography,
 } from '@mui/material';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
+import {useTranslation} from 'next-i18next';
 import {VideoRoute, VideoRouteSource, VideoRouteDestination} from '../../lib/api/videoRoutes';
 import type {SourceType} from './RouteSourceTypePicker';
 import {DraftSource, SourceFields, defaultSourceFor, sourceToDraft} from './RouteSourceFields';
@@ -48,13 +49,6 @@ function intOrUndef(raw: string): number | undefined {
     return Number.isFinite(n) ? Math.trunc(n) : undefined;
 }
 
-const SOURCE_TITLE: Record<SourceType, string> = {
-    decklink: 'Decklink',
-    video: 'Video file',
-    channel: 'Channel',
-    color: 'Color',
-};
-
 function destinationToDraft(dest: VideoRouteDestination): DraftDestination {
     const [c, ...rest] = dest.effectLayer.split(':');
     return {
@@ -79,6 +73,7 @@ interface DestinationFieldsProps {
 }
 
 const DestinationFields: React.FC<DestinationFieldsProps> = ({draft, channels, onChange}) => {
+    const {t} = useTranslation('common');
     // Allow channels that exist OR whatever is already in the draft (so editing
     // a route pointed at a now-removed channel doesn't silently snap to ch 1).
     const channelOptions = useMemo(() => {
@@ -90,9 +85,9 @@ const DestinationFields: React.FC<DestinationFieldsProps> = ({draft, channels, o
     return (
         <Stack direction="row" gap={1.5} flexWrap="wrap">
             <FormControl size="small" sx={{flex: '1 1 140px'}}>
-                <InputLabel>Channel</InputLabel>
+                <InputLabel>{t('videoRoutes.fields.channel')}</InputLabel>
                 <Select
-                    label="Channel"
+                    label={t('videoRoutes.fields.channel')}
                     value={draft.channel}
                     onChange={(e) => onChange({...draft, channel: String(e.target.value)})}
                 >
@@ -102,7 +97,7 @@ const DestinationFields: React.FC<DestinationFieldsProps> = ({draft, channels, o
                 </Select>
             </FormControl>
             <TextField
-                label="Group"
+                label={t('videoRoutes.fields.group')}
                 size="small"
                 placeholder="main"
                 value={draft.group}
@@ -110,7 +105,7 @@ const DestinationFields: React.FC<DestinationFieldsProps> = ({draft, channels, o
                 sx={{flex: '2 1 200px'}}
             />
             <TextField
-                label="Index (optional)"
+                label={t('videoRoutes.fields.indexOptional')}
                 size="small"
                 type="number"
                 value={draft.index}
@@ -133,6 +128,7 @@ export const RouteModal: React.FC<RouteModalProps> = ({
     onSave,
     onDelete,
 }) => {
+    const {t} = useTranslation('common');
     const [name, setName] = useState('');
     const [source, setSource] = useState<DraftSource>(defaultSourceFor('color'));
     const [destination, setDestination] = useState<DraftDestination>(emptyDestinationDraft([]));
@@ -180,8 +176,8 @@ export const RouteModal: React.FC<RouteModalProps> = ({
         if (source.type === 'decklink') {
             const device = intOrUndef(source.device);
             const keyDevice = intOrUndef(source.keyDevice);
-            if (device === undefined) return 'Decklink device is required';
-            if (!source.format.trim()) return 'Decklink format is required';
+            if (device === undefined) return t('videoRoutes.errors.decklinkDeviceRequired');
+            if (!source.format.trim()) return t('videoRoutes.errors.decklinkFormatRequired');
             return {
                 type: 'decklink',
                 device,
@@ -191,26 +187,26 @@ export const RouteModal: React.FC<RouteModalProps> = ({
         }
         if (source.type === 'video') {
             const video = source.video.trim();
-            if (!video) return 'Video file is required';
+            if (!video) return t('videoRoutes.errors.videoRequired');
             return {type: 'video', video};
         }
         if (source.type === 'channel') {
             const channel = intOrUndef(source.channel);
-            if (channel === undefined) return 'Channel is required';
+            if (channel === undefined) return t('videoRoutes.errors.channelRequired');
             return {type: 'channel', channel};
         }
         // color
         const color = source.color.trim();
-        if (!color) return 'Color is required';
+        if (!color) return t('videoRoutes.errors.colorRequired');
         return {type: 'color', color};
     };
 
     const buildDestination = (): VideoRouteDestination | string => {
         const ch = destination.channel.trim();
         const group = destination.group.trim();
-        if (!ch) return 'Destination channel is required';
-        if (!group) return 'Destination group is required';
-        if (group.includes(':')) return 'Destination group cannot contain `:`';
+        if (!ch) return t('videoRoutes.errors.destinationChannelRequired');
+        if (!group) return t('videoRoutes.errors.destinationGroupRequired');
+        if (group.includes(':')) return t('videoRoutes.errors.destinationGroupColon');
         const idx = intOrUndef(destination.index);
         return {
             type: 'effect-group',
@@ -243,13 +239,15 @@ export const RouteModal: React.FC<RouteModalProps> = ({
             });
             onClose();
         } catch (e) {
-            setError((e as Error)?.message ?? 'Failed to save route');
+            setError((e as Error)?.message ?? t('videoRoutes.errors.saveFailed'));
         } finally {
             setBusy(false);
         }
     };
 
-    const titleVerb = route ? 'Edit' : 'Add';
+    const title = route
+        ? t('videoRoutes.modal.editTitle', {type: t(`videoRoutes.sourceTypes.${activeType}`).toLowerCase()})
+        : t('videoRoutes.modal.addTitle', {type: t(`videoRoutes.sourceTypes.${activeType}`).toLowerCase()});
 
     return (
         <>
@@ -270,7 +268,7 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                             <Stack spacing={0.5}>
                                 <Stack direction="row" alignItems="baseline" gap={1.5} flexWrap="wrap">
                                     <Typography variant="h3">
-                                        {titleVerb} {SOURCE_TITLE[activeType].toLowerCase()} route
+                                        {title}
                                     </Typography>
                                     <Typography
                                         variant="caption"
@@ -284,13 +282,12 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                                     </Typography>
                                 </Stack>
                                 <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                                Routes are persisted to disk and take effect immediately. Source
-                                type can&apos;t be changed after creation.
+                                    {t('videoRoutes.modal.description')}
                                 </Typography>
                             </Stack>
 
                             <TextField
-                                label="Name"
+                                label={t('videoRoutes.fields.name')}
                                 size="small"
                                 fullWidth
                                 value={name}
@@ -298,7 +295,7 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                             />
 
                             <Stack spacing={1.5}>
-                                <Typography variant="h4">Source</Typography>
+                                <Typography variant="h4">{t('videoRoutes.sections.source')}</Typography>
                                 <SourceFields
                                     draft={source}
                                     channels={channels}
@@ -308,20 +305,19 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                             </Stack>
 
                             <Stack spacing={1.5}>
-                                <Typography variant="h4">Destination</Typography>
+                                <Typography variant="h4">{t('videoRoutes.sections.destination')}</Typography>
                                 <DestinationFields
                                     draft={destination}
                                     channels={channels}
                                     onChange={setDestination}
                                 />
                                 <Typography variant="caption" sx={{color: 'text.disabled'}}>
-                                Effect-group layer is &quot;channel:group&quot;. Index disambiguates
-                                multiple groups with the same name on a channel.
+                                    {t('videoRoutes.destinationHint')}
                                 </Typography>
                             </Stack>
 
                             <Stack spacing={1}>
-                                <Typography variant="h4">Geometry</Typography>
+                                <Typography variant="h4">{t('videoRoutes.sections.geometry')}</Typography>
                                 <Stack direction="row" alignItems="center" gap={1.5} flexWrap="wrap">
                                     <Button
                                         variant="outlined"
@@ -330,16 +326,21 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                                         startIcon={<TuneRoundedIcon />}
                                         onClick={() => setGeometryOpen(true)}
                                     >
-                                        {geometryActive ? 'Edit geometry…' : 'Add geometry…'}
+                                        {geometryActive
+                                            ? t('videoRoutes.geometry.editButton')
+                                            : t('videoRoutes.geometry.addButton')}
                                     </Button>
                                     <Typography variant="caption" sx={{color: 'text.secondary'}}>
                                         {geometryActive
                                             ? [
-                                                geometry.transform   ? 'position'    : null,
-                                                geometry.perspective ? 'perspective' : null,
-                                                geometry.edgeblend   ? 'edge blend'  : null,
+                                                geometry.transform
+                                                    ? t('videoRoutes.geometry.parts.position')    : null,
+                                                geometry.perspective
+                                                    ? t('videoRoutes.geometry.parts.perspective') : null,
+                                                geometry.edgeblend
+                                                    ? t('videoRoutes.geometry.parts.edgeblend')   : null,
                                             ].filter(Boolean).join(' · ')
-                                            : 'Position, perspective warp, edge blending — none set.'}
+                                            : t('videoRoutes.geometry.noneSet')}
                                     </Typography>
                                 </Stack>
                             </Stack>
@@ -356,16 +357,16 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                                             disabled={busy}
                                             onClick={() => { onDelete(); onClose(); }}
                                         >
-                                        Delete
+                                            {t('actions.delete')}
                                         </Button>
                                     )}
                                 </Box>
                                 <Stack direction="row" gap={1}>
                                     <Button onClick={onClose} color="inherit" disabled={busy}>
-                                    Cancel
+                                        {t('actions.cancel')}
                                     </Button>
                                     <Button onClick={handleSave} variant="contained" disabled={busy}>
-                                        {busy ? 'Saving…' : 'Save'}
+                                        {busy ? t('videoRoutes.saving') : t('actions.save')}
                                     </Button>
                                 </Stack>
                             </Stack>

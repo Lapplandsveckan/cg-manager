@@ -5,6 +5,7 @@ import {uploadFile} from '../lib/api/upload';
 import {noTryAsync} from 'no-try';
 import {pickFiles, PickFilesOptions} from '../lib/filePicker';
 import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
+import {useTranslation} from 'next-i18next';
 
 /** `review` is a "user confirms before chunks go out" phase. It's the
  *  natural place for plugin-driven options (encode-skip, etc.) to take
@@ -65,6 +66,7 @@ export interface UseFileUploadOptions {
  * aborts the current upload and drops the rest.
  */
 export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadController {
+    const {t} = useTranslation('common');
     const [state, setState] = useState<FileUploadState>(IDLE_STATE);
     const cancelRef = useRef<(() => unknown) | null>(null);
     const canceledRef = useRef(false);
@@ -140,7 +142,7 @@ export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadC
 
             const [createErr, id] = await noTryAsync(() => createUpload(file));
             if (createErr || !id) {
-                const msg = createErr?.message ?? 'Failed to start upload';
+                const msg = createErr?.message ?? t('media.upload.errors.startFailed');
                 completed.push({file, error: msg});
                 setState((s) => ({...s, error: msg}));
                 continue;
@@ -159,7 +161,7 @@ export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadC
             cancelRef.current = null;
 
             if (canceledRef.current) {
-                completed.push({file, error: 'Canceled'});
+                completed.push({file, error: t('media.upload.errors.canceled')});
                 break;
             }
             if (uploadErr) {
@@ -247,6 +249,7 @@ interface UploadModalContentProps {
 }
 
 const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, onConfirm, targetPathFor}) => {
+    const {t} = useTranslation('common');
     const {phase, queue, completed, currentIndex, currentProgress, currentFile, error} = state;
     const multi = queue.length > 1;
     const successCount = completed.filter((c) => !c.error).length;
@@ -267,11 +270,22 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, 
     const showOptions = phase === 'review' && targetPaths.length > 0;
 
     let title: string;
-    if (phase === 'review')         title = multi ? `Upload ${queue.length} files?` : 'Upload file?';
-    else if (phase === 'starting')  title = multi ? `Preparing ${currentIndex + 1} of ${queue.length}…` : 'Preparing upload…';
-    else if (phase === 'uploading') title = multi ? `Uploading ${currentIndex + 1} of ${queue.length}…` : 'Uploading…';
-    else if (phase === 'done')      title = multi ? `Uploaded ${successCount} files` : 'Upload complete';
-    else                            title = failedCount === queue.length ? 'Upload failed' : `Uploaded ${successCount} of ${queue.length}`;
+    if (phase === 'review')
+        title = multi ? t('media.upload.title.reviewMulti', {count: queue.length}) : t('media.upload.title.reviewOne');
+    else if (phase === 'starting')
+        title = multi
+            ? t('media.upload.title.preparingMulti', {current: currentIndex + 1, total: queue.length})
+            : t('media.upload.title.preparingOne');
+    else if (phase === 'uploading')
+        title = multi
+            ? t('media.upload.title.uploadingMulti', {current: currentIndex + 1, total: queue.length})
+            : t('media.upload.title.uploadingOne');
+    else if (phase === 'done')
+        title = multi ? t('media.upload.title.doneMulti', {count: successCount}) : t('media.upload.title.doneOne');
+    else
+        title = failedCount === queue.length
+            ? t('media.upload.title.failed')
+            : t('media.upload.title.partial', {success: successCount, total: queue.length});
 
     return (
         <Stack spacing={2}>
@@ -351,18 +365,18 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, 
             <Stack direction="row" justifyContent="flex-end" gap={1}>
                 {phase === 'review' ? (
                     <>
-                        <Button onClick={onClose} color="inherit">Cancel</Button>
+                        <Button onClick={onClose} color="inherit">{t('actions.cancel')}</Button>
                         <Button
                             onClick={() => onConfirm?.()}
                             variant="contained"
                             autoFocus
                         >
-                            Upload
+                            {t('actions.upload')}
                         </Button>
                     </>
                 ) : (
                     <Button onClick={onClose} color="inherit">
-                        {phase === 'uploading' || phase === 'starting' ? 'Cancel' : 'Done'}
+                        {phase === 'uploading' || phase === 'starting' ? t('actions.cancel') : t('actions.done')}
                     </Button>
                 )}
             </Stack>
@@ -405,8 +419,9 @@ interface UploadButtonProps {
 }
 
 export const UploadButton: React.FC<UploadButtonProps> = ({
-    types, createUpload, controller, multiple = true, label = 'Upload', targetPathFor,
+    types, createUpload, controller, multiple = true, label, targetPathFor,
 }) => {
+    const {t} = useTranslation('common');
     // If an external controller wasn't supplied, create our own. Either way
     // we render an UploadModal — when shared, both the Dropzone and the
     // button feed into the same modal.
@@ -427,7 +442,7 @@ export const UploadButton: React.FC<UploadButtonProps> = ({
                 onClick={handleClick}
                 disabled={ctrl.state.phase === 'starting' || ctrl.state.phase === 'uploading'}
             >
-                {label}
+                {label ?? t('actions.upload')}
             </Button>
 
             {/* Only render our own modal when we own the controller. When

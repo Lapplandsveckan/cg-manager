@@ -1,6 +1,7 @@
 import React from 'react';
 import {Box, Button, IconButton, Stack, Tooltip} from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import {useTranslation} from 'next-i18next';
 
 interface RundownEditorActionBarProps {
     /** Primary action — saves the edit. Always present. */
@@ -28,6 +29,7 @@ export const RundownEditorActionBar: React.FC<RundownEditorActionBarProps> = ({
     onDelete,
     exists,
 }) => {
+    const {t} = useTranslation('common');
     const legacyMode = exists !== undefined;
     const showDelete = legacyMode ? exists === true && Boolean(onDelete) : Boolean(onDelete);
     const cancelHandler = onCancel ?? (legacyMode && exists === false ? onDelete : undefined);
@@ -41,7 +43,7 @@ export const RundownEditorActionBar: React.FC<RundownEditorActionBarProps> = ({
             sx={{ width: '100%', mt: 2 }}
         >
             {showDelete ? (
-                <Tooltip title="Delete">
+                <Tooltip title={t('actions.delete')}>
                     <IconButton
                         size="small"
                         onClick={() => onDelete?.()}
@@ -63,11 +65,11 @@ export const RundownEditorActionBar: React.FC<RundownEditorActionBarProps> = ({
             <Stack direction="row" gap={1}>
                 {cancelHandler && (
                     <Button color="inherit" onClick={cancelHandler}>
-                        Cancel
+                        {t('actions.cancel')}
                     </Button>
                 )}
                 <Button variant="contained" onClick={onSave}>
-                    Save
+                    {t('actions.save')}
                 </Button>
             </Stack>
         </Stack>

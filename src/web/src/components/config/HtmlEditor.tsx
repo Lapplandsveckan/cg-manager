@@ -1,5 +1,6 @@
 import React from 'react';
 import {Card, Divider, FormControlLabel, Stack, Switch, TextField, Typography} from '@mui/material';
+import {useTranslation} from 'next-i18next';
 import {CasparConfig} from '../../lib/api/caspar';
 
 interface HtmlEditorProps {
@@ -8,14 +9,15 @@ interface HtmlEditorProps {
 }
 
 export const HtmlEditor: React.FC<HtmlEditorProps> = ({html, onChange}) => {
+    const {t} = useTranslation('common');
     const value = html ?? {};
     return (
         <Card sx={{p: 3}}>
             <Stack spacing={2}>
-                <Typography variant="h3">HTML</Typography>
+                <Typography variant="h3">{t('config.html.title')}</Typography>
                 <Divider />
                 <TextField
-                    label="Remote debugging port"
+                    label={t('config.html.remoteDebuggingPort')}
                     type="number"
                     size="small"
                     value={value.remoteDebuggingPort ?? ''}
@@ -26,7 +28,7 @@ export const HtmlEditor: React.FC<HtmlEditorProps> = ({html, onChange}) => {
                             remoteDebuggingPort: Number.isFinite(n) && e.target.value !== '' ? n : undefined,
                         });
                     }}
-                    helperText="Default 9222 when blank"
+                    helperText={t('config.html.remoteDebuggingPortHelp')}
                     sx={{maxWidth: 320}}
                 />
                 <FormControlLabel
@@ -36,7 +38,7 @@ export const HtmlEditor: React.FC<HtmlEditorProps> = ({html, onChange}) => {
                             onChange={(e) => onChange({...value, enableGpu: e.target.checked})}
                         />
                     }
-                    label="Enable GPU"
+                    label={t('config.html.enableGpu')}
                 />
             </Stack>
         </Card>

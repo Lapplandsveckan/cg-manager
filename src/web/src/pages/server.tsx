@@ -6,6 +6,8 @@ import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';
 import VerticalAlignBottomRoundedIcon from '@mui/icons-material/VerticalAlignBottomRounded';
 import DeleteSweepRoundedIcon from '@mui/icons-material/DeleteSweepRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import {useTranslation} from 'next-i18next';
+import type {TFunction} from 'i18next';
 import {useSocket} from '../lib/hooks/useSocket';
 import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {CasparStatus} from '../lib/api/caspar';
@@ -13,12 +15,16 @@ import {PreviewPanel} from '../components/PreviewPanel';
 
 type Tone = 'success' | 'error' | 'warning' | 'neutral';
 
-function statusTone(status: CasparStatus | null): { tone: Tone; label: string; detail: string } {
-    if (!status) return { tone: 'neutral', label: 'Unknown', detail: 'Waiting for the server to report state…' };
-    if (!status.supported) return { tone: 'warning', label: 'Unsupported platform', detail: status.lastError ?? 'CasparCG can\'t be started on this platform.' };
-    if (status.running) return { tone: 'success', label: 'Running', detail: 'CasparCG is up and accepting commands.' };
-    if (status.lastError) return { tone: 'error', label: 'Stopped (error)', detail: status.lastError };
-    return { tone: 'neutral', label: 'Stopped', detail: 'CasparCG is not running.' };
+function statusTone(status: CasparStatus | null, t: TFunction): { tone: Tone; label: string; detail: string } {
+    if (!status) return { tone: 'neutral', label: t('casparStatus.unknown'), detail: t('serverPage.status.waiting') };
+    if (!status.supported) return {
+        tone: 'warning',
+        label: t('serverPage.status.unsupportedLabel'),
+        detail: status.lastError ?? t('serverPage.status.unsupportedDetail'),
+    };
+    if (status.running) return { tone: 'success', label: t('casparStatus.running'), detail: t('serverPage.status.runningDetail') };
+    if (status.lastError) return { tone: 'error', label: t('serverPage.status.stoppedErrorLabel'), detail: status.lastError };
+    return { tone: 'neutral', label: t('casparStatus.stopped'), detail: t('serverPage.status.stoppedDetail') };
 }
 
 function toneColor(tone: Tone): string {
@@ -31,7 +37,8 @@ function toneColor(tone: Tone): string {
 }
 
 const StatusCard: React.FC<{ status: CasparStatus | null }> = ({ status }) => {
-    const { tone, label, detail } = statusTone(status);
+    const {t} = useTranslation('common');
+    const { tone, label, detail } = statusTone(status, t);
     const color = toneColor(tone);
 
     return (
@@ -67,6 +74,7 @@ interface ControlsProps {
 }
 
 const Controls: React.FC<ControlsProps> = ({ status, busy, onStart, onStop, onRestart }) => {
+    const {t} = useTranslation('common');
     const supported = status?.supported ?? true;
     const running = status?.running ?? false;
 
@@ -78,7 +86,7 @@ const Controls: React.FC<ControlsProps> = ({ status, busy, onStart, onStop, onRe
                 onClick={onStart}
                 disabled={!supported || running || busy !== null}
             >
-                {busy === 'start' ? 'Starting…' : 'Start'}
+                {busy === 'start' ? t('serverPage.controls.starting') : t('actions.start')}
             </Button>
             <Button
                 variant="outlined"
@@ -87,7 +95,7 @@ const Controls: React.FC<ControlsProps> = ({ status, busy, onStart, onStop, onRe
                 onClick={onStop}
                 disabled={!running || busy !== null}
             >
-                {busy === 'stop' ? 'Stopping…' : 'Stop'}
+                {busy === 'stop' ? t('serverPage.controls.stopping') : t('actions.stop')}
             </Button>
             <Button
                 variant="outlined"
@@ -96,34 +104,36 @@ const Controls: React.FC<ControlsProps> = ({ status, busy, onStart, onStop, onRe
                 onClick={onRestart}
                 disabled={!supported || busy !== null}
             >
-                {busy === 'restart' ? 'Restarting…' : 'Restart'}
+                {busy === 'restart' ? t('serverPage.controls.restarting') : t('actions.restart')}
             </Button>
         </Stack>
     );
 };
 
-const UnsupportedBanner: React.FC<{ message: string }> = ({ message }) => (
-    <Card
-        sx={(theme) => ({
-            p: 2.5,
-            borderColor: alpha('#e0b04c', 0.4),
-            bgcolor: alpha('#e0b04c', 0.06),
-        })}
-    >
-        <Stack direction="row" gap={1.5} alignItems="flex-start">
-            <WarningAmberRoundedIcon sx={{ color: '#e0b04c', mt: 0.25 }} />
-            <Stack spacing={0.5} sx={{ minWidth: 0 }}>
-                <Typography variant="h4" sx={{ color: '#e0b04c' }}>
-                    CasparCG can&apos;t run on this platform
-                </Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {message} Run the manager on a supported host (Linux or Windows) to use the
-                    server controls. The rest of the UI still works for browsing and editing.
-                </Typography>
+const UnsupportedBanner: React.FC<{ message: string }> = ({ message }) => {
+    const {t} = useTranslation('common');
+    return (
+        <Card
+            sx={(theme) => ({
+                p: 2.5,
+                borderColor: alpha('#e0b04c', 0.4),
+                bgcolor: alpha('#e0b04c', 0.06),
+            })}
+        >
+            <Stack direction="row" gap={1.5} alignItems="flex-start">
+                <WarningAmberRoundedIcon sx={{ color: '#e0b04c', mt: 0.25 }} />
+                <Stack spacing={0.5} sx={{ minWidth: 0 }}>
+                    <Typography variant="h4" sx={{ color: '#e0b04c' }}>
+                        {t('serverPage.unsupported.title')}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        {t('serverPage.unsupported.body', {message})}
+                    </Typography>
+                </Stack>
             </Stack>
-        </Stack>
-    </Card>
-);
+        </Card>
+    );
+};
 
 interface LogViewerProps {
     logs: string;
@@ -131,6 +141,7 @@ interface LogViewerProps {
 }
 
 const LogViewer: React.FC<LogViewerProps> = ({ logs, onClear }) => {
+    const {t} = useTranslation('common');
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [follow, setFollow] = useState(true);
 
@@ -166,16 +177,16 @@ const LogViewer: React.FC<LogViewerProps> = ({ logs, onClear }) => {
                     borderBottom: `1px solid ${theme.palette.divider}`,
                 })}
             >
-                <Typography variant="h6">Logs</Typography>
+                <Typography variant="h6">{t('serverPage.logs.title')}</Typography>
                 <Stack direction="row" gap={0.5}>
                     {!follow && (
-                        <Tooltip title="Scroll to bottom">
+                        <Tooltip title={t('serverPage.logs.scrollToBottom')}>
                             <IconButton size="small" onClick={scrollToBottom}>
                                 <VerticalAlignBottomRoundedIcon fontSize="small" />
                             </IconButton>
                         </Tooltip>
                     )}
-                    <Tooltip title="Clear log view (server keeps the original)">
+                    <Tooltip title={t('serverPage.logs.clearTooltip')}>
                         <span>
                             <IconButton size="small" onClick={onClear} disabled={!logs}>
                                 <DeleteSweepRoundedIcon fontSize="small" />
@@ -205,7 +216,7 @@ const LogViewer: React.FC<LogViewerProps> = ({ logs, onClear }) => {
             >
                 {logs || (
                     <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-                        No log output yet.
+                        {t('serverPage.logs.empty')}
                     </Typography>
                 )}
             </Box>
@@ -214,6 +225,7 @@ const LogViewer: React.FC<LogViewerProps> = ({ logs, onClear }) => {
 };
 
 const Page = () => {
+    const {t} = useTranslation('common');
     const socket = useSocket();
     const [status, setStatus] = useState<CasparStatus | null>(null);
     const [logs, setLogs] = useState<string>('');
@@ -245,7 +257,7 @@ const Page = () => {
         try {
             await socket.caspar[action]();
         } catch (e) {
-            setError((e as Error)?.message ?? `Failed to ${action}`);
+            setError((e as Error)?.message ?? t(`serverPage.errors.${action}`));
         } finally {
             setBusy(null);
         }
@@ -255,9 +267,9 @@ const Page = () => {
         <DefaultContentLayout>
             <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} mb={3}>
                 <Stack spacing={1}>
-                    <Typography variant="h1">Server</Typography>
+                    <Typography variant="h1">{t('serverPage.title')}</Typography>
                     <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                        Start, stop, and monitor the CasparCG process this manager wraps.
+                        {t('serverPage.description')}
                     </Typography>
                 </Stack>
                 <Controls

@@ -2,6 +2,7 @@ import React from 'react';
 import {Button, Card, Divider, IconButton, Stack, TextField, Tooltip, Typography} from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import {useTranslation} from 'next-i18next';
 import {CasparConfig} from '../../lib/api/caspar';
 
 type VideoMode = CasparConfig['videoModes'][number];
@@ -21,6 +22,7 @@ const blankVideoMode = (): VideoMode => ({
 });
 
 export const VideoModesEditor: React.FC<VideoModesEditorProps> = ({modes, onChange}) => {
+    const {t} = useTranslation('common');
     const update = (i: number, patch: Partial<VideoMode>) =>
         onChange(modes.map((m, idx) => (idx === i ? {...m, ...patch} : m)));
     const remove = (i: number) => onChange(modes.filter((_, idx) => idx !== i));
@@ -30,15 +32,15 @@ export const VideoModesEditor: React.FC<VideoModesEditorProps> = ({modes, onChan
         <Card sx={{p: 3}}>
             <Stack spacing={2}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h3">Video modes</Typography>
+                    <Typography variant="h3">{t('config.videoModes.title')}</Typography>
                     <Button startIcon={<AddRoundedIcon />} size="small" onClick={add}>
-                        Add mode
+                        {t('config.videoModes.add')}
                     </Button>
                 </Stack>
                 <Divider />
                 {modes.length === 0 && (
                     <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                        No custom video modes (CasparCG built-ins still apply).
+                        {t('config.videoModes.empty')}
                     </Typography>
                 )}
                 {modes.map((mode, i) => (
@@ -49,14 +51,14 @@ export const VideoModesEditor: React.FC<VideoModesEditorProps> = ({modes, onChan
                         alignItems={{xs: 'stretch', md: 'flex-start'}}
                     >
                         <TextField
-                            label="ID"
+                            label={t('config.videoModes.id')}
                             size="small"
                             value={mode.id}
                             onChange={(e) => update(i, {id: e.target.value})}
                             sx={{minWidth: 180, flex: 2}}
                         />
                         <TextField
-                            label="Width"
+                            label={t('config.fields.width')}
                             size="small"
                             type="number"
                             value={mode.width}
@@ -64,7 +66,7 @@ export const VideoModesEditor: React.FC<VideoModesEditorProps> = ({modes, onChan
                             sx={{flex: 1}}
                         />
                         <TextField
-                            label="Height"
+                            label={t('config.fields.height')}
                             size="small"
                             type="number"
                             value={mode.height}
@@ -72,7 +74,7 @@ export const VideoModesEditor: React.FC<VideoModesEditorProps> = ({modes, onChan
                             sx={{flex: 1}}
                         />
                         <TextField
-                            label="Time scale"
+                            label={t('config.videoModes.timeScale')}
                             size="small"
                             type="number"
                             value={mode.timeScale}
@@ -80,7 +82,7 @@ export const VideoModesEditor: React.FC<VideoModesEditorProps> = ({modes, onChan
                             sx={{flex: 1}}
                         />
                         <TextField
-                            label="Duration"
+                            label={t('config.videoModes.duration')}
                             size="small"
                             type="number"
                             value={mode.duration}
@@ -88,14 +90,14 @@ export const VideoModesEditor: React.FC<VideoModesEditorProps> = ({modes, onChan
                             sx={{flex: 1}}
                         />
                         <TextField
-                            label="Cadence"
+                            label={t('config.videoModes.cadence')}
                             size="small"
                             type="number"
                             value={mode.cadence}
                             onChange={(e) => update(i, {cadence: Number(e.target.value) || 0})}
                             sx={{flex: 1}}
                         />
-                        <Tooltip title="Delete">
+                        <Tooltip title={t('actions.delete')}>
                             <IconButton onClick={() => remove(i)} sx={{alignSelf: 'center'}}>
                                 <DeleteOutlineRoundedIcon fontSize="small" />
                             </IconButton>

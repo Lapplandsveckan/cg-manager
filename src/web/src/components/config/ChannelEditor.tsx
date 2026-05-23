@@ -15,6 +15,7 @@ import {
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import {useTranslation} from 'next-i18next';
 import {CasparConfig} from '../../lib/api/caspar';
 import {formatConsumerType} from './fields';
 
@@ -29,6 +30,7 @@ interface ConsumerRowProps {
 }
 
 const ConsumerRow: React.FC<ConsumerRowProps> = ({consumer, onEdit, onDelete}) => {
+    const {t} = useTranslation('common');
     const data = consumer.data as Record<string, unknown> | undefined;
     const summary = data
         ? Object.entries(data)
@@ -38,11 +40,15 @@ const ConsumerRow: React.FC<ConsumerRowProps> = ({consumer, onEdit, onDelete}) =
             .join(' · ')
         : '';
 
+    const typeLabel = t(`config.consumers.types.${consumer.type}`, {
+        defaultValue: formatConsumerType(consumer.type),
+    });
+
     return (
         <Card variant="outlined" sx={(theme) => ({p: 1.5, bgcolor: theme.palette.surface.elevated})}>
             <Stack direction="row" alignItems="center" justifyContent="space-between" gap={2}>
                 <Stack spacing={0.25} sx={{minWidth: 0, flex: 1}}>
-                    <Typography variant="body1">{formatConsumerType(consumer.type)}</Typography>
+                    <Typography variant="body1">{typeLabel}</Typography>
                     {summary && (
                         <Typography
                             variant="caption"
@@ -53,12 +59,12 @@ const ConsumerRow: React.FC<ConsumerRowProps> = ({consumer, onEdit, onDelete}) =
                     )}
                 </Stack>
                 <Stack direction="row">
-                    <Tooltip title="Edit">
+                    <Tooltip title={t('actions.edit')}>
                         <IconButton size="small" onClick={onEdit}>
                             <EditOutlinedIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
-                    <Tooltip title="Delete">
+                    <Tooltip title={t('actions.delete')}>
                         <IconButton size="small" onClick={onDelete}>
                             <DeleteOutlineRoundedIcon fontSize="small" />
                         </IconButton>
@@ -90,12 +96,13 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({
     onAddConsumer,
     onDeleteConsumer,
 }) => {
+    const {t} = useTranslation('common');
     return (
         <Card sx={{p: 3}}>
             <Stack spacing={2}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
-                    <Typography variant="h3">Channel {index + 1}</Typography>
-                    <Tooltip title="Delete channel">
+                    <Typography variant="h3">{t('config.channels.channelN', {n: index + 1})}</Typography>
+                    <Tooltip title={t('config.channels.deleteChannel')}>
                         <IconButton onClick={onDelete} color="error">
                             <DeleteOutlineRoundedIcon fontSize="small" />
                         </IconButton>
@@ -103,9 +110,9 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({
                 </Stack>
                 <Divider />
                 <FormControl size="small" sx={{maxWidth: 320}}>
-                    <InputLabel>Video mode</InputLabel>
+                    <InputLabel>{t('config.fields.videoMode')}</InputLabel>
                     <Select
-                        label="Video mode"
+                        label={t('config.fields.videoMode')}
                         value={videoModes.some((m) => m.id === channel.videoMode) ? channel.videoMode : ''}
                         onChange={(e) => onChange({...channel, videoMode: e.target.value as string})}
                         displayEmpty
@@ -119,14 +126,14 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({
 
                 <Stack spacing={1}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="h4">Consumers</Typography>
+                        <Typography variant="h4">{t('config.consumers.title')}</Typography>
                         <Button startIcon={<AddRoundedIcon />} size="small" onClick={onAddConsumer}>
-                            Add consumer
+                            {t('config.consumers.add')}
                         </Button>
                     </Stack>
                     {channel.consumers.length === 0 ? (
                         <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                            No consumers configured.
+                            {t('config.consumers.empty')}
                         </Typography>
                     ) : (
                         <Stack spacing={1}>
