@@ -5,6 +5,7 @@ import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import React, {useEffect, useRef, useState} from 'react';
+import {useTranslation} from 'next-i18next';
 import {useSocket} from '../lib';
 import {RundownItemDragPayload, hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
 import {useDragAutoScroll} from '../lib/hooks/useDragAutoScroll';
@@ -220,6 +221,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     dropIndicator,
     isDragging,
 }) => {
+    const {t} = useTranslation('common');
     const cardClickable = !locked;
     const supportsReorder = Boolean(onReorderDragStart);
     // Reorder is an editing affordance — only show/allow it when the rundown
@@ -271,7 +273,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                     <Box
                         className="rundown-drag-handle"
                         draggable={draggable}
-                        title={draggable ? 'Drag to reorder' : undefined}
+                        title={draggable ? t('rundown.entry.dragToReorder') : undefined}
                         onDragStart={(e) => {
                             if (cardRef.current) {
                                 const rect = cardRef.current.getBoundingClientRect();
@@ -324,12 +326,14 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                             sx={{ flexShrink: 0 }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <Tooltip title="Edit">
+                            <Tooltip title={t('actions.edit')}>
                                 <IconButton size="small" onClick={onEdit} sx={{ color: 'text.secondary' }}>
                                     <EditOutlinedIcon fontSize="small" />
                                 </IconButton>
                             </Tooltip>
-                            <Tooltip title={locked ? 'Play (rundown is locked — items only fire from this button)' : 'Play'}>
+                            <Tooltip title={locked
+                                ? t('rundown.entry.playLockedTooltip')
+                                : t('actions.play')}>
                                 <IconButton
                                     size="small"
                                     onClick={onPlay}
@@ -399,6 +403,7 @@ function hasReorderPayload(dt: DataTransfer | null): boolean {
 }
 
 export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAdd, onDropItem, onReorder, locked}) => {
+    const {t} = useTranslation('common');
     const [dragOver, setDragOver] = useState(false);
     const [reorderDraggingId, setReorderDraggingId] = useState<string | null>(null);
     const [insertion, setInsertion] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
@@ -548,8 +553,8 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
             {entries.length === 0 && (
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {acceptsDrop
-                        ? 'No items yet. Drop something from the bottom panel, or add one below.'
-                        : 'No items yet. Add one below to get started.'}
+                        ? t('rundown.empty.dropOrAdd')
+                        : t('rundown.empty.addOne')}
                 </Typography>
             )}
 
@@ -594,7 +599,7 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                 sx={{ mt: 0.5 }}
                 onClick={() => onAdd()}
             >
-                Add item
+                {t('rundown.addItem')}
             </Button>
 
             {/* Trailing slack inside the dropzone so the last item ends near

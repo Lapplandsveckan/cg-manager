@@ -10,6 +10,7 @@ import {useSocket} from '../lib';
 import {useRouter} from 'next/router';
 import {MediaDoc} from '../lib/api/caspar';
 import {noTryAsync} from 'no-try';
+import {useTranslation} from 'next-i18next';
 
 interface CrumbProps {
     label: React.ReactNode;
@@ -96,6 +97,7 @@ function clipShortName(clip: MediaDoc): string {
 }
 
 const Page = () => {
+    const {t} = useTranslation('common');
     const socket = useSocket();
     const router = useRouter();
 
@@ -140,7 +142,7 @@ const Page = () => {
             await socket.caspar.deleteMedia(deleting.id);
             setDeleting(null);
         } catch (e) {
-            setError((e as Error)?.message ?? 'Failed to delete');
+            setError((e as Error)?.message ?? t('media.errors.deleteFailed'));
         } finally {
             setBusy(false);
         }
@@ -159,7 +161,7 @@ const Page = () => {
             await socket.caspar.renameMedia(renaming.id, next);
             setRenaming(null);
         } catch (e) {
-            setError((e as Error)?.message ?? 'Failed to rename');
+            setError((e as Error)?.message ?? t('media.errors.renameFailed'));
         } finally {
             setBusy(false);
         }
@@ -176,7 +178,7 @@ const Page = () => {
             // The server returns 409 ("Folder is not empty (N items)") when
             // the user has media or sub-folders inside. Surface that text
             // verbatim — it tells them why they can't delete.
-            setError(err.message ?? 'Failed to delete folder');
+            setError(err.message ?? t('media.errors.deleteFolderFailed'));
             return;
         }
         setDeletingFolder(null);
@@ -195,7 +197,7 @@ const Page = () => {
         const [err, res] = await noTryAsync(() => socket.caspar.createFolder(target));
         setBusy(false);
         if (err || !res) {
-            setError(err?.message ?? 'Failed to create folder');
+            setError(err?.message ?? t('media.errors.createFolderFailed'));
             return;
         }
         setCreatingFolder(false);
@@ -219,13 +221,13 @@ const Page = () => {
                 onDrop={uploadCtrl.start}
                 accept={['video/*', 'audio/*', 'image/*']}
                 disabled={uploadCtrl.state.phase === 'starting' || uploadCtrl.state.phase === 'uploading'}
-                overlayLabel={`Drop to upload to ${path || '/'}`}
+                overlayLabel={t('media.page.dropOverlay', {path: path || '/'})}
             >
                 <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} mb={1}>
                     <Stack spacing={1}>
-                        <Typography variant="h1">Media</Typography>
+                        <Typography variant="h1">{t('media.page.title')}</Typography>
                         <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                            Browse media on the CasparCG server and upload new files.
+                            {t('media.page.subtitle')}
                         </Typography>
                     </Stack>
                     <Stack direction="row" gap={1}>
@@ -238,14 +240,14 @@ const Page = () => {
                                 setCreatingFolder(true);
                             }}
                         >
-                            New folder
+                            {t('media.page.newFolder')}
                         </Button>
                         <UploadButton
-                            label="Upload media"
+                            label={t('media.page.uploadMedia')}
                             controller={uploadCtrl}
                             types={[
                                 {
-                                    description: 'Media files',
+                                    description: t('media.page.mediaFiles'),
                                     accept: {
                                         'audio/*': ['mp3', 'wav', 'ogg'],
                                         'video/*': ['mp4', 'webm', 'mkv'],
@@ -288,19 +290,19 @@ const Page = () => {
                     <Stack spacing={2}>
                         <Stack direction="row" alignItems="center" gap={1.5}>
                             <WarningAmberRoundedIcon sx={{ color: '#e88c8c' }} />
-                            <Typography variant="h3">Delete media?</Typography>
+                            <Typography variant="h3">{t('media.deleteMedia.title')}</Typography>
                         </Stack>
                         <Typography variant="body1" sx={{ color: 'text.secondary', wordBreak: 'break-all' }}>
-                            <strong style={{ color: 'inherit' }}>{deleting?.id}</strong> will be removed from the
-                            CasparCG media folder. This can&apos;t be undone.
+                            <strong style={{ color: 'inherit' }}>{deleting?.id}</strong>{' '}
+                            {t('media.deleteMedia.body')}
                         </Typography>
                         {error && <Typography variant="body2" color="error">{error}</Typography>}
                         <Stack direction="row" justifyContent="flex-end" gap={1}>
                             <Button onClick={() => setDeleting(null)} disabled={busy} color="inherit">
-                                Cancel
+                                {t('actions.cancel')}
                             </Button>
                             <Button onClick={confirmDelete} disabled={busy} variant="contained" color="error">
-                                {busy ? 'Deleting…' : 'Delete'}
+                                {busy ? t('media.deleteMedia.deleting') : t('actions.delete')}
                             </Button>
                         </Stack>
                     </Stack>
@@ -315,16 +317,16 @@ const Page = () => {
                     <Stack spacing={2}>
                         <Stack direction="row" alignItems="center" gap={1.5}>
                             <WarningAmberRoundedIcon sx={{ color: '#e88c8c' }} />
-                            <Typography variant="h3">Delete folder?</Typography>
+                            <Typography variant="h3">{t('media.deleteFolder.title')}</Typography>
                         </Stack>
                         <Typography variant="body1" sx={{ color: 'text.secondary', wordBreak: 'break-all' }}>
-                            <strong style={{ color: 'inherit' }}>{path}{deletingFolder}</strong> will be
-                            removed. Only works if the folder is empty.
+                            <strong style={{ color: 'inherit' }}>{path}{deletingFolder}</strong>{' '}
+                            {t('media.deleteFolder.body')}
                         </Typography>
                         {error && <Typography variant="body2" color="error">{error}</Typography>}
                         <Stack direction="row" justifyContent="flex-end" gap={1}>
                             <Button onClick={() => setDeletingFolder(null)} disabled={busy} color="inherit">
-                                Cancel
+                                {t('actions.cancel')}
                             </Button>
                             <Button
                                 onClick={confirmDeleteFolder}
@@ -332,7 +334,7 @@ const Page = () => {
                                 variant="contained"
                                 color="error"
                             >
-                                {busy ? 'Deleting…' : 'Delete'}
+                                {busy ? t('media.deleteMedia.deleting') : t('actions.delete')}
                             </Button>
                         </Stack>
                     </Stack>
@@ -347,14 +349,15 @@ const Page = () => {
                     <Stack spacing={2}>
                         <Stack direction="row" alignItems="center" gap={1.5}>
                             <CreateNewFolderRoundedIcon sx={{ color: 'primary.main' }} />
-                            <Typography variant="h3">New folder</Typography>
+                            <Typography variant="h3">{t('media.createFolder.title')}</Typography>
                         </Stack>
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            Creates a folder under <strong>{path || '/'}</strong>. Names can&apos;t
-                            contain <code>/</code>.
+                            {t('media.createFolder.bodyBefore')}{' '}
+                            <strong>{path || '/'}</strong>{t('media.createFolder.bodyBetween')}{' '}
+                            <code>/</code>{t('media.createFolder.bodyAfter')}
                         </Typography>
                         <TextField
-                            label="Folder name"
+                            label={t('media.createFolder.nameLabel')}
                             value={folderName}
                             onChange={(e) => setFolderName(e.target.value)}
                             autoFocus
@@ -368,14 +371,14 @@ const Page = () => {
                                 disabled={busy}
                                 color="inherit"
                             >
-                                Cancel
+                                {t('actions.cancel')}
                             </Button>
                             <Button
                                 onClick={confirmCreateFolder}
                                 disabled={busy || !folderName.trim()}
                                 variant="contained"
                             >
-                                {busy ? 'Creating…' : 'Create'}
+                                {busy ? t('media.createFolder.creating') : t('actions.create')}
                             </Button>
                         </Stack>
                     </Stack>
@@ -385,12 +388,12 @@ const Page = () => {
             <Modal open={Boolean(renaming)} onClose={() => !busy && setRenaming(null)}>
                 <ModalCard>
                     <Stack spacing={2}>
-                        <Typography variant="h3">Rename media</Typography>
+                        <Typography variant="h3">{t('media.renameMedia.title')}</Typography>
                         <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            File extension is preserved automatically.
+                            {t('media.renameMedia.body')}
                         </Typography>
                         <TextField
-                            label="New name"
+                            label={t('media.renameMedia.nameLabel')}
                             value={renameValue}
                             onChange={(e) => setRenameValue(e.target.value)}
                             autoFocus
@@ -402,10 +405,10 @@ const Page = () => {
                         {error && <Typography variant="body2" color="error">{error}</Typography>}
                         <Stack direction="row" justifyContent="flex-end" gap={1}>
                             <Button onClick={() => setRenaming(null)} disabled={busy} color="inherit">
-                                Cancel
+                                {t('actions.cancel')}
                             </Button>
                             <Button onClick={confirmRename} disabled={busy} variant="contained">
-                                {busy ? 'Renaming…' : 'Rename'}
+                                {busy ? t('media.renameMedia.renaming') : t('actions.rename')}
                             </Button>
                         </Stack>
                     </Stack>

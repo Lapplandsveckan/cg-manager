@@ -18,6 +18,7 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import React, {useEffect, useMemo, useState} from 'react';
 import {useRouter} from 'next/router';
+import {useTranslation} from 'next-i18next';
 import {RundownEditorActionBar, useSocket} from '../../lib';
 import {DefaultContentLayout} from '../../components/DefaultContentLayout';
 
@@ -121,6 +122,7 @@ interface RundownCardProps {
 }
 
 const RundownCard: React.FC<RundownCardProps> = ({rundown, onOpen, onEdit, onDelete}) => {
+    const {t} = useTranslation('common');
     const stop = (e: React.MouseEvent | React.SyntheticEvent) => e.stopPropagation();
     const itemCount = rundown.items?.length ?? 0;
     const typeBreakdown = useMemo(() => summariseTypes(rundown.items ?? []), [rundown.items]);
@@ -132,16 +134,18 @@ const RundownCard: React.FC<RundownCardProps> = ({rundown, onOpen, onEdit, onDel
                     <Stack spacing={1.25} sx={{minWidth: 0, flexGrow: 1}}>
                         <Stack direction="row" alignItems="baseline" gap={1.25} flexWrap="wrap">
                             <Typography variant="h4" sx={{wordBreak: 'break-word'}}>
-                                {rundown.name || '(unnamed rundown)'}
+                                {rundown.name || t('playPage.unnamedRundown')}
                             </Typography>
                             <Typography variant="caption" sx={{color: 'text.disabled'}}>
-                                {itemCount === 0 ? 'empty' : `${itemCount} item${itemCount === 1 ? '' : 's'}`}
+                                {itemCount === 0
+                                    ? t('playPage.itemCount.empty')
+                                    : t('playPage.itemCount.count', {count: itemCount})}
                             </Typography>
                         </Stack>
 
                         {typeBreakdown.length === 0 ? (
                             <Typography variant="body2" sx={{color: 'text.disabled'}}>
-                                No items yet. Click to add some.
+                                {t('playPage.noItemsHint')}
                             </Typography>
                         ) : (
                             <Stack direction="row" gap={0.75} flexWrap="wrap">
@@ -170,7 +174,7 @@ const RundownCard: React.FC<RundownCardProps> = ({rundown, onOpen, onEdit, onDel
                         onClick={stop}
                         onMouseDown={stop}
                     >
-                        <Tooltip title="Rename">
+                        <Tooltip title={t('actions.rename')}>
                             <IconButton
                                 size="small"
                                 onClick={(e) => { stop(e); onEdit(); }}
@@ -179,7 +183,7 @@ const RundownCard: React.FC<RundownCardProps> = ({rundown, onOpen, onEdit, onDel
                                 <EditRoundedIcon fontSize="small" />
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title="Delete">
+                        <Tooltip title={t('actions.delete')}>
                             <IconButton
                                 size="small"
                                 onClick={(e) => { stop(e); onDelete(); }}
@@ -196,14 +200,15 @@ const RundownCard: React.FC<RundownCardProps> = ({rundown, onOpen, onEdit, onDel
 };
 
 const AddRundown: React.FC<{ onCreate: (name: string) => void; onCancel: () => void }> = ({onCreate, onCancel}) => {
+    const {t} = useTranslation('common');
     const [name, setName] = useState('');
     const trimmed = name.trim();
 
     return (
         <>
-            <Typography variant="h3">New rundown</Typography>
+            <Typography variant="h3">{t('playPage.newRundown')}</Typography>
             <TextField
-                label="Name"
+                label={t('playPage.nameLabel')}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 autoFocus
@@ -227,14 +232,15 @@ interface RenameRundownProps {
 }
 
 const RenameRundown: React.FC<RenameRundownProps> = ({rundown, onUpdate, onCancel}) => {
+    const {t} = useTranslation('common');
     const [name, setName] = useState(rundown.name);
     const canSave = name.trim().length > 0 && name.trim() !== rundown.name;
 
     return (
         <>
-            <Typography variant="h3">Rename rundown</Typography>
+            <Typography variant="h3">{t('playPage.renameRundown')}</Typography>
             <TextField
-                label="Name"
+                label={t('playPage.nameLabel')}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 autoFocus
@@ -288,6 +294,7 @@ const ModalShell: React.FC<ModalShellProps> = ({open, onClose, children}) => (
 );
 
 const Page = () => {
+    const {t} = useTranslation('common');
     const router = useRouter();
     const { rundowns, updateRundown, deleteRundown, createRundown } = useRundowns();
 
@@ -299,10 +306,9 @@ const Page = () => {
         <DefaultContentLayout>
             <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} mb={4}>
                 <Stack spacing={1}>
-                    <Typography variant="h1">Play</Typography>
+                    <Typography variant="h1">{t('playPage.title')}</Typography>
                     <Typography variant="body1" sx={{color: 'text.secondary'}}>
-                        Rundowns of cues you can step through live. Click one to edit or play
-                        its items.
+                        {t('playPage.description')}
                     </Typography>
                 </Stack>
                 <Button
@@ -310,14 +316,16 @@ const Page = () => {
                     startIcon={<AddRoundedIcon />}
                     onClick={() => setAdding(true)}
                 >
-                    New rundown
+                    {t('playPage.newRundown')}
                 </Button>
             </Stack>
 
             {rundowns.length === 0 ? (
                 <Card sx={{p: 3, textAlign: 'center', maxWidth: 720}}>
                     <Typography variant="body1" sx={{color: 'text.secondary'}}>
-                        No rundowns yet. Click <strong>New rundown</strong> to add one.
+                        {t('playPage.emptyBefore')}
+                        <strong>{t('playPage.newRundown')}</strong>
+                        {t('playPage.emptyAfter')}
                     </Typography>
                 </Card>
             ) : (
@@ -373,15 +381,16 @@ const Page = () => {
                         <Stack spacing={2}>
                             <Stack direction="row" alignItems="center" gap={1.5}>
                                 <WarningAmberRoundedIcon sx={{color: '#e88c8c'}} />
-                                <Typography variant="h3">Delete rundown?</Typography>
+                                <Typography variant="h3">{t('playPage.deleteDialog.title')}</Typography>
                             </Stack>
                             <Typography variant="body1" sx={{color: 'text.secondary'}}>
-                                <strong style={{color: 'inherit'}}>{deleting?.name}</strong> and
-                                all of its items will be removed. This can&apos;t be undone.
+                                <strong style={{color: 'inherit'}}>{deleting?.name}</strong>
+                                {' '}
+                                {t('playPage.deleteDialog.bodyAfterName')}
                             </Typography>
                             <Stack direction="row" justifyContent="flex-end" gap={1}>
                                 <Button color="inherit" onClick={() => setDeleting(null)}>
-                                    Cancel
+                                    {t('actions.cancel')}
                                 </Button>
                                 <Button
                                     variant="contained"
@@ -391,7 +400,7 @@ const Page = () => {
                                         setDeleting(null);
                                     }}
                                 >
-                                    Delete
+                                    {t('actions.delete')}
                                 </Button>
                             </Stack>
                         </Stack>
@@ -415,15 +424,16 @@ interface EditRundownProps {
 // a per-card icon. Kept as a separate export so the new rundown card UX
 // (split rename / delete) doesn't bleed into the quick-actions modal.
 export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDelete, onCancel}) => {
+    const {t} = useTranslation('common');
     const [name, setName] = useState(rundown.name);
     const [confirmingDelete, setConfirmingDelete] = useState(false);
     const canSave = name.trim().length > 0 && name.trim() !== rundown.name;
 
     return (
         <>
-            <Typography variant="h3">Rename rundown</Typography>
+            <Typography variant="h3">{t('playPage.renameRundown')}</Typography>
             <TextField
-                label="Name"
+                label={t('playPage.nameLabel')}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 autoFocus
@@ -462,22 +472,23 @@ export const EditRundown: React.FC<EditRundownProps> = ({rundown, onUpdate, onDe
                     >
                         <Stack direction="row" alignItems="center" gap={1.5}>
                             <WarningAmberRoundedIcon sx={{color: '#e88c8c'}} />
-                            <Typography variant="h3">Delete this rundown?</Typography>
+                            <Typography variant="h3">{t('playPage.deleteDialog.titleAlt')}</Typography>
                         </Stack>
                         <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                            <strong style={{color: 'inherit'}}>{rundown.name}</strong> and all of
-                            its items will be removed. This can&apos;t be undone.
+                            <strong style={{color: 'inherit'}}>{rundown.name}</strong>
+                            {' '}
+                            {t('playPage.deleteDialog.bodyAfterName')}
                         </Typography>
                         <Stack direction="row" justifyContent="flex-end" gap={1}>
                             <Button color="inherit" onClick={() => setConfirmingDelete(false)}>
-                                Cancel
+                                {t('actions.cancel')}
                             </Button>
                             <Button
                                 variant="contained"
                                 color="error"
                                 onClick={() => { setConfirmingDelete(false); onDelete(); }}
                             >
-                                Delete
+                                {t('actions.delete')}
                             </Button>
                         </Stack>
                     </Stack>

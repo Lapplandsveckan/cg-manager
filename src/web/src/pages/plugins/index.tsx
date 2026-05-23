@@ -4,6 +4,7 @@ import {Box, Card, Stack, Switch, Typography, alpha} from '@mui/material';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import {useCallback, useEffect, useState} from 'react';
 import {useRouter} from 'next/router';
+import {useTranslation} from 'next-i18next';
 import {Plugin} from '../../lib/api/plugin';
 import {UI_INJECTION_ZONE} from '../../lib/api/inject';
 
@@ -15,6 +16,7 @@ interface PluginCardProps {
 }
 
 const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
+    const {t} = useTranslation('common');
     const color = enabled ? '#5fc97a' : 'rgba(232, 234, 237, 0.4)';
     return (
         <Stack
@@ -33,13 +35,14 @@ const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
         >
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: color }} />
             <Typography variant="caption" sx={{ color: enabled ? '#5fc97a' : 'text.secondary' }}>
-                {enabled ? 'Active' : 'Disabled'}
+                {enabled ? t('pluginsPage.status.active') : t('pluginsPage.status.disabled')}
             </Typography>
         </Stack>
     );
 };
 
 const PluginCard: React.FC<PluginCardProps> = ({ plugin, hasUi, onToggle, onOpen }) => {
+    const {t} = useTranslation('common');
     return (
         <Card
             onClick={onOpen}
@@ -63,8 +66,8 @@ const PluginCard: React.FC<PluginCardProps> = ({ plugin, hasUi, onToggle, onOpen
                     </Stack>
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                         {hasUi
-                            ? 'Open for configuration.'
-                            : 'No configuration UI — open for plugin details.'}
+                            ? t('pluginsPage.card.openForConfig')
+                            : t('pluginsPage.card.noUi')}
                     </Typography>
                 </Stack>
 
@@ -79,7 +82,7 @@ const PluginCard: React.FC<PluginCardProps> = ({ plugin, hasUi, onToggle, onOpen
                         color="primary"
                         checked={plugin.enabled}
                         onChange={(_, checked) => onToggle(checked)}
-                        inputProps={{ 'aria-label': `Toggle ${plugin.name}` }}
+                        inputProps={{ 'aria-label': t('pluginsPage.togglePlugin', {name: plugin.name}) }}
                     />
                     <ChevronRightIcon
                         fontSize="small"
@@ -92,6 +95,7 @@ const PluginCard: React.FC<PluginCardProps> = ({ plugin, hasUi, onToggle, onOpen
 };
 
 const Page = () => {
+    const {t} = useTranslation('common');
     const socket = useSocket();
     const router = useRouter();
 
@@ -112,7 +116,7 @@ const Page = () => {
                 setPlugins(list);
                 setPluginsWithUi(new Set(injects.map(i => i.plugin)));
             })
-            .catch(e => mounted && setError(e?.message ?? 'Failed to load plugins'));
+            .catch(e => mounted && setError(e?.message ?? t('pluginsPage.loadError')));
 
         return () => { mounted = false; };
     }, [socket]);
@@ -135,10 +139,9 @@ const Page = () => {
     return (
         <DefaultContentLayout>
             <Stack spacing={1} mb={4}>
-                <Typography variant="h1">Plugins</Typography>
+                <Typography variant="h1">{t('pluginsPage.title')}</Typography>
                 <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                    Plugins extend CG Manager with extra effects, integrations, and UI panels.
-                    Toggle them on or off below.
+                    {t('pluginsPage.description')}
                 </Typography>
             </Stack>
 
@@ -149,13 +152,13 @@ const Page = () => {
             )}
 
             {plugins === null && !error && (
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>Loading…</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('actions.loading')}</Typography>
             )}
 
             {plugins?.length === 0 && (
                 <Card sx={{ p: 3, textAlign: 'center' }}>
                     <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                        No plugins installed.
+                        {t('pluginsPage.empty')}
                     </Typography>
                 </Card>
             )}

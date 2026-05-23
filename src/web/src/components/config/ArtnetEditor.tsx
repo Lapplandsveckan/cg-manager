@@ -19,6 +19,7 @@ import {
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
+import {Trans, useTranslation} from 'next-i18next';
 import {useStoredBoolean} from '../../lib/hooks/useStoredBoolean';
 import {ArtnetCanvas, Fixture} from './ArtnetCanvas';
 import {ARTNET_SCALAR_FIELDS, Fields, FieldDef, RecordData, ScalarField} from './fields';
@@ -61,6 +62,7 @@ const fixtureSummary = (fixture: Fixture, index: number): string => {
 export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
     data, canvasWidth, canvasHeight, previewChannel, onChange,
 }) => {
+    const {t} = useTranslation('common');
     const fixtures = data.fixtures ?? [];
     const [selected, setSelected] = useState<number | null>(null);
     const [showPreview, setShowPreview] = useStoredBoolean(PREVIEW_PREF_KEY, false);
@@ -93,7 +95,7 @@ export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
         <Stack spacing={3}>
             <Card variant="outlined" sx={(theme) => ({p: 2, bgcolor: theme.palette.surface.elevated})}>
                 <Stack spacing={2}>
-                    <Typography variant="h4">Output</Typography>
+                    <Typography variant="h4">{t('config.artnet.output')}</Typography>
                     <UniversesInput
                         universes={data.universes ?? []}
                         onChange={(next) => onChange({...data, universes: next})}
@@ -118,7 +120,11 @@ export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
                                         onChange={(e) => setShowPreview(e.target.checked)}
                                     />
                                 }
-                                label={<Typography variant="caption">Live preview · ch {previewChannel}</Typography>}
+                                label={
+                                    <Typography variant="caption">
+                                        {t('config.artnet.livePreview', {channel: previewChannel})}
+                                    </Typography>
+                                }
                                 labelPlacement="start"
                                 sx={{m: 0, '& .MuiFormControlLabel-label': {color: 'text.secondary'}}}
                             />
@@ -137,15 +143,19 @@ export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
 
                 <Stack spacing={2} sx={{width: {xs: '100%', lg: 480}, flexShrink: 0}}>
                     <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="h4">Fixtures</Typography>
+                        <Typography variant="h4">{t('config.artnet.fixtures')}</Typography>
                         <Button size="small" startIcon={<AddRoundedIcon />} onClick={addFixture}>
-                            Add
+                            {t('actions.add')}
                         </Button>
                     </Stack>
 
                     {fixtures.length === 0 ? (
                         <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                            No fixtures yet — click <em>Add</em> to drop one on the stage.
+                            <Trans
+                                i18nKey="config.artnet.fixturesEmpty"
+                                ns="common"
+                                components={{em: <em />}}
+                            />
                         </Typography>
                     ) : (
                         <Stack spacing={0.5}>
@@ -175,24 +185,32 @@ export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
     );
 };
 
-const TYPE_FIELD: FieldDef = {
-    key: 'type',
-    label: 'Type',
-    type: 'enum',
-    options: ['DIMMER', 'RGB', 'RGBW'],
-};
-const START_ADDRESS_FIELD: FieldDef = {key: 'startAddress', label: 'Start address', type: 'integer'};
-const CHANNELS_FIELD: FieldDef = {key: 'fixtureChannels', label: 'Channels / fixture', type: 'integer'};
-const LEFT_FIELD: FieldDef = {key: 'left', label: 'Left', type: 'integer'};
-const TOP_FIELD: FieldDef = {key: 'top', label: 'Top', type: 'integer'};
-const WIDTH_FIELD: FieldDef = {key: 'width', label: 'Width', type: 'integer'};
-const HEIGHT_FIELD: FieldDef = {key: 'height', label: 'Height', type: 'integer'};
-const FLUX_FIELDS: FieldDef[] = [
-    {key: 'r', label: 'R', type: 'number'},
-    {key: 'g', label: 'G', type: 'number'},
-    {key: 'b', label: 'B', type: 'number'},
-    {key: 'w', label: 'W', type: 'number'},
-];
+type TFn = (key: string, opts?: Record<string, unknown>) => string;
+
+const buildFixtureFields = (t: TFn) => ({
+    TYPE_FIELD: {
+        key: 'type',
+        label: t('config.fields.type'),
+        type: 'enum',
+        options: ['DIMMER', 'RGB', 'RGBW'],
+    } as FieldDef,
+    START_ADDRESS_FIELD: {
+        key: 'startAddress', label: t('config.fields.startAddress'), type: 'integer',
+    } as FieldDef,
+    CHANNELS_FIELD: {
+        key: 'fixtureChannels', label: t('config.fields.channelsPerFixture'), type: 'integer',
+    } as FieldDef,
+    LEFT_FIELD: {key: 'left', label: t('config.fields.left'), type: 'integer'} as FieldDef,
+    TOP_FIELD: {key: 'top', label: t('config.fields.top'), type: 'integer'} as FieldDef,
+    WIDTH_FIELD: {key: 'width', label: t('config.fields.width'), type: 'integer'} as FieldDef,
+    HEIGHT_FIELD: {key: 'height', label: t('config.fields.height'), type: 'integer'} as FieldDef,
+    FLUX_FIELDS: [
+        {key: 'r', label: 'R', type: 'number'},
+        {key: 'g', label: 'G', type: 'number'},
+        {key: 'b', label: 'B', type: 'number'},
+        {key: 'w', label: 'W', type: 'number'},
+    ] as FieldDef[],
+});
 
 interface FixtureDetailsProps {
     index: number;
@@ -202,6 +220,8 @@ interface FixtureDetailsProps {
 }
 
 const FixtureDetails: React.FC<FixtureDetailsProps> = ({index, fixture, onChange, onDelete}) => {
+    const {t} = useTranslation('common');
+    const F = buildFixtureFields(t);
     const flux = (fixture.flux ?? {}) as Record<string, number | undefined>;
     const updateFlux = (k: string, v: any) => {
         const next = {...flux, [k]: v};
@@ -213,24 +233,26 @@ const FixtureDetails: React.FC<FixtureDetailsProps> = ({index, fixture, onChange
         <Card variant="outlined" sx={(theme) => ({p: 2, bgcolor: theme.palette.surface.elevated})}>
             <Stack spacing={1.5}>
                 <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="body1">Fixture {index + 1}</Typography>
-                    <Tooltip title="Delete">
+                    <Typography variant="body1">
+                        {t('config.artnet.fixtureN', {n: index + 1})}
+                    </Typography>
+                    <Tooltip title={t('actions.delete')}>
                         <IconButton size="small" onClick={onDelete}>
                             <DeleteOutlineRoundedIcon fontSize="small" />
                         </IconButton>
                     </Tooltip>
                 </Stack>
 
-                <ScalarField def={TYPE_FIELD as any} value={fixture.type} onChange={(v) => onChange('type', v)} />
+                <ScalarField def={F.TYPE_FIELD as any} value={fixture.type} onChange={(v) => onChange('type', v)} />
 
                 <Stack direction="row" gap={1.5}>
                     <ScalarField
-                        def={START_ADDRESS_FIELD as any}
+                        def={F.START_ADDRESS_FIELD as any}
                         value={fixture.startAddress}
                         onChange={(v) => onChange('startAddress', v)}
                     />
                     <ScalarField
-                        def={CHANNELS_FIELD as any}
+                        def={F.CHANNELS_FIELD as any}
                         value={fixture.fixtureChannels}
                         onChange={(v) => onChange('fixtureChannels', v)}
                     />
@@ -243,24 +265,24 @@ const FixtureDetails: React.FC<FixtureDetailsProps> = ({index, fixture, onChange
 
                 <Stack direction="row" gap={1.5}>
                     <ScalarField
-                        def={LEFT_FIELD as any}
+                        def={F.LEFT_FIELD as any}
                         value={fixture.left}
                         onChange={(v) => onChange('left', v)}
                     />
                     <ScalarField
-                        def={TOP_FIELD as any}
+                        def={F.TOP_FIELD as any}
                         value={fixture.top}
                         onChange={(v) => onChange('top', v)}
                     />
                 </Stack>
                 <Stack direction="row" gap={1.5}>
                     <ScalarField
-                        def={WIDTH_FIELD as any}
+                        def={F.WIDTH_FIELD as any}
                         value={fixture.width}
                         onChange={(v) => onChange('width', v)}
                     />
                     <ScalarField
-                        def={HEIGHT_FIELD as any}
+                        def={F.HEIGHT_FIELD as any}
                         value={fixture.height}
                         onChange={(v) => onChange('height', v)}
                     />
@@ -280,15 +302,15 @@ const FixtureDetails: React.FC<FixtureDetailsProps> = ({index, fixture, onChange
                         expandIcon={<ExpandMoreRoundedIcon fontSize="small" />}
                         sx={{minHeight: 36, '& .MuiAccordionSummary-content': {my: 0.5}}}
                     >
-                        <Typography variant="body2">Advanced</Typography>
+                        <Typography variant="body2">{t('config.advanced')}</Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <Stack spacing={1}>
                             <Typography variant="caption" sx={{color: 'text.secondary'}}>
-                                Flux — per-channel brightness multiplier (0–1).
+                                {t('config.artnet.fluxHelp')}
                             </Typography>
                             <Stack direction="row" gap={1.5}>
-                                {FLUX_FIELDS.map((def) => (
+                                {F.FLUX_FIELDS.map((def) => (
                                     <ScalarField
                                         key={def.key}
                                         def={def as any}
@@ -327,11 +349,12 @@ interface FixtureCountInputProps {
 }
 
 const FixtureCountInput: React.FC<FixtureCountInputProps> = ({value, onChange}) => {
+    const {t} = useTranslation('common');
     const {w, h} = parseCount(value);
     return (
         <Stack direction="row" gap={1.5}>
             <TextField
-                label="Count W"
+                label={t('config.artnet.countW')}
                 size="small"
                 type="number"
                 fullWidth
@@ -343,7 +366,7 @@ const FixtureCountInput: React.FC<FixtureCountInputProps> = ({value, onChange}) 
                 }}
             />
             <TextField
-                label="Count H"
+                label={t('config.artnet.countH')}
                 size="small"
                 type="number"
                 fullWidth
@@ -365,37 +388,40 @@ interface FixtureRowProps {
     onDelete: () => void;
 }
 
-const FixtureRow: React.FC<FixtureRowProps> = ({label, selected, onSelect, onDelete}) => (
-    <Card
-        variant="outlined"
-        onClick={onSelect}
-        sx={(theme) => ({
-            p: 1,
-            cursor: 'pointer',
-            bgcolor: selected
-                ? alpha(theme.palette.primary.main, 0.15)
-                : theme.palette.surface.elevated,
-            borderColor: selected ? theme.palette.primary.main : theme.palette.divider,
-        })}
-    >
-        <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
-            <Typography
-                variant="body2"
-                sx={{fontFamily: 'monospace', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis'}}
-            >
-                {label}
-            </Typography>
-            <Tooltip title="Delete">
-                <IconButton
-                    size="small"
-                    onClick={(e) => { e.stopPropagation(); onDelete(); }}
+const FixtureRow: React.FC<FixtureRowProps> = ({label, selected, onSelect, onDelete}) => {
+    const {t} = useTranslation('common');
+    return (
+        <Card
+            variant="outlined"
+            onClick={onSelect}
+            sx={(theme) => ({
+                p: 1,
+                cursor: 'pointer',
+                bgcolor: selected
+                    ? alpha(theme.palette.primary.main, 0.15)
+                    : theme.palette.surface.elevated,
+                borderColor: selected ? theme.palette.primary.main : theme.palette.divider,
+            })}
+        >
+            <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+                <Typography
+                    variant="body2"
+                    sx={{fontFamily: 'monospace', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis'}}
                 >
-                    <DeleteOutlineRoundedIcon fontSize="small" />
-                </IconButton>
-            </Tooltip>
-        </Stack>
-    </Card>
-);
+                    {label}
+                </Typography>
+                <Tooltip title={t('actions.delete')}>
+                    <IconButton
+                        size="small"
+                        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                    >
+                        <DeleteOutlineRoundedIcon fontSize="small" />
+                    </IconButton>
+                </Tooltip>
+            </Stack>
+        </Card>
+    );
+};
 
 interface UniversesInputProps {
     universes: number[];
@@ -434,38 +460,41 @@ const dedupeOrdered = (nums: number[]): number[] => {
     return out;
 };
 
-const UniversesInput: React.FC<UniversesInputProps> = ({universes, onChange}) => (
-    <Autocomplete
-        multiple
-        freeSolo
-        autoSelect
-        options={[] as string[]}
-        value={universes.map(String)}
-        onChange={(_, raw) => {
-            // Each entry might be a single number string OR something the user
-            // pasted ("0,1,2" / "0-3"). Flat-map through the parser, then
-            // dedupe while preserving the order the user laid them out in.
-            const parsed = raw.flatMap((v) => parseUniverseTokens(String(v)));
-            onChange(dedupeOrdered(parsed));
-        }}
-        renderTags={(values, getTagProps) =>
-            values.map((value, index) => (
-                <Chip
-                    key={index}
+const UniversesInput: React.FC<UniversesInputProps> = ({universes, onChange}) => {
+    const {t} = useTranslation('common');
+    return (
+        <Autocomplete
+            multiple
+            freeSolo
+            autoSelect
+            options={[] as string[]}
+            value={universes.map(String)}
+            onChange={(_, raw) => {
+                // Each entry might be a single number string OR something the user
+                // pasted ("0,1,2" / "0-3"). Flat-map through the parser, then
+                // dedupe while preserving the order the user laid them out in.
+                const parsed = raw.flatMap((v) => parseUniverseTokens(String(v)));
+                onChange(dedupeOrdered(parsed));
+            }}
+            renderTags={(values, getTagProps) =>
+                values.map((value, index) => (
+                    <Chip
+                        key={index}
+                        size="small"
+                        label={value}
+                        {...getTagProps({index})}
+                    />
+                ))
+            }
+            renderInput={(params) => (
+                <TextField
+                    {...params}
                     size="small"
-                    label={value}
-                    {...getTagProps({index})}
+                    label={t('config.artnet.universes')}
+                    placeholder={universes.length === 0 ? t('config.artnet.universesPlaceholder') : ''}
+                    helperText={t('config.artnet.universesHelp')}
                 />
-            ))
-        }
-        renderInput={(params) => (
-            <TextField
-                {...params}
-                size="small"
-                label="Universes"
-                placeholder={universes.length === 0 ? 'e.g. 0, 1, 2 or 0-3' : ''}
-                helperText="Type numbers, paste lists, or ranges like 0-3"
-            />
-        )}
-    />
-);
+            )}
+        />
+    );
+};

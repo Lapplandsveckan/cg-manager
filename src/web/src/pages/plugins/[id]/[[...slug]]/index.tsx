@@ -6,8 +6,10 @@ import {useRouter} from 'next/router';
 import {useCallback, useEffect, useState} from 'react';
 import {Box, Button, Card, Stack, Switch, Typography, alpha} from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import {useTranslation} from 'next-i18next';
 
 const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
+    const {t} = useTranslation('common');
     const color = enabled ? '#5fc97a' : 'rgba(232, 234, 237, 0.4)';
     return (
         <Stack
@@ -24,13 +26,14 @@ const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
         >
             <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: color }} />
             <Typography variant="caption" sx={{ color: enabled ? '#5fc97a' : 'text.secondary' }}>
-                {enabled ? 'Active' : 'Disabled'}
+                {enabled ? t('pluginsPage.status.active') : t('pluginsPage.status.disabled')}
             </Typography>
         </Stack>
     );
 };
 
 const Page = () => {
+    const {t} = useTranslation('common');
     const router = useRouter();
     const socket = useSocket();
     const {id, slug} = router.query;
@@ -78,18 +81,18 @@ const Page = () => {
                 onClick={() => router.push('/plugins')}
                 sx={{ mb: 2, color: 'text.secondary', alignSelf: 'flex-start' }}
             >
-                Plugins
+                {t('nav.plugins')}
             </Button>
 
             {plugin === undefined && (
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>Loading…</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('actions.loading')}</Typography>
             )}
 
             {plugin === null && (
                 <Card sx={{ p: 3, maxWidth: 720 }}>
-                    <Typography variant="h3">Plugin not found</Typography>
+                    <Typography variant="h3">{t('pluginsPage.detail.notFoundTitle')}</Typography>
                     <Typography variant="body1" sx={{ color: 'text.secondary', mt: 1 }}>
-                        No plugin called &ldquo;{pluginId}&rdquo; is registered.
+                        {t('pluginsPage.detail.notFoundBody', {id: pluginId})}
                     </Typography>
                 </Card>
             )}
@@ -105,7 +108,7 @@ const Page = () => {
                             color="primary"
                             checked={plugin.enabled}
                             onChange={(_, checked) => togglePlugin(checked)}
-                            inputProps={{ 'aria-label': `Toggle ${plugin.name}` }}
+                            inputProps={{ 'aria-label': t('pluginsPage.togglePlugin', {name: plugin.name}) }}
                         />
                     </Stack>
 
@@ -119,14 +122,12 @@ const Page = () => {
                         </Box>
                     ) : (
                         <Card sx={{ p: 3, mt: 3, maxWidth: 720 }}>
-                            <Typography variant="h3">No configuration UI</Typography>
+                            <Typography variant="h3">{t('pluginsPage.detail.noUiTitle')}</Typography>
                             <Typography variant="body1" sx={{ color: 'text.secondary', mt: 1 }}>
-                                This plugin doesn&apos;t provide a configuration panel. It&apos;s
-                                controlled directly through the plugin&apos;s code, the
-                                CasparCG config, or a file in the project&apos;s plugin folder.
+                                {t('pluginsPage.detail.noUiBody')}
                             </Typography>
                             <Typography variant="body2" sx={{ color: 'text.disabled', mt: 2 }}>
-                                You can still enable or disable it with the switch above.
+                                {t('pluginsPage.detail.noUiHint')}
                             </Typography>
                         </Card>
                     )}

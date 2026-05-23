@@ -3,6 +3,7 @@ import {Box, IconButton, Stack, Tab, Tabs, Tooltip, Typography} from '@mui/mater
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import {noTry} from 'no-try';
+import {useTranslation} from 'next-i18next';
 import {useSocket} from '../lib/hooks/useSocket';
 import {useStoredBoolean} from '../lib/hooks/useStoredBoolean';
 import {Injection, Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
@@ -23,6 +24,7 @@ interface ResizeProps {
 }
 
 const VerticalResizeHandle: React.FC<ResizeProps> = ({ onResize, getCurrentHeight }) => {
+    const {t} = useTranslation('common');
     const dragRef = useRef<{ y: number; h: number } | null>(null);
 
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -51,7 +53,7 @@ const VerticalResizeHandle: React.FC<ResizeProps> = ({ onResize, getCurrentHeigh
     };
 
     return (
-        <Tooltip title="Drag to resize · Double-click to reset" placement="top">
+        <Tooltip title={t('rundown.bottomPanel.resizeHint')} placement="top">
             <Box
                 role="separator"
                 aria-orientation="horizontal"
@@ -106,6 +108,7 @@ function useStoredNumber(key: string, fallback: number, clamp: (n: number) => nu
 }
 
 export const BottomPanel: React.FC = () => {
+    const {t} = useTranslation('common');
     const socket = useSocket();
     const [injections, setInjections] = useState<Injection[] | null>(null);
 
@@ -192,7 +195,9 @@ export const BottomPanel: React.FC = () => {
                 role="button"
                 tabIndex={0}
                 aria-expanded={!collapsed}
-                aria-label={collapsed ? 'Expand bottom panel' : 'Collapse bottom panel'}
+                aria-label={collapsed
+                    ? t('rundown.bottomPanel.expandAria')
+                    : t('rundown.bottomPanel.collapseAria')}
                 sx={(theme) => ({
                     px: 2,
                     borderBottom: collapsed ? 'none' : `1px solid ${theme.palette.divider}`,
@@ -237,7 +242,9 @@ export const BottomPanel: React.FC = () => {
                     </Typography>
                 )}
 
-                <Tooltip title={collapsed ? 'Expand panel' : 'Collapse panel'}>
+                <Tooltip title={collapsed
+                    ? t('rundown.bottomPanel.expand')
+                    : t('rundown.bottomPanel.collapse')}>
                     <IconButton
                         size="small"
                         // The icon button delegates to the same toggle as the

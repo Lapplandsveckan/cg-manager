@@ -1,6 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {Alert, Box, Button, CircularProgress, Stack, Typography} from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import {useTranslation} from 'next-i18next';
 import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {useSocket} from '../lib/hooks/useSocket';
 import {CasparConfig} from '../lib/api/caspar';
@@ -24,6 +25,7 @@ interface EditingConsumer {
 }
 
 const Page = () => {
+    const {t} = useTranslation('common');
     const socket = useSocket();
     const [original, setOriginal] = useState<CasparConfig | null>(null);
     const [draft, setDraft] = useState<CasparConfig | null>(null);
@@ -43,7 +45,7 @@ const Page = () => {
         setError(null);
         socket.caspar.getConfig()
             .then((data) => { if (!cancelled) { setOriginal(data); setDraft(data); } })
-            .catch((err) => { if (!cancelled) setError(err?.message ?? 'Failed to load config'); });
+            .catch((err) => { if (!cancelled) setError(err?.message ?? t('config.errors.loadFailed')); });
         return () => { cancelled = true; };
     }, [socket]);
 
@@ -88,7 +90,7 @@ const Page = () => {
             setOriginal(saved);
             setDraft(saved);
         } catch (e: any) {
-            setError(e?.message ?? 'Failed to save config');
+            setError(e?.message ?? t('config.errors.saveFailed'));
         } finally {
             setSaving(false);
         }
@@ -166,21 +168,21 @@ const Page = () => {
                     flexWrap="wrap"
                 >
                     <Stack spacing={1}>
-                        <Typography variant="h1">Config</Typography>
+                        <Typography variant="h1">{t('nav.config')}</Typography>
                         <Typography variant="body1" sx={{color: 'text.secondary'}}>
-                            CasparCG Configuration.
+                            {t('config.subtitle')}
                         </Typography>
                     </Stack>
                     <Stack direction="row" gap={1}>
                         <Button onClick={discard} disabled={!dirty || saving} color="inherit">
-                            Discard
+                            {t('config.discard')}
                         </Button>
                         <Button
                             onClick={save}
                             disabled={!dirty || saving}
                             variant="contained"
                         >
-                            {saving ? 'Saving…' : 'Save'}
+                            {saving ? t('config.saving') : t('actions.save')}
                         </Button>
                     </Stack>
                 </Stack>
@@ -200,18 +202,17 @@ const Page = () => {
                                     finally { setRestarting(false); }
                                 }}
                             >
-                                {restarting ? 'Restarting…' : 'Restart now'}
+                                {restarting ? t('config.restarting') : t('config.restartNow')}
                             </Button>
                         }
                     >
-                        Saved changes haven&apos;t been applied yet. Restart CasparCG to use
-                        the new configuration — until then live state (previews, routes)
-                        keeps using the running snapshot.
+                        {t('config.driftMessage')}
                     </Alert>
                 ) : (
                     <Alert severity="info" variant="outlined">
-                        Saving writes <code>casparcg.config</code> to disk. Restart CasparCG for
-                        changes to take effect — running channels are unaffected until then.
+                        {t('config.saveInfoBefore')}
+                        <code>casparcg.config</code>
+                        {t('config.saveInfoAfter')}
                     </Alert>
                 )}
 
@@ -224,7 +225,9 @@ const Page = () => {
                 {!draft && !error && (
                     <Stack direction="row" alignItems="center" gap={2}>
                         <CircularProgress size={20} />
-                        <Typography variant="body2" sx={{color: 'text.secondary'}}>Loading config…</Typography>
+                        <Typography variant="body2" sx={{color: 'text.secondary'}}>
+                            {t('config.loading')}
+                        </Typography>
                     </Stack>
                 )}
 
@@ -250,19 +253,19 @@ const Page = () => {
                             flexWrap="wrap"
                         >
                             <Stack spacing={0.5}>
-                                <Typography variant="h2">Channels</Typography>
+                                <Typography variant="h2">{t('config.channels.title')}</Typography>
                                 <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                                    {draft.channels.length} channel{draft.channels.length === 1 ? '' : 's'}.
+                                    {t('config.channels.count', {count: draft.channels.length})}
                                 </Typography>
                             </Stack>
                             <Button startIcon={<AddRoundedIcon />} onClick={addChannel}>
-                                Add channel
+                                {t('config.channels.add')}
                             </Button>
                         </Stack>
 
                         {draft.channels.length === 0 ? (
                             <Alert severity="warning" variant="outlined">
-                                No channels configured — CasparCG won't start without at least one.
+                                {t('config.channels.empty')}
                             </Alert>
                         ) : (
                             <Stack spacing={2}>

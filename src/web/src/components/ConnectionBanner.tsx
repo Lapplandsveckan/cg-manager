@@ -1,9 +1,11 @@
 import React from 'react';
 import {Stack, Typography, CircularProgress} from '@mui/material';
 import WifiOffRoundedIcon from '@mui/icons-material/WifiOffRounded';
+import {useTranslation} from 'next-i18next';
 import {useConnection} from './ConnectionProvider';
 
 export const ConnectionBanner: React.FC = () => {
+    const {t} = useTranslation('common');
     const {state} = useConnection();
 
     if (state === 'connected') return null;
@@ -31,8 +33,8 @@ export const ConnectionBanner: React.FC = () => {
                 : <CircularProgress size={14} sx={{color: 'inherit'}} />}
             <Typography variant="body2" sx={{fontWeight: 500}}>
                 {disconnected
-                    ? 'Disconnected from CG Manager — retrying…'
-                    : 'Reconnecting to CG Manager…'}
+                    ? t('connection.banner.disconnected')
+                    : t('connection.banner.reconnecting')}
             </Typography>
         </Stack>
     );

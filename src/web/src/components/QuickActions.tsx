@@ -2,6 +2,7 @@ import {ButtonBase, IconButton, Modal, Stack, Tooltip, Typography, alpha} from '
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import React, {useEffect, useState} from 'react';
+import {useTranslation} from 'next-i18next';
 import {useSocket} from '../lib';
 import {EditRundown, Rundown} from '../pages/play';
 import {RundownModals} from './RundownModals';
@@ -114,6 +115,7 @@ interface QuickActionsProps {
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
+    const {t} = useTranslation('common');
     const conn = useSocket();
 
     const {
@@ -158,7 +160,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     const openEditorForDrop = (payload: { type: string; data?: unknown; title?: string }, index?: number) => {
         setEditing({
             id: Math.random().toString(36).substring(2, 11),
-            title: payload.title ?? 'New Rundown Item',
+            title: payload.title ?? t('rundown.newItemDefaultTitle'),
             type: payload.type,
             data: payload.data ?? {},
         });
@@ -185,11 +187,11 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                         />
                     ))}
 
-                    <Tooltip title="New quick action">
+                    <Tooltip title={t('rundown.quickActions.new')}>
                         <IconButton
                             size="small"
                             onClick={async () => {
-                                const created = await createQuickAction('New quick action');
+                                const created = await createQuickAction(t('rundown.quickActions.defaultName'));
                                 if (created) setQuickAction(created.id);
                             }}
                             sx={(theme) => ({
@@ -206,7 +208,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                     </Tooltip>
 
                     {selected && (
-                        <Tooltip title="Rename or delete this quick action">
+                        <Tooltip title={t('rundown.quickActions.renameOrDelete')}>
                             <IconButton
                                 size="small"
                                 onClick={() => setQuickEditing(selected)}
@@ -220,7 +222,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
 
                 {quickActions.length === 0 && (
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        No quick actions yet. Click + above to create one.
+                        {t('rundown.quickActions.empty')}
                     </Typography>
                 )}
 
@@ -238,7 +240,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
 
                 {!selected && quickActions.length > 0 && (
                     <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                        Select a quick action above to see its items.
+                        {t('rundown.quickActions.selectPrompt')}
                     </Typography>
                 )}
             </Stack>

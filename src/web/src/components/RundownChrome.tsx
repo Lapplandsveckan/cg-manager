@@ -4,6 +4,7 @@ import {keyframes} from '@mui/system';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import {useTranslation} from 'next-i18next';
 
 const LIVE_RED = '#e0463a';
 
@@ -13,62 +14,68 @@ const livePulse = keyframes`
 `;
 
 /** Shown when the rundown is unlocked — items will fire on card click. */
-export const LiveIndicator: React.FC = () => (
-    <Stack
-        direction="row"
-        alignItems="center"
-        gap={0.75}
-        sx={{
-            px: 1.25,
-            py: 0.5,
-            borderRadius: 999,
-            bgcolor: alpha(LIVE_RED, 0.14),
-            border: `1px solid ${alpha(LIVE_RED, 0.45)}`,
-            color: LIVE_RED,
-        }}
-    >
-        <Box
+export const LiveIndicator: React.FC = () => {
+    const {t} = useTranslation('common');
+    return (
+        <Stack
+            direction="row"
+            alignItems="center"
+            gap={0.75}
             sx={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                bgcolor: LIVE_RED,
-                animation: `${livePulse} 1.4s ease-in-out infinite`,
+                px: 1.25,
+                py: 0.5,
+                borderRadius: 999,
+                bgcolor: alpha(LIVE_RED, 0.14),
+                border: `1px solid ${alpha(LIVE_RED, 0.45)}`,
+                color: LIVE_RED,
             }}
-        />
-        <Typography
-            variant="caption"
-            sx={{ fontWeight: 700, letterSpacing: '0.12em', fontSize: '0.7rem' }}
         >
-            LIVE
-        </Typography>
-    </Stack>
-);
+            <Box
+                sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    bgcolor: LIVE_RED,
+                    animation: `${livePulse} 1.4s ease-in-out infinite`,
+                }}
+            />
+            <Typography
+                variant="caption"
+                sx={{ fontWeight: 700, letterSpacing: '0.12em', fontSize: '0.7rem' }}
+            >
+                {t('rundown.indicator.live')}
+            </Typography>
+        </Stack>
+    );
+};
 
 /** Shown when the rundown is locked — items only fire from the play button. */
-export const EditIndicator: React.FC = () => (
-    <Stack
-        direction="row"
-        alignItems="center"
-        gap={0.75}
-        sx={(theme) => ({
-            px: 1.25,
-            py: 0.5,
-            borderRadius: 999,
-            bgcolor: alpha(theme.palette.primary.main, 0.14),
-            border: `1px solid ${alpha(theme.palette.primary.main, 0.45)}`,
-            color: theme.palette.primary.main,
-        })}
-    >
-        <EditOutlinedIcon sx={{ fontSize: 14 }} />
-        <Typography
-            variant="caption"
-            sx={{ fontWeight: 700, letterSpacing: '0.12em', fontSize: '0.7rem' }}
+export const EditIndicator: React.FC = () => {
+    const {t} = useTranslation('common');
+    return (
+        <Stack
+            direction="row"
+            alignItems="center"
+            gap={0.75}
+            sx={(theme) => ({
+                px: 1.25,
+                py: 0.5,
+                borderRadius: 999,
+                bgcolor: alpha(theme.palette.primary.main, 0.14),
+                border: `1px solid ${alpha(theme.palette.primary.main, 0.45)}`,
+                color: theme.palette.primary.main,
+            })}
         >
-            EDIT
-        </Typography>
-    </Stack>
-);
+            <EditOutlinedIcon sx={{ fontSize: 14 }} />
+            <Typography
+                variant="caption"
+                sx={{ fontWeight: 700, letterSpacing: '0.12em', fontSize: '0.7rem' }}
+            >
+                {t('rundown.indicator.edit')}
+            </Typography>
+        </Stack>
+    );
+};
 
 interface LockToggleProps {
     locked: boolean;
@@ -76,29 +83,33 @@ interface LockToggleProps {
     label?: string;
 }
 
-export const LockToggle: React.FC<LockToggleProps> = ({ locked, onToggle, label }) => (
-    <Tooltip title={
-        locked
-            ? `${label ?? 'Items'} are locked — clicking a card won\'t fire it. Use the play button.`
-            : `${label ?? 'Items'} are unlocked — click anywhere on a card to fire it.`
-    }>
-        <IconButton
-            size="small"
-            onClick={onToggle}
-            sx={(theme) => ({
-                color: locked ? theme.palette.primary.main : 'text.secondary',
-                border: `1px solid ${locked ? theme.palette.primary.main : theme.palette.divider}`,
-                borderRadius: 1.5,
-                px: 1.25,
-                py: 0.5,
-                gap: 0.75,
-                '&:hover': { borderColor: theme.palette.primary.main, color: theme.palette.primary.main },
-            })}
-        >
-            {locked ? <LockRoundedIcon fontSize="small" /> : <LockOpenRoundedIcon fontSize="small" />}
-            <Typography variant="caption" sx={{ fontWeight: 500 }}>
-                {locked ? 'Locked' : 'Unlocked'}
-            </Typography>
-        </IconButton>
-    </Tooltip>
-);
+export const LockToggle: React.FC<LockToggleProps> = ({ locked, onToggle, label }) => {
+    const {t} = useTranslation('common');
+    const resolvedLabel = label ?? t('rundown.lockToggle.defaultLabel');
+    return (
+        <Tooltip title={
+            locked
+                ? t('rundown.lockToggle.lockedTooltip', { label: resolvedLabel })
+                : t('rundown.lockToggle.unlockedTooltip', { label: resolvedLabel })
+        }>
+            <IconButton
+                size="small"
+                onClick={onToggle}
+                sx={(theme) => ({
+                    color: locked ? theme.palette.primary.main : 'text.secondary',
+                    border: `1px solid ${locked ? theme.palette.primary.main : theme.palette.divider}`,
+                    borderRadius: 1.5,
+                    px: 1.25,
+                    py: 0.5,
+                    gap: 0.75,
+                    '&:hover': { borderColor: theme.palette.primary.main, color: theme.palette.primary.main },
+                })}
+            >
+                {locked ? <LockRoundedIcon fontSize="small" /> : <LockOpenRoundedIcon fontSize="small" />}
+                <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                    {locked ? t('rundown.lockToggle.locked') : t('rundown.lockToggle.unlocked')}
+                </Typography>
+            </IconButton>
+        </Tooltip>
+    );
+};

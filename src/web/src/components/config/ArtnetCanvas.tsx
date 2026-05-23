@@ -1,5 +1,6 @@
 import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {Box, Stack, Typography, alpha} from '@mui/material';
+import {useTranslation} from 'next-i18next';
 import {ChannelPreview} from '../ChannelPreview';
 
 export interface Fixture {
@@ -267,6 +268,7 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
     onChange,
     previewChannel,
 }) => {
+    const {t} = useTranslation('common');
     const stageRef = useRef<HTMLDivElement | null>(null);
     const wrapperRef = useRef<HTMLDivElement | null>(null);
     const [scale, setScale] = useState(1);
@@ -337,7 +339,7 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
                 sx={{color: 'text.secondary'}}
             >
                 <Typography variant="caption" sx={{fontFamily: 'monospace'}}>
-                    Stage · {canvasWidth}×{canvasHeight} px
+                    {t('config.artnet.canvas.stage', {width: canvasWidth, height: canvasHeight})}
                 </Typography>
                 <Typography variant="caption" sx={{fontFamily: 'monospace'}}>
                     {Math.round(scale * 100)}%

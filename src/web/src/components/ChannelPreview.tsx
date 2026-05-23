@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {Box} from '@mui/material';
 import {noTry, noTryAsync} from 'no-try';
+import {useTranslation} from 'next-i18next';
 
 interface ChannelPreviewProps {
     /** 1-based CasparCG channel number. Disabled when undefined/null. */
@@ -39,6 +40,7 @@ async function whepExchange(channel: number, offerSdp: string, signal: AbortSign
  * relatively-positioned container with whatever size you want.
  */
 export const ChannelPreview: React.FC<ChannelPreviewProps> = ({channel, objectFit = 'cover', onReady, onError}) => {
+    const {t} = useTranslation('common');
     const videoRef = useRef<HTMLVideoElement | null>(null);
     // Per-mount key; changing channel re-runs the effect cleanly. We also
     // include it in deps so the WebRTC session restarts when the prop flips.
@@ -70,8 +72,8 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({channel, objectFi
 
                 pc.onconnectionstatechange = () => {
                     if (!pc || abort.signal.aborted) return;
-                    if (pc.connectionState === 'failed') onError?.('WebRTC failed');
-                    if (pc.connectionState === 'disconnected') onError?.('WebRTC disconnected');
+                    if (pc.connectionState === 'failed') onError?.(t('media.preview.errors.failed'));
+                    if (pc.connectionState === 'disconnected') onError?.(t('media.preview.errors.disconnected'));
                 };
 
                 const offer = await pc.createOffer();
@@ -82,7 +84,7 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({channel, objectFi
 
                 await pc.setRemoteDescription({type: 'answer', sdp: answer});
             });
-            if (err && !abort.signal.aborted) onError?.(err.message ?? 'Failed to start preview');
+            if (err && !abort.signal.aborted) onError?.(err.message ?? t('media.preview.errors.startFailed'));
         })();
 
         return () => {
@@ -92,7 +94,7 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({channel, objectFi
             const video = videoRef.current;
             if (video) video.srcObject = null;
         };
-    }, [channel, mountId, onError]);
+    }, [channel, mountId, onError, t]);
 
     return (
         <Box

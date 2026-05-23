@@ -1,5 +1,6 @@
 import React, {useLayoutEffect, useRef, useState} from 'react';
 import {Box, Stack, Typography} from '@mui/material';
+import {useTranslation} from 'next-i18next';
 import {ChannelPreview} from '../ChannelPreview';
 
 interface GeometryStageProps {
@@ -21,6 +22,7 @@ interface GeometryStageProps {
 export const GeometryStage: React.FC<GeometryStageProps> = ({
     canvasWidth, canvasHeight, children, previewChannel,
 }) => {
+    const {t} = useTranslation('common');
     const wrapperRef = useRef<HTMLDivElement | null>(null);
     const [scale, setScale] = useState(1);
 
@@ -50,7 +52,7 @@ export const GeometryStage: React.FC<GeometryStageProps> = ({
                 sx={{color: 'text.secondary'}}
             >
                 <Typography variant="caption" sx={{fontFamily: 'monospace'}}>
-                    Stage · {canvasWidth}×{canvasHeight} px
+                    {t('videoRoutes.stage.label', {width: canvasWidth, height: canvasHeight})}
                 </Typography>
                 <Typography variant="caption" sx={{fontFamily: 'monospace'}}>
                     {Math.round(scale * 100)}%

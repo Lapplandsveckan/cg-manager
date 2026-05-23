@@ -3,6 +3,7 @@ import {Box, ButtonBase, IconButton, Stack, Tooltip, Typography, alpha} from '@m
 import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import {noTry} from 'no-try';
+import {useTranslation} from 'next-i18next';
 import {useSocket} from '../lib/hooks/useSocket';
 import {ChannelPreview} from './ChannelPreview';
 
@@ -19,6 +20,7 @@ const STORAGE_KEY = 'rundown-preview-channel';
  * Renders nothing when CasparCG reports zero channels.
  */
 export const RundownPreview: React.FC = () => {
+    const {t} = useTranslation('common');
     const socket = useSocket();
     const [channels, setChannels] = useState<number[] | null>(null);
     const [selected, setSelected] = useState<number | null>(null);
@@ -113,7 +115,7 @@ export const RundownPreview: React.FC = () => {
                 sx={{ pl: 0, pr: 1.5, py: 1.25 }}
             >
                 <Typography variant="h6" sx={{ color: 'text.secondary' }}>
-                    Preview
+                    {t('actions.preview')}
                 </Typography>
                 <Stack direction="row" alignItems="center" gap={0.75}>
                     {channels.map((ch) => {
@@ -121,7 +123,9 @@ export const RundownPreview: React.FC = () => {
                         return (
                             <Tooltip
                                 key={ch}
-                                title={active ? `Stop previewing channel ${ch}` : `Preview channel ${ch}`}
+                                title={active
+                                    ? t('rundown.preview.stopChannel', { channel: ch })
+                                    : t('rundown.preview.previewChannel', { channel: ch })}
                             >
                                 <ButtonBase
                                     onClick={() => pickChannel(ch)}
@@ -153,7 +157,7 @@ export const RundownPreview: React.FC = () => {
                         );
                     })}
                     {selected != null && (
-                        <Tooltip title="Stop preview">
+                        <Tooltip title={t('rundown.preview.stop')}>
                             <IconButton
                                 size="small"
                                 onClick={() => updateSelected(null)}
@@ -193,7 +197,7 @@ export const RundownPreview: React.FC = () => {
                     >
                         <VideocamOffRoundedIcon fontSize="small" />
                         <Typography variant="caption">
-                            CasparCG is offline
+                            {t('rundown.preview.offline')}
                         </Typography>
                     </Stack>
                 ) : selected != null ? (
@@ -214,7 +218,7 @@ export const RundownPreview: React.FC = () => {
                     >
                         <VideocamOffRoundedIcon fontSize="small" />
                         <Typography variant="caption">
-                            Pick a channel to preview
+                            {t('rundown.preview.pickChannel')}
                         </Typography>
                     </Stack>
                 )}

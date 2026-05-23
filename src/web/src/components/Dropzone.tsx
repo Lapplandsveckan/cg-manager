@@ -1,6 +1,7 @@
 import React, {useRef, useState} from 'react';
 import {Box, Stack, Typography, alpha} from '@mui/material';
 import {CloudUploadRounded} from '@mui/icons-material';
+import {useTranslation} from 'next-i18next';
 
 interface DropzoneProps {
     /** Called with the dropped File list (already filtered + multiple-applied). */
@@ -43,6 +44,7 @@ function matchesAccept(file: File, accept: string[]): boolean {
 export const Dropzone: React.FC<DropzoneProps> = ({
     onDrop, children, accept = [], multiple = true, disabled, overlayLabel, fill,
 }) => {
+    const {t} = useTranslation('common');
     const [hovering, setHovering] = useState(false);
     const dragDepth = useRef(0);
 
@@ -112,7 +114,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
                     <Stack alignItems="center" spacing={1}>
                         <CloudUploadRounded sx={{fontSize: 48, color: 'primary.main'}} />
                         <Typography variant="h3" sx={{color: 'primary.main'}}>
-                            {overlayLabel ?? 'Drop to upload'}
+                            {overlayLabel ?? t('media.dropzone.dropToUpload')}
                         </Typography>
                     </Stack>
                 </Box>
