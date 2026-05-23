@@ -6,6 +6,8 @@ export const UI_INJECTION_ZONE = {
 
     RUNDOWN_SIDE: 'rundown-side',
     RUNDOWN_BOTTOM_PANEL: 'rundown-bottom-panel',
+
+    UPLOAD_OPTIONS: 'upload-options',
 } as const;
 
 export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];
