@@ -9,6 +9,7 @@ import {EditIndicator, LiveIndicator, LockToggle, RundownEntry, Rundowns, useRun
 import {RundownModals} from '../../../components/RundownModals';
 import {QuickActions} from '../../../components/QuickActions';
 import {BottomPanel} from '../../../components/BottomPanel';
+import {RundownPreview} from '../../../components/RundownPreview';
 import {RundownItemDragPayload} from '../../../lib/dragPayload';
 
 // Default sizes target ~80% of the previous defaults (560/560/480) so the
@@ -336,6 +337,10 @@ const Page = () => {
                                 sx={{ height: 'calc(100% - 200px)', minHeight: 120 }}
                             />
                         </Box>
+                        {/* Pinned to the bottom of the column — sits below
+                            the scrollable injection area so it's always in
+                            view while plugins above scroll. */}
+                        <RundownPreview />
                     </Box>
                 </Stack>
 
