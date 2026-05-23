@@ -46,9 +46,15 @@ export const AuthGate: React.FC<{children: React.ReactNode}> = ({children}) => {
 
     useEffect(() => {
         if (!status) return;
+        // On dynamic routes (e.g. `/play/[id]`) Next.js' automatic static
+        // optimization leaves `router.asPath` as the route *pattern* until
+        // `router.isReady` flips. Capturing too early gave us a `from=`
+        // value of `/play/[id]` literally, which then failed to navigate
+        // back after sign-in. Wait until the router has hydrated.
+        if (!router.isReady) return;
         if (status.enabled && !status.authenticated)
             router.replace(`/login?from=${encodeURIComponent(router.asPath)}`);
-    }, [status, router]);
+    }, [status, router, router.isReady, router.asPath]);
 
     // First paint while we're still checking — keeps the layout from flashing
     // either the login screen or the app before we know which it should be.

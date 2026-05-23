@@ -14,6 +14,12 @@ const Page = () => {
     // shouldn't be on this page — bounce them to wherever they were going.
     // Also bounce if they're already signed in.
     useEffect(() => {
+        // `router.query` isn't populated until isReady on statically
+        // optimized pages — without this guard we'd read `from=undefined`
+        // on first paint and bounce the user to `/` even when they had a
+        // valid return URL.
+        if (!router.isReady) return;
+
         let cancelled = false;
         (async () => {
             const [, resp] = await noTryAsync(
@@ -28,7 +34,7 @@ const Page = () => {
             }
         })();
         return () => { cancelled = true; };
-    }, [router]);
+    }, [router, router.isReady]);
 
     const submit = async () => {
         if (busy || !password) return;
