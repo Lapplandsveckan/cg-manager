@@ -14,4 +14,9 @@ module.exports = {
         // stdout manually.
         incomingRequests: false,
     },
+    async redirects() {
+        return [
+            {source: '/', destination: '/play', permanent: false},
+        ];
+    },
 };
