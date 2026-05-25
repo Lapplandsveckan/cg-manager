@@ -55,4 +55,8 @@ export class MediaScanner {
     public getDatabase() {
         return this.db;
     }
+
+    public get mediaRoot() {
+        return config.paths.media;
+    }
 }

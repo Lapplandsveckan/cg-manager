@@ -42,9 +42,7 @@ export class CasparProcess extends EventEmitter {
     async start() {
         if (this.process) return;
 
-        const folder = config['caspar-path'] || process.cwd();
-
-        configuration.setPath(folder);
+        configuration.setPath(this.casparPath);
         this.config = await configuration.get(); // ensure right config
 
         if (!this.supported) {
@@ -55,11 +53,11 @@ export class CasparProcess extends EventEmitter {
         }
 
         const cmd = process.platform === 'win32'
-            ? path.join(folder, 'casparcg.exe')
-            : path.join(folder, 'run.sh');
+            ? path.join(this.casparPath, 'casparcg.exe')
+            : path.join(this.casparPath, 'run.sh');
 
         this.lastError = null;
-        this.process = spawn(cmd, [], { cwd: folder });
+        this.process = spawn(cmd, [], { cwd: this.casparPath });
 
         // CasparCG read `this.config` from disk at startup — surface it as the
         // running snapshot so UI consumers (previews, routes) can distinguish
@@ -128,5 +126,9 @@ export class CasparProcess extends EventEmitter {
 
     getLogs() {
         return this.logs;
+    }
+
+    get casparPath() {
+        return config['caspar-path'] || process.cwd();
     }
 }
