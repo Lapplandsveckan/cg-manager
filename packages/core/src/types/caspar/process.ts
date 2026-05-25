@@ -11,4 +11,6 @@ export declare class CasparProcess extends EventEmitter {
     appendLog(data: string): void;
     getLogs(): string;
     get log(): string;
+
+    public get casparPath(): string;
 }

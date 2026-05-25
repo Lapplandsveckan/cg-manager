@@ -197,7 +197,7 @@ export class PluginAPI extends EventEmitter {
     }
 
     public setVideoRouteEnabled(id: string, enabled?: boolean) {
-        const value = enabled ?? this._manager.routes.getVideoRoute(id)?.enabled;
+        const value = enabled ?? !this._manager.routes.getVideoRoute(id)?.enabled;
         this._manager.routes.setVideoRouteEnabled(id, value);
     }
 }

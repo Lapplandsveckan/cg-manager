@@ -7,4 +7,6 @@ export declare class MediaScanner {
     stop(): Promise<void>;
 
     public getDatabase(): FileDatabase;
+
+    public get mediaRoot(): string;
 }
