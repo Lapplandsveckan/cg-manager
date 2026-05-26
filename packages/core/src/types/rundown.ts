@@ -30,6 +30,10 @@ export declare class RundownManager {
 }
 
 export declare class RundownExecutor {
-    public registerAction(type: string, action: (item: RundownItem) => Promise<void> | void): void;
+    /** Register a rundown action handler. When `owner` is provided, the host
+     *  attributes this action to that plugin and removes it automatically when
+     *  the plugin is disabled. The `PluginAPI.registerRundownAction` wrapper
+     *  always sets `owner` to the plugin's name. */
+    public registerAction(type: string, action: (item: RundownItem) => Promise<void> | void, owner?: string): void;
     public executeItem(item: RundownItem): Promise<void>;
 }
