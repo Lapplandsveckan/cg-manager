@@ -95,6 +95,16 @@ export class CGServer {
                 client.send('caspar/running-config', WebsocketOutboundMethod.ACTION, cfg, false);
             });
         });
+
+        // Video route mutations (create / update / delete) — forwarded so
+        // clients can refresh without polling. UPDATE / CREATE carry the
+        // full route; DELETE carries the id string.
+        this.manager.on('route-change', ({method, data}: {
+            method: 'CREATE' | 'UPDATE' | 'DELETE';
+            data: unknown;
+        }) => {
+            this.broadcast('routes', WebsocketOutboundMethod[method], data);
+        });
     }
 
     public broadcast<T>(target: string, method: WebsocketOutboundMethod, data: T, exclude?: Client) {

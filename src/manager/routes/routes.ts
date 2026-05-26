@@ -78,6 +78,14 @@ export class VideoRoutesManager {
         this.executor = manager.executor;
     }
 
+    // Emitted on the CasparManager so api/server.ts can forward to all WS
+    // clients on the `routes` topic. Lets the UI live-update on changes
+    // made anywhere (API endpoint, plugin rundown action, internal caller)
+    // without polling.
+    private notify(method: 'CREATE' | 'UPDATE' | 'DELETE', data: VideoRoute | string) {
+        this.manager.emit('route-change', {method, data});
+    }
+
     public createVideoRoute(data: Omit<VideoRoute, 'id'>): VideoRoute {
         const id = UUID.generate();
         const route = {
@@ -89,6 +97,7 @@ export class VideoRoutesManager {
         this.checkState(route.id);
         this.saveVideoRoute(route);
 
+        this.notify('CREATE', route);
         return route;
     }
 
@@ -117,6 +126,7 @@ export class VideoRoutesManager {
         this.checkState(data.id);
 
         await this.saveVideoRoute(data);
+        this.notify('UPDATE', data);
     }
 
     public async loadVideoRoutes() {
@@ -159,8 +169,11 @@ export class VideoRoutesManager {
     }
 
     public async deleteVideoRoute(id: string) {
+        const existed = this.routes.has(id);
         this.checkState(id, true);
         this.routes.delete(id);
+
+        if (existed) this.notify('DELETE', id);
 
         const dir = config['routes-dir'];
         const file = path.join(dir, `${id}.json`);
@@ -175,6 +188,7 @@ export class VideoRoutesManager {
     public enableVideoRoute(id: string) {
         const state = this.routes.get(id);
         if (!state) return;
+        if (state.route.enabled && state.enabled) return;
 
         // Keep the wrapper's runtime flag and the inner route's persisted
         // flag in sync, and write to disk so the choice survives a restart.
@@ -182,16 +196,27 @@ export class VideoRoutesManager {
         state.route.enabled = true;
         this.checkState(id);
         this.saveVideoRoute(state.route);
+        this.notify('UPDATE', state.route);
     }
 
     public disableVideoRoute(id: string) {
         const state = this.routes.get(id);
         if (!state) return;
+        if (!state.route.enabled && !state.enabled) return;
 
         state.enabled = false;
         state.route.enabled = false;
         this.checkState(id);
         this.saveVideoRoute(state.route);
+        this.notify('UPDATE', state.route);
+    }
+
+    // PluginAPI.setVideoRouteEnabled (in @lappis/cg-manager) delegates here;
+    // without this method, every plugin call no-ops with a swallowed
+    // "not a function" error.
+    public setVideoRouteEnabled(id: string, enabled: boolean) {
+        if (enabled) this.enableVideoRoute(id);
+        else this.disableVideoRoute(id);
     }
 
     public disposeAll() {

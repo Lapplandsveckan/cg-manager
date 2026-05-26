@@ -164,6 +164,52 @@ const Page = () => {
 
     useEffect(() => {
         if (!socket) return;
+
+        const createListener = {
+            path: 'routes',
+            method: 'CREATE',
+            handler: (req: any) => {
+                const route = req.getData() as VideoRoute;
+                if (!route?.id) return;
+                setRoutes(prev => prev
+                    ? (prev.some(r => r.id === route.id) ? prev : [...prev, route])
+                    : [route]);
+            },
+        };
+
+        const updateListener = {
+            path: 'routes',
+            method: 'UPDATE',
+            handler: (req: any) => {
+                const route = req.getData() as VideoRoute;
+                if (!route?.id) return;
+                setRoutes(prev => prev?.map(r => r.id === route.id ? route : r) ?? prev);
+            },
+        };
+
+        const deleteListener = {
+            path: 'routes',
+            method: 'DELETE',
+            handler: (req: any) => {
+                const id = req.getData();
+                if (typeof id !== 'string') return;
+                setRoutes(prev => prev?.filter(r => r.id !== id) ?? prev);
+            },
+        };
+
+        socket.routes.register(createListener);
+        socket.routes.register(updateListener);
+        socket.routes.register(deleteListener);
+
+        return () => {
+            socket.routes.unregister(createListener);
+            socket.routes.unregister(updateListener);
+            socket.routes.unregister(deleteListener);
+        };
+    }, [socket]);
+
+    useEffect(() => {
+        if (!socket) return;
         let cancelled = false;
         // Populate the channel dropdown(s) in the modal. Falls back to an
         // empty list if the CG config can't be read — the modal allows the
