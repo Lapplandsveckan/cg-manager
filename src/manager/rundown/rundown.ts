@@ -206,23 +206,43 @@ export class RundownManager {
     }
 }
 
+type ActionHandler = (item: RundownItem) => Promise<void> | void;
+
+interface ActionEntry {
+    handler: ActionHandler;
+    /** Plugin that registered this action. `null` when an internal caller
+     *  registers without a plugin context — those actions stay registered
+     *  for the process lifetime. */
+    owner: string | null;
+}
+
 export class RundownExecutor {
-    private actions = new Map<string, (item: RundownItem) => Promise<void> | void>();
+    private actions = new Map<string, ActionEntry>();
+
     public getActionTypes() {
         return Array.from(this.actions.keys());
     }
 
-    public registerAction(type: string, action: (item: RundownItem) => Promise<void> | void) {
-        this.actions.set(type, action);
+    // `owner` is passed by `PluginAPI.registerRundownAction` (in
+    // @lappis/cg-manager) so the host can clean the action up when the
+    // owning plugin is disabled. Optional to keep the signature usable by
+    // internal callers that aren't tied to a plugin.
+    public registerAction(type: string, action: ActionHandler, owner?: string) {
+        this.actions.set(type, {handler: action, owner: owner ?? null});
+    }
+
+    public unregisterActionsByOwner(name: string) {
+        for (const [type, entry] of this.actions)
+            if (entry.owner === name) this.actions.delete(type);
     }
 
     public async executeItem(item: RundownItem) {
-        const action = this.actions.get(item.type);
-        if (!action) {
+        const entry = this.actions.get(item.type);
+        if (!entry) {
             Logger.warn(`Unknown action type: ${item.type}`);
             return;
         }
 
-        await action(item);
+        await entry.handler(item);
     }
 }

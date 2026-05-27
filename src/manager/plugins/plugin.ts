@@ -26,10 +26,7 @@ export class PluginManager {
         this._plugins.push(_plugin);
         pluginLogger.debug('Loaded');
 
-        if (this._enabled) {
-            const [enableErr] = noTry(() => _plugin['enable'](pluginLogger));
-            if (enableErr) pluginLogger.error(`Failed to enable plugin: ${Logger.formatError(enableErr)}`);
-        }
+        if (this._enabled) this.enablePlugin(_plugin, pluginLogger);
     }
 
     public unregister(plugin: CasparPlugin) {
@@ -38,8 +35,7 @@ export class PluginManager {
 
         this._plugins.splice(index, 1);
         const pluginLogger = Logger.scope('Plugin Loader').scope(plugin.pluginName);
-        const [err] = noTry(() => plugin['disable'](pluginLogger));
-        if (err) pluginLogger.error(`Failed to disable plugin: ${Logger.formatError(err)}`);
+        this.disablePlugin(plugin, pluginLogger);
     }
 
     public get plugins() {
@@ -53,8 +49,7 @@ export class PluginManager {
 
         for (const plugin of this._plugins) {
             const pluginLogger = Logger.scope('Plugin Loader').scope(plugin.pluginName);
-            const [err] = noTry(() => plugin['enable'](pluginLogger));
-            if (err) pluginLogger.error(`Failed to enable plugin: ${Logger.formatError(err)}`);
+            this.enablePlugin(plugin, pluginLogger);
         }
     }
 
@@ -64,9 +59,25 @@ export class PluginManager {
 
         for (const plugin of this._plugins) {
             const pluginLogger = Logger.scope('Plugin Loader').scope(plugin.pluginName);
-            const [err] = noTry(() => plugin['disable'](pluginLogger));
-            if (err) pluginLogger.error(`Failed to disable plugin: ${Logger.formatError(err)}`);
+            this.disablePlugin(plugin, pluginLogger);
         }
+    }
+
+    public enablePlugin(plugin: CasparPlugin, logger: Logger) {
+        const [err] = noTry(() => plugin['enable'](logger));
+        if (err) logger.error(`Failed to enable plugin: ${Logger.formatError(err)}`);
+    }
+
+    // Tears the plugin down, then strips any rundown actions it had
+    // registered so disabled-plugin types stop appearing in the picker and
+    // items keyed off them silently no-op. Ownership is set at registration
+    // time by `PluginAPI.registerRundownAction` (which passes the plugin
+    // name), so this cleanup catches both sync- and async-registered
+    // actions.
+    public disablePlugin(plugin: CasparPlugin, logger: Logger) {
+        const [err] = noTry(() => plugin['disable'](logger));
+        if (err) logger.error(`Failed to disable plugin: ${Logger.formatError(err)}`);
+        CasparManager.getManager().rundowns.executor.unregisterActionsByOwner(plugin.pluginName);
     }
 
     public get enabled() {

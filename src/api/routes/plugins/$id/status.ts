@@ -23,17 +23,14 @@ export default {
         if (typeof data !== 'object' || typeof (data as any).enabled !== 'boolean')
             throw new WebError('Invalid enabled value', 400);
 
-        const plugin = CasparManager
-            .getManager()
-            .getPlugins()
-            .plugins
-            .find((plugin) => plugin.pluginName === request.params.id);
+        const plugins = CasparManager.getManager().getPlugins();
+        const plugin = plugins.plugins.find((plugin) => plugin.pluginName === request.params.id);
 
         if (!plugin) throw new WebError('Plugin not found', 404);
 
         const logger = Logger.scope('Plugin Loader').scope(plugin.pluginName);
-        if ((data as any).enabled) plugin['enable'](logger);
-        else plugin['disable'](logger);
+        if ((data as any).enabled) plugins.enablePlugin(plugin, logger);
+        else plugins.disablePlugin(plugin, logger);
 
         return plugin['_enabled'];
     },

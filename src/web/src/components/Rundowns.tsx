@@ -195,6 +195,10 @@ interface RundownEntryProps {
     active: boolean;
     /** When true, clicking the card body does nothing; only the explicit play button fires onPlay. */
     locked?: boolean;
+    /** Dimmed presentation — the item's action type isn't registered on the
+     *  server (typically because the owning plugin is disabled). Play still
+     *  attempts; the server no-ops with a warning. */
+    disabled?: boolean;
     children: React.ReactNode;
 
     /** Drag handle wiring — when provided, a grip icon appears on the left
@@ -215,6 +219,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     onPlay,
     active,
     locked,
+    disabled,
     children,
     onReorderDragStart,
     onReorderDragEnd,
@@ -250,7 +255,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                     borderRadius: 1.5,
                     width: '100%',
                     cursor: cardClickable ? 'pointer' : 'default',
-                    opacity: isDragging ? 0.4 : 1,
+                    opacity: isDragging ? 0.4 : (disabled ? 0.55 : 1),
                     transition: theme.transitions.create(
                         ['border-color', 'background-color', 'opacity'],
                         { duration: 120 },
@@ -404,9 +409,23 @@ function hasReorderPayload(dt: DataTransfer | null): boolean {
 
 export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAdd, onDropItem, onReorder, locked}) => {
     const {t} = useTranslation('common');
+    const conn = useSocket();
     const [dragOver, setDragOver] = useState(false);
     const [reorderDraggingId, setReorderDraggingId] = useState<string | null>(null);
     const [insertion, setInsertion] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
+
+    // Action types currently registered on the server. Items whose `type`
+    // isn't in this set belong to a plugin that's been disabled (or was
+    // never installed) — we dim them so the user can spot the dead items.
+    // Fetched once per Rundowns mount; the user opted out of live refresh.
+    const [activeTypes, setActiveTypes] = useState<Set<string> | null>(null);
+    useEffect(() => {
+        let mounted = true;
+        conn.rawRequest('/api/rundown/types', 'GET', {})
+            .then(res => mounted && setActiveTypes(new Set(res.data ?? [])))
+            .catch(() => mounted && setActiveTypes(new Set()));
+        return () => { mounted = false; };
+    }, [conn]);
 
     const acceptsDrop = Boolean(onDropItem);
     const acceptsReorder = Boolean(onReorder);
@@ -568,6 +587,7 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                         type={entry.type}
                         active={false}
                         locked={locked}
+                        disabled={activeTypes !== null && !activeTypes.has(entry.type)}
                         onEdit={() => onEdit(entry)}
                         onPlay={() => onPlay(entry)}
                         onReorderDragStart={
