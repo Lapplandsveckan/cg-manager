@@ -93,7 +93,11 @@ export class CasparProcess extends EventEmitter {
     }
 
     async stop() {
-        if (this.process) this.process.kill();
+        if (!this.process) return;
+        const proc = this.process;
+        const closed = new Promise<void>((resolve) => proc.once('close', () => resolve()));
+        proc.kill();
+        await closed;
     }
 
     async restart() {
