@@ -282,9 +282,17 @@ export class VideoRoutesManager {
         if (type === 'color') return this.manager.effects.create('color', group, options);
 
         if (type === 'channel') {
-            const channel = this.executor.getChannel((data as ChannelSource).channel);
+            const channelId = (data as ChannelSource).channel;
+            // Don't lazy-allocate channels that aren't in CasparCG's running
+            // config — issuing a ROUTE against a non-existent channel triggers
+            // an AMCP error which (in dev) bounces the socket and re-runs this
+            // path on reconnect: infinite tight loop. Fall back to black so the
+            // host stays in a coherent state until the route is reconfigured.
+            const channels = this.manager.caspar.config?.channels;
+            const channelExists = channels && channelId >= 1 && channelId <= channels.length;
+            const channel = channelExists ? this.executor.getChannel(channelId) : null;
             if (!channel) {
-                Logger.warn(`Channel not found: ${(data as ChannelSource).channel}`);
+                Logger.warn(`Channel ${channelId} not available — falling back to black`);
                 return this.manager.effects.create('color', group, {
                     color: 'black', transform, edgeblend, perspective,
                 });

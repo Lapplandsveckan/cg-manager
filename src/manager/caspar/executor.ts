@@ -9,6 +9,14 @@ import {CommandExecutor} from '@lappis/cg-manager';
 const RETRY_INTERVAL_MS = 500;
 const WARN_AFTER_FAILED_ATTEMPTS = 10;
 
+// Circuit-breaker for bounce(): if AMCP errors keep firing — e.g. a route
+// command repeatedly fails — the reconnect handler re-runs the same failing
+// path and the loop becomes a tight cycle. Cap to BOUNCE_MAX bounces inside
+// BOUNCE_WINDOW_MS; beyond that we drop bounce requests until the rate
+// subsides, which lets the loop unwind without taking the manager down.
+const BOUNCE_WINDOW_MS = 10_000;
+const BOUNCE_MAX = 5;
+
 export class CasparExecutor extends CommandExecutor {
     private client: net.Socket;
     private _connected: boolean = false;
@@ -176,14 +184,28 @@ export class CasparExecutor extends CommandExecutor {
         return channel;
     }
 
+    private bounceTimestamps: number[] = [];
+
     /**
      * Drop the current AMCP socket and immediately try to re-establish it.
      * Used by the global unhandled-rejection trap when a CasparResponseError
      * escapes plugin code — bouncing the connection puts host-side state
      * back in sync (effects re-init on reconnect) without taking the manager
-     * down.
+     * down. Rate-limited so a persistently failing AMCP path can't drive a
+     * tight bounce ↔ reconnect ↔ refresh ↔ AMCP-error loop.
      */
     public bounce() {
+        const now = Date.now();
+        this.bounceTimestamps = this.bounceTimestamps.filter(t => now - t < BOUNCE_WINDOW_MS);
+        if (this.bounceTimestamps.length >= BOUNCE_MAX) {
+            Logger.scope('AMCP').error(
+                `AMCP bounce rate-limited (${BOUNCE_MAX} in ${BOUNCE_WINDOW_MS / 1000}s) — ` +
+                'something is causing repeated errors; suppressing this bounce.',
+            );
+            return;
+        }
+        this.bounceTimestamps.push(now);
+
         this.disconnect();
         this.connect();
     }
