@@ -6,9 +6,26 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import React, {useEffect, useRef, useState} from 'react';
 import {useTranslation} from 'next-i18next';
+import {noTryAsync} from 'no-try';
 import {useSocket} from '../lib';
 import {RundownItemDragPayload, hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
 import {useDragAutoScroll} from '../lib/hooks/useDragAutoScroll';
+import {UploadModal, useFileUpload} from './Upload';
+
+/** Shape returned by POST /api/rundown/actions/match. Mirrors the
+ *  server's RundownFileMatchResult — keep them in sync. */
+interface RundownFileMatchResult {
+    actionId: string;
+    payload: RundownItemDragPayload;
+    path: string;
+    mediaId: string;
+    destination: string;
+}
+
+function isFileDrag(dt: DataTransfer | null): boolean {
+    if (!dt) return false;
+    return Array.from(dt.types).includes('Files');
+}
 
 export {EditIndicator, LiveIndicator, LockToggle} from './RundownChrome';
 export const RUNDOWN_REORDER_MIME = 'application/x-cg-rundown-reorder';
@@ -436,8 +453,95 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
     const stackRef = useRef<HTMLDivElement>(null);
     useDragAutoScroll(stackRef);
 
+    // OS file drop pipeline. Files dropped from the OS file manager run
+    // through POST /api/rundown/actions/match to resolve to a registered
+    // action's payload, then upload, then we fire onDropItem with the
+    // resolved payload. Refs stash the per-file state across the async
+    // match/upload phases since useFileUpload binds createUpload at hook
+    // construction time.
+    const fileMatchesRef = useRef<Map<File, RundownFileMatchResult>>(new Map());
+    const fileBaseIndexRef = useRef<number | undefined>(undefined);
+    const onDropItemRef = useRef(onDropItem);
+    onDropItemRef.current = onDropItem;
+    const uploadCtrl = useFileUpload({
+        createUpload: async file => {
+            const match = fileMatchesRef.current.get(file);
+            if (!match) throw new Error('No match stashed for file');
+            return conn.caspar.uploadMedia(match.path, file);
+        },
+    });
+
+    // Fire onDropItem once per file when the batch reaches a terminal
+    // state. `completed` is set in the same setState as the terminal
+    // phase, so it's fresh when this effect runs.
+    const {phase: uploadPhase} = uploadCtrl.state;
+    useEffect(() => {
+        if (uploadPhase !== 'done' && uploadPhase !== 'error') return;
+
+        let offset = 0;
+        for (const result of uploadCtrl.state.completed) {
+            if (result.error) continue;
+            const match = fileMatchesRef.current.get(result.file);
+            if (!match) continue;
+            const index = fileBaseIndexRef.current !== undefined
+                ? fileBaseIndexRef.current + offset++
+                : undefined;
+            onDropItemRef.current?.(match.payload, index);
+        }
+        fileMatchesRef.current.clear();
+        fileBaseIndexRef.current = undefined;
+        // Auto-dismiss on success — the operator already saw the
+        // progress and the items they wanted are showing up in the
+        // rundown. Errors keep the modal open so they can read what
+        // failed.
+        if (uploadPhase === 'done') uploadCtrl.reset();
+    }, [uploadPhase]);
+
+    const handleFileDrop = async (files: File[], baseIndex: number | undefined) => {
+        // Match each file server-side. Run in parallel — matches don't
+        // depend on each other.
+        const matchResults = await Promise.all(files.map(async file => {
+            const [err, res] = await noTryAsync(() => conn.rawRequest(
+                '/api/rundown/actions/match',
+                'ACTION',
+                {name: file.name, type: file.type, size: file.size},
+            ));
+            if (err) return {file, matches: [] as RundownFileMatchResult[]};
+            return {file, matches: (res?.data as RundownFileMatchResult[]) ?? []};
+        }));
+
+        const accepted: File[] = [];
+        const unmatched: string[] = [];
+        for (const {file, matches} of matchResults) {
+            if (!matches.length) {
+                unmatched.push(file.name);
+                continue;
+            }
+            // v1: take the first match. A picker for N>1 is a follow-up;
+            // most actions accept disjoint file types so this rarely bites.
+            fileMatchesRef.current.set(file, matches[0]);
+            accepted.push(file);
+        }
+
+        if (unmatched.length) 
+            // TODO: surface as a toast once the app grows a notification
+            // primitive. For now console + (silently) drop is enough —
+            // the operator will notice the missing items.
+            // eslint-disable-next-line no-console
+            console.warn('No rundown action accepted:', unmatched.join(', '));
+        
+        if (!accepted.length) return;
+
+        fileBaseIndexRef.current = baseIndex;
+        uploadCtrl.start(accepted);
+        // start() lands us in the 'review' phase; auto-confirm so the
+        // operator doesn't have to click Upload after every OS-drag.
+        // Their explicit drop already signals intent.
+        uploadCtrl.confirm();
+    };
+
     const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        if (acceptsDrop && hasRundownItemPayload(e.dataTransfer)) {
+        if (acceptsDrop && (hasRundownItemPayload(e.dataTransfer) || isFileDrag(e.dataTransfer))) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
             if (!dragOver) setDragOver(true);
@@ -455,12 +559,31 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
         setDragOver(false);
         setInsertion(null);
     };
+    const resolveDropIndex = (): number | undefined => {
+        if (!insertion) return undefined;
+        const itemIndex = entries.findIndex(en => en.id === insertion.id);
+        if (itemIndex < 0) return undefined;
+        return insertion.position === 'before' ? itemIndex : itemIndex + 1;
+    };
+
     const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
         if (hasReorderPayload(e.dataTransfer)) {
             applyReorderDrop(e);
             return;
         }
         if (!acceptsDrop) return;
+
+        // OS file drop — async pipeline (match → upload → onDropItem).
+        if (isFileDrag(e.dataTransfer)) {
+            e.preventDefault();
+            const files = Array.from(e.dataTransfer.files);
+            const index = resolveDropIndex();
+            setDragOver(false);
+            setInsertion(null);
+            if (files.length) void handleFileDrop(files, index);
+            return;
+        }
+
         const payload = parseRundownItemPayload(e.dataTransfer);
         setDragOver(false);
         if (!payload) {
@@ -469,22 +592,16 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
         }
         e.preventDefault();
 
-        // If the user hovered an item during the drag, insert at that
-        // position; otherwise (drop on the empty area below) append.
-        let index: number | undefined;
-        if (insertion) {
-            const itemIndex = entries.findIndex(en => en.id === insertion.id);
-            if (itemIndex >= 0) 
-                index = insertion.position === 'before' ? itemIndex : itemIndex + 1;
-            
-        }
+        const index = resolveDropIndex();
         setInsertion(null);
         onDropItem?.(payload, index);
     };
 
     const onItemDragOver = (e: React.DragEvent<HTMLDivElement>, id: string) => {
         const isReorder = hasReorderPayload(e.dataTransfer);
-        const isCreate = !isReorder && acceptsDrop && hasRundownItemPayload(e.dataTransfer);
+        const isCreate = !isReorder && acceptsDrop && (
+            hasRundownItemPayload(e.dataTransfer) || isFileDrag(e.dataTransfer)
+        );
 
         if (isReorder && acceptsReorder) {
             if (reorderDraggingId === id) {
@@ -548,96 +665,105 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
     };
 
     return (
-        <Stack
-            ref={stackRef}
-            spacing={1.5}
-            className="no-scrollbar"
-            onDragOver={onDragOver}
-            onDragLeave={onDragLeave}
-            onDrop={onDrop}
-            sx={(theme) => ({
-                position: 'relative',
-                flex: 1,
-                minHeight: 0,
-                // Each column scrolls on its own — the page has overflowY
-                // disabled at the row level so this Stack owns the scroll.
-                overflowY: 'auto',
-                outline: dragOver
-                    ? `2px dashed ${alpha(theme.palette.primary.main, 0.6)}`
-                    : '2px dashed transparent',
-                outlineOffset: 4,
-                transition: theme.transitions.create('outline-color', { duration: 120 }),
-            })}
-        >
-            {entries.length === 0 && (
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {acceptsDrop
-                        ? t('rundown.empty.dropOrAdd')
-                        : t('rundown.empty.addOne')}
-                </Typography>
-            )}
-
-            {entries.map(entry => (
-                <Box
-                    key={entry.id}
-                    onDragOver={(e) => onItemDragOver(e, entry.id)}
-                >
-                    <RundownEntry
-                        title={entry.title}
-                        type={entry.type}
-                        active={false}
-                        locked={locked}
-                        disabled={activeTypes !== null && !activeTypes.has(entry.type)}
-                        onEdit={() => onEdit(entry)}
-                        onPlay={() => onPlay(entry)}
-                        onReorderDragStart={
-                            acceptsReorder
-                                ? (e) => {
-                                    e.dataTransfer.setData(RUNDOWN_REORDER_MIME, entry.id);
-                                    e.dataTransfer.effectAllowed = 'move';
-                                    setReorderDraggingId(entry.id);
-                                }
-                                : undefined
-                        }
-                        onReorderDragEnd={() => {
-                            setReorderDraggingId(null);
-                            setInsertion(null);
-                        }}
-                        dropIndicator={
-                            insertion && insertion.id === entry.id ? insertion.position : null
-                        }
-                        isDragging={reorderDraggingId === entry.id}
-                    >
-                        <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`} props={{entry}} />
-                    </RundownEntry>
-                </Box>
-            ))}
-
-            <Button
-                variant="contained"
-                fullWidth
-                sx={{ mt: 0.5 }}
-                onClick={() => onAdd()}
+        <>
+            <Stack
+                ref={stackRef}
+                spacing={1.5}
+                className="no-scrollbar"
+                onDragOver={onDragOver}
+                onDragLeave={onDragLeave}
+                onDrop={onDrop}
+                sx={(theme) => ({
+                    position: 'relative',
+                    flex: 1,
+                    minHeight: 0,
+                    // Each column scrolls on its own — the page has overflowY
+                    // disabled at the row level so this Stack owns the scroll.
+                    overflowY: 'auto',
+                    outline: dragOver
+                        ? `2px dashed ${alpha(theme.palette.primary.main, 0.6)}`
+                        : '2px dashed transparent',
+                    outlineOffset: 4,
+                    transition: theme.transitions.create('outline-color', { duration: 120 }),
+                })}
             >
-                {t('rundown.addItem')}
-            </Button>
+                {entries.length === 0 && (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        {acceptsDrop
+                            ? t('rundown.empty.dropOrAdd')
+                            : t('rundown.empty.addOne')}
+                    </Typography>
+                )}
 
-            {/* Trailing slack inside the dropzone so the last item ends near
+                {entries.map(entry => (
+                    <Box
+                        key={entry.id}
+                        onDragOver={(e) => onItemDragOver(e, entry.id)}
+                    >
+                        <RundownEntry
+                            title={entry.title}
+                            type={entry.type}
+                            active={false}
+                            locked={locked}
+                            disabled={activeTypes !== null && !activeTypes.has(entry.type)}
+                            onEdit={() => onEdit(entry)}
+                            onPlay={() => onPlay(entry)}
+                            onReorderDragStart={
+                                acceptsReorder
+                                    ? (e) => {
+                                        e.dataTransfer.setData(RUNDOWN_REORDER_MIME, entry.id);
+                                        e.dataTransfer.effectAllowed = 'move';
+                                        setReorderDraggingId(entry.id);
+                                    }
+                                    : undefined
+                            }
+                            onReorderDragEnd={() => {
+                                setReorderDraggingId(null);
+                                setInsertion(null);
+                            }}
+                            dropIndicator={
+                                insertion && insertion.id === entry.id ? insertion.position : null
+                            }
+                            isDragging={reorderDraggingId === entry.id}
+                        >
+                            <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`} props={{entry}} />
+                        </RundownEntry>
+                    </Box>
+                ))}
+
+                <Button
+                    variant="contained"
+                    fullWidth
+                    sx={{ mt: 0.5 }}
+                    onClick={() => onAdd()}
+                >
+                    {t('rundown.addItem')}
+                </Button>
+
+                {/* Trailing slack inside the dropzone so the last item ends near
                 the top after a full scroll, leaving room to drop more. The
                 `%` resolves against the Stack's visible content box (it's the
                 overflow:auto element), so this scales with the column.
                 The 200px reserve = Add button + gap + roughly one entry, so
                 the last real entry is still visible at the bottom of full
                 scroll instead of just the Add button. */}
-            <Box
-                aria-hidden
-                sx={{
-                    flexShrink: 0,
-                    height: 'calc(100% - 200px)',
-                    minHeight: 120,
-                }}
+                <Box
+                    aria-hidden
+                    sx={{
+                        flexShrink: 0,
+                        height: 'calc(100% - 200px)',
+                        minHeight: 120,
+                    }}
+                />
+            </Stack>
+
+            <UploadModal
+                state={uploadCtrl.state}
+                onClose={uploadCtrl.reset}
+                onCancel={uploadCtrl.cancel}
+                onConfirm={uploadCtrl.confirm}
             />
-        </Stack>
+        </>
     );
 };
 

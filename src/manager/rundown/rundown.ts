@@ -4,6 +4,7 @@ import {UUID} from '../../util/uuid';
 import path from 'path';
 import {Logger} from '../../util/log';
 import {noTry, noTryAsync} from 'no-try';
+import {RundownActionMetadata, RundownItemDragPayload} from '@lappis/cg-manager';
 
 export interface RundownItem {
     id: string;
@@ -214,6 +215,47 @@ interface ActionEntry {
      *  registers without a plugin context — those actions stay registered
      *  for the process lifetime. */
     owner: string | null;
+    /** Optional descriptor + file-drop predicate. See `@lappis/cg-manager`. */
+    metadata: RundownActionMetadata | null;
+}
+
+/** Serializable view of a registered action. Sent to the browser by
+ *  GET /api/rundown/actions so the rundown drop overlay can do a coarse
+ *  client-side filter on dragenter — the authoritative match still runs
+ *  through POST /api/rundown/actions/match. */
+export interface RundownActionDescriptor {
+    id: string;
+    fileTypes?: string[];
+    destination?: string;
+}
+
+export interface RundownFileMatchInput {
+    name: string;
+    type: string;
+    size: number;
+}
+
+export interface RundownFileMatchResult {
+    actionId: string;
+    payload: RundownItemDragPayload;
+    /** Server-side path the file should be uploaded to. */
+    path: string;
+    /** Media-scanner id the file will receive once the scanner picks it
+     *  up — same value AMCP expects (e.g. PLAY 1-10 MYPLUGIN/INTRO). */
+    mediaId: string;
+    /** Destination prefix the action declared (or "" for media root). */
+    destination: string;
+}
+
+/** Derive a media-scanner id from a path that's already relative to the
+ *  media root. Mirrors `getId(mediaRoot, absPath)` in scanner/util.ts —
+ *  kept inline here to avoid pulling the scanner module into the rundown
+ *  module. If the scanner's conversion rules change, update both. */
+function relPathToMediaId(relPath: string): string {
+    return relPath
+        .replace(/\.[^/.]+$/, '')
+        .replace(/\\+/g, '/')
+        .toUpperCase();
 }
 
 export class RundownExecutor {
@@ -223,12 +265,80 @@ export class RundownExecutor {
         return Array.from(this.actions.keys());
     }
 
+    /** Like getActionTypes, but each entry carries the slice of metadata
+     *  that's safe to send to the browser. The `match` predicate is
+     *  intentionally omitted — it isn't serializable and only runs in
+     *  matchFile() below. */
+    public getActionDescriptors(): RundownActionDescriptor[] {
+        const out: RundownActionDescriptor[] = [];
+        for (const [id, entry] of this.actions) {
+            const accepts = entry.metadata?.accepts;
+            out.push({
+                id,
+                fileTypes: accepts?.fileTypes,
+                destination: accepts?.destination,
+            });
+        }
+        return out;
+    }
+
+    /** Run every registered action's accepts.match against the given file.
+     *  Returns one result per action that claimed the file, in registration
+     *  order. A predicate that throws is logged and skipped — one buggy
+     *  plugin can't break the whole match. */
+    public matchFile(file: RundownFileMatchInput): RundownFileMatchResult[] {
+        const matches: RundownFileMatchResult[] = [];
+        for (const [id, entry] of this.actions) {
+            const accepts = entry.metadata?.accepts;
+            if (!accepts?.match) continue;
+
+            const destination = accepts.destination ?? '';
+            const filePath = destination + file.name;
+            const mediaId = relPathToMediaId(filePath);
+
+            // TODO: drop the cast once @lappis/cg-manager publishes a
+            //       version whose `match` signature includes `mediaId`.
+            const matchFn = accepts.match as (file: {
+                name: string;
+                type: string;
+                size: number;
+                path: string;
+                mediaId: string;
+            }) => RundownItemDragPayload | null;
+            const [err, payload] = noTry(() => matchFn({
+                name: file.name,
+                type: file.type,
+                size: file.size,
+                path: filePath,
+                mediaId,
+            }));
+            if (err) {
+                Logger.warn(`Action ${id} accepts.match threw: ${err.message}`);
+                continue;
+            }
+            if (!payload) continue;
+
+            matches.push({actionId: id, payload, path: filePath, mediaId, destination});
+        }
+        return matches;
+    }
+
     // `owner` is passed by `PluginAPI.registerRundownAction` (in
     // @lappis/cg-manager) so the host can clean the action up when the
     // owning plugin is disabled. Optional to keep the signature usable by
-    // internal callers that aren't tied to a plugin.
-    public registerAction(type: string, action: ActionHandler, owner?: string) {
-        this.actions.set(type, {handler: action, owner: owner ?? null});
+    // internal callers that aren't tied to a plugin. `metadata` opts the
+    // action into the file-drop pipeline (see matchFile above).
+    public registerAction(
+        type: string,
+        action: ActionHandler,
+        owner?: string,
+        metadata?: RundownActionMetadata,
+    ) {
+        this.actions.set(type, {
+            handler: action,
+            owner: owner ?? null,
+            metadata: metadata ?? null,
+        });
     }
 
     public unregisterActionsByOwner(name: string) {
