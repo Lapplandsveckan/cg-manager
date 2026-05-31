@@ -4,6 +4,8 @@ import {promises as fs} from 'fs';
 import * as path from 'path';
 import scannerConfig from '../../../../manager/scanner/config';
 import {resolveSafePath, validateFilename} from '../../../../manager/scanner/util';
+import {normalizeFolderPath, PLACEHOLDER_NAME} from '../../../../manager/scanner/folders';
+import {noTry} from 'no-try';
 
 function resolveDoc(id: string) {
     const decoded = decodeURIComponent(id);
@@ -50,25 +52,53 @@ export default {
         if (typeof data !== 'object' || data === null)
             throw new WebError('Request body must be an object', 400);
         const newName = (data as { name?: unknown }).name;
-        if (typeof newName !== 'string') throw new WebError('Missing "name"', 400);
+        const newPath = (data as { path?: unknown }).path;
 
-        try {
-            validateFilename(newName);
-        } catch (e) {
-            throw new WebError((e as Error).message, 400);
-        }
+        // Two accepted shapes:
+        //  - `{ name }`: in-place rename — keep the file's current dir,
+        //    change the basename. Same semantics as before.
+        //  - `{ path }`: full move — set both dir and basename. The path
+        //    is slash-separated, relative to the media root, no extension
+        //    (extension is preserved from the source file). Use this for
+        //    drag-into-folder, move-up-to-parent, etc.
+        //  If both are supplied, `path` wins.
+        if (typeof newName !== 'string' && typeof newPath !== 'string')
+            throw new WebError('Missing "name" or "path"', 400);
 
         const { mediaPath } = resolveDoc(request.params.id);
-        const dir = path.dirname(mediaPath);
         const ext = path.extname(mediaPath);
-        const target = resolveSafePath(scannerConfig.paths.media, path.join(path.relative(scannerConfig.paths.media, dir), `${newName}${ext}`));
 
+        // Build target as a path relative to media root, no extension.
+        let targetRel: string;
+        if (typeof newPath === 'string') {
+            const [normErr, segments] = noTry(() => normalizeFolderPath(newPath));
+            if (normErr || !segments) throw new WebError(normErr?.message ?? 'Invalid path', 400);
+            for (const segment of segments) {
+                const [err] = noTry(() => validateFilename(segment));
+                if (err) throw new WebError(`Invalid segment "${segment}": ${err.message}`, 400);
+                if (segment === PLACEHOLDER_NAME) throw new WebError('Reserved name', 400);
+            }
+            targetRel = segments.join(path.sep);
+        } else {
+            const [err] = noTry(() => validateFilename(newName as string));
+            if (err) throw new WebError((err as Error).message, 400);
+            const dir = path.dirname(mediaPath);
+            targetRel = path.join(path.relative(scannerConfig.paths.media, dir), newName as string);
+        }
+
+        const target = resolveSafePath(scannerConfig.paths.media, `${targetRel}${ext}`);
         if (target === mediaPath) return { ok: true };
 
         await fs.access(target).then(
             () => { throw new WebError('A file with that name already exists', 409); },
             () => undefined,
         );
+
+        // Make sure the target directory exists. For an in-place rename
+        // this is a no-op; for cross-folder moves the user may be moving
+        // into a folder that exists already (or one they implicitly want
+        // created — `recursive: true` handles both).
+        await fs.mkdir(path.dirname(target), {recursive: true});
 
         await fs.rename(mediaPath, target).catch(err => {
             throw new WebError(`Failed to rename: ${err.message}`, 500);

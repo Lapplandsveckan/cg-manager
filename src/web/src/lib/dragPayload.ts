@@ -63,3 +63,36 @@ export function hasRundownItemPayload(dt: DataTransfer | null): boolean {
     if (!dt) return false;
     return Array.from(dt.types).includes(RUNDOWN_ITEM_DRAG_MIME);
 }
+
+/**
+ * Drag contract for moving a media file inside the Media page. The
+ * source is always a MediaCard; the drop target is either a MediaFolder
+ * (move into) or a breadcrumb segment (move to that level). The payload
+ * is the media's full id (slash-separated, no extension) so the drop
+ * handler can call `moveMedia(id, newPath)` directly.
+ */
+export const MEDIA_MOVE_DRAG_MIME = 'application/x-cg-media-move';
+
+export interface MediaMoveDragPayload {
+    /** Full media id, same shape as MediaDoc.id (e.g. `INTRO/CLIP`). */
+    id: string;
+}
+
+export function parseMediaMovePayload(dt: DataTransfer | null): MediaMoveDragPayload | null {
+    if (!dt) return null;
+    const raw = dt.getData(MEDIA_MOVE_DRAG_MIME);
+    if (!raw) return null;
+    try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return null;
+        if (typeof (parsed as { id?: unknown }).id !== 'string') return null;
+        return parsed as MediaMoveDragPayload;
+    } catch {
+        return null;
+    }
+}
+
+export function hasMediaMovePayload(dt: DataTransfer | null): boolean {
+    if (!dt) return false;
+    return Array.from(dt.types).includes(MEDIA_MOVE_DRAG_MIME);
+}

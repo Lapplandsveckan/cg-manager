@@ -232,11 +232,19 @@
             "nameLabel": "New name",
             "renaming": "Renaming…"
         },
+        "renameFolder": {
+            "title": "Rename folder",
+            "body": "Files inside the folder are moved automatically.",
+            "nameLabel": "New name",
+            "renaming": "Renaming…"
+        },
         "errors": {
             "deleteFailed": "Failed to delete",
             "renameFailed": "Failed to rename",
+            "moveFailed": "Failed to move",
             "deleteFolderFailed": "Failed to delete folder",
-            "createFolderFailed": "Failed to create folder"
+            "createFolderFailed": "Failed to create folder",
+            "renameFolderFailed": "Failed to rename folder"
         }
     },
     "config": {

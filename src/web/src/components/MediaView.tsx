@@ -1,90 +1,17 @@
 import {Box, Button, Card, Grid, IconButton, Modal, Stack, Tooltip, Typography, alpha} from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import {useSocket} from '../lib/hooks/useSocket';
 import React, {useEffect, useMemo, useState} from 'react';
 import {MediaDoc} from '../lib/api/caspar';
 import {MediaCard} from '../components/MediaCard';
+import {MediaFolder} from '../components/MediaFolder';
 import {useTranslation} from 'next-i18next';
 
-
-export interface MediaFolderProps {
-    name: string;
-
-    columns?: number;
-    onClick?: () => void;
-    onDelete?: () => void;
-}
-
-export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick, onDelete}) => {
-    const {t} = useTranslation('common');
-    const span = 60 / (columns ?? 5);
-
-    return (
-        <Grid
-            item xs={span} sm={span / 2} md={span / 3} lg={span / 4} xl={span / 5}
-        >
-            <Card
-                onClick={() => onClick?.()}
-                sx={(theme) => ({
-                    position: 'relative',
-                    aspectRatio: '16/9',
-                    cursor: onClick ? 'pointer' : 'default',
-                    transition: theme.transitions.create(['border-color', 'background-color'], { duration: 120 }),
-                    '&:hover': onClick ? {
-                        borderColor: alpha(theme.palette.primary.main, 0.45),
-                        bgcolor: theme.palette.surface.elevated,
-                    } : undefined,
-                    '&:hover .media-folder-actions': onDelete ? { opacity: 1 } : {},
-                })}
-            >
-                {onDelete && (
-                    <Stack
-                        className="media-folder-actions"
-                        direction="row"
-                        gap={0.5}
-                        sx={{
-                            position: 'absolute',
-                            top: 6,
-                            right: 6,
-                            opacity: 0,
-                            transition: 'opacity 120ms',
-                            bgcolor: 'rgba(20, 18, 17, 0.7)',
-                            borderRadius: 1,
-                            backdropFilter: 'blur(4px)',
-                            padding: '2px',
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <Tooltip title={t('media.folder.deleteTooltip')}>
-                            <IconButton
-                                size="small"
-                                onClick={onDelete}
-                                sx={{ color: '#e88c8c' }}
-                            >
-                                <DeleteOutlineRoundedIcon fontSize="small" />
-                            </IconButton>
-                        </Tooltip>
-                    </Stack>
-                )}
-                <Stack
-                    height="100%"
-                    direction="column"
-                    alignItems="center"
-                    justifyContent="center"
-                    gap={1}
-                >
-                    <FolderOutlinedIcon sx={{ color: 'text.secondary', fontSize: 28 }} />
-                    <Typography variant="body1" sx={{ color: 'text.primary', wordBreak: 'break-word', textAlign: 'center', px: 1 }}>
-                        {name}
-                    </Typography>
-                </Stack>
-            </Card>
-        </Grid>
-    );
-};
+// Re-export so callers that imported from MediaView before the split keep
+// working.
+export {MediaFolder} from '../components/MediaFolder';
+export type {MediaFolderProps} from '../components/MediaFolder';
 
 
 interface MediaViewProps {
@@ -101,6 +28,14 @@ interface MediaViewProps {
      *  when the user clicks the trash icon on a folder card. Caller is
      *  responsible for confirmation + invoking deleteFolder on the API. */
     onFolderDelete?: (folder: string) => void;
+    /** Called when the user clicks the rename icon on a folder card. The
+     *  string is the folder name (single segment, no trailing slash). */
+    onFolderRename?: (folder: string) => void;
+    /** When set, clips become draggable. The handler fires with the
+     *  dragged clip's id and the destination folder's full id (relative
+     *  to media root, no trailing slash). The page resolves both into a
+     *  moveMedia call. */
+    onClipMoveToFolder?: (clipId: string, folderFullPath: string) => void;
 }
 
 export const MediaView: React.FC<MediaViewProps> = ({
@@ -112,6 +47,8 @@ export const MediaView: React.FC<MediaViewProps> = ({
     onClipDelete,
     onClipRename,
     onFolderDelete,
+    onFolderRename,
+    onClipMoveToFolder,
 }) => {
     const {t} = useTranslation('common');
     const socket = useSocket();
@@ -201,6 +138,7 @@ export const MediaView: React.FC<MediaViewProps> = ({
                                     onClick={onClipSelect ? () => onClipSelect(media[index]) : undefined}
                                     onDelete={onClipDelete ? () => onClipDelete(media[index]) : undefined}
                                     onRename={onClipRename ? () => onClipRename(media[index]) : undefined}
+                                    dragId={onClipMoveToFolder ? media[index].id : undefined}
                                 />
                             ))
                         }
@@ -213,6 +151,10 @@ export const MediaView: React.FC<MediaViewProps> = ({
                                     columns={columns}
                                     onClick={() => onNavigate?.(folder)}
                                     onDelete={onFolderDelete ? () => onFolderDelete(folder) : undefined}
+                                    onRename={onFolderRename ? () => onFolderRename(folder) : undefined}
+                                    onMediaDrop={onClipMoveToFolder
+                                        ? (clipId) => onClipMoveToFolder(clipId, `${prefix ?? ''}${folder}`)
+                                        : undefined}
                                 />
                             ))
                         }

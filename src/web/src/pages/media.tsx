@@ -1,79 +1,16 @@
 import {DefaultContentLayout} from '../components/DefaultContentLayout';
-import {Box, Button, Card, Modal, Stack, TextField, Typography, alpha} from '@mui/material';
-import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
+import {Button, Card, Modal, Stack, TextField, Typography} from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import CreateNewFolderRoundedIcon from '@mui/icons-material/CreateNewFolderRounded';
 import {UploadButton, Dropzone, UploadModal, useFileUpload} from '../components/Upload';
 import React, {useEffect, useState} from 'react';
 import {MediaView} from '../components/MediaView';
+import {PathBreadcrumb} from '../components/PathBreadcrumb';
 import {useSocket} from '../lib';
 import {useRouter} from 'next/router';
 import {MediaDoc} from '../lib/api/caspar';
 import {noTryAsync} from 'no-try';
 import {useTranslation} from 'next-i18next';
-
-interface CrumbProps {
-    label: React.ReactNode;
-    onClick: () => void;
-    active?: boolean;
-}
-
-const Crumb: React.FC<CrumbProps> = ({ label, onClick, active }) => {
-    return (
-        <Box
-            component="button"
-            onClick={onClick}
-            sx={(theme) => ({
-                appearance: 'none',
-                background: 'transparent',
-                border: 'none',
-                padding: '4px 8px',
-                borderRadius: 1,
-                cursor: 'pointer',
-                color: active ? theme.palette.text.primary : theme.palette.text.secondary,
-                fontWeight: active ? 600 : 400,
-                fontSize: '0.875rem',
-                lineHeight: 1.4,
-                display: 'inline-flex',
-                alignItems: 'center',
-                '&:hover': {
-                    bgcolor: alpha(theme.palette.primary.main, 0.08),
-                    color: theme.palette.text.primary,
-                },
-            })}
-        >
-            {label}
-        </Box>
-    );
-};
-
-const PathBreadcrumb: React.FC<{ path: string; onNavigate: (next: string) => void }> = ({ path, onNavigate }) => {
-    // `path` should always be a string from the page's state but the
-    // upstream `router.query.path` can transiently be `undefined` (before
-    // hydration) or `string[]` (`?path=a&path=b`); coerce defensively so
-    // a stray shape can't crash the page.
-    const safePath = typeof path === 'string' ? path : '';
-    const segments = safePath.split('/').filter(Boolean);
-
-    return (
-        <Stack direction="row" alignItems="center" gap={0.5} flexWrap="wrap">
-            <Crumb
-                label={<HomeRoundedIcon fontSize="small" sx={{ display: 'block' }} />}
-                onClick={() => onNavigate('')}
-            />
-            {segments.map((segment, index) => (
-                <React.Fragment key={index}>
-                    <Typography variant="body2" sx={{ color: 'text.disabled' }}>/</Typography>
-                    <Crumb
-                        label={segment}
-                        onClick={() => onNavigate(`${segments.slice(0, index + 1).join('/')}/`)}
-                        active={index === segments.length - 1}
-                    />
-                </React.Fragment>
-            ))}
-        </Stack>
-    );
-};
 
 const ModalCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <Card
@@ -110,8 +47,29 @@ const Page = () => {
     // Folder name (no trailing slash, relative to current `path`) the user
     // has asked to delete. Modal stays open until they confirm or cancel.
     const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
+    // Folder name being renamed (single segment, relative to current path).
+    // null = no rename modal open.
+    const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
+    const [folderRenameValue, setFolderRenameValue] = useState('');
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    /** Move a media file to the given destination folder. `clipId` is the
+     *  full media id (e.g. `INTRO/CLIP`); `folderFullPath` is the full
+     *  target folder, no trailing slash, "" for root. Fire-and-forget —
+     *  the scanner broadcasts media-removed + media-added on completion
+     *  which refreshes the view automatically. */
+    const handleMediaMove = async (clipId: string, folderFullPath: string) => {
+        if (!socket) return;
+        const basename = clipId.split('/').pop();
+        if (!basename) return;
+        const newPath = folderFullPath ? `${folderFullPath}/${basename}` : basename;
+        // No-op if the clip is already in this folder.
+        if (newPath === clipId) return;
+        setError(null);
+        const [err] = await noTryAsync(() => socket.caspar.moveMedia(clipId, newPath));
+        if (err) setError((err as Error)?.message ?? t('media.errors.moveFailed'));
+    };
 
     const navigate = (next: string) => {
         setPath(next);
@@ -165,6 +123,28 @@ const Page = () => {
         } finally {
             setBusy(false);
         }
+    };
+
+    const confirmRenameFolder = async () => {
+        if (!socket || !renamingFolder) return;
+        const next = folderRenameValue.trim();
+        if (!next || next === renamingFolder) {
+            setRenamingFolder(null);
+            return;
+        }
+        setBusy(true);
+        setError(null);
+        // The rename operates on the full folder path. Strip any trailing
+        // slash from `path` (we already have one if non-empty) and join.
+        const from = `${path}${renamingFolder}`;
+        const to = `${path}${next}`;
+        const [err] = await noTryAsync(() => socket.caspar.renameFolder(from, to));
+        setBusy(false);
+        if (err) {
+            setError((err as Error)?.message ?? t('media.errors.renameFolderFailed'));
+            return;
+        }
+        setRenamingFolder(null);
     };
 
     const confirmDeleteFolder = async () => {
@@ -260,7 +240,7 @@ const Page = () => {
                 </Stack>
 
                 <Card sx={{ p: 1.5, mb: 3 }}>
-                    <PathBreadcrumb path={path} onNavigate={navigate} />
+                    <PathBreadcrumb path={path} onNavigate={navigate} onMediaDrop={handleMediaMove} />
                 </Card>
 
                 <MediaView
@@ -270,6 +250,12 @@ const Page = () => {
                     onClipDelete={(clip) => { setError(null); setDeleting(clip); }}
                     onClipRename={(clip) => { setError(null); setRenaming(clip); }}
                     onFolderDelete={(folder) => { setError(null); setDeletingFolder(folder); }}
+                    onFolderRename={(folder) => {
+                        setError(null);
+                        setRenamingFolder(folder);
+                        setFolderRenameValue(folder);
+                    }}
+                    onClipMoveToFolder={handleMediaMove}
                 />
             </Dropzone>
 
@@ -409,6 +395,36 @@ const Page = () => {
                             </Button>
                             <Button onClick={confirmRename} disabled={busy} variant="contained">
                                 {busy ? t('media.renameMedia.renaming') : t('actions.rename')}
+                            </Button>
+                        </Stack>
+                    </Stack>
+                </ModalCard>
+            </Modal>
+
+            <Modal open={Boolean(renamingFolder)} onClose={() => !busy && setRenamingFolder(null)}>
+                <ModalCard>
+                    <Stack spacing={2}>
+                        <Typography variant="h3">{t('media.renameFolder.title')}</Typography>
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            {t('media.renameFolder.body')}
+                        </Typography>
+                        <TextField
+                            label={t('media.renameFolder.nameLabel')}
+                            value={folderRenameValue}
+                            onChange={(e) => setFolderRenameValue(e.target.value)}
+                            autoFocus
+                            disabled={busy}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') confirmRenameFolder();
+                            }}
+                        />
+                        {error && <Typography variant="body2" color="error">{error}</Typography>}
+                        <Stack direction="row" justifyContent="flex-end" gap={1}>
+                            <Button onClick={() => setRenamingFolder(null)} disabled={busy} color="inherit">
+                                {t('actions.cancel')}
+                            </Button>
+                            <Button onClick={confirmRenameFolder} disabled={busy} variant="contained">
+                                {busy ? t('media.renameFolder.renaming') : t('actions.rename')}
                             </Button>
                         </Stack>
                     </Stack>

@@ -78,4 +78,48 @@ export default {
 
         return {ok: true};
     },
+
+    /** Rename a folder.
+     *
+     *  Body shape: `{ from: string, to: string }` — both slash-separated
+     *  paths relative to media root, no trailing slash. Implements as an
+     *  `fs.rename` of the directory, so all files inside come along and
+     *  the scanner picks up the new paths on its next pass. Rejects if
+     *  the target already exists (no accidental merges).
+     */
+    UPDATE: async (request) => {
+        const data = request.getData();
+        if (typeof data !== 'object' || data === null)
+            throw new WebError('Request body must be an object', 400);
+
+        const from = (data as {from?: unknown}).from;
+        const to = (data as {to?: unknown}).to;
+        if (typeof from !== 'string') throw new WebError('Missing "from"', 400);
+        if (typeof to !== 'string') throw new WebError('Missing "to"', 400);
+
+        const fromSegments = validatePath(from);
+        const toSegments = validatePath(to);
+
+        const fromAbs = resolveSafePath(scannerConfig.paths.media, fromSegments.join(path.sep));
+        const toAbs = resolveSafePath(scannerConfig.paths.media, toSegments.join(path.sep));
+        if (fromAbs === toAbs) return {ok: true};
+
+        // Reject if a directory or file already lives at the destination —
+        // fs.rename would happily merge / overwrite depending on platform.
+        const [existsErr] = await noTryAsync(() => fs.access(toAbs));
+        if (!existsErr) throw new WebError('A folder with that name already exists', 409);
+
+        // Same parent-mkdir story as the media move: if the user renames
+        // `INTRO` to `OUTRO/SUB`, intermediate folders should be created.
+        await fs.mkdir(path.dirname(toAbs), {recursive: true});
+
+        const [renameErr] = await noTryAsync(() => fs.rename(fromAbs, toAbs));
+        if (renameErr) {
+            const code = (renameErr as NodeJS.ErrnoException).code;
+            if (code === 'ENOENT') throw new WebError('Folder does not exist', 404);
+            throw new WebError(`Failed to rename: ${renameErr.message}`, 500);
+        }
+
+        return {ok: true, path: `${toSegments.map(s => s.toUpperCase()).join('/')}/`};
+    },
 };

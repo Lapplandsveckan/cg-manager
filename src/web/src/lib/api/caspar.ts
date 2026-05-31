@@ -255,6 +255,18 @@ export class CasparServerApi extends EventEmitter {
         await this.socket.request(`api/caspar/media/${encodeURIComponent(id)}`, 'UPDATE', { name: newName });
     }
 
+    /** Move a media file to a new location under the media root. `newPath`
+     *  is slash-separated, relative to the root, no extension (the source
+     *  file's extension is preserved). Use to drag media into a folder, or
+     *  drop it onto a breadcrumb to move it back up the tree. */
+    public async moveMedia(id: string, newPath: string): Promise<void> {
+        await this.socket.request(
+            `api/caspar/media/${encodeURIComponent(id)}`,
+            'UPDATE',
+            { path: newPath },
+        );
+    }
+
     /** Folders the user has created (plus any pre-existing dirs under the
      *  media root). Returned as upper-cased prefixes with trailing slash —
      *  matches the convention used by media IDs. The REP response is
@@ -285,5 +297,19 @@ export class CasparServerApi extends EventEmitter {
     public async deleteFolder(folderPath: string): Promise<void> {
         await this.socket.request('api/caspar/media/folder', 'DELETE', { path: folderPath });
         this.emit('folders');
+    }
+
+    /** Rename a folder. Both paths are slash-separated and relative to the
+     *  media root, no trailing slash. The directory is fs.rename'd as a
+     *  unit so the contained media comes along (the scanner re-indexes on
+     *  its next pass). Returns the new normalized path. */
+    public async renameFolder(from: string, to: string): Promise<{ path: string }> {
+        const res = await this.socket.request(
+            'api/caspar/media/folder',
+            'UPDATE',
+            { from, to },
+        );
+        this.emit('folders');
+        return { path: (res?.data as { path: string }).path };
     }
 }

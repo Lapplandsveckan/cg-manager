@@ -3,6 +3,7 @@ import {Card, Grid, IconButton, Stack, Tooltip, Typography} from '@mui/material'
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
 import {useTranslation} from 'next-i18next';
+import {MEDIA_MOVE_DRAG_MIME} from '../lib/dragPayload';
 
 function getDurationString(duration: number) {
     const hours = Math.floor(duration / 3600);
@@ -35,6 +36,11 @@ export interface MediaCardProps {
     onClick?: () => void;
     onDelete?: () => void;
     onRename?: () => void;
+    /** Full media id (slash-separated). When set, the card is draggable
+     *  and writes a {@link MEDIA_MOVE_DRAG_MIME} payload on dragstart, so
+     *  folders and breadcrumbs on the Media page can receive the drop and
+     *  move the file. */
+    dragId?: string;
 }
 
 export const MediaCard: React.FC<MediaCardProps> = ({
@@ -45,6 +51,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     onClick,
     onDelete,
     onRename,
+    dragId,
 }) => {
     const {t} = useTranslation('common');
     const durationString = useMemo(() => getDurationString(duration), [duration]);
@@ -58,6 +65,14 @@ export const MediaCard: React.FC<MediaCardProps> = ({
         >
             <Card
                 onClick={() => onClick?.()}
+                draggable={Boolean(dragId)}
+                onDragStart={dragId ? (e) => {
+                    e.dataTransfer.setData(
+                        MEDIA_MOVE_DRAG_MIME,
+                        JSON.stringify({id: dragId}),
+                    );
+                    e.dataTransfer.effectAllowed = 'move';
+                } : undefined}
                 sx={(theme) => ({
                     position: 'relative',
                     aspectRatio: '16/9',
