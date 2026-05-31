@@ -2,7 +2,7 @@ import * as path from 'path';
 import { promises as fs, WriteStream } from 'fs';
 import {Logger} from '../../util/log';
 import {DirectoryManager} from './dir';
-import {resolveSafePath} from './util';
+import {resolveSafePath, sanitizeMediaPath} from './util';
 import * as os from 'os';
 
 interface UploadDestination {
@@ -163,9 +163,12 @@ export class Upload {
     }
 
     public static async create(type: UploadDestination['type'], uri: string, chunks: number) {
+        // CasparCG can't reference non-ASCII media names. Normalize at the
+        // entrypoint so every code path lands at the same on-disk name —
+        // including legacy callers that don't sanitize themselves.
         const upload = new Upload({
             type,
-            uri,
+            uri: sanitizeMediaPath(uri),
         }, chunks);
         await upload.openFile();
 

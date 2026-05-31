@@ -5,6 +5,8 @@ import path from 'path';
 import {Logger} from '../../util/log';
 import {noTry, noTryAsync} from 'no-try';
 import {RundownActionMetadata, RundownItemDragPayload} from '@lappis/cg-manager';
+import {safeMediaPath} from '../scanner/util';
+import {DirectoryManager} from '../scanner/dir';
 
 export interface RundownItem {
     id: string;
@@ -286,14 +288,21 @@ export class RundownExecutor {
      *  Returns one result per action that claimed the file, in registration
      *  order. A predicate that throws is logged and skipped — one buggy
      *  plugin can't break the whole match. */
-    public matchFile(file: RundownFileMatchInput): RundownFileMatchResult[] {
+    public async matchFile(file: RundownFileMatchInput): Promise<RundownFileMatchResult[]> {
         const matches: RundownFileMatchResult[] = [];
+        const mediaRoot = DirectoryManager.getManager()['mediaPath'];
         for (const [id, entry] of this.actions) {
             const accepts = entry.metadata?.accepts;
             if (!accepts?.match) continue;
 
             const destination = accepts.destination ?? '';
-            const filePath = destination + file.name;
+            // Resolve to an ASCII-safe, non-colliding path so the mediaId
+            // we return to the client matches the on-disk filename the
+            // scanner will pick up. Doing this once per action keeps the
+            // file.path / file.mediaId the predicate sees consistent with
+            // what the upload will land at. file.name stays raw so the
+            // plugin can use it for the display title.
+            const filePath = await safeMediaPath(destination + file.name, mediaRoot);
             const mediaId = relPathToMediaId(filePath);
 
             // TODO: drop the cast once @lappis/cg-manager publishes a

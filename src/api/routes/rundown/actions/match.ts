@@ -12,7 +12,7 @@ export default {
         if (typeof size !== 'number' || !Number.isFinite(size) || size < 0)
             throw new WebError('Invalid size', 400);
 
-        return CasparManager
+        return await CasparManager
             .getManager()
             .rundowns.executor
             .matchFile({name, type, size});
