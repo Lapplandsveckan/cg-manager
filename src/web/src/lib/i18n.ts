@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import {initReactI18next} from 'react-i18next';
 
 import enCommon from './locales/en/common.json';
+import svCommon from './locales/sv/common.json';
 
 // Client-side i18next init. Locale JSON is bundled into the webpack output
 // (no /locales HTTP route), which keeps the packaged binary self-contained.
@@ -12,11 +13,12 @@ if (!i18n.isInitialized) i18n
     .use(initReactI18next)
     .init({
         fallbackLng: 'en',
-        supportedLngs: ['en'],
+        supportedLngs: ['en', 'sv'],
         defaultNS: 'common',
         ns: ['common'],
         resources: {
             en: { common: enCommon },
+            sv: { common: svCommon },
         },
         interpolation: {
             escapeValue: false,

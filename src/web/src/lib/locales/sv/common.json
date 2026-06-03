@@ -1,0 +1,616 @@
+{
+    "brand": {
+        "name": "CG Manager",
+        "tagline": "CasparCG-kontroll"
+    },
+    "nav": {
+        "server": "Server",
+        "media": "Media",
+        "play": "Spela",
+        "routes": "Rutter",
+        "plugins": "Plugin",
+        "config": "Inställningar"
+    },
+    "sidebar": {
+        "expand": "Utöka sidopanel",
+        "collapse": "Dölj sidopanel"
+    },
+    "casparStatus": {
+        "unreachable": "Inte nåbar",
+        "running": "Körs",
+        "stopped": "Stoppad",
+        "unknown": "Okänd",
+        "tooltip": "CasparCG {{status}} · v{{version}}"
+    },
+    "auth": {
+        "signOut": "Logga ut"
+    },
+    "actions": {
+        "save": "Spara",
+        "cancel": "Avbryt",
+        "delete": "Ta bort",
+        "edit": "Redigera",
+        "add": "Lägg till",
+        "remove": "Ta bort",
+        "close": "Stäng",
+        "confirm": "Bekräfta",
+        "ok": "OK",
+        "yes": "Ja",
+        "no": "Nej",
+        "loading": "Laddar…",
+        "retry": "Försök igen",
+        "refresh": "Uppdatera",
+        "back": "Tillbaka",
+        "next": "Nästa",
+        "submit": "Skicka",
+        "apply": "Använd",
+        "clear": "Rensa",
+        "reset": "Återställ",
+        "search": "Sök",
+        "create": "Skapa",
+        "open": "Öppna",
+        "rename": "Byt namn",
+        "browse": "Bläddra",
+        "hide": "Dölj",
+        "show": "Visa",
+        "preview": "Förhandsgranska",
+        "upload": "Ladda upp",
+        "download": "Ladda ner",
+        "copy": "Kopiera",
+        "move": "Flytta",
+        "select": "Välj",
+        "done": "Klart",
+        "play": "Spela",
+        "pause": "Pausa",
+        "stop": "Stoppa",
+        "start": "Starta",
+        "restart": "Starta om",
+        "enable": "Aktivera",
+        "disable": "Inaktivera"
+    },
+    "connection": {
+        "banner": {
+            "disconnected": "Frånkopplad från CG Manager — försöker igen…",
+            "reconnecting": "Återansluter till CG Manager…"
+        }
+    },
+    "layout": {
+        "error": {
+            "title": "Något gick fel",
+            "body": "Sidan stötte på ett fel och slutade att rendera. Ladda om för att försöka igen, eller kontrollera webbläsarkonsolen för detaljer."
+        }
+    },
+    "rundown": {
+        "addItem": "Lägg till objekt",
+        "newItemDefaultTitle": "Nytt rundown-objekt",
+        "empty": {
+            "dropOrAdd": "Inga objekt än. Släpp något från nedre panelen, eller lägg till ett nedan.",
+            "addOne": "Inga objekt än. Lägg till ett nedan för att komma igång."
+        },
+        "entry": {
+            "dragToReorder": "Dra för att ordna om",
+            "playLockedTooltip": "Spela (rundown är låst — objekt startar bara från denna knapp)"
+        },
+        "indicator": {
+            "live": "LIVE",
+            "edit": "REDIGERA"
+        },
+        "lockToggle": {
+            "defaultLabel": "Objekt",
+            "locked": "Låst",
+            "unlocked": "Olåst",
+            "lockedTooltip": "{{label}} är låsta — att klicka på ett kort startar det inte. Använd spelknappen.",
+            "unlockedTooltip": "{{label}} är olåsta — klicka var som helst på ett kort för att starta det."
+        },
+        "bottomPanel": {
+            "resizeHint": "Dra för att ändra storlek · Dubbelklicka för att återställa",
+            "expand": "Utöka panel",
+            "collapse": "Dölj panel",
+            "expandAria": "Utöka nedre panel",
+            "collapseAria": "Dölj nedre panel"
+        },
+        "quickActions": {
+            "new": "Ny snabbåtgärd",
+            "defaultName": "Ny snabbåtgärd",
+            "renameOrDelete": "Byt namn på eller ta bort denna snabbåtgärd",
+            "empty": "Inga snabbåtgärder än. Klicka på + ovan för att skapa en.",
+            "selectPrompt": "Välj en snabbåtgärd ovan för att se dess objekt."
+        },
+        "modals": {
+            "addItem": {
+                "title": "Lägg till objekt",
+                "description": "Välj vilken typ av objekt som ska läggas till.",
+                "loading": "Laddar typer…",
+                "empty": "Inga objekttyper är registrerade."
+            }
+        },
+        "preview": {
+            "stop": "Stoppa förhandsgranska",
+            "stopChannel": "Sluta förhandsgranska kanal {{channel}}",
+            "previewChannel": "Förhandsgranska kanal {{channel}}",
+            "offline": "CasparCG är offline",
+            "pickChannel": "Välj en kanal att förhandsgranska"
+        },
+        "actionLabels": {}
+    },
+    "media": {
+        "dropzone": {
+            "dropToUpload": "Släpp för att ladda upp"
+        },
+        "empty": {
+            "title": "Ingen media",
+            "detail": "Ladda upp filer från Media-sidan för att göra dem tillgängliga här."
+        },
+        "folder": {
+            "deleteTooltip": "Ta bort (bara om den är tom)"
+        },
+        "select": {
+            "empty": "Ingen media vald — klicka för att välja",
+            "select": "Välj media",
+            "change": "Ändra media",
+            "modalTitle": "Välj media",
+            "modalSubtitle": "Välj ett klipp från CasparCG mediabibliotek."
+        },
+        "preview": {
+            "title": "Förhandsgranska",
+            "subtitle": "Direktsänd förhandsvisning av din ström. Att aktivera detta använder ytterligare resurser — låt det vara avstängt när det inte behövs.",
+            "channel": "Kanal {{channel}}",
+            "switch": {
+                "serverOff": "Server av",
+                "live": "Live",
+                "off": "Av"
+            },
+            "placeholder": {
+                "notRunning": {
+                    "title": "CasparCG körs inte",
+                    "detail": "Starta servern för att aktivera förhandsvisning."
+                },
+                "off": {
+                    "title": "Förhandsvisning av",
+                    "detail": "Slå på Live för att börja strömma denna kanal."
+                },
+                "failed": {
+                    "title": "Förhandsvisning misslyckades"
+                }
+            },
+            "offline": {
+                "title": "CasparCG är offline",
+                "detail": "Starta servern för att se kanaler här."
+            },
+            "errors": {
+                "failed": "WebRTC-anslutning misslyckades",
+                "disconnected": "WebRTC frånkopplad",
+                "startFailed": "Misslyckades att starta förhandsvisning"
+            }
+        },
+        "upload": {
+            "title": {
+                "reviewOne": "Ladda upp fil?",
+                "reviewMulti": "Ladda upp {{count}} filer?",
+                "preparingOne": "Förbereder uppladdning…",
+                "preparingMulti": "Förbereder {{current}} av {{total}}…",
+                "uploadingOne": "Laddar upp…",
+                "uploadingMulti": "Laddar upp {{current}} av {{total}}…",
+                "doneOne": "Uppladdning slutförd",
+                "doneMulti": "Laddade upp {{count}} filer",
+                "failed": "Uppladdning misslyckades",
+                "partial": "Laddade upp {{success}} av {{total}}"
+            },
+            "errors": {
+                "startFailed": "Misslyckades att starta uppladdning",
+                "canceled": "Avbruten"
+            }
+        },
+        "page": {
+            "title": "Media",
+            "subtitle": "Bläddra media på CasparCG-servern och ladda upp nya filer.",
+            "dropOverlay": "Släpp för att ladda upp till {{path}}",
+            "newFolder": "Ny mapp",
+            "uploadMedia": "Ladda upp media",
+            "mediaFiles": "Mediafiler"
+        },
+        "deleteMedia": {
+            "title": "Ta bort media?",
+            "body": "kommer att tas bort från CasparCG mediamappen. Detta kan inte ångras.",
+            "deleting": "Tar bort…"
+        },
+        "deleteFolder": {
+            "title": "Ta bort mapp?",
+            "body": "kommer att tas bort. Fungerar bara om mappen är tom."
+        },
+        "createFolder": {
+            "title": "Ny mapp",
+            "bodyBefore": "Skapar en mapp under",
+            "bodyBetween": ". Namn kan inte innehålla",
+            "bodyAfter": ".",
+            "nameLabel": "Mappnamn",
+            "creating": "Skapar…"
+        },
+        "renameMedia": {
+            "title": "Byt namn på media",
+            "body": "Filtillägg bevaras automatiskt.",
+            "nameLabel": "Nytt namn",
+            "renaming": "Byter namn…"
+        },
+        "renameFolder": {
+            "title": "Byt namn på mapp",
+            "body": "Filer inuti mappen flyttas automatiskt.",
+            "nameLabel": "Nytt namn",
+            "renaming": "Byter namn…"
+        },
+        "errors": {
+            "deleteFailed": "Misslyckades att ta bort",
+            "renameFailed": "Misslyckades att byta namn",
+            "moveFailed": "Misslyckades att flytta",
+            "deleteFolderFailed": "Misslyckades att ta bort mapp",
+            "createFolderFailed": "Misslyckades att skapa mapp",
+            "renameFolderFailed": "Misslyckades att byta namn på mapp"
+        }
+    },
+    "config": {
+        "subtitle": "CasparCG-konfiguration.",
+        "discard": "Förkasta",
+        "saving": "Sparar…",
+        "loading": "Laddar konfiguration…",
+        "restartNow": "Starta om nu",
+        "restarting": "Startar om…",
+        "driftMessage": "Sparade ändringar har inte tillämpats ännu. Starta om CasparCG för att använda den nya konfigurationen.",
+        "saveInfoBefore": "Spara skriver ",
+        "saveInfoAfter": " till disk. Starta om CasparCG för att ändringar ska börja gälla.",
+        "advanced": "Avancerat",
+        "errors": {
+            "loadFailed": "Misslyckades att ladda konfiguration",
+            "saveFailed": "Misslyckades att spara konfiguration"
+        },
+        "channels": {
+            "title": "Kanaler",
+            "add": "Lägg till kanal",
+            "channelN": "Kanal {{n}}",
+            "deleteChannel": "Ta bort kanal",
+            "count_one": "{{count}} kanal.",
+            "count_other": "{{count}} kanaler.",
+            "empty": "Inga kanaler konfigurerade — CasparCG startar inte utan minst en."
+        },
+        "consumers": {
+            "title": "Konsumenter",
+            "add": "Lägg till konsument",
+            "empty": "Inga konsumenter konfigurerade.",
+            "addTitle": "Lägg till {{type}}",
+            "editTitle": "Redigera {{type}}",
+            "restartNote": "Starta om CasparCG efter att spara för att dessa ändringar ska börja gälla.",
+            "pickerTitle": "Lägg till konsument",
+            "pickerDescription": "Välj en konsumenttyp.",
+            "types": {
+                "decklink": "Decklink",
+                "bluefish": "Bluefish",
+                "screen": "Skärm",
+                "system-audio": "Systemljud",
+                "ndi": "NDI",
+                "ffmpeg": "FFmpeg",
+                "artnet": "Art-Net"
+            },
+            "descriptions": {
+                "decklink": "Blackmagic Decklink SDI-utgång.",
+                "bluefish": "Bluefish444 SDI-utgång.",
+                "screen": "Skärmfönster eller helskärmsskärm.",
+                "system-audio": "Systemets standardljudenhet.",
+                "ndi": "NDI nätverksvideouttag.",
+                "ffmpeg": "Slinga till FFmpeg — filer, RTMP, anpassade argument.",
+                "artnet": "DMX-belysning via Art-Net."
+            }
+        },
+        "html": {
+            "title": "HTML",
+            "remoteDebuggingPort": "Fjärrgranskning port",
+            "remoteDebuggingPortHelp": "Standard 9222 när det är tomt",
+            "enableGpu": "Aktivera GPU"
+        },
+        "logging": {
+            "title": "Loggning",
+            "logLevel": "Loggnivå",
+            "levels": {
+                "trace": "Trace",
+                "debug": "Felsökning",
+                "info": "Info",
+                "warning": "Varning",
+                "error": "Fel",
+                "fatal": "Allvarligt"
+            },
+            "hints": {
+                "trace": "Allt, inklusive AMCP-trafik",
+                "debug": "Utförlig diagnostisk utmatning",
+                "info": "Standard — högnivåhändelser",
+                "warning": "Oväntade men återställbara villkor",
+                "error": "Bara misslyckade operationer",
+                "fatal": "Bara krascher"
+            }
+        },
+        "videoModes": {
+            "title": "Videolägen",
+            "add": "Lägg till läge",
+            "empty": "Inga anpassade videolägen (CasparCG inbyggda gäller fortfarande).",
+            "id": "ID",
+            "timeScale": "Tidsskala",
+            "duration": "Varaktighet",
+            "cadence": "Kadenz"
+        },
+        "artnet": {
+            "output": "Utmatning",
+            "fixtures": "Armaturer",
+            "fixturesEmpty": "Inga armaturer än — klicka på <em>Lägg till</em> för att placera en på scenen.",
+            "fixtureN": "Armatur {{n}}",
+            "fluxHelp": "Flux — ljusstyrka-multiplikator per kanal (0-1).",
+            "livePreview": "Direktsänd förhandsvisning · ch {{channel}}",
+            "countW": "Antal W",
+            "countH": "Antal H",
+            "universes": "Universum",
+            "universesPlaceholder": "t.ex. 0, 1, 2 eller 0-3",
+            "universesHelp": "Skriv nummer, klistra in listor eller intervall som 0-3",
+            "canvas": {
+                "stage": "Scen · {{width}}×{{height}} px"
+            }
+        },
+        "fields": {
+            "default": "(standard)",
+            "addItem": "Lägg till {{item}}",
+            "emptyItems": "Inga {{item}}s konfigurerade.",
+            "type": "Typ",
+            "startAddress": "Startadress",
+            "fixtureCount": "Antal (N eller WxH)",
+            "channelsPerFixture": "Kanaler per armatur",
+            "left": "Vänster",
+            "top": "Topp",
+            "width": "Bredd",
+            "height": "Höjd",
+            "flux": "Flux",
+            "fixtures": "Armaturer",
+            "fixture": "Armatur",
+            "host": "Värd",
+            "port": "Port",
+            "ports": "Portar",
+            "refreshRate": "Uppdateringsfrekvens",
+            "device": "Enhet",
+            "keyDevice": "Nyckelenhet",
+            "embeddedAudio": "Inbäddad ljud",
+            "latency": "Latens",
+            "keyer": "Keyer",
+            "keyOnly": "Endast nyckel",
+            "bufferDepth": "Buffertdjup",
+            "videoMode": "Videoläge",
+            "waitForReference": "Vänta på ref",
+            "waitForReferenceDuration": "Vänta på ref-varaktighet",
+            "subregion": "Delregion",
+            "srcX": "Src X",
+            "srcY": "Src Y",
+            "destX": "Dest X",
+            "destY": "Dest Y",
+            "internalKeyerAudioSource": "Internt keyer-ljud",
+            "watchdog": "Vakthund",
+            "uhdMode": "UHD-läge",
+            "channelLayout": "Kanallayout",
+            "aspectRatio": "Bildformat",
+            "stretch": "Stretch",
+            "windowed": "Fönstrad",
+            "borderless": "Gränslös",
+            "interactive": "Interaktiv",
+            "alwaysOnTop": "Alltid överst",
+            "vsync": "VSync",
+            "sbsKey": "SBS-nyckel",
+            "colourSpace": "Färgrymd",
+            "name": "Namn",
+            "allowFields": "Tillåt fält",
+            "path": "Sökväg",
+            "args": "Argument"
+        }
+    },
+    "videoRoutes": {
+        "description": "Live videovägar från källor (decklink-ingångar, filer, kanaler, färger) till CasparCG-kanaler. Klicka på en väg för att redigera; växla för att aktivera eller pausa.",
+        "newRoute": "Ny väg",
+        "unnamed": "(namnlös väg)",
+        "saving": "Sparar…",
+        "deleting": "Tar bort…",
+        "toggleAria": "Växla {{name}}",
+        "status": {
+            "active": "Aktiv",
+            "disabled": "Inaktiverad"
+        },
+        "empty": {
+            "prefix": "Inga videovägar än. Klicka",
+            "suffix": " för att lägg till en."
+        },
+        "deleteConfirm": {
+            "title": "Ta bort videväg?",
+            "body": "kommer att tas bort och dess underliggande effekt rivs sönder. Detta kan inte ångras."
+        },
+        "summary": {
+            "decklink": "Decklink #{{device}}",
+            "decklinkWithKey": "Decklink #{{device}} (+nyckel #{{key}})",
+            "video": "Video: {{video}}",
+            "channel": "Kanal {{channel}}",
+            "color": "Färg {{color}}"
+        },
+        "sourceTypes": {
+            "decklink": "Decklink",
+            "video": "Videofil",
+            "channel": "Kanal",
+            "color": "Färg"
+        },
+        "sourceTypeDescriptions": {
+            "decklink": "Blackmagic Decklink SDI-ingång (valfri fyllning+nyckel).",
+            "video": "Loopande klipp från mediabiblioteket.",
+            "channel": "Rutt utgången från en annan CasparCG-kanal.",
+            "color": "Solid färgfyllning (CSS-namn eller #RRGGBB)."
+        },
+        "picker": {
+            "title": "Lägg till väg",
+            "description": "Välj en källtyp. Du fyller i dess detaljer och destinationen nästa."
+        },
+        "modal": {
+            "addTitle": "Lägg till {{type}}-väg",
+            "editTitle": "Redigera {{type}}-väg",
+            "description": "Vägar är sparade på disk och börjar gälla omedelbar. Källtypen kan inte ändras efter skapande."
+        },
+        "sections": {
+            "source": "Källa",
+            "destination": "Destination",
+            "geometry": "Geometri"
+        },
+        "fields": {
+            "name": "Namn",
+            "channel": "Kanal",
+            "group": "Grupp",
+            "indexOptional": "Index (valfritt)",
+            "device": "Enhet",
+            "format": "Format",
+            "keyDeviceOptional": "Nyckelenhet (valfritt)",
+            "color": "Färg",
+            "colorHelper": "Lagrad som #AARRGGBB för CasparCG."
+        },
+        "destinationHint": "Effektgrupp-lager är \"kanal:grupp\". Index skiljer på flera grupper med samma namn på en kanal.",
+        "geometry": {
+            "title": "Geometri",
+            "description": "Dra handtag för att placera, förvränga eller blanda vägens utmatning. Koordinater är normaliserade (0..1).",
+            "livePreview": "Direktsänd förhandsvisning · ch {{channel}}",
+            "tabs": {
+                "position": "Position",
+                "perspective": "Perspektiv",
+                "edgeblend": "Kantkombination"
+            },
+            "resetTab": "Återställ denna flik",
+            "fillLabel": "FYLL",
+            "perspectiveHint": "CasparCG MIXER PERSPECTIVE accepterar godtyckliga 4-hörnförvrängningar — dra valfritt hörn var som helst för att deformera kvadraten.",
+            "edgeblendHint": "Dra punkten på varje kant för att tona den sidan inåt. Gamma / kraft / alfa formar blandkurvan.",
+            "gamma": "Gamma",
+            "power": "Kraft",
+            "alpha": "Alfa",
+            "addButton": "Lägg till geometri…",
+            "editButton": "Redigera geometri…",
+            "noneSet": "Position, perspektivförvrängning, kantkombination — ingen satt.",
+            "parts": {
+                "position": "position",
+                "perspective": "perspektiv",
+                "edgeblend": "kantkombination"
+            },
+            "readout": {
+                "destination": "Destination (FYLL)",
+                "source": "Källa (KLIPP)",
+                "topLeft": "Överst till vänster",
+                "topRight": "Överst till höger",
+                "bottomRight": "Underst till höger",
+                "bottomLeft": "Underst till vänster",
+                "left": "Vänster",
+                "right": "Höger",
+                "top": "Överst",
+                "bottom": "Underst"
+            }
+        },
+        "stage": {
+            "label": "Scen · {{width}}×{{height}} px"
+        },
+        "errors": {
+            "decklinkDeviceRequired": "Decklink-enhet krävs",
+            "decklinkFormatRequired": "Decklink-format krävs",
+            "videoRequired": "Videofil krävs",
+            "channelRequired": "Kanal krävs",
+            "colorRequired": "Färg krävs",
+            "destinationChannelRequired": "Destinationskanal krävs",
+            "destinationGroupRequired": "Destinationsgrupp krävs",
+            "destinationGroupColon": "Destinationsgrupp kan inte innehålla `:`",
+            "saveFailed": "Misslyckades att spara väg"
+        }
+    },
+    "notFound": {
+        "title": "Sidan hittades inte"
+    },
+    "login": {
+        "subtitle": "Operatörsloggning",
+        "password": "Lösenord",
+        "signIn": "Logga in",
+        "signingIn": "Loggar in…",
+        "wrongPassword": "Felaktigt lösenord"
+    },
+    "serverPage": {
+        "title": "Server",
+        "description": "Starta, stoppa och övervaka CasparCG-processen som denna chef omsluter.",
+        "status": {
+            "waiting": "Väntar på att servern rapporterar status…",
+            "unsupportedLabel": "Plattform som inte stöds",
+            "unsupportedDetail": "CasparCG kan inte startas på denna plattform.",
+            "runningDetail": "CasparCG är uppe och accepterar kommandon.",
+            "stoppedErrorLabel": "Stoppad (fel)",
+            "stoppedDetail": "CasparCG körs inte."
+        },
+        "controls": {
+            "starting": "Startar…",
+            "stopping": "Stoppar…",
+            "restarting": "Startar om…"
+        },
+        "unsupported": {
+            "title": "CasparCG kan inte köras på denna plattform",
+            "body": "{{message}} Kör hanteraren på en plattform som stöds (Linux eller Windows) för att använda serverkontrollen. Resten av användargränssnittet fungerar fortfarande för att bläddra och redigera."
+        },
+        "logs": {
+            "title": "Loggar",
+            "scrollToBottom": "Rulla längst ned",
+            "clearTooltip": "Rensa loggvyn (servern behåller originalet)",
+            "empty": "Ingen loggnining än."
+        },
+        "errors": {
+            "start": "Misslyckades att starta",
+            "stop": "Misslyckades att stoppa",
+            "restart": "Misslyckades att starta om"
+        }
+    },
+    "pluginsPage": {
+        "title": "Plugin",
+        "description": "Plugin utökar CG Manager med extra effekter, integrationer och UI-paneler. Slå dem på eller av nedan.",
+        "empty": "Inga plugin installerade.",
+        "loadError": "Misslyckades att ladda plugin",
+        "togglePlugin": "Växla {{name}}",
+        "status": {
+            "active": "Aktiv",
+            "disabled": "Inaktiverad"
+        },
+        "card": {
+            "openForConfig": "Öppna för konfiguration.",
+            "noUi": "Inget konfigurationsgränssnitt — öppna för plugin-detaljer."
+        },
+        "detail": {
+            "notFoundTitle": "Plugin hittades inte",
+            "notFoundBody": "Inget plugin kallas \"{{id}}\" är registrerat.",
+            "noUiTitle": "Inget konfigurationsgränssnitt",
+            "noUiBody": "Detta plugin tillhandahåller ingen konfigurationspanel. Det styrs direkt genom plugin-koden, CasparCG-konfigurationen eller en fil i projektets plugin-mapp.",
+            "noUiHint": "Du kan fortfarande aktivera eller inaktivera det med växeln ovan."
+        }
+    },
+    "playPage": {
+        "title": "Spela",
+        "description": "Rundowns av signaler som du kan gå igenom live. Klicka på en för att redigera eller spela dess objekt.",
+        "newRundown": "Ny rundown",
+        "renameRundown": "Byt namn på rundown",
+        "nameLabel": "Namn",
+        "unnamedRundown": "(namnlös rundown)",
+        "noItemsHint": "Inga objekt än. Klicka för att lägg till några.",
+        "emptyBefore": "Inga rundowns än. Klicka ",
+        "emptyAfter": " för att lägg till en.",
+        "itemCount": {
+            "empty": "tom",
+            "count_one": "{{count}} objekt",
+            "count_other": "{{count}} objekt"
+        },
+        "deleteDialog": {
+            "title": "Ta bort rundown?",
+            "titleAlt": "Ta bort denna rundown?",
+            "bodyAfterName": "och alla dess objekt kommer att tas bort. Detta kan inte ångras."
+        },
+        "resizeTooltip": "Dra för att ändra storlek · Dubbelklicka för att återställa",
+        "detail": {
+            "untitled": "Namnlös rundown",
+            "itemsLabel": "Objekt",
+            "rundownHeading": "Rundown",
+            "quickActionsHeading": "Snabbåtgärder",
+            "quickActionsDescription": "Återanvändbara signallistor som du kan utlösa med ett klick.",
+            "newItemTitle": "Nytt rundown-objekt"
+        }
+    }
+}
