@@ -617,5 +617,25 @@
             "quickActionsDescription": "Återanvändbara signallistor som du kan utlösa med ett klick.",
             "newItemTitle": "Nytt rundown-objekt"
         }
+    },
+    "plugins": {
+        "essentials": {
+            "toggleVideoRoute": {
+                "title": "Växla videorutt",
+                "description": "Växlar den valda rutten mellan aktiverad och inaktiverad när detta objekt körs.",
+                "titleLabel": "Titel",
+                "routeLabel": "Rutt",
+                "selectRoute": "Välj en rutt",
+                "routeGone": "Den tidigare valda rutten ({{id}}) finns inte längre.",
+                "defaultTitle": "Växla videorutt"
+            },
+            "routeItem": {
+                "noRouteSelected": "Ingen rutt vald",
+                "routeNotFound": "Rutten {{id}} hittades inte",
+                "toggles": "Växlar:",
+                "on": "På",
+                "off": "Av"
+            }
+        }
     }
 }

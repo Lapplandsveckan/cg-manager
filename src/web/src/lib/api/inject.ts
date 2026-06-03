@@ -3,11 +3,15 @@ import {useSocket} from '../hooks/useSocket';
 import React, {ComponentType, createElement, Fragment, useEffect, useState} from 'react';
 import * as material from '@mui/material';
 import * as weblib from '../';
+import i18n from '../i18n';
+import * as ReactI18next from 'react-i18next';
 
 if (typeof window !== 'undefined') {
     window['React'] = React;
     window['MaterialUI'] = material;
     window['WebLib'] = weblib;
+    window['i18n'] = i18n;
+    window['ReactI18next'] = ReactI18next;
 }
 
 export const UI_INJECTION_ZONE = {

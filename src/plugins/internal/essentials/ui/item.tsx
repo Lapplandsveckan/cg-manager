@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {Stack, Typography} from '@mui/material';
 import {useSocket} from '@web-lib';
+import {useTranslation} from 'react-i18next';
 
 interface VideoRoute {
     id: string;
@@ -17,6 +18,7 @@ interface Props {
 
 const ToggleVideoRouteItem: React.FC<Props> = ({entry}) => {
     const conn = useSocket();
+    const {t} = useTranslation();
     const [route, setRoute] = useState<VideoRoute | null>(null);
     const [missing, setMissing] = useState(false);
 
@@ -69,25 +71,25 @@ const ToggleVideoRouteItem: React.FC<Props> = ({entry}) => {
 
     if (!routeId) return (
         <Typography variant="body2" sx={{color: 'text.secondary', fontStyle: 'italic'}}>
-            No route selected
+            {t('plugins.essentials.routeItem.noRouteSelected')}
         </Typography>
     );
 
     if (missing) return (
         <Typography variant="body2" sx={{color: 'warning.main'}}>
-            Route {routeId} not found
+            {t('plugins.essentials.routeItem.routeNotFound', {id: routeId})}
         </Typography>
     );
 
     if (!route) return (
         <Typography variant="body2" sx={{color: 'text.disabled'}}>
-            Loading…
+            {t('actions.loading')}
         </Typography>
     );
 
     return (
         <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="body2" sx={{color: 'text.secondary'}}>Toggles:</Typography>
+            <Typography variant="body2" sx={{color: 'text.secondary'}}>{t('plugins.essentials.routeItem.toggles')}</Typography>
             <Typography variant="body2">{route.name || route.id}</Typography>
             <Typography
                 variant="caption"
@@ -102,7 +104,7 @@ const ToggleVideoRouteItem: React.FC<Props> = ({entry}) => {
                     letterSpacing: 0.5,
                 }}
             >
-                {route.enabled ? 'On' : 'Off'}
+                {route.enabled ? t('plugins.essentials.routeItem.on') : t('plugins.essentials.routeItem.off')}
             </Typography>
         </Stack>
     );

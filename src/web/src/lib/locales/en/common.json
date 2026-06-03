@@ -617,5 +617,25 @@
             "quickActionsDescription": "Reusable cue lists you can trigger with one click.",
             "newItemTitle": "New Rundown Item"
         }
+    },
+    "plugins": {
+        "essentials": {
+            "toggleVideoRoute": {
+                "title": "Toggle video route",
+                "description": "Flips the selected route between enabled and disabled when this item runs.",
+                "titleLabel": "Title",
+                "routeLabel": "Route",
+                "selectRoute": "Select a route",
+                "routeGone": "The previously selected route ({{id}}) no longer exists.",
+                "defaultTitle": "Toggle video route"
+            },
+            "routeItem": {
+                "noRouteSelected": "No route selected",
+                "routeNotFound": "Route {{id}} not found",
+                "toggles": "Toggles:",
+                "on": "On",
+                "off": "Off"
+            }
+        }
     }
 }

@@ -130,6 +130,8 @@ function getConfig(entry: string) {
             '@mui/material': 'MaterialUI',
             'mui-color-input': 'MUIColorInput',
             '@web-lib': 'WebLib',
+            'i18next': 'i18n',
+            'react-i18next': 'ReactI18next',
         },
         experiments: {
             outputModule: true, // Enable output module
