@@ -306,7 +306,7 @@ export const Navbar = () => {
                     title={t('casparStatus.tooltip', { status: statusLabel.toLowerCase(), version })}
                     placement="right"
                 >
-                    <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
+                    <Stack direction="row" alignItems="center" gap={1} sx={collapsed ? {} : { flex: 1, minWidth: 0 }}>
                         <Box
                             sx={{
                                 width: 8,
@@ -330,9 +330,9 @@ export const Navbar = () => {
                     </Stack>
                 </Tooltip>
 
-                <LanguageSelector />
+                {!collapsed && <LanguageSelector />}
 
-                {authEnabled && (
+                {!collapsed && authEnabled && (
                     <Tooltip title={t('auth.signOut')} placement="right">
                         <IconButton
                             size="small"
