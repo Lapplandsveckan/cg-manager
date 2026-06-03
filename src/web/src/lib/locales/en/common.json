@@ -25,6 +25,11 @@
     "auth": {
         "signOut": "Sign out"
     },
+    "language": {
+        "label": "Language",
+        "en": "English",
+        "sv": "Svenska"
+    },
     "actions": {
         "save": "Save",
         "cancel": "Cancel",

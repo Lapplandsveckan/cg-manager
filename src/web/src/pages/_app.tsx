@@ -13,9 +13,19 @@ import {ThemeProvider} from '@mui/material/styles';
 import {theme} from '../lib/theme';
 import {appWithTranslation} from 'next-i18next';
 import '../lib/i18n';
+import i18n from '../lib/i18n';
+import {detectLanguage} from '../lib/detectLanguage';
 
 function App({ Component, pageProps }: AppProps) {
     const router = useRouter();
+
+    // Detect and apply the preferred language on mount. Done here rather than
+    // in i18n.ts to avoid an SSR/hydration mismatch — the server always renders
+    // in the fallback locale ('en'); this effect corrects it client-side.
+    React.useEffect(() => {
+        const lng = detectLanguage();
+        if (i18n.language !== lng) i18n.changeLanguage(lng);
+    }, []);
     // The login screen needs the theme but nothing else — it predates the
     // socket connection (which would otherwise fail until the user signs
     // in) and the connection banner (which has no socket to watch).

@@ -1,4 +1,4 @@
-import {Stack, SvgIconTypeMap, Typography, ButtonBase, Box, IconButton, Tooltip, alpha} from '@mui/material';
+import {Stack, SvgIconTypeMap, Typography, ButtonBase, Box, IconButton, Tooltip, alpha, Menu, MenuItem} from '@mui/material';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import {useVersion} from '../lib/hooks/useVersion';
@@ -18,7 +18,9 @@ import ExtensionIcon from '@mui/icons-material/Extension';
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import LanguageIcon from '@mui/icons-material/Language';
 import {noTryAsync} from 'no-try';
+import {SUPPORTED_LANGUAGES, SupportedLanguage, setStoredLanguage} from '../lib/detectLanguage';
 
 type NavIcon = OverridableComponent<SvgIconTypeMap<{}, 'svg'>>;
 
@@ -142,6 +144,49 @@ function useNavbarCollapsed(): [boolean, () => void] {
     return [collapsed, toggle];
 }
 
+const LanguageSelector: React.FC = () => {
+    const {t, i18n} = useTranslation('common');
+    const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+    const [current, setCurrent] = useState<SupportedLanguage>(
+        (SUPPORTED_LANGUAGES as readonly string[]).includes(i18n.language)
+            ? i18n.language as SupportedLanguage
+            : 'en',
+    );
+
+    const open = (e: React.MouseEvent<HTMLElement>) => setAnchor(e.currentTarget);
+    const close = () => setAnchor(null);
+
+    const select = (lng: SupportedLanguage) => {
+        i18n.changeLanguage(lng);
+        setStoredLanguage(lng);
+        setCurrent(lng);
+        close();
+    };
+
+    return (
+        <Box>
+            <Tooltip title={t('language.label')} placement="right">
+                <IconButton size="small" onClick={open} sx={{ color: 'text.secondary' }}>
+                    <LanguageIcon fontSize="small" />
+                </IconButton>
+            </Tooltip>
+            <Menu
+                anchorEl={anchor}
+                open={Boolean(anchor)}
+                onClose={close}
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                {SUPPORTED_LANGUAGES.map(lng => (
+                    <MenuItem key={lng} selected={lng === current} onClick={() => select(lng)}>
+                        {t(`language.${lng}`)}
+                    </MenuItem>
+                ))}
+            </Menu>
+        </Box>
+    );
+};
+
 async function logout() {
     await noTryAsync(() => fetch('/api/auth/logout', {
         method: 'POST',
@@ -186,7 +231,7 @@ export const Navbar = () => {
                 flexShrink: 0,
                 bgcolor: theme.palette.surface.paper,
                 borderRight: `1px solid ${theme.palette.divider}`,
-                py: 2,
+                pt: 2,
                 transition: theme.transitions.create('width', { duration: 160 }),
             })}
         >
@@ -242,7 +287,7 @@ export const Navbar = () => {
 
             <Stack
                 direction="row"
-                alignItems="flex-end"
+                alignItems="center"
                 justifyContent={collapsed ? 'center' : 'flex-start'}
                 gap={1}
                 sx={(theme) => ({
@@ -252,7 +297,7 @@ export const Navbar = () => {
                     // Lines up with the BottomPanel's top border across
                     // platforms — Mac and Windows render the same.
                     boxSizing: 'content-box',
-                    height: 24,
+                    height: 40,
                     flexShrink: 0,
                     borderTop: `1px solid ${theme.palette.divider}`,
                 })}
@@ -284,6 +329,8 @@ export const Navbar = () => {
                         )}
                     </Stack>
                 </Tooltip>
+
+                <LanguageSelector />
 
                 {authEnabled && (
                     <Tooltip title={t('auth.signOut')} placement="right">

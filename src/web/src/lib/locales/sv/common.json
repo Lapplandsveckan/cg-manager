@@ -25,6 +25,11 @@
     "auth": {
         "signOut": "Logga ut"
     },
+    "language": {
+        "label": "Språk",
+        "en": "English",
+        "sv": "Svenska"
+    },
     "actions": {
         "save": "Spara",
         "cancel": "Avbryt",
