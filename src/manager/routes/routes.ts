@@ -1,12 +1,12 @@
+import fs from 'fs/promises';
+import path from 'path';
+import {noTryAsync} from 'no-try';
+import {type Effect, type EffectGroup} from '@lappis/cg-manager';
 import {UUID} from '../../util/uuid';
 import config from '../../util/config';
-import {noTryAsync} from 'no-try';
-import fs from 'fs/promises';
 import {Logger} from '../../util/log';
-import path from 'path';
-import {Effect, EffectGroup} from '@lappis/cg-manager';
-import {CasparManager} from '../index';
-import {CasparExecutor} from '../caspar/executor';
+import {type CasparManager} from '../index';
+import {type CasparExecutor} from '../caspar/executor';
 
 interface DecklinkSource {
     device: number;

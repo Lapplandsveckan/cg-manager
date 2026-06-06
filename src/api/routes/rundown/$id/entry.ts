@@ -1,6 +1,7 @@
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../../route';
 import {CasparManager} from '../../../../manager';
-import {RundownItem} from '../../../../manager/rundown/rundown';
+import {type RundownItem} from '../../../../manager/rundown/rundown';
 
 export default {
     'DELETE': async (request) => {
@@ -42,11 +43,15 @@ export default {
         if (!rundown) throw new WebError('Rundown not found', 404);
 
         if (Array.isArray(data)) { // Batch update, and reordering of the selected items
-            const updates = new Map(data.map(item => [item.id, item]));
-            rundown.items = rundown.items.map(item => updates.get(item.id) ?? item);
-        } else 
-            rundown.items = rundown.items.map(item => item.id === data.id ? data : item);
-        
+            const updates = new Map((data as RundownItem[]).map(item => [item.id, item]));
+            rundown.items = rundown.items
+                .map(item => updates.get(item.id) ?? item);
+        } else {
+            rundown.items = rundown.items
+                .map(item => item.id === (data as RundownItem).id ? (data as RundownItem) : item);
+        }
+
+
 
         await manager.rundowns.saveRundown(rundown);
 
@@ -98,4 +103,4 @@ export default {
 
         return rundown;
     },
-};
+} satisfies RouteExport;

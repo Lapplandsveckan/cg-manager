@@ -10,7 +10,7 @@ import {useTranslation} from 'next-i18next';
 import type {TFunction} from 'i18next';
 import {useSocket} from '../lib/hooks/useSocket';
 import {DefaultContentLayout} from '../components/DefaultContentLayout';
-import {CasparStatus} from '../lib/api/caspar';
+import {type CasparStatus} from '../lib/api/caspar';
 import {PreviewPanel} from '../components/PreviewPanel';
 
 type Tone = 'success' | 'error' | 'warning' | 'neutral';
@@ -114,7 +114,7 @@ const UnsupportedBanner: React.FC<{ message: string }> = ({ message }) => {
     const {t} = useTranslation('common');
     return (
         <Card
-            sx={(theme) => ({
+            sx={(_theme) => ({
                 p: 2.5,
                 borderColor: alpha('#e0b04c', 0.4),
                 bgcolor: alpha('#e0b04c', 0.06),

@@ -3,7 +3,7 @@ import {Button, Card, Divider, IconButton, Stack, TextField, Tooltip, Typography
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import {useTranslation} from 'next-i18next';
-import {CasparConfig} from '../../lib/api/caspar';
+import {type CasparConfig} from '../../lib/api/caspar';
 
 type VideoMode = CasparConfig['videoModes'][number];
 

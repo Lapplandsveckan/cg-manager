@@ -1,10 +1,10 @@
-import {ConfigParser} from './parse';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import {noTryAsync} from 'no-try';
+import {ConfigParser} from './parse';
 import {ConfigBuilder} from './build';
 import {Logger} from '../../../util/log';
-import {Config} from './types';
+import {type Config} from './types';
 
 function getDefaults() {
     return {

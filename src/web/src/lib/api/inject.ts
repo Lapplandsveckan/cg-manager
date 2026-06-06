@@ -1,10 +1,10 @@
-import {REPClient} from 'rest-exchange-protocol-client';
-import {useSocket} from '../hooks/useSocket';
-import React, {ComponentType, createElement, Fragment, useEffect, useState} from 'react';
+import {type REPClient} from 'rest-exchange-protocol-client';
+import React, {type ComponentType, createElement, Fragment, useEffect, useState} from 'react';
 import * as material from '@mui/material';
+import * as ReactI18next from 'react-i18next';
+import {useSocket} from '../hooks/useSocket';
 import * as weblib from '../';
 import i18n from '../i18n';
-import * as ReactI18next from 'react-i18next';
 
 if (typeof window !== 'undefined') {
     window['React'] = React;

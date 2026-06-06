@@ -1,6 +1,7 @@
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../route';
 import {configuration} from '../../../manager/config';
-import {Config} from '../../../manager/caspar/config/types';
+import {type Config} from '../../../manager/caspar/config/types';
 
 function validate(data: any): data is Config {
     if (!data || typeof data !== 'object') return false;
@@ -31,4 +32,4 @@ export default {
         const {_raw, ...rest} = updated;
         return rest;
     },
-};
+} satisfies RouteExport;

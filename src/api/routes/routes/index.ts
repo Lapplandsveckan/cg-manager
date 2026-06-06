@@ -1,5 +1,6 @@
-import {CasparManager} from '../../../manager';
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../route';
+import {CasparManager} from '../../../manager';
 
 const SOURCE_TYPES = ['decklink', 'video', 'channel', 'color'] as const;
 
@@ -22,12 +23,10 @@ function validateDestination(dest: any): boolean {
 }
 
 export default {
-    'GET': async () => {
-        return CasparManager
-            .getManager()
-            .routes
-            .getVideoRoutes();
-    },
+    'GET': async () => CasparManager
+        .getManager()
+        .routes
+        .getVideoRoutes(),
     'CREATE': async (request) => {
         const data = request.getData();
         if (typeof data !== 'object' || data === null)
@@ -55,4 +54,4 @@ export default {
                 metadata: payload.metadata,
             });
     },
-};
+} satisfies RouteExport;

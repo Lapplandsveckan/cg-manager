@@ -1,4 +1,4 @@
-import {REPClient} from 'rest-exchange-protocol-client';
+import {type REPClient} from 'rest-exchange-protocol-client';
 
 export interface DecklinkSource {
     type: 'decklink';

@@ -1,14 +1,14 @@
+import {EventEmitter} from 'events';
+import {EffectRegistry} from '@lappis/cg-manager';
 import {Logger} from '../util/log';
 import {MediaScanner} from './scanner';
-import {CasparProcess, CasparStatus} from './caspar/process';
-import {EventEmitter} from 'events';
+import {CasparProcess, type CasparStatus} from './caspar/process';
 import {CasparExecutor} from './caspar/executor';
 import {PluginManager} from './plugins/plugin';
-import {CGServer} from '../api/server';
+import {type CGServer} from '../api/server';
 import {DirectoryManager} from './scanner/dir';
 import {FileDatabase} from './scanner/db';
 import {UIInjector} from './plugins/ui';
-import {EffectRegistry} from '@lappis/cg-manager';
 import {RundownManager} from './rundown/rundown';
 import {VideoRoutesManager} from './routes/routes';
 import {PreviewManager} from './preview/preview';
@@ -101,9 +101,9 @@ export class CasparManager extends EventEmitter {
         await this.rundowns.loadRundowns();
 
         const channels = this.caspar.config?.channels;
-        if (!channels)
+        if (!channels) {
             Logger.warn('Skipping channel allocation: CasparCG config has no channels.');
-        else {
+        } else {
             Logger.info(`Allocating ${channels.length} channel${channels.length === 1 ? '' : 's'}...`);
             for (let i = 0; i < channels.length; i++)
                 this.executor.allocateChannel(i + 1);

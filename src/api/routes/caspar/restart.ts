@@ -1,10 +1,9 @@
+import {type RouteExport} from '../../route';
 import {CasparManager} from '../../../manager';
 
 export default {
-    'ACTION': async (request) => {
-        await CasparManager
-            .getManager()
-            .getCasparProcess()
-            .restart();
-    },
-};
+    'ACTION': () => CasparManager
+        .getManager()
+        .getCasparProcess()
+        .restart(),
+} satisfies RouteExport;

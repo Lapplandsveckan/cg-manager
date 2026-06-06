@@ -22,14 +22,11 @@ export function detectLanguage(): SupportedLanguage {
         return stored as SupportedLanguage;
 
     const [, nav] = noTry(() => navigator.language ?? '');
-    if (nav && nav.startsWith('sv')) return 'sv';
+    if (nav?.startsWith('sv')) return 'sv';
 
     return 'en';
 }
 
-/**
- * Persist a language choice to localStorage so it survives page reloads.
- */
 export function setStoredLanguage(lng: SupportedLanguage): void {
     noTry(() => window.localStorage.setItem(LANGUAGE_STORAGE_KEY, lng));
 }

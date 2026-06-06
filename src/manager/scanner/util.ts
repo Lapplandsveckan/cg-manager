@@ -1,14 +1,14 @@
-import {noTry, noTryAsync} from 'no-try';
 import {promises as fs, createReadStream} from 'fs';
 import * as path from 'path';
-import * as cheerio from 'cheerio';
 import * as crypto from 'crypto';
+import * as cheerio from 'cheerio';
+import {noTry, noTryAsync} from 'no-try';
 
 export function getId(fileDir: string, filePath: string) {
     return path
-        .relative(fileDir, filePath) /* take file name without path */
-        .replace(/\.[^/.]+$/, '')    /* remove last extension */
-        .replace(/\\+/g, '/')        /* replace (multiple)backslashes with forward slashes */
+        .relative(fileDir, filePath)
+        .replace(/\.[^/.]+$/, '')
+        .replace(/\\+/g, '/')
         .toUpperCase();
 }
 
@@ -37,9 +37,9 @@ export function resolveSafePath(base: string, relative: string): string {
  */
 export function sanitizeMediaPath(p: string): string {
     return p
-        .normalize('NFD')          // ä → a + combining diaeresis
-        .replace(/\p{M}/gu, '')    // strip combining marks
-        .replace(/[^\x20-\x7E]/g, ''); // strip remaining non-ASCII
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .replace(/[^\x20-\x7E]/g, '');
 }
 
 function shortHash(input: string): string {
@@ -80,10 +80,8 @@ export async function safeMediaPath(rawPath: string, mediaRoot: string): Promise
     const dirPrefix = dir === '.' || dir === '' ? '' : `${dir}/`;
     const hash = shortHash(rawPath);
     // path.extname treats leading-dot basenames as having no extension
-    // (`.mp4` → ''). That's the case we hit when sanitization wipes the
-    // entire stem — we want the trailing `.<token>` treated as the
-    // extension so the hash fallback lands on `<hash>.mp4`, not
-    // `<hash>.mp4.mp4` (no ext detected → ext appended again).
+    // (`.mp4` → '') — manually split to ensure the dot suffix is treated
+    // as extension, not left as part of stem.
     const base = path.basename(sanitized);
     const lastDot = base.lastIndexOf('.');
     const stem = lastDot < 0 ? base : base.slice(0, lastDot);
@@ -99,15 +97,14 @@ export async function safeMediaPath(rawPath: string, mediaRoot: string): Promise
         : `${dirPrefix}${hash}-${shortHash(`${rawPath}:suffix`)}${ext}`;
     if (!(await fileExists(path.join(mediaRoot, suffixed)))) return suffixed;
 
-    // Last resort: layer a random nonce on top. Loses determinism but
-    // matchFile callers will already have the suffixed mediaId — if a
-    // third upload of the same name lands while two are in flight, the
-    // third one wins on the random.
+    // Last resort: preserve determinism as much as possible by hashing the
+    // raw path; if a collision still occurs, layer a random nonce.
     const nonce = crypto.randomBytes(4).toString('hex');
     const stemOrHash = stem || hash;
     return `${dirPrefix}${stemOrHash}-${hash}-${nonce}${ext}`;
 }
 
+// eslint-disable-next-line no-control-regex
 const INVALID_FILENAME_CHARS = /[/\\<>:|?*\x00-\x1f]/;
 
 /**
@@ -132,7 +129,7 @@ export function hashFile(path: string) {
 }
 
 export async function readFile(filePath: string) {
-    const link = await fs.readlink(filePath).catch(() => null); // check if file is a symlink
+    const link = await fs.readlink(filePath).catch(() => null);
     return fs.readFile(link ?? filePath);
 }
 

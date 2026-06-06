@@ -1,8 +1,8 @@
 import {
     ClearCommand,
-    Command,
+    type Command,
     Effect,
-    EffectGroup,
+    type EffectGroup,
     PauseCommand,
     PlayCommand,
     Transform,
@@ -141,7 +141,7 @@ export class VideoEffect extends Effect {
         return this.executor.execute(cmd);
     }
 
-    public getMetadata(): {} {
+    public getMetadata(): Record<string, unknown> {
         return {
             playing: this.playing,
             video: this.options.video,

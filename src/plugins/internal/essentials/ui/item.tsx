@@ -45,7 +45,7 @@ const ToggleVideoRouteItem: React.FC<Props> = ({entry}) => {
             method: 'UPDATE' as const,
             handler: (req: any) => {
                 const data = req.getData();
-                if (!data || data.id !== routeId) return;
+                if (data?.id !== routeId) return;
                 setRoute(data as VideoRoute);
                 setMissing(false);
             },

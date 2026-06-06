@@ -1,7 +1,7 @@
 import React from 'react';
 import {Box, Card, CardActionArea, Modal, Stack, Typography, alpha} from '@mui/material';
 import {useTranslation} from 'next-i18next';
-import {CONSUMER_TYPES, ConsumerType, formatConsumerType} from './fields';
+import {CONSUMER_TYPES, type ConsumerType, formatConsumerType} from './fields';
 
 interface ConsumerTypePickerProps {
     open: boolean;

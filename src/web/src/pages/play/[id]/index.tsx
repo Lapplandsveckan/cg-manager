@@ -1,17 +1,17 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {useTranslation} from 'next-i18next';
-import {useDragAutoScroll} from '../../../lib/hooks/useDragAutoScroll';
 import {Box, Stack, Tooltip, Typography} from '@mui/material';
+import {useRouter} from 'next/router';
+import {useDragAutoScroll} from '../../../lib/hooks/useDragAutoScroll';
 import {DefaultContentLayout} from '../../../components/DefaultContentLayout';
 import {useSocket} from '../../../lib/hooks/useSocket';
 import {Injections, UI_INJECTION_ZONE} from '../../../lib/api/inject';
-import {useRouter} from 'next/router';
-import {EditIndicator, LiveIndicator, LockToggle, RundownEntry, Rundowns, useRundownEntries} from '../../../components/Rundowns';
+import {EditIndicator, LiveIndicator, LockToggle, type RundownEntry, Rundowns, useRundownEntries} from '../../../components/Rundowns';
 import {RundownModals} from '../../../components/RundownModals';
 import {QuickActions} from '../../../components/QuickActions';
 import {BottomPanel} from '../../../components/BottomPanel';
 import {RundownPreview} from '../../../components/RundownPreview';
-import {RundownItemDragPayload} from '../../../lib/dragPayload';
+import {type RundownItemDragPayload} from '../../../lib/dragPayload';
 
 // Default sizes target ~80% of the previous defaults (560/560/480) so the
 // three columns fit comfortably side-by-side on a standard 1440px viewport
@@ -161,8 +161,6 @@ const Page = () => {
 
     const [widths, setWidth] = useColumnWidths();
 
-    // Auto-scroll the side-injection column while a drag is in progress.
-    // The two left columns scroll via Rundowns' own ref-driven hook.
     const sideColumnRef = useRef<HTMLDivElement>(null);
     useDragAutoScroll(sideColumnRef);
 

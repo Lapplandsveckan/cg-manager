@@ -1,10 +1,10 @@
-import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
-import {Logger} from '../../util/log';
+import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import { EventEmitter } from 'events';
 import path from 'path';
+import {Logger} from '../../util/log';
 import config from '../../util/config';
 import {configuration} from '../config';
-import {Config} from './config/types';
+import {type Config} from './config/types';
 
 export interface CasparStatus {
     running: boolean;
@@ -30,9 +30,9 @@ export class CasparProcess extends EventEmitter {
 
     appendLog(data: string) {
         this.logs += data;
-        if (this.logs.length > LOG_BUFFER_MAX) 
+        if (this.logs.length > LOG_BUFFER_MAX)
             this.logs = this.logs.slice(this.logs.length - LOG_BUFFER_MAX);
-        
+
         this.emit('log', data);
     }
 
@@ -95,7 +95,6 @@ export class CasparProcess extends EventEmitter {
                 if (this.process === proc) this.process = null;
                 if (code !== 0 && code !== null) this.lastError = `CasparCG exited with code ${code}.`;
                 this.emit('status', this.getStatus());
-                // Snapshot is null once the process is gone.
                 this.emit('running-config', this.getRunningConfig());
             });
 

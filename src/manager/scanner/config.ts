@@ -1,5 +1,5 @@
-import managerConfig from '../../util/config';
 import * as path from 'path';
+import managerConfig from '../../util/config';
 
 // Media / template / font folders live next to the CasparCG binary (that's
 // where the running caspar reads from). The manager itself can sit anywhere,

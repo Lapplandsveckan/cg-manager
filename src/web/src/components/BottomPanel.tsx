@@ -6,7 +6,7 @@ import {noTry} from 'no-try';
 import {useTranslation} from 'next-i18next';
 import {useSocket} from '../lib/hooks/useSocket';
 import {useStoredBoolean} from '../lib/hooks/useStoredBoolean';
-import {Injection, Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
+import {type Injection, Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 
 const DEFAULT_HEIGHT = 280;
 const MIN_HEIGHT = 160;
@@ -132,12 +132,12 @@ export const BottomPanel: React.FC = () => {
         if (!injections) return [];
         const seen = new Set<string>();
         const ordered: string[] = [];
-        for (const inj of injections) 
+        for (const inj of injections)
             if (!seen.has(inj.plugin)) {
                 seen.add(inj.plugin);
                 ordered.push(inj.plugin);
             }
-        
+
         return ordered;
     }, [injections]);
 

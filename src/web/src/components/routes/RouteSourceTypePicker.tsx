@@ -1,7 +1,7 @@
 import React from 'react';
 import {Box, Card, CardActionArea, Modal, Stack, Typography, alpha} from '@mui/material';
 import {useTranslation} from 'next-i18next';
-import {VideoRouteSource} from '../../lib/api/videoRoutes';
+import {type VideoRouteSource} from '../../lib/api/videoRoutes';
 
 export type SourceType = VideoRouteSource['type'];
 

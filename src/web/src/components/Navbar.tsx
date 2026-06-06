@@ -1,11 +1,7 @@
-import {Stack, SvgIconTypeMap, Typography, ButtonBase, Box, IconButton, Tooltip, alpha, Menu, MenuItem} from '@mui/material';
+import {Stack, type SvgIconTypeMap, Typography, ButtonBase, Box, IconButton, Tooltip, alpha, Menu, MenuItem} from '@mui/material';
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
-import {useVersion} from '../lib/hooks/useVersion';
-import {useSocket} from '../lib/hooks/useSocket';
-import {useConnection} from './ConnectionProvider';
-import {CasparStatus} from '../lib/api/caspar';
-import {OverridableComponent} from '@mui/material/OverridableComponent';
+import {type OverridableComponent} from '@mui/material/OverridableComponent';
 import {useRouter} from 'next/router';
 import Link from 'next/link';
 import {useEffect, useState} from 'react';
@@ -20,8 +16,13 @@ import TuneIcon from '@mui/icons-material/Tune';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LanguageIcon from '@mui/icons-material/Language';
 import {noTryAsync} from 'no-try';
-import {SUPPORTED_LANGUAGES, SupportedLanguage, setStoredLanguage} from '../lib/detectLanguage';
+import {type CasparStatus} from '../lib/api/caspar';
+import {useConnection} from './ConnectionProvider';
+import {useSocket} from '../lib/hooks/useSocket';
+import {useVersion} from '../lib/hooks/useVersion';
+import {SUPPORTED_LANGUAGES, type SupportedLanguage, setStoredLanguage} from '../lib/detectLanguage';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 type NavIcon = OverridableComponent<SvgIconTypeMap<{}, 'svg'>>;
 
 interface NavItem {

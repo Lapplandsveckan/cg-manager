@@ -1,6 +1,6 @@
 import React, {useEffect, useRef} from 'react';
 import {Dropzone} from './Dropzone';
-import {UploadFileResult, UploadModal, useFileUpload} from './Upload';
+import {type UploadFileResult, UploadModal, useFileUpload} from './Upload';
 import {ManagerApi} from '../lib/api/api';
 
 export interface MediaDropZoneProps {

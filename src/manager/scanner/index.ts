@@ -1,3 +1,4 @@
+import fs from 'fs/promises';
 import config from './config';
 import baseConfig from '../../util/config';
 import Scanner from './scanner';
@@ -5,7 +6,6 @@ import App from './app';
 import {FileDatabase} from './db';
 import {DirectoryManager} from './dir';
 import {ensureFolderPlaceholders} from './folders';
-import fs from 'fs/promises';
 
 export class MediaScanner {
     private db: FileDatabase;
@@ -27,14 +27,12 @@ export class MediaScanner {
         this.scanner = Scanner(this.db);
 
         const app = App(this.db);
-        this.server = app.listen(8000); // TODO: do we need this
+        this.server = app.listen(8000);
 
         await DirectoryManager.getManager().initialize(config.paths.media, config.paths.template);
 
-        // One-shot backfill: every existing folder under the media root
-        // gets a .cgkeep so it's persistent even if its real media is
-        // removed later. Idempotent — uses `wx` so existing placeholders
-        // are left alone.
+        // Backfill: ensure every existing folder under media root has a .cgkeep placeholder
+        // so it persists even if its real media is removed later
         await ensureFolderPlaceholders(config.paths.media);
     }
 

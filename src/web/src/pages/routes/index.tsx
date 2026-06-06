@@ -1,14 +1,14 @@
-import {DefaultContentLayout} from '../../components/DefaultContentLayout';
-import {useSocket} from '../../lib/hooks/useSocket';
 import {Box, Button, Card, CardActionArea, IconButton, Modal, Stack, Switch, Tooltip, Typography, alpha} from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import {useCallback, useEffect, useState} from 'react';
-import {VideoRoute, VideoRouteSource, VideoRouteDestination} from '../../lib/api/videoRoutes';
-import {RouteSourceTypePicker, SourceType} from '../../components/routes/RouteSourceTypePicker';
-import {RouteModal} from '../../components/routes/RouteModal';
 import {useTranslation} from 'next-i18next';
+import {type VideoRoute, type VideoRouteSource, type VideoRouteDestination} from '../../lib/api/videoRoutes';
+import {RouteSourceTypePicker, type SourceType} from '../../components/routes/RouteSourceTypePicker';
+import {RouteModal} from '../../components/routes/RouteModal';
+import {useSocket} from '../../lib/hooks/useSocket';
+import {DefaultContentLayout} from '../../components/DefaultContentLayout';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -243,7 +243,6 @@ const Page = () => {
             const updated = await socket.videoRoutes.setEnabled(id, next);
             setRoutes(prev => prev?.map(r => r.id === id ? updated : r) ?? prev);
         } catch (e) {
-            // Revert on failure
             setRoutes(prev => prev?.map(r => r.id === id ? { ...r, enabled: !next } : r) ?? prev);
             setError((e as Error)?.message ?? 'Failed to toggle route');
         }

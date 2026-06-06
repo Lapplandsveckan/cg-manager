@@ -1,7 +1,7 @@
 import React from 'react';
 import {Card, Divider, FormControlLabel, Stack, Switch, TextField, Typography} from '@mui/material';
 import {useTranslation} from 'next-i18next';
-import {CasparConfig} from '../../lib/api/caspar';
+import {type CasparConfig} from '../../lib/api/caspar';
 
 interface HtmlEditorProps {
     html: CasparConfig['html'];

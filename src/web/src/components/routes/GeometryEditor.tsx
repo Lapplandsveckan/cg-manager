@@ -18,9 +18,9 @@ import {useStoredBoolean} from '../../lib/hooks/useStoredBoolean';
 import {GeometryStage} from './GeometryStage';
 import {
     EdgeBlendHandles,
-    EdgeBlendInsets,
-    NormRect,
-    Perspective,
+    type EdgeBlendInsets,
+    type NormRect,
+    type Perspective,
     PerspectiveHandles,
     RectHandles,
 } from './GeometryHandles';

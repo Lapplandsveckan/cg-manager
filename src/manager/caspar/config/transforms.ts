@@ -1,4 +1,4 @@
-import {Consumers, Transform} from './types';
+import {type Consumers, type Transform} from './types';
 import {schemas} from './schemas';
 
 const utils = {

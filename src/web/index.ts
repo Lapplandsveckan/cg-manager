@@ -1,5 +1,5 @@
-import next from 'next';
 import * as http from 'http';
+import next from 'next';
 import {Logger} from '../util/log';
 import config from '../util/config';
 

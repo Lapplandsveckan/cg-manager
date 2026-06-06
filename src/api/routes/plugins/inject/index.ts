@@ -1,9 +1,8 @@
+import {type RouteExport} from '../../../route';
 import {CasparManager} from '../../../../manager';
 
 export default {
-    'GET': async (request) => {
-        return CasparManager
-            .getManager()
-            .getPluginInjections();
-    },
-};
+    'GET': async () => CasparManager
+        .getManager()
+        .getPluginInjections(),
+} satisfies RouteExport;

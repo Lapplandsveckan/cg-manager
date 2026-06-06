@@ -19,9 +19,6 @@ interface PointerCaptureProps {
     onMove: (clientX: number, clientY: number) => void;
 }
 
-/** Shared global-listener hook for drag tracking. Components register an
- *  onMove handler and a ref-stored "active" flag; the hook wires up window
- *  pointermove/up/cancel listeners that read from the ref. */
 function useGlobalDrag({onMove}: PointerCaptureProps) {
     const activeRef = useRef(false);
 
@@ -46,8 +43,6 @@ function useGlobalDrag({onMove}: PointerCaptureProps) {
     };
 }
 
-/** Convert a clientX/clientY pair to normalized 0..1 stage coordinates,
- *  using the stage element's bounding rect for the active scale. */
 function toNorm(stage: HTMLElement, clientX: number, clientY: number): NormPoint {
     const rect = stage.getBoundingClientRect();
     return {
@@ -86,8 +81,6 @@ interface RectHandlesProps {
     stageRef: React.RefObject<HTMLElement | null>;
 }
 
-/** Draggable rectangle in normalized 0..1 stage coords. Used for the
- *  transform destination FILL and for the edge-blend region. */
 export const RectHandles: React.FC<RectHandlesProps> = (props) => {
     const {rect, onChange, color = PRIMARY, label, width, height, stageRef} = props;
     const stateRef = useRef<{handle: RectHandle; start: NormPoint; startRect: NormRect} | null>(null);
@@ -182,10 +175,10 @@ function applyRectDrag(start: NormRect, handle: RectHandle, dx: number, dy: numb
     let newY = signY === -1 ? start.y + (start.h - newH) : start.y;
 
     if (signX === -1 && newX < 0) { newW += newX; newX = 0; }
-    else if (signX === 1 && newX + newW > 1) newW = 1 - newX;
+    else if (signX === 1 && newX + newW > 1) {newW = 1 - newX;}
 
     if (signY === -1 && newY < 0) { newH += newY; newY = 0; }
-    else if (signY === 1 && newY + newH > 1) newH = 1 - newY;
+    else if (signY === 1 && newY + newH > 1) {newH = 1 - newY;}
 
     return {
         x: newX,
@@ -287,11 +280,7 @@ interface EdgeBlendHandlesProps {
     stageRef: React.RefObject<HTMLElement | null>;
 }
 
-/** Draggable edge-inset handles for MIXER EDGEBLEND. Each edge has a handle
- *  sitting on the inner boundary of its blend band; dragging the handle
- *  toward the centre grows the blend, dragging it back to the screen edge
- *  removes it. Range is clamped per-edge so left+right (and top+bottom)
- *  can never overlap. */
+// Range is clamped per-edge so left+right (and top+bottom) can never overlap.
 export const EdgeBlendHandles: React.FC<EdgeBlendHandlesProps> = (props) => {
     const {insets, onChange, width, height, stageRef} = props;
     const stateRef = useRef<{edge: Edge; start: NormPoint; startInsets: EdgeBlendInsets} | null>(null);
@@ -355,9 +344,6 @@ export const EdgeBlendHandles: React.FC<EdgeBlendHandlesProps> = (props) => {
         },
     ];
 
-    // Handle positions: midpoint of each edge at the inner boundary of the
-    // blend band. When the inset is zero the handle sits flush with the
-    // screen edge — still grabbable.
     interface Hp { edge: Edge; left?: number; top?: number; right?: number; bottom?: number; vertical: boolean }
     const handlePositions: Hp[] = [
         {edge: 'left',   left: insets.left * width,    top: height / 2,                vertical: false},
@@ -374,7 +360,6 @@ export const EdgeBlendHandles: React.FC<EdgeBlendHandlesProps> = (props) => {
                     sx={{position: 'absolute', ...b.style, background: b.grad, pointerEvents: 'none'}}
                 />
             ))}
-            {/* Inner-boundary guide lines for the edges that have width. */}
             {insets.left > 0 && (
                 <Box sx={{position: 'absolute', left: insets.left * width, top: 0, width: 0, height,
                     borderLeft: `1px dashed ${SECONDARY}88`, pointerEvents: 'none'}} />

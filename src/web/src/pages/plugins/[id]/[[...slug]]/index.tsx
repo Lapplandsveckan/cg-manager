@@ -1,12 +1,12 @@
-import {DefaultContentLayout} from '../../../../components/DefaultContentLayout';
-import {useSocket} from '../../../../lib';
-import {Injections, UI_INJECTION_ZONE} from '../../../../lib/api/inject';
-import {Plugin} from '../../../../lib/api/plugin';
 import {useRouter} from 'next/router';
 import {useCallback, useEffect, useState} from 'react';
 import {Box, Button, Card, Stack, Switch, Typography, alpha} from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import {useTranslation} from 'next-i18next';
+import {type Plugin} from '../../../../lib/api/plugin';
+import {Injections, UI_INJECTION_ZONE} from '../../../../lib/api/inject';
+import {useSocket} from '../../../../lib';
+import {DefaultContentLayout} from '../../../../components/DefaultContentLayout';
 
 const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
     const {t} = useTranslation('common');

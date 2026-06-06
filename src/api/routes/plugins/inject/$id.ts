@@ -1,5 +1,6 @@
-import {CasparManager} from '../../../../manager';
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../../route';
+import {CasparManager} from '../../../../manager';
 import {Logger} from '../../../../util/log';
 
 export default {
@@ -18,4 +19,4 @@ export default {
                 throw new WebError('Failed to bundle plugin UI', 500);
             });
     },
-};
+} satisfies RouteExport;

@@ -1,5 +1,5 @@
-import {BasicChannel, CasparPlugin, Transform} from '@lappis/cg-manager';
-import {EdgeblendEffect, EdgeBlendEffectOptions} from './effects/edgeblend';
+import {type BasicChannel, CasparPlugin, Transform} from '@lappis/cg-manager';
+import {EdgeblendEffect, type EdgeBlendEffectOptions} from './effects/edgeblend';
 
 export interface Layout {
     canvasSize: [number, number];

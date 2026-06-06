@@ -83,8 +83,6 @@ export const RundownPreview: React.FC = () => {
         updateSelected(ch === selected ? null : ch);
     };
 
-    // null = initial fetch in flight; render nothing for the brief moment
-    //        before we know whether to show chips or the offline state.
     if (!channels) return null;
 
     const offline = channels.length === 0;
@@ -180,9 +178,7 @@ export const RundownPreview: React.FC = () => {
                 })}
             >
                 {offline ? (
-                    // CasparCG isn't running (or has no channels). Show a
-                    // clear "this is intentionally empty" placeholder so
-                    // the slot doesn't read as a frozen preview.
+                    // Placeholder so the slot doesn't read as a frozen preview
                     <Stack
                         spacing={0.5}
                         sx={{
@@ -201,9 +197,7 @@ export const RundownPreview: React.FC = () => {
                         </Typography>
                     </Stack>
                 ) : selected != null ? (
-                    // ChannelPreview opens a WHEP session on mount and closes
-                    // on unmount; changing `channel` re-runs its effect so
-                    // switching chips tears down the old session cleanly.
+                    // WHEP session is opened/closed by ChannelPreview's mount/unmount effect
                     <ChannelPreview channel={selected} objectFit="contain" />
                 ) : (
                     <Stack

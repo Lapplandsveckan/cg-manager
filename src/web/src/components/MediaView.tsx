@@ -1,12 +1,12 @@
 import {Box, Button, Card, Grid, IconButton, Modal, Stack, Tooltip, Typography, alpha} from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
-import {useSocket} from '../lib/hooks/useSocket';
 import React, {useEffect, useMemo, useState} from 'react';
-import {MediaDoc} from '../lib/api/caspar';
+import {useTranslation} from 'next-i18next';
+import {useSocket} from '../lib/hooks/useSocket';
+import {type MediaDoc} from '../lib/api/caspar';
 import {MediaCard} from '../components/MediaCard';
 import {MediaFolder} from '../components/MediaFolder';
-import {useTranslation} from 'next-i18next';
 
 // Re-export so callers that imported from MediaView before the split keep
 // working.
@@ -63,15 +63,12 @@ export const MediaView: React.FC<MediaViewProps> = ({
         const set = new Set<string>();
         const p = prefix ?? '';
 
-        // File-derived folders: any media inside this prefix that has more
-        // path after the prefix.
         media
             .filter(media => media.id.startsWith(p))
             .map(media => media.id.substring(p.length).split('/'))
             .filter(parts => parts.length > 1)
             .forEach(parts => set.add(parts[0]));
 
-        // Server-listed folders (covers empty ones the scanner can't see).
         serverFolders
             .filter(f => f.startsWith(p) && f.length > p.length)
             .map(f => f.substring(p.length).split('/').filter(Boolean))
@@ -256,7 +253,7 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
     }, [open]);
 
     const data = useMemo(() => {
-        if (!clip || !clip.id) return null;
+        if (!clip?.id) return null;
 
         const background = clip._attachments?.['thumb.png'];
         const url = background

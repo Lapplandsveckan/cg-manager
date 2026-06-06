@@ -1,6 +1,8 @@
-import {WebError} from 'rest-exchange-protocol';
 import {promises as fs} from 'fs';
 import * as path from 'path';
+import {WebError} from 'rest-exchange-protocol';
+import {noTry, noTryAsync} from 'no-try';
+import {type RouteExport} from '../../../route';
 import scannerConfig from '../../../../manager/scanner/config';
 import {resolveSafePath, validateFilename} from '../../../../manager/scanner/util';
 import {
@@ -9,7 +11,6 @@ import {
     normalizeFolderPath,
     removeEmptyFolder,
 } from '../../../../manager/scanner/folders';
-import {noTry, noTryAsync} from 'no-try';
 
 /**
  * Folder operations under the CasparCG media root.
@@ -39,9 +40,7 @@ function validatePath(folderPath: string): string[] {
 }
 
 export default {
-    GET: async () => {
-        return {folders: await listAllFolders(scannerConfig.paths.media)};
-    },
+    GET: async () => ({folders: await listAllFolders(scannerConfig.paths.media)}),
 
     CREATE: async (request) => {
         const data = request.getData();
@@ -79,14 +78,6 @@ export default {
         return {ok: true};
     },
 
-    /** Rename a folder.
-     *
-     *  Body shape: `{ from: string, to: string }` — both slash-separated
-     *  paths relative to media root, no trailing slash. Implements as an
-     *  `fs.rename` of the directory, so all files inside come along and
-     *  the scanner picks up the new paths on its next pass. Rejects if
-     *  the target already exists (no accidental merges).
-     */
     UPDATE: async (request) => {
         const data = request.getData();
         if (typeof data !== 'object' || data === null)
@@ -122,4 +113,4 @@ export default {
 
         return {ok: true, path: `${toSegments.map(s => s.toUpperCase()).join('/')}/`};
     },
-};
+} satisfies RouteExport;

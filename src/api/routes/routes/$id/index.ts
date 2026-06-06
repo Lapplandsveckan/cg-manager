@@ -1,5 +1,6 @@
-import {CasparManager} from '../../../../manager';
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../../route';
+import {CasparManager} from '../../../../manager';
 
 export default {
     'GET': async (request) => {
@@ -56,4 +57,4 @@ export default {
         await manager.routes.updateVideoRoute(next);
         return manager.routes.getVideoRoute(existing.id);
     },
-};
+} satisfies RouteExport;

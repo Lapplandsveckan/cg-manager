@@ -1,8 +1,8 @@
 import {Card, Modal, Stack, Typography, alpha} from '@mui/material';
-import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 import React, {useEffect, useState} from 'react';
 import {useTranslation} from 'next-i18next';
-import {RundownEntry} from './Rundowns';
+import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
+import {type RundownEntry} from './Rundowns';
 import {useSocket} from '../lib';
 
 interface BaseModalProps {
@@ -148,35 +148,33 @@ const EditorModal: React.FC<BaseModalProps> = ({
     updateEntry,
     createEntry,
     deleteEntry,
-}) => {
-    return (
-        <Modal
-            open={editing !== null}
-            onClose={() => setEditing(null)}
-        >
-            <ModalShell>
-                {editing !== null && (
-                    <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${editing.type}`} props={{
-                        entry: editing,
-                        creating: !entries.some(e => e.id === editing.id),
+}) => (
+    <Modal
+        open={editing !== null}
+        onClose={() => setEditing(null)}
+    >
+        <ModalShell>
+            {editing !== null && (
+                <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${editing.type}`} props={{
+                    entry: editing,
+                    creating: !entries.some(e => e.id === editing.id),
 
-                        updateEntry: (entry: RundownEntry) => {
-                            setEditing(null);
-                            if (entries.some(e => e.id === entry.id)) return updateEntry(entry);
+                    updateEntry: (entry: RundownEntry) => {
+                        setEditing(null);
+                        if (entries.some(e => e.id === entry.id)) return updateEntry(entry);
 
-                            createEntry(entry);
-                        },
+                        createEntry(entry);
+                    },
 
-                        deleteEntry: (entry: RundownEntry) => {
-                            setEditing(null);
-                            deleteEntry(entry);
-                        },
-                    }} />
-                )}
-            </ModalShell>
-        </Modal>
-    );
-};
+                    deleteEntry: (entry: RundownEntry) => {
+                        setEditing(null);
+                        deleteEntry(entry);
+                    },
+                }} />
+            )}
+        </ModalShell>
+    </Modal>
+);
 
 const AddModal: React.FC<BaseModalProps> = ({ setEditing, adding, setAdding }) => {
     const {t} = useTranslation('common');
@@ -200,11 +198,9 @@ const AddModal: React.FC<BaseModalProps> = ({ setEditing, adding, setAdding }) =
     );
 };
 
-export const RundownModals: React.FC<BaseModalProps> = (props) => {
-    return (
-        <>
-            <EditorModal {...props} />
-            <AddModal {...props} />
-        </>
-    );
-};
+export const RundownModals: React.FC<BaseModalProps> = (props) => (
+    <>
+        <EditorModal {...props} />
+        <AddModal {...props} />
+    </>
+);

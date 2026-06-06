@@ -18,7 +18,7 @@ export interface PickFilesOptions {
 function buildAcceptAttribute(types?: FilePickerAcceptType[]): string {
     if (!types?.length) return '';
     const parts = new Set<string>();
-    for (const type of types) 
+    for (const type of types)
         for (const [mime, exts] of Object.entries(type.accept)) {
             if (mime) parts.add(mime);
             for (const ext of exts) {
@@ -26,7 +26,7 @@ function buildAcceptAttribute(types?: FilePickerAcceptType[]): string {
                 parts.add(ext.startsWith('.') ? ext : `.${ext}`);
             }
         }
-    
+
     return Array.from(parts).join(',');
 }
 

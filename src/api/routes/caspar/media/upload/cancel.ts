@@ -1,4 +1,5 @@
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../../../route';
 import {Upload} from '../../../../../manager/scanner/upload';
 
 export default {
@@ -15,4 +16,4 @@ export default {
         await upload.cancel();
         return {};
     },
-};
+} satisfies RouteExport;

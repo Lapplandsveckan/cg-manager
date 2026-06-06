@@ -1,4 +1,4 @@
-import {schemas} from './schemas';
+import {type schemas} from './schemas';
 
 export interface Transform<T> {
     parse: (value: any) => T;

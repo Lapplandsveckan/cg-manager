@@ -1,11 +1,11 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Box, Button, Card, LinearProgress, Modal, Stack, Typography, alpha} from '@mui/material';
 import {CloudUploadRounded, CheckCircleRounded, ErrorOutlineRounded} from '@mui/icons-material';
-import {uploadFile} from '../lib/api/upload';
 import {noTryAsync} from 'no-try';
-import {pickFiles, PickFilesOptions} from '../lib/filePicker';
-import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 import {useTranslation} from 'next-i18next';
+import {uploadFile} from '../lib/api/upload';
+import {pickFiles, type PickFilesOptions} from '../lib/filePicker';
+import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 
 /** `review` is a "user confirms before chunks go out" phase. It's the
  *  natural place for plugin-driven options (encode-skip, etc.) to take
@@ -410,7 +410,6 @@ interface UploadButtonProps {
     createUpload?: (file: File) => Promise<string>;
     /** Optional external controller — share with a Dropzone on the same page. */
     controller?: FileUploadController;
-    /** Allow picking multiple files at once. Defaults true. */
     multiple?: boolean;
     label?: string;
     /** Forwarded to UploadModal — only used when this button owns its

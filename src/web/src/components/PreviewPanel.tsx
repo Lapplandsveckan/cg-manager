@@ -11,9 +11,9 @@ import {
 } from '@mui/material';
 import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import {useSocket} from '../lib/hooks/useSocket';
-import {CasparStatus} from '../lib/api/caspar';
 import {useTranslation} from 'next-i18next';
+import {useSocket} from '../lib/hooks/useSocket';
+import {type CasparStatus} from '../lib/api/caspar';
 
 interface PreviewCardProps {
     channel: number;
@@ -101,7 +101,6 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
         (async () => {
             try {
                 pc = new RTCPeerConnection();
-                // recvonly — we never send anything from the browser side.
                 pc.addTransceiver('video', {direction: 'recvonly'});
 
                 pc.ontrack = (event) => {

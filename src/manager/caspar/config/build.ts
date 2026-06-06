@@ -1,5 +1,5 @@
 import * as xml2js from 'xml2js';
-import {Config, ConfigChannel, ConfigVideoMode} from './types';
+import {type Config, type ConfigChannel, type ConfigVideoMode} from './types';
 import {transforms} from './transforms';
 
 export class ConfigBuilder {

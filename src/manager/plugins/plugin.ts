@@ -1,6 +1,6 @@
-import {CasparPlugin, PluginAPI} from '@lappis/cg-manager';
-import {noTry, noTryAsync} from 'no-try';
 import fs from 'fs/promises';
+import {type CasparPlugin, PluginAPI} from '@lappis/cg-manager';
+import {noTry, noTryAsync} from 'no-try';
 import {Logger} from '../../util/log';
 import config from '../../util/config';
 import {CasparManager} from '../index';

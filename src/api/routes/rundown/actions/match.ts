@@ -1,4 +1,5 @@
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../../route';
 import {CasparManager} from '../../../../manager';
 
 export default {
@@ -17,4 +18,4 @@ export default {
             .rundowns.executor
             .matchFile({name, type, size});
     },
-};
+} satisfies RouteExport;

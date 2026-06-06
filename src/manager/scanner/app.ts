@@ -1,13 +1,12 @@
-/* eslint-disable camelcase */
 
-import config from './config';
-import { Logger } from '../../util/log';
+
+import { promises as fs } from 'fs';
 import express from 'express';
 import cors from 'cors';
-import { getId, getGDDScriptElement, extractGDDJSON } from './util';
-import {noTryAsync} from 'no-try';
-import { promises as fs } from 'fs';
-import {FileDatabase} from './db';
+import config from './config';
+import { Logger } from '../../util/log';
+import { getId } from './util';
+import {type FileDatabase} from './db';
 import {getTemplates, getTemplatesWithContent} from './scanner';
 
 const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
@@ -43,7 +42,7 @@ function App(db: FileDatabase) {
     app.get('/media/thumbnail/:id', wrap(async (req, res) => {
         const { _attachments } = db.get(req.params.id.toUpperCase());
 
-        if (!_attachments['thumb.png']) 
+        if (!_attachments['thumb.png'])
             return res.status(404).end();
 
         res.set('content-type', 'image/png');
@@ -123,7 +122,7 @@ function App(db: FileDatabase) {
             return res.status(404).end();
 
         const { _attachments } = db.get(req.params.id.toUpperCase());
-        if (!_attachments['thumb.png']) 
+        if (!_attachments['thumb.png'])
             return res.status(404).end();
 
         const data = _attachments['thumb.png'].data;
@@ -133,7 +132,7 @@ function App(db: FileDatabase) {
         res.send(`201 THUMBNAIL RETRIEVE OK\r\n${base64}\r\n`);
     }));
 
-    app.use((err, req, res, next) => {
+    app.use((err, req, res, _next) => {
         if (err) logger.error(err);
         if (res.headersSent) return res.destroy();
 

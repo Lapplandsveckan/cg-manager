@@ -1,6 +1,6 @@
+import path from 'path';
 import {Logger} from '../util/log';
 import files from './_plugins';
-import path from 'path';
 import {loadPluginFolder} from './util';
 import {CasparManager} from '../manager';
 

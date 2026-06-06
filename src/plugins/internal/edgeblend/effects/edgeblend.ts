@@ -1,10 +1,10 @@
 import {
     Effect,
-    EffectGroup,
+    type EffectGroup,
     PlayCommand,
     StopCommand,
-    Transform,
-    Command, CommandGroup, MixerCommand, LayeredCommand, BasicChannel,
+    type Transform,
+    type Command, CommandGroup, MixerCommand, LayeredCommand, type BasicChannel,
 } from '@lappis/cg-manager';
 
 type Tuple<T, N extends number> = N extends N ? number extends N ? T[] : _TupleOf<T, N, []> : never;
@@ -80,7 +80,7 @@ export class EdgeblendEffect extends Effect {
         return this.executor.execute(new CommandGroup(cmds));
     }
 
-    public getMetadata(): {} {
+    public getMetadata(): Record<string, unknown> {
         return {};
     }
 

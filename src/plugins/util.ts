@@ -1,8 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import {noTry} from 'no-try';
+import {type CasparPlugin} from '@lappis/cg-manager';
 import {Logger} from '../util/log';
-import {CasparPlugin} from '@lappis/cg-manager';
 
 export function loadPluginFolder(dir: string) {
     const logger = Logger.scope('Plugin Loader');
@@ -19,6 +19,7 @@ export function loadPluginFolder(dir: string) {
         if (entry.includes('.')) continue; // TODO: better way to check if folder
 
         const pluginPath = path.join(dir, entry);
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const [err, mod] = noTry(() => require(pluginPath));
         if (err) {
             logger.error(`Failed to load plugin "${entry}" from ${pluginPath}: ${Logger.formatError(err)}`);

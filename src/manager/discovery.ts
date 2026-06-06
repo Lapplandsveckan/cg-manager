@@ -1,8 +1,8 @@
 import dgram from 'dgram';
 import os from 'os';
+import {noTry} from 'no-try';
 import config from '../util/config';
 import {Logger} from '../util/log';
-import {noTry} from 'no-try';
 
 /**
  * LAN discovery beacon. Periodically broadcasts a JSON announcement so
@@ -33,12 +33,11 @@ interface BeaconPayload {
 }
 
 function readVersion(): string {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const [, pkg] = noTry(() => require('../../package.json'));
     return (pkg as {version?: string} | undefined)?.version ?? '0.0.0';
 }
 
-/** Compute the broadcast address for a given IPv4 + netmask. e.g. for
- *  192.168.1.10 / 255.255.255.0 returns 192.168.1.255. */
 function broadcastAddress(ip: string, netmask: string): string | null {
     const [ipErr, ipParts] = noTry(() => ip.split('.').map((p) => {
         const n = Number(p);
@@ -54,10 +53,6 @@ function broadcastAddress(ip: string, netmask: string): string | null {
     return ipParts.map((p, i) => (p | (~maskParts[i] & 0xff))).join('.');
 }
 
-/** Collect a deduplicated set of broadcast targets. Always includes
- *  255.255.255.255 (limited broadcast). Adds each non-internal IPv4
- *  interface's subnet broadcast so multi-homed hosts (VPN + LAN, etc.)
- *  reach every connected subnet. */
 function broadcastTargets(): string[] {
     const targets = new Set<string>(['255.255.255.255']);
     for (const list of Object.values(os.networkInterfaces())) {
@@ -96,8 +91,6 @@ export class Discovery {
         socket.on('error', (err) => logger.warn(`beacon socket error: ${err.message}`));
         this.socket = socket;
 
-        // Emit a beacon immediately so a client launched at roughly the
-        // same moment doesn't wait a full interval to see us.
         this.broadcast();
         this.timer = setInterval(() => this.broadcast(), BEACON_INTERVAL_MS);
 

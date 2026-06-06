@@ -1,10 +1,10 @@
-import config from '../../util/config';
 import fs from 'fs/promises';
-import {UUID} from '../../util/uuid';
 import path from 'path';
-import {Logger} from '../../util/log';
 import {noTry, noTryAsync} from 'no-try';
-import {RundownActionMetadata, RundownItemDragPayload} from '@lappis/cg-manager';
+import {type RundownActionMetadata, type RundownItemDragPayload} from '@lappis/cg-manager';
+import {Logger} from '../../util/log';
+import {UUID} from '../../util/uuid';
+import config from '../../util/config';
 import {safeMediaPath} from '../scanner/util';
 import {DirectoryManager} from '../scanner/dir';
 
@@ -28,9 +28,8 @@ export interface Rundown {
     type?: 'rundown' | 'quick';
 }
 
-export interface RundownState {
-
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface RundownState {}
 
 export interface RundownInstance {
     rundown: Rundown;
@@ -213,11 +212,7 @@ type ActionHandler = (item: RundownItem) => Promise<void> | void;
 
 interface ActionEntry {
     handler: ActionHandler;
-    /** Plugin that registered this action. `null` when an internal caller
-     *  registers without a plugin context — those actions stay registered
-     *  for the process lifetime. */
     owner: string | null;
-    /** Optional descriptor + file-drop predicate. See `@lappis/cg-manager`. */
     metadata: RundownActionMetadata | null;
 }
 
@@ -240,12 +235,8 @@ export interface RundownFileMatchInput {
 export interface RundownFileMatchResult {
     actionId: string;
     payload: RundownItemDragPayload;
-    /** Server-side path the file should be uploaded to. */
     path: string;
-    /** Media-scanner id the file will receive once the scanner picks it
-     *  up — same value AMCP expects (e.g. PLAY 1-10 MYPLUGIN/INTRO). */
     mediaId: string;
-    /** Destination prefix the action declared (or "" for media root). */
     destination: string;
 }
 
@@ -284,10 +275,6 @@ export class RundownExecutor {
         return out;
     }
 
-    /** Run every registered action's accepts.match against the given file.
-     *  Returns one result per action that claimed the file, in registration
-     *  order. A predicate that throws is logged and skipped — one buggy
-     *  plugin can't break the whole match. */
     public async matchFile(file: RundownFileMatchInput): Promise<RundownFileMatchResult[]> {
         const matches: RundownFileMatchResult[] = [];
         const mediaRoot = DirectoryManager.getManager()['mediaPath'];

@@ -4,10 +4,9 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import React, {useEffect, useState} from 'react';
 import {useTranslation} from 'next-i18next';
 import {useSocket} from '../lib';
-import {EditRundown, Rundown} from '../pages/play';
+import {EditRundown, type Rundown} from '../pages/play';
 import {RundownModals} from './RundownModals';
-import {RundownEntry, Rundowns, useRundownEntries} from './Rundowns';
-import {hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
+import {type RundownEntry, Rundowns, useRundownEntries} from './Rundowns';
 
 function useQuickActions() {
     const conn = useSocket();
@@ -66,13 +65,11 @@ function useQuickActions() {
         setQuickActions(quickActions.filter(v => v.id !== entry.id));
     };
 
-    const createQuickAction = (name: string): Promise<Rundown | null> => {
-        return conn.rawRequest('/api/rundown/quick', 'CREATE', name)
-            .then(({ data }) => {
-                setQuickActions([...quickActions, data]);
-                return data as Rundown;
-            });
-    };
+    const createQuickAction = (name: string): Promise<Rundown | null> => conn.rawRequest('/api/rundown/quick', 'CREATE', name)
+        .then(({ data }) => {
+            setQuickActions([...quickActions, data]);
+            return data as Rundown;
+        });
 
     return {
         quickActions,

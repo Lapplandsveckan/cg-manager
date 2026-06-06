@@ -1,7 +1,7 @@
-import config from './config';
-import chalk from 'chalk';
 import path from 'path';
 import {promises as fs} from 'fs';
+import chalk from 'chalk';
+import config from './config';
 
 export enum LogLevel {
     INFO = 'INFO',
@@ -198,8 +198,6 @@ export class Logger {
     public static scope(scope: string) {
         return new Logger(scope);
     }
-
-    // Instance
 
     private readonly scope_: string;
     private readonly logger: (level: LogLevel, message: string) => void;

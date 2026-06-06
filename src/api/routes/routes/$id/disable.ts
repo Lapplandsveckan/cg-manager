@@ -1,5 +1,6 @@
-import {CasparManager} from '../../../../manager';
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../../route';
+import {CasparManager} from '../../../../manager';
 
 export default {
     'ACTION': async (request) => {
@@ -12,4 +13,4 @@ export default {
         if (!route) throw new WebError('Route not found', 404);
         return route;
     },
-};
+} satisfies RouteExport;

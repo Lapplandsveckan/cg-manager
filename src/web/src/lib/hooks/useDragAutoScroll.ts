@@ -1,4 +1,4 @@
-import {RefObject, useEffect} from 'react';
+import {type RefObject, useEffect} from 'react';
 
 /**
  * Auto-scrolls the referenced element when a drag is in progress and the

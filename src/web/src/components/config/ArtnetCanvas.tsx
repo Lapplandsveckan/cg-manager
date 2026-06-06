@@ -98,15 +98,17 @@ function applyDrag(
     if (signX === -1 && newLeft < 0) {
         newW += newLeft;
         newLeft = 0;
-    } else if (signX === 1 && newLeft + newW > bounds.width) 
+    } else if (signX === 1 && newLeft + newW > bounds.width) {
         newW = bounds.width - newLeft;
-    
+    }
+
     if (signY === -1 && newTop < 0) {
         newH += newTop;
         newTop = 0;
-    } else if (signY === 1 && newTop + newH > bounds.height) 
+    } else if (signY === 1 && newTop + newH > bounds.height) {
         newH = bounds.height - newTop;
-    
+    }
+
 
     newW = Math.max(minSize, newW);
     newH = Math.max(minSize, newH);

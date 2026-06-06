@@ -1,13 +1,13 @@
 import React, {useState, useEffect} from 'react';
 import {Box, Button, Card, Modal, Stack, Typography} from '@mui/material';
 import {useTranslation} from 'next-i18next';
-import {CasparConfig} from '../../lib/api/caspar';
+import {type CasparConfig} from '../../lib/api/caspar';
 import {
     CONSUMER_FIELDS,
     CONSUMER_TYPES,
-    ConsumerType,
+    type ConsumerType,
     Fields,
-    RecordData,
+    type RecordData,
     formatConsumerType,
 } from './fields';
 import {ArtnetEditor} from './ArtnetEditor';

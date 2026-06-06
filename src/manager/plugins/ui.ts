@@ -1,9 +1,9 @@
+import path from 'path';
 import { v4 as uuid } from 'uuid';
 import webpack from 'webpack';
 import MemoryFS from 'memory-fs';
-import path from 'path';
-import {Logger} from '../../util/log';
 import {noTryAsync} from 'no-try';
+import {Logger} from '../../util/log';
 export const UI_INJECTION_ZONE = {
     PLUGIN_PAGE: 'plugin-page',
 
@@ -40,7 +40,7 @@ export class UIInjector {
         this._injectionsZones.get(zone).push(obj);
         this._injections.set(obj.id, obj);
 
-        this.bundle(obj.id); // should we bundle here, or only when requested?
+        this.bundle(obj.id);
         return obj.id;
     }
 
@@ -92,41 +92,41 @@ export class UIInjector {
 
 function getConfig(entry: string) {
     return {
-        mode: 'production', // Set mode to development
-        entry, // Entry point of your application
+        mode: 'production',
+        entry,
         output: {
-            libraryTarget: 'module', // Set library target to commonjs2 to export as a module
-            path: '/', // Output directory
-            filename: 'bundle.js', // Output file name
+            libraryTarget: 'module',
+            path: '/',
+            filename: 'bundle.js',
         },
         module: {
             rules: [
                 {
-                    test: /\.(js|jsx|ts|tsx)$/, // Transpile JavaScript and TypeScript files
-                    exclude: /node_modules/, // Exclude node_modules directory
+                    test: /\.(js|jsx|ts|tsx)$/,
+                    exclude: /node_modules/,
                     use: {
-                        loader: require.resolve('babel-loader'), // Use Babel loader
+                        loader: require.resolve('babel-loader'),
                         options: {
                             presets: [
                                 [require.resolve('@babel/preset-env'), { targets: {chrome: 100} }],
                                 require.resolve('@babel/preset-react'),
                                 require.resolve('@babel/preset-typescript'),
-                            ], // Babel presets for handling ES6+, React, and TypeScript
+                            ],
                         },
                     },
                 },
             ],
         },
         resolve: {
-            extensions: ['.js', '.jsx', '.ts', '.tsx'], // File extensions to resolve
+            extensions: ['.js', '.jsx', '.ts', '.tsx'],
             modules: [
-                path.resolve(__dirname, '../../../', 'node_modules'), // Specify the correct path to node_modules
-                'node_modules', // Fallback to 'node_modules' to ensure compatibility with packages installed globally
+                path.resolve(__dirname, '../../../', 'node_modules'),
+                'node_modules',
             ],
         },
         externalsType: 'window',
         externals: {
-            react: 'React', // Use external version of React
+            react: 'React',
             '@mui/material': 'MaterialUI',
             'mui-color-input': 'MUIColorInput',
             '@web-lib': 'WebLib',
@@ -134,7 +134,7 @@ function getConfig(entry: string) {
             'react-i18next': 'ReactI18next',
         },
         experiments: {
-            outputModule: true, // Enable output module
+            outputModule: true,
         },
     } as webpack.Configuration;
 }
@@ -148,7 +148,9 @@ function bundleFile(file: string) {
 
     return new Promise<string>((resolve, reject) => {
         compiler.run((err, stats) => {
-            if (err || stats.hasErrors()) return reject(stats.hasErrors() ? stats.compilation.errors : err);
+            if (err || stats.hasErrors())
+                return reject(stats.hasErrors() ? stats.compilation.errors : err);
+
             resolve(memfs.readFileSync('/bundle.js').toString());
         });
     });

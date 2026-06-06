@@ -35,9 +35,6 @@ export function isInternalMediaId(id: string): boolean {
 
 const logger = Logger.scope('Folders');
 
-/** Walk the tree under `root` and yield every directory's relative path,
- *  upper-cased with a trailing slash. Skips symlinks and stops at
- *  `MAX_FOLDER_DEPTH`. */
 export async function listAllFolders(root: string): Promise<string[]> {
     const out: string[] = [];
 

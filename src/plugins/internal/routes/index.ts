@@ -1,8 +1,8 @@
-import {VideoEffect, VideoEffectOptions} from './effects/video';
 import {CasparPlugin} from '@lappis/cg-manager';
-import {RouteEffect, RouteEffectOptions} from './effects/route';
-import {ColorEffect, ColorEffectOptions} from './effects/color';
-import {DecklinkEffect, DecklinkEffectOptions} from './effects/decklink';
+import {VideoEffect, type VideoEffectOptions} from './effects/video';
+import {RouteEffect, type RouteEffectOptions} from './effects/route';
+import {ColorEffect, type ColorEffectOptions} from './effects/color';
+import {DecklinkEffect, type DecklinkEffectOptions} from './effects/decklink';
 
 export default class VideoRoutesPlugin extends CasparPlugin {
     public static get pluginName() {

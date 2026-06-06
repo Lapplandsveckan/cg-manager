@@ -1,11 +1,11 @@
-import {DefaultContentLayout} from '../../components/DefaultContentLayout';
-import {useSocket} from '../../lib/hooks/useSocket';
 import {Box, Card, Stack, Switch, Typography, alpha} from '@mui/material';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import {useCallback, useEffect, useState} from 'react';
 import {useRouter} from 'next/router';
 import {useTranslation} from 'next-i18next';
-import {Plugin} from '../../lib/api/plugin';
+import {useSocket} from '../../lib/hooks/useSocket';
+import {DefaultContentLayout} from '../../components/DefaultContentLayout';
+import {type Plugin} from '../../lib/api/plugin';
 import {UI_INJECTION_ZONE} from '../../lib/api/inject';
 
 interface PluginCardProps {

@@ -1,7 +1,7 @@
 import net from 'net';
+import {CommandExecutor} from '@lappis/cg-manager';
 import {Logger} from '../../util/log';
 import {getTemplatesWithContent} from '../scanner/scanner';
-import {CommandExecutor} from '@lappis/cg-manager';
 
 // AMCP socket usually accepts within a few hundred ms of CasparCG starting,
 // so retry briefly while it warms up and only surface a warning if it stays
@@ -101,9 +101,9 @@ export class CasparExecutor extends CommandExecutor {
             // Snapshot the listener list so a handler that subscribes/
             // unsubscribes during dispatch doesn't disturb iteration.
             const handlers = this.reconnectListeners.slice();
-            for (const handler of handlers) 
+            for (const handler of handlers)
                 try { handler(); } catch (e) { Logger.error(e as Error); }
-            
+
         }
     }
 
@@ -143,9 +143,9 @@ export class CasparExecutor extends CommandExecutor {
         // strings being flushed first.
         this.buffer = '';
 
-        if (wasConnected)
+        if (wasConnected) {
             Logger.info('Caspar CG executor disconnected');
-        else if (this.retry) {
+        } else if (this.retry) {
             this.failedAttempts++;
             if (this.failedAttempts === WARN_AFTER_FAILED_ATTEMPTS)
                 Logger.warn(`Caspar CG executor still cannot connect after ${this.failedAttempts} attempts${error ? `: ${error}` : ''}`);

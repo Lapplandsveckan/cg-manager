@@ -1,3 +1,4 @@
+import {type RouteExport} from '../../route';
 import {CasparManager} from '../../../manager';
 
 /**
@@ -17,4 +18,4 @@ export default {
         const {_raw, ...rest} = cfg;
         return rest;
     },
-};
+} satisfies RouteExport;

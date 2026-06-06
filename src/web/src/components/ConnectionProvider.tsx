@@ -68,11 +68,11 @@ export const ConnectionProvider: React.FC<{children: React.ReactNode}> = ({child
                 timer = setTimeout(tick, HEARTBEAT_INTERVAL_OK_MS);
             } else {
                 failsRef.current += 1;
-                if (failsRef.current >= DISCONNECTED_THRESHOLD) 
+                if (failsRef.current >= DISCONNECTED_THRESHOLD)
                     setState('disconnected');
-                else if (failsRef.current >= RECONNECTING_THRESHOLD) 
+                else if (failsRef.current >= RECONNECTING_THRESHOLD)
                     setState('reconnecting');
-                
+
                 timer = setTimeout(tick, HEARTBEAT_INTERVAL_RETRY_MS);
             }
         };

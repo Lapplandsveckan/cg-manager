@@ -1,11 +1,12 @@
-import {CasparManager} from '../../../../manager';
-import {WebError} from 'rest-exchange-protocol';
 import {promises as fs} from 'fs';
 import * as path from 'path';
+import {WebError} from 'rest-exchange-protocol';
+import {noTry} from 'no-try';
+import {type RouteExport} from '../../../route';
+import {CasparManager} from '../../../../manager';
 import scannerConfig from '../../../../manager/scanner/config';
 import {resolveSafePath, validateFilename} from '../../../../manager/scanner/util';
 import {normalizeFolderPath, PLACEHOLDER_NAME} from '../../../../manager/scanner/folders';
-import {noTry} from 'no-try';
 
 function resolveDoc(id: string) {
     const decoded = decodeURIComponent(id);
@@ -106,4 +107,4 @@ export default {
 
         return { ok: true };
     },
-};
+} satisfies RouteExport;

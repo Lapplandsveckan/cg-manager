@@ -16,7 +16,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import {useTranslation} from 'next-i18next';
-import {CasparConfig} from '../../lib/api/caspar';
+import {type CasparConfig} from '../../lib/api/caspar';
 import {formatConsumerType} from './fields';
 
 type Channel = CasparConfig['channels'][number];

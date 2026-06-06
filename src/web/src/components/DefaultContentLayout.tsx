@@ -44,36 +44,32 @@ const ErrorFallback: React.FC = () => {
     );
 };
 
-export const DefaultContentLayout = (props: { children: React.ReactNode }) => {
-    return (
-        <Stack
-            direction="row"
-            alignItems="stretch"
-            justifyContent="start"
-            sx={(theme) => ({
-                width: '100%',
-                // Fill the parent column (under any banner mounted by _app):
-                // Navbar stays pinned, content Box scrolls internally.
-                flex: 1,
-                minHeight: 0,
-                bgcolor: theme.palette.background.default,
-            })}
+export const DefaultContentLayout = (props: { children: React.ReactNode }) => (
+    <Stack
+        direction="row"
+        alignItems="stretch"
+        justifyContent="start"
+        sx={(theme) => ({
+            width: '100%',
+            flex: 1,
+            minHeight: 0,
+            bgcolor: theme.palette.background.default,
+        })}
+    >
+        <Navbar />
+        <Box
+            sx={{
+                flexGrow: 1,
+                minWidth: 0,
+                height: '100%',
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                p: 4,
+            }}
         >
-            <Navbar />
-            <Box
-                sx={{
-                    flexGrow: 1,
-                    minWidth: 0,
-                    height: '100%',
-                    overflowY: 'auto',
-                    overflowX: 'hidden',
-                    p: 4,
-                }}
-            >
-                <ErrorBoundary fallback={<ErrorFallback />}>
-                    {props.children}
-                </ErrorBoundary>
-            </Box>
-        </Stack>
-    );
-};
+            <ErrorBoundary fallback={<ErrorFallback />}>
+                {props.children}
+            </ErrorBoundary>
+        </Box>
+    </Stack>
+);

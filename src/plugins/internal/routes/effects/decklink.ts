@@ -1,8 +1,8 @@
 import {
     ClearCommand,
-    Command,
+    type Command,
     Effect,
-    EffectGroup,
+    type EffectGroup,
     PlayCommand,
     Transform,
     MixerCommand,
@@ -118,7 +118,7 @@ export class DecklinkEffect extends Effect {
         return this.executor.execute(cmd);
     }
 
-    public getMetadata(): {} {
+    public getMetadata(): Record<string, unknown> {
         return {
             device: this.options.device,
             format: this.options.format,

@@ -1,21 +1,22 @@
 import {
-    Client,
-    Method, MiddleWareData,
+    type Client,
+    type Method, type MiddleWareData,
     MiddlewareProhibitFurtherExecution,
     REPServer,
-    TypedClient,
+    type TypedClient,
     WebsocketClient, WebsocketOutboundMethod,
 } from 'rest-exchange-protocol';
+import {type Route} from 'rest-exchange-protocol/dist/route';
+import {noTry, noTryAsync} from 'no-try';
 import {loadRoutes} from './route';
-import {CasparManager} from '../manager';
+import {type CasparManager} from '../manager';
 import {handleRequest, onUpgrade} from '../web';
-import {Route} from 'rest-exchange-protocol/dist/route';
 import {Logger} from '../util/log';
 import {Upload} from '../manager/scanner/upload';
 import {AuthManager} from './auth';
 import {isInternalMediaId} from '../manager/scanner/folders';
-import {noTry, noTryAsync} from 'no-try';
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type CGClient = TypedClient<{}>;
 
 export class CGServer {
@@ -372,7 +373,7 @@ export class CGServer {
 
     public registerRoute(path: string, handler: Route['handler'], method: Method) {
         const route = {
-            method: method,
+            method,
             path: `/api/${path}`,
             handler,
         };

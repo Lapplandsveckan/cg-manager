@@ -4,14 +4,14 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import {useTranslation} from 'next-i18next';
 import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {useSocket} from '../lib/hooks/useSocket';
-import {CasparConfig} from '../lib/api/caspar';
+import {type CasparConfig} from '../lib/api/caspar';
 import {HtmlEditor} from '../components/config/HtmlEditor';
 import {LoggingEditor} from '../components/config/LoggingEditor';
 import {VideoModesEditor} from '../components/config/VideoModesEditor';
 import {ChannelEditor} from '../components/config/ChannelEditor';
 import {ConsumerModal} from '../components/config/ConsumerModal';
 import {ConsumerTypePicker} from '../components/config/ConsumerTypePicker';
-import {ConsumerType} from '../components/config/fields';
+import {type ConsumerType} from '../components/config/fields';
 
 type Channel = CasparConfig['channels'][number];
 type Consumer = Channel['consumers'][number];

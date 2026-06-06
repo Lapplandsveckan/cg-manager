@@ -1,10 +1,10 @@
 import {
     Effect,
-    EffectGroup,
+    type EffectGroup,
     PlayCommand,
     StopCommand,
     Transform,
-    BasicChannel, MixerCommand,
+    type BasicChannel, MixerCommand,
 } from '@lappis/cg-manager';
 
 type Tuple<T, N extends number> = N extends N ? number extends N ? T[] : _TupleOf<T, N, []> : never;
@@ -91,7 +91,7 @@ export class RouteEffect extends Effect {
         return this.executor.execute(cmd);
     }
 
-    public getMetadata(): {} {
+    public getMetadata(): Record<string, unknown> {
         return {};
     }
 }

@@ -14,10 +14,10 @@ import {
 } from '@mui/material';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import {useTranslation} from 'next-i18next';
-import {VideoRoute, VideoRouteSource, VideoRouteDestination} from '../../lib/api/videoRoutes';
+import {type VideoRoute, type VideoRouteSource, type VideoRouteDestination} from '../../lib/api/videoRoutes';
 import type {SourceType} from './RouteSourceTypePicker';
-import {DraftSource, SourceFields, defaultSourceFor, sourceToDraft} from './RouteSourceFields';
-import {GeometryEditor, GeometryValues} from './GeometryEditor';
+import {type DraftSource, SourceFields, defaultSourceFor, sourceToDraft} from './RouteSourceFields';
+import {GeometryEditor, type GeometryValues} from './GeometryEditor';
 
 interface DraftDestination {
     channel: string;
@@ -195,7 +195,6 @@ export const RouteModal: React.FC<RouteModalProps> = ({
             if (channel === undefined) return t('videoRoutes.errors.channelRequired');
             return {type: 'channel', channel};
         }
-        // color
         const color = source.color.trim();
         if (!color) return t('videoRoutes.errors.colorRequired');
         return {type: 'color', color};

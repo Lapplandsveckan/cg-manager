@@ -1,6 +1,6 @@
 import path from 'path';
 import {CasparPlugin, UI_INJECTION_ZONE} from '@lappis/cg-manager';
-import {RundownItem} from '@lappis/cg-manager/dist/types/rundown';
+import {type RundownItem} from '@lappis/cg-manager/dist/types/rundown';
 
 const TOGGLE_VIDEO_ROUTE = 'toggle-video-route';
 

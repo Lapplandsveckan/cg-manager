@@ -1,16 +1,16 @@
-import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {Button, Card, Modal, Stack, TextField, Typography} from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import CreateNewFolderRoundedIcon from '@mui/icons-material/CreateNewFolderRounded';
-import {UploadButton, Dropzone, UploadModal, useFileUpload} from '../components/Upload';
 import React, {useEffect, useState} from 'react';
+import {useRouter} from 'next/router';
+import {noTryAsync} from 'no-try';
+import {useTranslation} from 'next-i18next';
+import {UploadButton, Dropzone, UploadModal, useFileUpload} from '../components/Upload';
 import {MediaView} from '../components/MediaView';
 import {PathBreadcrumb} from '../components/PathBreadcrumb';
 import {useSocket} from '../lib';
-import {useRouter} from 'next/router';
-import {MediaDoc} from '../lib/api/caspar';
-import {noTryAsync} from 'no-try';
-import {useTranslation} from 'next-i18next';
+import {type MediaDoc} from '../lib/api/caspar';
+import {DefaultContentLayout} from '../components/DefaultContentLayout';
 
 const ModalCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <Card

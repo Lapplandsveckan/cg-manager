@@ -1,7 +1,7 @@
 import net from 'net';
 import dgram from 'dgram';
 import path from 'path';
-import {spawn, ChildProcess} from 'child_process';
+import {spawn, type ChildProcess} from 'child_process';
 import {BasicCommand} from '@lappis/cg-manager';
 import {
     MediaStreamTrack,
@@ -12,7 +12,7 @@ import {
 import {noTry, noTryAsync} from 'no-try';
 import managerConfig from '../../util/config';
 import {Logger} from '../../util/log';
-import {CasparExecutor} from '../caspar/executor';
+import {type CasparExecutor} from '../caspar/executor';
 
 const logger = Logger.scope('Preview');
 
@@ -171,7 +171,6 @@ export class PreviewManager {
 
         const consumerIndex = nextConsumerIndex++;
 
-        // 1. UDP socket for the sidecar's RTP output.
         const udpSocket = dgram.createSocket('udp4');
         await new Promise<void>((resolve, reject) => {
             udpSocket.once('error', reject);
@@ -182,14 +181,8 @@ export class PreviewManager {
         });
         const udpPort = udpSocket.address().port;
 
-        // 2. Pre-allocate a TCP port for the sidecar to listen on. We don't
-        //    keep the socket — ffmpeg owns it. SDP exchange below gives
-        //    ffmpeg plenty of time to bind before CasparCG tries to connect.
         const tcpPort = await pickFreeTcpPort();
 
-        // 3. Peer connection + sendonly video track. The codec config pins
-        //    the SDP answer's m=video to the same params ffmpeg's RTP muxer
-        //    actually emits.
         const pc = new RTCPeerConnection({
             codecs: {video: [WEBRTC_VIDEO_CODEC]},
             iceServers: [],
@@ -197,10 +190,6 @@ export class PreviewManager {
         const track = new MediaStreamTrack({kind: 'video'});
         pc.addTransceiver(track, {direction: 'sendonly'});
 
-        // 4. Sidecar ffmpeg. Listens on TCP for CasparCG's h264 byte stream,
-        //    `-c copy` packetizes it as RTP, sends UDP to us. `?listen=1` +
-        //    `listen_timeout=0` makes the accept block indefinitely until
-        //    CasparCG connects.
         const ffmpeg = spawn(ffmpegBinary(), [
             '-fflags',
             '+nobuffer',
@@ -226,22 +215,18 @@ export class PreviewManager {
                 logger.warn(`sidecar ffmpeg: ${line.trim()}`);
         });
 
-        // 5. UDP → werift. Plain deSerialize + writeRtp (the canonical
-        //    werift sendonly pattern, see examples/mediachannel/sendonly).
-        //    Because ffmpeg sends one RTP packet per UDP datagram, there's
-        //    no fragmentation/concurrency hazard like with hand-rolled
-        //    packetizing.
+        // Plain deSerialize + writeRtp (the canonical werift sendonly pattern).
+        // ffmpeg sends one RTP packet per UDP datagram, so there's no
+        // fragmentation/concurrency hazard like with hand-rolled packetizing.
         udpSocket.on('message', (buf) => {
             const [err] = noTry(() => track.writeRtp(RtpPacket.deSerialize(buf)));
             if (err) logger.warn(`writeRtp failed: ${err.message}`);
         });
 
-        // 6 + 7. SDP exchange and AMCP ADD have no data dependency on each
-        //    other — werift only needs `pc`, AMCP only needs `tcpPort` and
-        //    a spawned-and-bound sidecar. Firing them in parallel shaves
-        //    the AMCP round-trip off perceived activation time. Both are
-        //    wrapped in noTryAsync so we can handle each failure
-        //    independently below.
+        // SDP exchange and AMCP ADD have no data dependency on each other —
+        // werift only needs `pc`, AMCP only needs `tcpPort` and a spawned
+        // sidecar. Firing them in parallel shaves the AMCP round-trip off
+        // perceived activation time.
         const sdpPromise = noTryAsync(async () => {
             await pc.setRemoteDescription({type: 'offer', sdp: opts.sdpOffer});
             await pc.setLocalDescription(await pc.createAnswer());
@@ -321,7 +306,6 @@ export class PreviewManager {
         logger.debug(`Closed WebRTC preview ch=${session.channel} idx=${session.consumerIndex}`);
     }
 
-    /** Tear down everything — used at manager shutdown. */
     public async disposeAll(): Promise<void> {
         const webrtc = Array.from(this.webrtcSessions);
         await Promise.all(webrtc.map((s) => this.closeWebRTCSession(s)));

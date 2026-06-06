@@ -1,9 +1,9 @@
 import * as path from 'path';
-import { promises as fs, WriteStream } from 'fs';
+import { promises as fs, type WriteStream } from 'fs';
+import * as os from 'os';
 import {Logger} from '../../util/log';
 import {DirectoryManager} from './dir';
 import {resolveSafePath, sanitizeMediaPath} from './util';
-import * as os from 'os';
 
 interface UploadDestination {
     uri: string;

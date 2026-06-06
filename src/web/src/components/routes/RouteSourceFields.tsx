@@ -11,8 +11,8 @@ import {
 import {MuiColorInput} from 'mui-color-input';
 import {useTranslation} from 'next-i18next';
 import {useSocket} from '../../lib/hooks/useSocket';
-import {VideoRouteSource} from '../../lib/api/videoRoutes';
-import {MediaDoc} from '../../lib/api/caspar';
+import {type VideoRouteSource} from '../../lib/api/videoRoutes';
+import {type MediaDoc} from '../../lib/api/caspar';
 import {MediaSelect} from '../MediaView';
 import type {SourceType} from './RouteSourceTypePicker';
 

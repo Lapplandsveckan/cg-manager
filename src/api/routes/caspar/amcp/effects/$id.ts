@@ -1,5 +1,6 @@
-import {CasparManager} from '../../../../../manager';
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../../../route';
+import {CasparManager} from '../../../../../manager';
 
 export default {
     'GET': async (request) => {
@@ -11,4 +12,4 @@ export default {
             .getEffect(request.params.id)
             ?.toJSON();
     },
-};
+} satisfies RouteExport;

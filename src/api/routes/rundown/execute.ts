@@ -1,5 +1,7 @@
-import {CasparManager} from '../../../manager';
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../route';
+import {CasparManager} from '../../../manager';
+import {type RundownItem} from '../../../manager/rundown/rundown';
 
 export default {
     'ACTION': async (request) => {
@@ -9,6 +11,6 @@ export default {
         await CasparManager
             .getManager()
             .rundowns.executor
-            .executeItem(data.entry);
+            .executeItem((data as {entry: RundownItem}).entry);
     },
-};
+} satisfies RouteExport;

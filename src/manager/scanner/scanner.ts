@@ -1,18 +1,17 @@
 /* eslint-disable camelcase */
 
-import config from './config';
-import managerConfig from '../../util/config';
-import {Logger} from '../../util/log';
-import {noTryAsync} from 'no-try';
-import {extractGDDJSON, getGDDScriptElement, getId, readFile, hashFile} from './util';
-import { promises as fs } from 'fs';
-import { existsSync } from 'fs';
-import ffmpeg from 'fluent-ffmpeg';
-import moment from 'moment';
+import { promises as fs, existsSync  } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import ffmpeg from 'fluent-ffmpeg';
+import moment from 'moment';
+import {noTryAsync} from 'no-try';
 import * as chokidar from 'chokidar';
-import {FileDatabase, MediaDoc} from './db';
+import {extractGDDJSON, getGDDScriptElement, getId, readFile, hashFile} from './util';
+import {Logger} from '../../util/log';
+import managerConfig from '../../util/config';
+import config from './config';
+import {type FileDatabase, type MediaDoc} from './db';
 
 const logger = Logger.scope('Scanner');
 
@@ -75,12 +74,6 @@ function configureBinaries() {
 
 async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: FileDatabase) {
     if (!mediaId || mediaStat.isDirectory()) return;
-    // Whitelist by extension so we don't spend CPU probing
-    // non-media files (plugin sidecars, dotfiles, READMEs, etc.).
-    // ffprobe also logs noisy errors for those, which the operator
-    // shouldn't have to read past on every scan. Dotfiles fail the
-    // extension check too (e.g. `.cgkeep` has no extension), so
-    // they're handled by the same gate.
     if (!MEDIA_EXTENSIONS.has(path.extname(mediaPath).toLowerCase())) return;
 
     const mediaLogger = logger.scope(mediaId);
@@ -88,7 +81,7 @@ async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: 
     const doc = db.retrieve(hash) || { id: mediaId };
     delete doc._invalidate;
 
-    if (doc.mediaPath && doc.mediaPath !== mediaPath) doc.mediaPath = mediaPath; // File has moved
+    if (doc.mediaPath && doc.mediaPath !== mediaPath) doc.mediaPath = mediaPath;
     if (doc.mediaSize === mediaStat.size && doc.mediaTime === mediaStat.mtime.getTime()) return mediaLogger.debug('Unchanged');
 
     doc.mediaPath = mediaPath;
@@ -131,8 +124,6 @@ async function generateThumb(doc: MediaDoc) {
             .output(tmpPath)
             .frames(1)
             .size('256x?')
-            // .outputOption('-vf select=\'gt(scene\\,0.4)\'')
-            // Above is a scene detection filter, but it's not working properly
             .on('error', err => {
                 reject(err);
             })
@@ -193,10 +184,11 @@ function generateCinf(doc, json) {
     switch (type) {
         case 'AUDIO':
             break;
-        case 'MOVIE':
+        case 'MOVIE': {
             const fr = String(stream.avg_frame_rate || stream.r_frame_rate || '').split('/');
             if (fr.length === 2) tb = [fr[1], fr[0]];
             break;
+        }
         case 'STILL':
             tb = [0, 1];
             break;

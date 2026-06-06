@@ -21,8 +21,8 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import {Trans, useTranslation} from 'next-i18next';
 import {useStoredBoolean} from '../../lib/hooks/useStoredBoolean';
-import {ArtnetCanvas, Fixture} from './ArtnetCanvas';
-import {ARTNET_SCALAR_FIELDS, Fields, FieldDef, RecordData, ScalarField} from './fields';
+import {ArtnetCanvas, type Fixture} from './ArtnetCanvas';
+import {ARTNET_SCALAR_FIELDS, Fields, type FieldDef, type RecordData, ScalarField} from './fields';
 
 interface ArtnetData extends RecordData {
     universes?: number[];
@@ -454,9 +454,9 @@ const parseUniverseTokens = (raw: string): number[] => {
 const dedupeOrdered = (nums: number[]): number[] => {
     const seen = new Set<number>();
     const out: number[] = [];
-    for (const n of nums) 
+    for (const n of nums)
         if (!seen.has(n)) { seen.add(n); out.push(n); }
-    
+
     return out;
 };
 

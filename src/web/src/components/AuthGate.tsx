@@ -58,7 +58,7 @@ export const AuthGate: React.FC<{children: React.ReactNode}> = ({children}) => {
 
     // First paint while we're still checking — keeps the layout from flashing
     // either the login screen or the app before we know which it should be.
-    if (status && status.authenticated) return <>{children}</>;
+    if (status?.authenticated) return <>{children}</>;
     if (status && !status.enabled) return <>{children}</>;
 
     return (

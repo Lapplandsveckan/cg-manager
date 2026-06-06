@@ -1,13 +1,9 @@
-import {REPClient} from 'rest-exchange-protocol-client';
 import EventEmitter from 'events';
+import {type REPClient} from 'rest-exchange-protocol-client';
 import {getChunkCount} from './upload';
 import type {Config} from '../../../../manager/caspar/config/types';
 
 export type CasparConfig = Omit<Config, '_raw'>;
-
-/**
- * All API calls relevant to CasparCG are handled here.
- */
 
 export interface CasparStatus {
     running: boolean;
@@ -166,31 +162,18 @@ export class CasparServerApi extends EventEmitter {
         return this.media;
     }
 
-    /**
-     * Starting caspar server.
-     *
-     */
     public async start() {
         await this.socket.request('api/caspar/start', 'ACTION', {});
     }
 
-    /**
-     * Stopping caspar server.
-     */
     public async stop() {
         await this.socket.request('api/caspar/stop', 'ACTION', {});
     }
 
-    /**
-     * Restarting caspar server.
-     */
     public async restart() {
         await this.socket.request('api/caspar/restart', 'ACTION', {});
     }
 
-    /**
-     * Getting caspar server status.
-     */
     public async getStatus() {
         this.status = await this.socket.request('api/caspar/status', 'GET', {}).then(v => v.data);
         this.emit('status', this.status);

@@ -1,6 +1,6 @@
+import {type Method} from 'rest-exchange-protocol';
+import {type Route} from 'rest-exchange-protocol/dist/route';
 import {Logger} from '../util/log';
-import {Method} from 'rest-exchange-protocol';
-import {Route} from 'rest-exchange-protocol/dist/route';
 import files from './_routes';
 
 export type RouteExport = {

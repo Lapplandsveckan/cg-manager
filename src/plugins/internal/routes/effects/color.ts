@@ -1,7 +1,7 @@
 import {
     ClearCommand,
     Effect,
-    EffectGroup, MixerCommand,
+    type EffectGroup, MixerCommand,
     PlayCommand,
     Transform,
 } from '@lappis/cg-manager';
@@ -89,7 +89,7 @@ export class ColorEffect extends Effect {
         return this.executor.execute(new ClearCommand(this.layer));
     }
 
-    public getMetadata(): {} {
+    public getMetadata(): Record<string, unknown> {
         return {
             color: this.options.color,
         };

@@ -1,5 +1,6 @@
-import {CasparManager} from '../../../manager';
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../route';
+import {CasparManager} from '../../../manager';
 
 export default {
     'CREATE': async (request) => {
@@ -19,10 +20,8 @@ export default {
 
         return rundown;
     },
-    'GET': async (request) => {
-        return CasparManager
-            .getManager()
-            .rundowns
-            .getQuickActions();
-    },
-};
+    'GET': async () => CasparManager
+        .getManager()
+        .rundowns
+        .getQuickActions(),
+} satisfies RouteExport;

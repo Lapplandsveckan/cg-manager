@@ -1,4 +1,5 @@
 import {WebError} from 'rest-exchange-protocol';
+import {type RouteExport} from '../../../../route';
 import {Upload} from '../../../../../manager/scanner/upload';
 import {DirectoryManager} from '../../../../../manager/scanner/dir';
 import {safeMediaPath} from '../../../../../manager/scanner/util';
@@ -23,4 +24,4 @@ export default {
             path: resolved,
         };
     },
-};
+} satisfies RouteExport;

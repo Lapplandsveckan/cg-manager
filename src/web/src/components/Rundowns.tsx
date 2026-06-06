@@ -1,5 +1,4 @@
 /* eslint-disable max-lines */
-import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 import {Box, Button, IconButton, Stack, Tooltip, Typography, alpha} from '@mui/material';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
@@ -7,13 +6,13 @@ import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import React, {useEffect, useRef, useState} from 'react';
 import {useTranslation} from 'next-i18next';
 import {noTryAsync} from 'no-try';
+import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 import {useSocket} from '../lib';
-import {RundownItemDragPayload, hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
+import {type RundownItemDragPayload, hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
 import {useDragAutoScroll} from '../lib/hooks/useDragAutoScroll';
 import {UploadModal, useFileUpload} from './Upload';
 
-/** Shape returned by POST /api/rundown/actions/match. Mirrors the
- *  server's RundownFileMatchResult — keep them in sync. */
+/** Mirrors the server's RundownFileMatchResult — keep them in sync. */
 interface RundownFileMatchResult {
     actionId: string;
     payload: RundownItemDragPayload;
@@ -62,7 +61,7 @@ export function useRundownEntries(rundown: string) {
                 const { id, entry } = data;
                 if (id !== rundown) return;
 
-                if (Array.isArray(entry)) { // Batch update, and reordering of the selected items
+                if (Array.isArray(entry)) {
                     const updates = new Map<string, RundownEntry>(entry.map(item => [item.id, item]));
                     return setEntries(entries => entries.map(item => updates.get(item.id) ?? item));
                 }
@@ -127,15 +126,15 @@ export function useRundownEntries(rundown: string) {
             },
         };
 
-        // Mirror name changes broadcast on the rundown-level UPDATE so the
-        // displayed title stays in sync with renames from other clients.
+        // Handle multi-client name synchronization: renames from other clients
+        // propagate here via rundown-level UPDATE.
         const renameListener = {
             path: 'rundown',
             method: 'UPDATE',
 
             handler: request => {
                 const data = request.getData();
-                if (!data || data.id !== rundown) return;
+                if (data?.id !== rundown) return;
                 if (typeof data.name === 'string') setName(data.name);
             },
         };
@@ -231,10 +230,10 @@ interface RundownEntryProps {
 
 export const RundownEntry: React.FC<RundownEntryProps> = ({
     title,
-    type,
+    type: _type,
     onEdit,
     onPlay,
-    active,
+    active: _active,
     locked,
     disabled,
     children,
@@ -252,6 +251,8 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     const draggable = supportsReorder && Boolean(locked);
     const cardRef = useRef<HTMLDivElement>(null);
 
+    // Reorder is only active in edit mode (locked). In show mode the slot is
+    // reserved but hidden so toggling lock doesn't shift the title.
     return (
         <Box sx={{ position: 'relative' }}>
             {dropIndicator === 'before' && <DropIndicator position="top" />}
@@ -263,9 +264,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                     position: 'relative',
                     py: 2,
                     pr: 2,
-                    // Reserve constant horizontal space for the handle when the
-                    // card supports reordering, so toggling lock doesn't shift
-                    // the title.
+                    // Reserve space so handle visibility toggle doesn't shift layout.
                     pl: supportsReorder ? '28px' : 2,
                     bgcolor: theme.palette.surface.paper,
                     border: `1px solid ${theme.palette.divider}`,
@@ -431,10 +430,7 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
     const [reorderDraggingId, setReorderDraggingId] = useState<string | null>(null);
     const [insertion, setInsertion] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
 
-    // Action types currently registered on the server. Items whose `type`
-    // isn't in this set belong to a plugin that's been disabled (or was
-    // never installed) — we dim them so the user can spot the dead items.
-    // Fetched once per Rundowns mount; the user opted out of live refresh.
+    // Fetched once on mount; not refreshed on live action registration changes.
     const [activeTypes, setActiveTypes] = useState<Set<string> | null>(null);
     useEffect(() => {
         let mounted = true;
@@ -447,18 +443,13 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
     const acceptsDrop = Boolean(onDropItem);
     const acceptsReorder = Boolean(onReorder);
 
-    // Edge-scroll while dragging — the Stack is the scrollable container
-    // and the dropzone, so pointer position relative to it is what the
-    // auto-scroll logic needs.
+    // Stack is both the scrollable container and dropzone; auto-scroll
+    // positioning needs coordinates relative to it.
     const stackRef = useRef<HTMLDivElement>(null);
     useDragAutoScroll(stackRef);
 
-    // OS file drop pipeline. Files dropped from the OS file manager run
-    // through POST /api/rundown/actions/match to resolve to a registered
-    // action's payload, then upload, then we fire onDropItem with the
-    // resolved payload. Refs stash the per-file state across the async
-    // match/upload phases since useFileUpload binds createUpload at hook
-    // construction time.
+    // Stash per-file match results across the async match/upload phases.
+    // useFileUpload binds createUpload at hook construction, so refs hold state.
     const fileMatchesRef = useRef<Map<File, RundownFileMatchResult>>(new Map());
     const fileBaseIndexRef = useRef<number | undefined>(undefined);
     const onDropItemRef = useRef(onDropItem);
@@ -471,9 +462,8 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
         },
     });
 
-    // Fire onDropItem once per file when the batch reaches a terminal
-    // state. `completed` is set in the same setState as the terminal
-    // phase, so it's fresh when this effect runs.
+    // `completed` is set alongside the terminal phase, so it's current
+    // when this effect runs.
     const {phase: uploadPhase} = uploadCtrl.state;
     useEffect(() => {
         if (uploadPhase !== 'done' && uploadPhase !== 'error') return;
@@ -490,16 +480,13 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
         }
         fileMatchesRef.current.clear();
         fileBaseIndexRef.current = undefined;
-        // Auto-dismiss on success — the operator already saw the
-        // progress and the items they wanted are showing up in the
-        // rundown. Errors keep the modal open so they can read what
-        // failed.
+        // Auto-dismiss on success so operator sees items in rundown.
+        // Errors stay open for reading failure messages.
         if (uploadPhase === 'done') uploadCtrl.reset();
     }, [uploadPhase]);
 
     const handleFileDrop = async (files: File[], baseIndex: number | undefined) => {
-        // Match each file server-side. Run in parallel — matches don't
-        // depend on each other.
+        // Run matches in parallel; they don't depend on each other.
         const matchResults = await Promise.all(files.map(async file => {
             const [err, res] = await noTryAsync(() => conn.rawRequest(
                 '/api/rundown/actions/match',
@@ -517,26 +504,22 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                 unmatched.push(file.name);
                 continue;
             }
-            // v1: take the first match. A picker for N>1 is a follow-up;
-            // most actions accept disjoint file types so this rarely bites.
+            // v1: first match only. Multi-match picker is a follow-up.
             fileMatchesRef.current.set(file, matches[0]);
             accepted.push(file);
         }
 
-        if (unmatched.length) 
-            // TODO: surface as a toast once the app grows a notification
-            // primitive. For now console + (silently) drop is enough —
-            // the operator will notice the missing items.
+        if (unmatched.length)
             // eslint-disable-next-line no-console
             console.warn('No rundown action accepted:', unmatched.join(', '));
-        
+
+
         if (!accepted.length) return;
 
         fileBaseIndexRef.current = baseIndex;
         uploadCtrl.start(accepted);
-        // start() lands us in the 'review' phase; auto-confirm so the
-        // operator doesn't have to click Upload after every OS-drag.
-        // Their explicit drop already signals intent.
+        // Auto-confirm after start() to skip the review phase.
+        // Explicit drop signals intent without needing confirmation.
         uploadCtrl.confirm();
     };
 
@@ -547,7 +530,6 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
             if (!dragOver) setDragOver(true);
             return;
         }
-        // Reorder over-empty-area is handled per-item via onItemDragOver.
     };
     const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
         // Only flip off when the drag actually leaves the wrapper, not when
@@ -573,7 +555,6 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
         }
         if (!acceptsDrop) return;
 
-        // OS file drop — async pipeline (match → upload → onDropItem).
         if (isFileDrag(e.dataTransfer)) {
             e.preventDefault();
             const files = Array.from(e.dataTransfer.files);
@@ -677,8 +658,7 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                     position: 'relative',
                     flex: 1,
                     minHeight: 0,
-                    // Each column scrolls on its own — the page has overflowY
-                    // disabled at the row level so this Stack owns the scroll.
+                    // Page disables overflowY at row level; this Stack owns scroll.
                     overflowY: 'auto',
                     outline: dragOver
                         ? `2px dashed ${alpha(theme.palette.primary.main, 0.6)}`
@@ -722,7 +702,7 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                                 setInsertion(null);
                             }}
                             dropIndicator={
-                                insertion && insertion.id === entry.id ? insertion.position : null
+                                insertion?.id === entry.id ? insertion.position : null
                             }
                             isDragging={reorderDraggingId === entry.id}
                         >
@@ -766,4 +746,3 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
         </>
     );
 };
-

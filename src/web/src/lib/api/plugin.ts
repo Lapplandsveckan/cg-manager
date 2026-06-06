@@ -1,9 +1,5 @@
-import {REPClient} from 'rest-exchange-protocol-client';
 import EventEmitter from 'events';
-
-/**
- * All API calls relevant to CasparCG are handled here.
- */
+import {type REPClient} from 'rest-exchange-protocol-client';
 
 export interface Plugin {
     name: string;

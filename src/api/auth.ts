@@ -76,12 +76,10 @@ class AuthManagerImpl {
         return `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`;
     }
 
-    /** Set-Cookie header value that immediately expires the session. */
     clearCookieHeader(): string {
         return `${COOKIE_NAME}=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0`;
     }
 
-    /** Pull our session token out of the raw `Cookie:` header value. */
     readToken(cookieHeader: string | undefined): string | undefined {
         if (!cookieHeader) return undefined;
         for (const part of cookieHeader.split(';')) {

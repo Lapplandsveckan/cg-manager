@@ -1,5 +1,5 @@
 import * as xml2js from 'xml2js';
-import {Config, LogLevel} from './types';
+import {type Config, type LogLevel} from './types';
 import {transforms} from './transforms';
 
 const LOG_LEVELS: ReadonlySet<LogLevel> = new Set<LogLevel>([
