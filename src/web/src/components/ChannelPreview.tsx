@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {Box} from '@mui/material';
+import {Box, CircularProgress, Stack, Typography} from '@mui/material';
 import {noTry, noTryAsync} from 'no-try';
 import {useTranslation} from 'next-i18next';
 
@@ -45,6 +45,11 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({channel, objectFi
     // Per-mount key; changing channel re-runs the effect cleanly. We also
     // include it in deps so the WebRTC session restarts when the prop flips.
     const [mountId] = useState(() => Math.random());
+    const [loaded, setLoaded] = useState(false);
+
+    useEffect(() => {
+        setLoaded(false);
+    }, [channel, mountId]);
 
     useEffect(() => {
         if (channel == null || !Number.isFinite(channel) || channel < 1) return;
@@ -96,23 +101,44 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({channel, objectFi
         };
     }, [channel, mountId, onError, t]);
 
+    const active = channel != null && Number.isFinite(channel) && channel >= 1;
+
     return (
-        <Box
-            component="video"
-            ref={videoRef}
-            muted
-            autoPlay
-            playsInline
-            onLoadedData={() => onReady?.()}
-            sx={{
-                position: 'absolute',
-                inset: 0,
-                width: '100%',
-                height: '100%',
-                objectFit,
-                bgcolor: '#000',
-                pointerEvents: 'none',
-            }}
-        />
+        <>
+            <Box
+                component="video"
+                ref={videoRef}
+                muted
+                autoPlay
+                playsInline
+                onLoadedData={() => { setLoaded(true); onReady?.(); }}
+                sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    objectFit,
+                    bgcolor: '#000',
+                    pointerEvents: 'none',
+                    visibility: loaded ? 'visible' : 'hidden',
+                }}
+            />
+            {active && !loaded && (
+                <Stack
+                    sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 1,
+                    }}
+                >
+                    <CircularProgress size={20} />
+                    <Typography variant="caption" sx={{color: 'text.disabled'}}>
+                        {t('actions.loading')}
+                    </Typography>
+                </Stack>
+            )}
+        </>
     );
 };
