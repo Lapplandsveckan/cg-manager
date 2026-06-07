@@ -2,10 +2,10 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Box, IconButton, Stack, Tab, Tabs, Tooltip, Typography} from '@mui/material';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import {noTry} from 'no-try';
 import {useTranslation} from 'next-i18next';
 import {useSocket} from '../lib/hooks/useSocket';
 import {useStoredBoolean} from '../lib/hooks/useStoredBoolean';
+import {useStoredNumber} from '../lib/hooks/useStoredNumber';
 import {type Injection, Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
 
 const DEFAULT_HEIGHT = 280;
@@ -89,23 +89,6 @@ const VerticalResizeHandle: React.FC<ResizeProps> = ({ onResize, getCurrentHeigh
     );
 };
 
-function useStoredNumber(key: string, fallback: number, clamp: (n: number) => number): [number, (n: number) => void] {
-    const [value, setValue] = useState(fallback);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const [, raw] = noTry(() => window.localStorage.getItem(key));
-        if (raw) setValue(clamp(Number(raw)));
-    }, [key, clamp]);
-
-    const update = (n: number) => {
-        const clamped = clamp(n);
-        setValue(clamped);
-        noTry(() => window.localStorage.setItem(key, String(clamped)));
-    };
-
-    return [value, update];
-}
 
 export const BottomPanel: React.FC = () => {
     const {t} = useTranslation('common');
@@ -185,11 +168,11 @@ export const BottomPanel: React.FC = () => {
                 direction="row"
                 alignItems="center"
                 justifyContent="space-between"
-                onClick={() => setCollapsed(!collapsed)}
+                onClick={() => setCollapsed(v => !v)}
                 onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        setCollapsed(!collapsed);
+                        setCollapsed(v => !v);
                     }
                 }}
                 role="button"
@@ -251,7 +234,7 @@ export const BottomPanel: React.FC = () => {
                         // bar; stopPropagation prevents double-toggling.
                         onClick={(e) => {
                             e.stopPropagation();
-                            setCollapsed(!collapsed);
+                            setCollapsed(v => !v);
                         }}
                         sx={{ color: 'text.secondary', mr: 0.5 }}
                     >

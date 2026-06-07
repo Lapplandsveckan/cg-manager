@@ -2,9 +2,9 @@ import React, {useEffect, useState} from 'react';
 import {Box, ButtonBase, IconButton, Stack, Tooltip, Typography, alpha} from '@mui/material';
 import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import {noTry} from 'no-try';
 import {useTranslation} from 'next-i18next';
 import {useSocket} from '../lib/hooks/useSocket';
+import {getStorageItem, removeStorageItem, setStorageItem} from '../lib/storage';
 import {ChannelPreview} from './ChannelPreview';
 
 const STORAGE_KEY = 'rundown-preview-channel';
@@ -46,7 +46,7 @@ export const RundownPreview: React.FC = () => {
                 // we never momentarily open a WHEP session for a channel
                 // that no longer exists.
                 hydrated = true;
-                const [, raw] = noTry(() => window.localStorage.getItem(STORAGE_KEY));
+                const raw = getStorageItem(STORAGE_KEY);
                 const stored = raw ? Number(raw) : NaN;
                 if (Number.isInteger(stored) && list.includes(stored)) setSelected(stored);
                 return;
@@ -70,10 +70,8 @@ export const RundownPreview: React.FC = () => {
 
     const updateSelected = (next: number | null) => {
         setSelected(next);
-        noTry(() => {
-            if (next == null) window.localStorage.removeItem(STORAGE_KEY);
-            else window.localStorage.setItem(STORAGE_KEY, String(next));
-        });
+        if (next == null) removeStorageItem(STORAGE_KEY);
+        else setStorageItem(STORAGE_KEY, String(next));
     };
 
     const pickChannel = (ch: number) => {

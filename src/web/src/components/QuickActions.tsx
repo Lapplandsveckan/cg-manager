@@ -7,6 +7,7 @@ import {useSocket} from '../lib';
 import {EditRundown, type Rundown} from '../pages/play';
 import {RundownModals} from './RundownModals';
 import {type RundownEntry, Rundowns, useRundownEntries} from './Rundowns';
+import {useStoredString} from '../lib/hooks/useStoredString';
 
 function useQuickActions() {
     const conn = useSocket();
@@ -122,26 +123,15 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
         createQuickAction,
     } = useQuickActions();
 
-    const [quickAction, setQuickAction] = useState<string | null>(null);
+    const [quickAction, setQuickAction] = useStoredString('quickAction');
     const {entries, updateEntry, deleteEntry, createEntry, reorderEntries} = useRundownEntries(quickAction);
 
-    // Restore the last selected quick action on mount; reconcile if it no
-    // longer exists in the list once it arrives.
-    useEffect(() => {
-        const saved = window.localStorage.getItem('quickAction');
-        if (saved) setQuickAction(saved);
-    }, []);
-
+    // Reconcile: clear selection if the saved id no longer exists in the list.
     useEffect(() => {
         if (!quickAction) return;
         if (quickActions.length && !quickActions.some(q => q.id === quickAction))
             setQuickAction(null);
     }, [quickActions, quickAction]);
-
-    useEffect(() => {
-        if (quickAction) window.localStorage.setItem('quickAction', quickAction);
-        else window.localStorage.removeItem('quickAction');
-    }, [quickAction]);
 
     const selected = quickActions.find(q => q.id === quickAction) ?? null;
 

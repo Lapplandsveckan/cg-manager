@@ -15,11 +15,12 @@ import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LanguageIcon from '@mui/icons-material/Language';
-import {noTry, noTryAsync} from 'no-try';
+import {noTryAsync} from 'no-try';
 import {type CasparStatus} from '../lib/api/caspar';
 import {useConnection} from './ConnectionProvider';
 import {useSocket} from '../lib/hooks/useSocket';
 import {useVersion} from '../lib/hooks/useVersion';
+import {useStoredBoolean} from '../lib/hooks/useStoredBoolean';
 import {SUPPORTED_LANGUAGES, type SupportedLanguage, setStoredLanguage} from '../lib/detectLanguage';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -122,25 +123,6 @@ function useCasparStatus(): StatusInfo {
     return { color: 'rgba(232, 234, 237, 0.3)', key: 'unknown', glow: false };
 }
 
-function useNavbarCollapsed(): [boolean, () => void] {
-    const [collapsed, setCollapsed] = useState(false);
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const [, item] = noTry(() => window.localStorage.getItem(STORAGE_KEY));
-        setCollapsed(item === '1');
-    }, []);
-
-    const toggle = () => {
-        setCollapsed(prev => {
-            const next = !prev;
-            noTry(() => window.localStorage.setItem(STORAGE_KEY, next ? '1' : '0'));
-            return next;
-        });
-    };
-
-    return [collapsed, toggle];
-}
 
 const LanguageSelector: React.FC = () => {
     const {t, i18n} = useTranslation('common');
@@ -201,7 +183,8 @@ export const Navbar = () => {
     const router = useRouter();
     const status = useCasparStatus();
     const statusLabel = t(`casparStatus.${status.key}`);
-    const [collapsed, toggleCollapsed] = useNavbarCollapsed();
+    const [collapsed, setCollapsed] = useStoredBoolean(STORAGE_KEY, false);
+    const toggleCollapsed = () => setCollapsed(v => !v);
     const [authEnabled, setAuthEnabled] = useState(false);
 
     useEffect(() => {

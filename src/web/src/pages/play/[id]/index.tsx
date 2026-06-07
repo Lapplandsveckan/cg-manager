@@ -3,6 +3,7 @@ import {useTranslation} from 'next-i18next';
 import {Box, Stack, Tooltip, Typography} from '@mui/material';
 import {useRouter} from 'next/router';
 import {noTry} from 'no-try';
+import {getStorageItem, setStorageItem} from '../../../lib/storage';
 import {useDragAutoScroll} from '../../../lib/hooks/useDragAutoScroll';
 import {DefaultContentLayout} from '../../../components/DefaultContentLayout';
 import {useSocket} from '../../../lib/hooks/useSocket';
@@ -28,16 +29,11 @@ function clampWidth(w: number): number {
 }
 
 function loadStoredWidths(): number[] | null {
-    if (typeof window === 'undefined') return null;
-    const [err, result] = noTry(() => {
-        const raw = window.localStorage.getItem(STORAGE_KEY);
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!Array.isArray(parsed) || parsed.length !== COLUMN_DEFAULTS.length) return null;
-        return parsed.map((v) => clampWidth(Number(v) || MIN_COLUMN_WIDTH));
-    });
-
-    return err ? null : result;
+    const raw = getStorageItem(STORAGE_KEY);
+    if (!raw) return null;
+    const [err, parsed] = noTry(() => JSON.parse(raw));
+    if (err || !Array.isArray(parsed) || parsed.length !== COLUMN_DEFAULTS.length) return null;
+    return parsed.map((v: unknown) => clampWidth(Number(v) || MIN_COLUMN_WIDTH));
 }
 
 function useColumnWidths(): [number[], (index: number, width: number) => void] {
@@ -51,7 +47,7 @@ function useColumnWidths(): [number[], (index: number, width: number) => void] {
     const setWidth = (index: number, width: number) => {
         setWidths((prev) => {
             const next = prev.map((v, i) => i === index ? clampWidth(width) : v);
-            noTry(() => window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)));
+            setStorageItem(STORAGE_KEY, JSON.stringify(next));
             return next;
         });
     };
