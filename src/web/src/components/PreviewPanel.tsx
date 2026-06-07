@@ -1,4 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
+import {noTry, noTryAsync} from 'no-try';
 import {
     Box,
     Button,
@@ -99,7 +100,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
         let pc: RTCPeerConnection | null = null;
 
         (async () => {
-            try {
+            const [e] = await noTryAsync(async () => {
                 pc = new RTCPeerConnection();
                 pc.addTransceiver('video', {direction: 'recvonly'});
 
@@ -122,7 +123,9 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                 if (abort.signal.aborted) return;
 
                 await pc.setRemoteDescription({type: 'answer', sdp: answerSdp});
-            } catch (e) {
+            });
+
+            if (e) {
                 if (abort.signal.aborted) return;
                 setError((e as Error).message ?? t('media.preview.errors.startFailed'));
             }
@@ -131,8 +134,8 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
         return () => {
             abort.abort();
             if (pc) {
-                try { pc.getSenders().forEach((s) => s.track?.stop()); } catch { /* noop */ }
-                try { pc.close(); } catch { /* noop */ }
+                noTry(() => pc.getSenders().forEach((s) => s.track?.stop()));
+                noTry(() => pc.close());
             }
             const video = videoRef.current;
             if (video) video.srcObject = null;

@@ -1,3 +1,4 @@
+import {noTryAsync} from 'no-try';
 import config, { loadConfig } from './util/config';
 import {Logger} from './util/log';
 import {CGServer} from './api/server';
@@ -67,7 +68,7 @@ export function stop() {
 
 let stopHandler: () => Promise<void> | void;
 async function main() {
-    try {
+    const [err] = await noTryAsync(async () => {
         process.on('uncaughtException', (e) => {
             Logger.error(e);
             if (config.dev) stop();
@@ -112,8 +113,10 @@ async function main() {
                 return false;
             });
         });
-    } catch (e) {
-        Logger.error(e);
+    });
+
+    if (err) {
+        Logger.error(err);
         process.exit(1);
     }
 }

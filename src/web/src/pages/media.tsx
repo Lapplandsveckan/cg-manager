@@ -96,14 +96,13 @@ const Page = () => {
         if (!deleting || !socket) return;
         setBusy(true);
         setError(null);
-        try {
-            await socket.caspar.deleteMedia(deleting.id);
+        const [err] = await noTryAsync(() => socket.caspar.deleteMedia(deleting.id));
+        if (err)
+            setError((err as Error)?.message ?? t('media.errors.deleteFailed'));
+        else
             setDeleting(null);
-        } catch (e) {
-            setError((e as Error)?.message ?? t('media.errors.deleteFailed'));
-        } finally {
-            setBusy(false);
-        }
+
+        setBusy(false);
     };
 
     const confirmRename = async () => {
@@ -115,14 +114,13 @@ const Page = () => {
         }
         setBusy(true);
         setError(null);
-        try {
-            await socket.caspar.renameMedia(renaming.id, next);
+        const [err] = await noTryAsync(async () => socket.caspar.renameMedia(renaming.id, next));
+        if (err)
+            setError((err as Error)?.message ?? t('media.errors.renameFailed'));
+        else
             setRenaming(null);
-        } catch (e) {
-            setError((e as Error)?.message ?? t('media.errors.renameFailed'));
-        } finally {
-            setBusy(false);
-        }
+
+        setBusy(false);
     };
 
     const confirmRenameFolder = async () => {

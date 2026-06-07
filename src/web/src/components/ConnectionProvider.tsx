@@ -1,4 +1,5 @@
 import React, {useContext, useEffect, useRef, useState} from 'react';
+import {noTryAsync} from 'no-try';
 import {useSocket} from '../lib/hooks/useSocket';
 
 export type ConnectionState = 'connected' | 'reconnecting' | 'disconnected';
@@ -48,12 +49,8 @@ export const ConnectionProvider: React.FC<{children: React.ReactNode}> = ({child
                 const t = setTimeout(() => reject(new Error('timeout')), HEARTBEAT_TIMEOUT_MS);
                 if (cancelled) clearTimeout(t);
             });
-            try {
-                await Promise.race([socket.getApiVersion(), timeoutPromise]);
-                return true;
-            } catch {
-                return false;
-            }
+            const [err] = await noTryAsync(() => Promise.race([socket.getApiVersion(), timeoutPromise]));
+            return !err;
         };
 
         const tick = async () => {

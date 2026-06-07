@@ -2,6 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {useTranslation} from 'next-i18next';
 import {Box, Stack, Tooltip, Typography} from '@mui/material';
 import {useRouter} from 'next/router';
+import {noTry} from 'no-try';
 import {useDragAutoScroll} from '../../../lib/hooks/useDragAutoScroll';
 import {DefaultContentLayout} from '../../../components/DefaultContentLayout';
 import {useSocket} from '../../../lib/hooks/useSocket';
@@ -28,15 +29,15 @@ function clampWidth(w: number): number {
 
 function loadStoredWidths(): number[] | null {
     if (typeof window === 'undefined') return null;
-    try {
+    const [err, result] = noTry(() => {
         const raw = window.localStorage.getItem(STORAGE_KEY);
         if (!raw) return null;
         const parsed = JSON.parse(raw);
         if (!Array.isArray(parsed) || parsed.length !== COLUMN_DEFAULTS.length) return null;
         return parsed.map((v) => clampWidth(Number(v) || MIN_COLUMN_WIDTH));
-    } catch {
-        return null;
-    }
+    });
+
+    return err ? null : result;
 }
 
 function useColumnWidths(): [number[], (index: number, width: number) => void] {
@@ -50,11 +51,7 @@ function useColumnWidths(): [number[], (index: number, width: number) => void] {
     const setWidth = (index: number, width: number) => {
         setWidths((prev) => {
             const next = prev.map((v, i) => i === index ? clampWidth(width) : v);
-            try {
-                window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-            } catch {
-                // best-effort persistence; ignore quota/private-mode errors
-            }
+            noTry(() => window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next)));
             return next;
         });
     };

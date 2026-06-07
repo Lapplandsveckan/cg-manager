@@ -3,6 +3,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import {useCallback, useEffect, useState} from 'react';
+import {noTryAsync} from 'no-try';
 import {useTranslation} from 'next-i18next';
 import {type VideoRoute, type VideoRouteSource, type VideoRouteDestination} from '../../lib/api/videoRoutes';
 import {RouteSourceTypePicker, type SourceType} from '../../components/routes/RouteSourceTypePicker';
@@ -239,28 +240,30 @@ const Page = () => {
     const toggle = useCallback(async (id: string, next: boolean) => {
         if (!socket) return;
         setRoutes(prev => prev?.map(r => r.id === id ? { ...r, enabled: next } : r) ?? prev);
-        try {
-            const updated = await socket.videoRoutes.setEnabled(id, next);
-            setRoutes(prev => prev?.map(r => r.id === id ? updated : r) ?? prev);
-        } catch (e) {
+        const [err, updated] = await noTryAsync(async () => socket.videoRoutes.setEnabled(id, next));
+        if (err) {
             setRoutes(prev => prev?.map(r => r.id === id ? { ...r, enabled: !next } : r) ?? prev);
-            setError((e as Error)?.message ?? 'Failed to toggle route');
+            setError((err as Error)?.message ?? 'Failed to toggle route');
+            return;
         }
+
+        setRoutes(prev => prev?.map(r => r.id === id ? updated : r) ?? prev);
     }, [socket]);
 
     const confirmDelete = async () => {
         if (!socket || !deleting) return;
         setBusy(true);
         setError(null);
-        try {
-            await socket.videoRoutes.delete(deleting.id);
+
+        const [err] = await noTryAsync(async () => socket.videoRoutes.delete(deleting.id));
+        if (err) {
+            setError((err as Error)?.message ?? 'Failed to delete route');
+        } else {
             setRoutes(prev => prev?.filter(r => r.id !== deleting.id) ?? prev);
             setDeleting(null);
-        } catch (e) {
-            setError((e as Error)?.message ?? 'Failed to delete route');
-        } finally {
-            setBusy(false);
         }
+
+        setBusy(false);
     };
 
     const saveRoute = async (data: Omit<VideoRoute, 'id'>) => {

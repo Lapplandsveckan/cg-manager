@@ -2,6 +2,7 @@ import {useRouter} from 'next/router';
 import {useCallback, useEffect, useState} from 'react';
 import {Box, Button, Card, Stack, Switch, Typography, alpha} from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import {noTryAsync} from 'no-try';
 import {useTranslation} from 'next-i18next';
 import {type Plugin} from '../../../../lib/api/plugin';
 import {Injections, UI_INJECTION_ZONE} from '../../../../lib/api/inject';
@@ -63,14 +64,15 @@ const Page = () => {
     const togglePlugin = useCallback(async (next: boolean) => {
         if (!socket || !pluginId) return;
         setPlugin(prev => prev ? { ...prev, enabled: next } : prev);
-        try {
-            const confirmed = await socket.plugin.setEnabled(pluginId, next);
-            const settled = typeof confirmed === 'boolean' ? confirmed : next;
-            setPlugin(prev => prev ? { ...prev, enabled: settled } : prev);
-        } catch (e) {
+        const [err, confirmed] = await noTryAsync(async () => socket.plugin.setEnabled(pluginId, next));
+        if (err) {
             setPlugin(prev => prev ? { ...prev, enabled: !next } : prev);
-            console.error(`Failed to toggle plugin "${pluginId}"`, e);
+            console.error(`Failed to toggle plugin "${pluginId}"`, err);
+            return;
         }
+
+        const settled = typeof confirmed === 'boolean' ? confirmed : next;
+        setPlugin(prev => prev ? { ...prev, enabled: settled } : prev);
     }, [socket, pluginId]);
 
     return (

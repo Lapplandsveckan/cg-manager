@@ -1,3 +1,5 @@
+import {noTry} from 'no-try';
+
 /**
  * Drag contract for adding items to a rundown via drag-and-drop.
  *
@@ -44,14 +46,10 @@ export function parseRundownItemPayload(dt: DataTransfer | null): RundownItemDra
     if (!dt) return null;
     const raw = dt.getData(RUNDOWN_ITEM_DRAG_MIME);
     if (!raw) return null;
-    try {
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') return null;
-        if (typeof (parsed as { type?: unknown }).type !== 'string') return null;
-        return parsed as RundownItemDragPayload;
-    } catch {
-        return null;
-    }
+    const [, parsed] = noTry(() => JSON.parse(raw));
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (typeof (parsed as { type?: unknown }).type !== 'string') return null;
+    return parsed as RundownItemDragPayload;
 }
 
 /**
@@ -82,14 +80,10 @@ export function parseMediaMovePayload(dt: DataTransfer | null): MediaMoveDragPay
     if (!dt) return null;
     const raw = dt.getData(MEDIA_MOVE_DRAG_MIME);
     if (!raw) return null;
-    try {
-        const parsed = JSON.parse(raw);
-        if (!parsed || typeof parsed !== 'object') return null;
-        if (typeof (parsed as { id?: unknown }).id !== 'string') return null;
-        return parsed as MediaMoveDragPayload;
-    } catch {
-        return null;
-    }
+    const [, parsed] = noTry(() => JSON.parse(raw));
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (typeof (parsed as { id?: unknown }).id !== 'string') return null;
+    return parsed as MediaMoveDragPayload;
 }
 
 export function hasMediaMovePayload(dt: DataTransfer | null): boolean {

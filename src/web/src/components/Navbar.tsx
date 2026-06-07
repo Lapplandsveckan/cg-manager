@@ -15,7 +15,7 @@ import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LanguageIcon from '@mui/icons-material/Language';
-import {noTryAsync} from 'no-try';
+import {noTry, noTryAsync} from 'no-try';
 import {type CasparStatus} from '../lib/api/caspar';
 import {useConnection} from './ConnectionProvider';
 import {useSocket} from '../lib/hooks/useSocket';
@@ -127,17 +127,14 @@ function useNavbarCollapsed(): [boolean, () => void] {
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
-        try {
-            setCollapsed(window.localStorage.getItem(STORAGE_KEY) === '1');
-        } catch {
-            /* ignore */
-        }
+        const [, item] = noTry(() => window.localStorage.getItem(STORAGE_KEY));
+        setCollapsed(item === '1');
     }, []);
 
     const toggle = () => {
         setCollapsed(prev => {
             const next = !prev;
-            try { window.localStorage.setItem(STORAGE_KEY, next ? '1' : '0'); } catch { /* ignore */ }
+            noTry(() => window.localStorage.setItem(STORAGE_KEY, next ? '1' : '0'));
             return next;
         });
     };

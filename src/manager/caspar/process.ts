@@ -1,6 +1,7 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import { EventEmitter } from 'events';
 import path from 'path';
+import {noTryAsync} from 'no-try';
 import {Logger} from '../../util/log';
 import config from '../../util/config';
 import {configuration} from '../config';
@@ -47,7 +48,8 @@ export class CasparProcess extends EventEmitter {
         // dedupes those concurrent calls.
         if (this.process || this.starting) return;
         this.starting = true;
-        try {
+
+        await noTryAsync(async () => {
             configuration.setPath(this.casparPath);
             this.config = await configuration.get(); // ensure right config
 
@@ -99,9 +101,9 @@ export class CasparProcess extends EventEmitter {
             });
 
             this.emit('status', this.getStatus());
-        } finally {
-            this.starting = false;
-        }
+        });
+
+        this.starting = false;
     }
 
     async stop() {

@@ -1,5 +1,6 @@
 import net from 'net';
 import {CommandExecutor} from '@lappis/cg-manager';
+import {noTry} from 'no-try';
 import {Logger} from '../../util/log';
 import {getTemplatesWithContent} from '../scanner/scanner';
 
@@ -101,8 +102,10 @@ export class CasparExecutor extends CommandExecutor {
             // Snapshot the listener list so a handler that subscribes/
             // unsubscribes during dispatch doesn't disturb iteration.
             const handlers = this.reconnectListeners.slice();
-            for (const handler of handlers)
-                try { handler(); } catch (e) { Logger.error(e as Error); }
+            for (const handler of handlers) {
+                const [err] = noTry(() => handler());
+                if (err) Logger.error(err as Error);
+            }
 
         }
     }

@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import {useTranslation} from 'next-i18next';
+import {noTryAsync} from 'no-try';
 import {type VideoRoute, type VideoRouteSource, type VideoRouteDestination} from '../../lib/api/videoRoutes';
 import type {SourceType} from './RouteSourceTypePicker';
 import {type DraftSource, SourceFields, defaultSourceFor, sourceToDraft} from './RouteSourceFields';
@@ -222,7 +223,7 @@ export const RouteModal: React.FC<RouteModalProps> = ({
 
         setBusy(true);
         setError(null);
-        try {
+        const [err] = await noTryAsync(async () => {
             await onSave({
                 name: name.trim(),
                 source: src,
@@ -237,11 +238,10 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                 ...(route?.metadata      ? {metadata:    route.metadata}       : {}),
             });
             onClose();
-        } catch (e) {
-            setError((e as Error)?.message ?? t('videoRoutes.errors.saveFailed'));
-        } finally {
-            setBusy(false);
-        }
+        });
+
+        if (err) setError((err as Error)?.message ?? t('videoRoutes.errors.saveFailed'));
+        setBusy(false);
     };
 
     const title = route

@@ -7,6 +7,7 @@ import VerticalAlignBottomRoundedIcon from '@mui/icons-material/VerticalAlignBot
 import DeleteSweepRoundedIcon from '@mui/icons-material/DeleteSweepRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import {useTranslation} from 'next-i18next';
+import {noTryAsync} from 'no-try';
 import type {TFunction} from 'i18next';
 import {useSocket} from '../lib/hooks/useSocket';
 import {DefaultContentLayout} from '../components/DefaultContentLayout';
@@ -254,13 +255,9 @@ const Page = () => {
         if (!socket) return;
         setBusy(action);
         setError(null);
-        try {
-            await socket.caspar[action]();
-        } catch (e) {
-            setError((e as Error)?.message ?? t(`serverPage.errors.${action}`));
-        } finally {
-            setBusy(null);
-        }
+        const [err] = await noTryAsync(() => socket.caspar[action]());
+        if (err) setError((err as Error)?.message ?? t(`serverPage.errors.${action}`));
+        setBusy(null);
     };
 
     return (

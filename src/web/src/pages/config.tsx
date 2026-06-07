@@ -2,6 +2,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {Alert, Box, Button, CircularProgress, Stack, Typography} from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import {useTranslation} from 'next-i18next';
+import {noTryAsync} from 'no-try';
 import {DefaultContentLayout} from '../components/DefaultContentLayout';
 import {useSocket} from '../lib/hooks/useSocket';
 import {type CasparConfig} from '../lib/api/caspar';
@@ -85,15 +86,14 @@ const Page = () => {
         if (!draft || saving) return;
         setSaving(true);
         setError(null);
-        try {
-            const saved = await socket.caspar.updateConfig(draft);
+        const [err, saved] = await noTryAsync(() => socket.caspar.updateConfig(draft));
+        if (!err && saved) {
             setOriginal(saved);
             setDraft(saved);
-        } catch (e: any) {
-            setError(e?.message ?? t('config.errors.saveFailed'));
-        } finally {
-            setSaving(false);
+        } else if (err) {
+            setError((err as any)?.message ?? t('config.errors.saveFailed'));
         }
+        setSaving(false);
     };
 
     const discard = () => {
@@ -198,8 +198,8 @@ const Page = () => {
                                 disabled={restarting}
                                 onClick={async () => {
                                     setRestarting(true);
-                                    try { await socket.caspar.restart(); }
-                                    finally { setRestarting(false); }
+                                    await noTryAsync(() => socket.caspar.restart());
+                                    setRestarting(false);
                                 }}
                             >
                                 {restarting ? t('config.restarting') : t('config.restartNow')}

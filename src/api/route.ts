@@ -1,5 +1,6 @@
 import {type Method} from 'rest-exchange-protocol';
 import {type Route} from 'rest-exchange-protocol/dist/route';
+import {noTry} from 'no-try';
 import {Logger} from '../util/log';
 import files from './_routes';
 
@@ -13,7 +14,7 @@ export function loadRoutes() {
 
     const routes: Route[] = [];
     files.forEach((file) => {
-        try {
+        const [err] = noTry(() => {
             const fileName = file[0].replace(/\$/g, ':');
             const routeExport = file[1];
 
@@ -26,8 +27,10 @@ export function loadRoutes() {
                     handler,
                 });
             });
-        } catch (e) {
-            logger.error(e);
+        });
+
+        if (err) {
+            logger.error(err);
             logger.error(`Failed to load route: ${file}`);
         }
     });

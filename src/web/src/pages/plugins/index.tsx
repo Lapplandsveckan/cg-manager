@@ -2,6 +2,7 @@ import {Box, Card, Stack, Switch, Typography, alpha} from '@mui/material';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import {useCallback, useEffect, useState} from 'react';
 import {useRouter} from 'next/router';
+import {noTryAsync} from 'no-try';
 import {useTranslation} from 'next-i18next';
 import {useSocket} from '../../lib/hooks/useSocket';
 import {DefaultContentLayout} from '../../components/DefaultContentLayout';
@@ -124,16 +125,16 @@ const Page = () => {
     const togglePlugin = useCallback(async (name: string, next: boolean) => {
         if (!socket) return;
         setPlugins(prev => prev?.map(p => p.name === name ? { ...p, enabled: next } : p) ?? prev);
-        try {
-            const confirmed = await socket.plugin.setEnabled(name, next);
-            // Guard: if the server response shape is unexpected, keep the optimistic value
-            // rather than poisoning the controlled state with undefined.
-            const settled = typeof confirmed === 'boolean' ? confirmed : next;
-            setPlugins(prev => prev?.map(p => p.name === name ? { ...p, enabled: settled } : p) ?? prev);
-        } catch (e) {
+        const [err, confirmed] = await noTryAsync(async () => socket.plugin.setEnabled(name, next));
+        if (err) {
             setPlugins(prev => prev?.map(p => p.name === name ? { ...p, enabled: !next } : p) ?? prev);
-            console.error(`Failed to toggle plugin "${name}"`, e);
+            console.error(`Failed to toggle plugin "${name}"`, err);
+            return;
         }
+        // Guard: if the server response shape is unexpected, keep the optimistic value
+        // rather than poisoning the controlled state with undefined.
+        const settled = typeof confirmed === 'boolean' ? confirmed : next;
+        setPlugins(prev => prev?.map(p => p.name === name ? { ...p, enabled: settled } : p) ?? prev);
     }, [socket]);
 
     return (
