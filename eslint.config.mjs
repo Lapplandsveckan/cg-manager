@@ -2,6 +2,7 @@ import tseslint from 'typescript-eslint';
 import eslintJs from '@eslint/js';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import importXPlugin from 'eslint-plugin-import-x';
+import prettierConfig from 'eslint-config-prettier';
 import globals from 'globals';
 
 // globals package has trailing-space keys in some entries (e.g. "AudioWorkletGlobalScope ")
@@ -35,27 +36,6 @@ export default tseslint.config(
             },
         },
         rules: {
-            // Formatting
-            'semi': ['error', 'always'],
-            'quotes': ['error', 'single'],
-            'indent': ['error', 4, { SwitchCase: 1 }],
-            'no-tabs': 'error',
-            'no-trailing-spaces': 'error',
-            'eol-last': ['error', 'always'],
-            'comma-dangle': ['error', 'always-multiline'],
-            'comma-spacing': ['error', { before: false, after: true }],
-            'array-bracket-spacing': ['error', 'never'],
-            'array-element-newline': ['error', 'consistent'],
-            'max-len': ['error', {
-                code: 120,
-                ignoreComments: true,
-                ignoreTrailingComments: true,
-                ignoreUrls: true,
-                ignoreStrings: true,
-                ignoreTemplateLiterals: true,
-                ignoreRegExpLiterals: true,
-            }],
-
             // Structure
             'max-depth': ['error', 4],
             'max-lines': ['error', 500],
@@ -80,6 +60,7 @@ export default tseslint.config(
             'object-shorthand': ['error', 'always'],
             'arrow-body-style': ['error', 'as-needed'],
             'camelcase': 'error',
+            'newline-per-chained-call': ['error', { ignoreChainWithDepth: 2 }],
 
             // Imports
             'no-duplicate-imports': 'off',
@@ -127,4 +108,5 @@ export default tseslint.config(
             }],
         },
     },
+    prettierConfig,
 );

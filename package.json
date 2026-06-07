@@ -11,6 +11,8 @@
     "start": "cd test && ts-node ../src/index.ts",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write src",
+    "format:check": "prettier --check src",
     "tsc": "tsc --noEmit"
   },
   "dependencies": {
@@ -63,8 +65,10 @@
     "@types/xml2js": "^0.4.14",
     "@yao-pkg/pkg": "^6.1.1",
     "eslint": "^9",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import-x": "^4",
     "eslint-plugin-react-hooks": "^5",
+    "prettier": "^3.8.3",
     "ts-node": "^10.9.1",
     "typescript": "^4.9.5",
     "typescript-eslint": "^8"
