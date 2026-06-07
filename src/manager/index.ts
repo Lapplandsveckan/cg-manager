@@ -1,17 +1,17 @@
-import {EventEmitter} from 'events';
-import {EffectRegistry} from '@lappis/cg-manager';
-import {Logger} from '../util/log';
-import {MediaScanner} from './scanner';
-import {CasparProcess, type CasparStatus} from './caspar/process';
-import {CasparExecutor} from './caspar/executor';
-import {PluginManager} from './plugins/plugin';
-import {type CGServer} from '../api/server';
-import {DirectoryManager} from './scanner/dir';
-import {FileDatabase} from './scanner/db';
-import {UIInjector} from './plugins/ui';
-import {RundownManager} from './rundown/rundown';
-import {VideoRoutesManager} from './routes/routes';
-import {PreviewManager} from './preview/preview';
+import { EventEmitter } from 'events';
+import { EffectRegistry } from '@lappis/cg-manager';
+import { Logger } from '../util/log';
+import { MediaScanner } from './scanner';
+import { CasparProcess, type CasparStatus } from './caspar/process';
+import { CasparExecutor } from './caspar/executor';
+import { PluginManager } from './plugins/plugin';
+import { type CGServer } from '../api/server';
+import { DirectoryManager } from './scanner/dir';
+import { FileDatabase } from './scanner/db';
+import { UIInjector } from './plugins/ui';
+import { RundownManager } from './rundown/rundown';
+import { VideoRoutesManager } from './routes/routes';
+import { PreviewManager } from './preview/preview';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
@@ -29,7 +29,8 @@ export class CasparManager extends EventEmitter {
         this.emit('caspar-status', status);
     private readonly onCasparStatusReconnect = (status: CasparStatus) =>
         status.running ? this.executor.connect() : this.executor.disconnect();
-    private readonly onCasparLog = (log: string) => this.emit('caspar-logs', log);
+    private readonly onCasparLog = (log: string) =>
+        this.emit('caspar-logs', log);
     // Re-emit the CasparCG running-config event for UI consumers (preview
     // chips, config drift banner). The executor already buffers / drops
     // commands aimed at non-existent channels, so routes targeting missing
@@ -46,7 +47,8 @@ export class CasparManager extends EventEmitter {
 
     private static instance: CasparManager;
     public static getManager() {
-        if (!CasparManager.instance) CasparManager.instance = new CasparManager();
+        if (!CasparManager.instance)
+            CasparManager.instance = new CasparManager();
         return CasparManager.instance;
     }
 
@@ -102,9 +104,13 @@ export class CasparManager extends EventEmitter {
 
         const channels = this.caspar.config?.channels;
         if (!channels) {
-            Logger.warn('Skipping channel allocation: CasparCG config has no channels.');
+            Logger.warn(
+                'Skipping channel allocation: CasparCG config has no channels.',
+            );
         } else {
-            Logger.info(`Allocating ${channels.length} channel${channels.length === 1 ? '' : 's'}...`);
+            Logger.info(
+                `Allocating ${channels.length} channel${channels.length === 1 ? '' : 's'}...`,
+            );
             for (let i = 0; i < channels.length; i++)
                 this.executor.allocateChannel(i + 1);
         }

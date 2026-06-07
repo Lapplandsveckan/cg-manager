@@ -1,20 +1,22 @@
 import {
     type Client,
-    type Method, type MiddleWareData,
+    type Method,
+    type MiddleWareData,
     MiddlewareProhibitFurtherExecution,
     REPServer,
     type TypedClient,
-    WebsocketClient, WebsocketOutboundMethod,
+    WebsocketClient,
+    WebsocketOutboundMethod,
 } from 'rest-exchange-protocol';
-import {type Route} from 'rest-exchange-protocol/dist/route';
-import {noTry, noTryAsync} from 'no-try';
-import {loadRoutes} from './route';
-import {type CasparManager} from '../manager';
-import {handleRequest, onUpgrade} from '../web';
-import {Logger} from '../util/log';
-import {Upload} from '../manager/scanner/upload';
-import {AuthManager} from './auth';
-import {isInternalMediaId} from '../manager/scanner/folders';
+import { type Route } from 'rest-exchange-protocol/dist/route';
+import { noTry, noTryAsync } from 'no-try';
+import { loadRoutes } from './route';
+import { type CasparManager } from '../manager';
+import { handleRequest, onUpgrade } from '../web';
+import { Logger } from '../util/log';
+import { Upload } from '../manager/scanner/upload';
+import { AuthManager } from './auth';
+import { isInternalMediaId } from '../manager/scanner/folders';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type CGClient = TypedClient<{}>;
@@ -31,7 +33,7 @@ export class CGServer {
         });
 
         const routes = loadRoutes();
-        routes.forEach((route) => this.server.register(route));
+        routes.forEach(route => this.server.register(route));
 
         // this.server.use(this.log());
 
@@ -55,19 +57,29 @@ export class CGServer {
         this.server.use(this.upload());
         this.server.use(this.web());
 
-        this.manager.on('caspar-status', (status) => {
+        this.manager.on('caspar-status', status => {
             const clients = this.server.getClients();
-            clients.forEach((client) => {
+            clients.forEach(client => {
                 if (!(client instanceof WebsocketClient)) return;
-                client.send('caspar/status', WebsocketOutboundMethod.ACTION, status, false);
+                client.send(
+                    'caspar/status',
+                    WebsocketOutboundMethod.ACTION,
+                    status,
+                    false,
+                );
             });
         });
 
-        this.manager.on('caspar-logs', (logs) => {
+        this.manager.on('caspar-logs', logs => {
             const clients = this.server.getClients();
-            clients.forEach((client) => {
+            clients.forEach(client => {
                 if (!(client instanceof WebsocketClient)) return;
-                client.send('caspar/logs', WebsocketOutboundMethod.ACTION, logs, false);
+                client.send(
+                    'caspar/logs',
+                    WebsocketOutboundMethod.ACTION,
+                    logs,
+                    false,
+                );
             });
         });
 
@@ -78,40 +90,66 @@ export class CGServer {
             // Skip entries the scanner couldn't actually probe (sidecar
             // files, .txt etc). `value === null` is a removal — still
             // broadcast so clients drop their cached entry.
-            if (value !== null && !(value as { mediainfo?: unknown })?.mediainfo) return;
+            if (
+                value !== null &&
+                !(value as { mediainfo?: unknown })?.mediainfo
+            )
+                return;
             const clients = this.server.getClients();
-            clients.forEach((client) => {
+            clients.forEach(client => {
                 if (!(client instanceof WebsocketClient)) return;
-                client.send('caspar/media', WebsocketOutboundMethod.ACTION, { key, value }, false);
+                client.send(
+                    'caspar/media',
+                    WebsocketOutboundMethod.ACTION,
+                    { key, value },
+                    false,
+                );
             });
         });
 
         // Running-config snapshot: emitted whenever CasparCG starts or stops.
         // Lets UI consumers (previews, routes) react to live capability
         // changes without polling /api/caspar/config/running.
-        this.manager.on('caspar-running-config', (cfg) => {
+        this.manager.on('caspar-running-config', cfg => {
             const clients = this.server.getClients();
-            clients.forEach((client) => {
+            clients.forEach(client => {
                 if (!(client instanceof WebsocketClient)) return;
-                client.send('caspar/running-config', WebsocketOutboundMethod.ACTION, cfg, false);
+                client.send(
+                    'caspar/running-config',
+                    WebsocketOutboundMethod.ACTION,
+                    cfg,
+                    false,
+                );
             });
         });
 
         // Video route mutations (create / update / delete) — forwarded so
         // clients can refresh without polling. UPDATE / CREATE carry the
         // full route; DELETE carries the id string.
-        this.manager.on('route-change', ({method, data}: {
-            method: 'CREATE' | 'UPDATE' | 'DELETE';
-            data: unknown;
-        }) => {
-            this.broadcast('routes', WebsocketOutboundMethod[method], data);
-        });
+        this.manager.on(
+            'route-change',
+            ({
+                method,
+                data,
+            }: {
+                method: 'CREATE' | 'UPDATE' | 'DELETE';
+                data: unknown;
+            }) => {
+                this.broadcast('routes', WebsocketOutboundMethod[method], data);
+            },
+        );
     }
 
-    public broadcast<T>(target: string, method: WebsocketOutboundMethod, data: T, exclude?: Client) {
+    public broadcast<T>(
+        target: string,
+        method: WebsocketOutboundMethod,
+        data: T,
+        exclude?: Client,
+    ) {
         const clients = this.server.getClients();
-        clients.forEach((client) => {
-            if (client === exclude || !(client instanceof WebsocketClient)) return;
+        clients.forEach(client => {
+            if (client === exclude || !(client instanceof WebsocketClient))
+                return;
             client.send(target, method, data, false);
         });
     }
@@ -119,7 +157,9 @@ export class CGServer {
     log() {
         return async (data: MiddleWareData) => {
             if (data.type !== 'pre-route') return;
-            Logger.scope('API').debug(`${data.route.method} ${data.route.path}`);
+            Logger.scope('API').debug(
+                `${data.route.method} ${data.route.path}`,
+            );
         };
     }
 
@@ -146,15 +186,18 @@ export class CGServer {
                 if (url.startsWith('/api/auth/')) return;
                 if (data.request.method === 'OPTIONS') return;
 
-                const isProtected = url.startsWith('/api') || url.startsWith('/preview-whep');
+                const isProtected =
+                    url.startsWith('/api') || url.startsWith('/preview-whep');
                 if (!isProtected) return;
 
-                const token = AuthManager.readToken(data.request.headers.cookie);
+                const token = AuthManager.readToken(
+                    data.request.headers.cookie,
+                );
                 if (AuthManager.touch(token)) return;
 
                 data.response.statusCode = 401;
                 data.response.setHeader('Content-Type', 'application/json');
-                data.response.end(JSON.stringify({error: 'Unauthorized'}));
+                data.response.end(JSON.stringify({ error: 'Unauthorized' }));
                 throw new MiddlewareProhibitFurtherExecution();
             }
 
@@ -162,7 +205,9 @@ export class CGServer {
                 const url = data.request.url ?? '';
                 if (url.startsWith('/_next/')) return;
 
-                const token = AuthManager.readToken(data.request.headers.cookie);
+                const token = AuthManager.readToken(
+                    data.request.headers.cookie,
+                );
                 if (AuthManager.touch(token)) return;
 
                 // No clean 401 path for WS upgrades — abort the socket.
@@ -191,35 +236,47 @@ export class CGServer {
             };
 
             if (url === '/api/auth/check' && data.request.method === 'GET') {
-                const token = AuthManager.readToken(data.request.headers.cookie);
+                const token = AuthManager.readToken(
+                    data.request.headers.cookie,
+                );
                 end(200, {
                     enabled: AuthManager.enabled,
-                    authenticated: !AuthManager.enabled || AuthManager.touch(token),
+                    authenticated:
+                        !AuthManager.enabled || AuthManager.touch(token),
                 });
                 return;
             }
 
             if (url === '/api/auth/login' && data.request.method === 'POST') {
                 const body = await this.readJsonBody(data.request);
-                const password = (body as { password?: unknown } | null)?.password;
+                const password = (body as { password?: unknown } | null)
+                    ?.password;
                 if (!(await AuthManager.verifyPassword(password)))
-                    return end(401, {error: 'Invalid password'});
+                    return end(401, { error: 'Invalid password' });
 
                 const token = AuthManager.createSession();
-                data.response.setHeader('Set-Cookie', AuthManager.cookieHeader(token));
-                return end(200, {ok: true});
+                data.response.setHeader(
+                    'Set-Cookie',
+                    AuthManager.cookieHeader(token),
+                );
+                return end(200, { ok: true });
             }
 
             if (url === '/api/auth/logout' && data.request.method === 'POST') {
-                const token = AuthManager.readToken(data.request.headers.cookie);
+                const token = AuthManager.readToken(
+                    data.request.headers.cookie,
+                );
                 AuthManager.invalidate(token);
-                data.response.setHeader('Set-Cookie', AuthManager.clearCookieHeader());
-                return end(200, {ok: true});
+                data.response.setHeader(
+                    'Set-Cookie',
+                    AuthManager.clearCookieHeader(),
+                );
+                return end(200, { ok: true });
             }
 
             // Unknown /api/auth/* request — 404 so we don't fall through to
             // a route handler that would 404 anyway with worse messaging.
-            return end(404, {error: 'Not found'});
+            return end(404, { error: 'Not found' });
         };
     }
 
@@ -252,7 +309,9 @@ export class CGServer {
         return async (data: MiddleWareData) => {
             if (data.type !== 'http') return;
 
-            const match = data.request.url.match(/^\/preview-whep\/(\d+)(?:\?.*)?$/);
+            const match = data.request.url.match(
+                /^\/preview-whep\/(\d+)(?:\?.*)?$/,
+            );
             if (!match) return;
 
             if (data.request.method !== 'POST') {
@@ -271,7 +330,8 @@ export class CGServer {
 
             // Collect the SDP offer body.
             const chunks: Buffer[] = [];
-            for await (const chunk of data.request as unknown as AsyncIterable<Buffer>) chunks.push(chunk);
+            for await (const chunk of data.request as unknown as AsyncIterable<Buffer>)
+                chunks.push(chunk);
             const sdpOffer = Buffer.concat(chunks).toString('utf8');
             if (!sdpOffer.trim()) {
                 data.response.statusCode = 400;
@@ -280,11 +340,16 @@ export class CGServer {
             }
 
             const [err, session] = await noTryAsync(() =>
-                this.manager.preview.openWebRTC({channel, sdpOffer}));
+                this.manager.preview.openWebRTC({ channel, sdpOffer }),
+            );
             if (err || !session) {
-                Logger.scope('Preview').warn(`WHEP session failed: ${(err as Error)?.message}`);
+                Logger.scope('Preview').warn(
+                    `WHEP session failed: ${(err as Error)?.message}`,
+                );
                 data.response.statusCode = 503;
-                data.response.end((err as Error)?.message ?? 'Failed to open preview');
+                data.response.end(
+                    (err as Error)?.message ?? 'Failed to open preview',
+                );
                 throw new MiddlewareProhibitFurtherExecution();
             }
 
@@ -310,7 +375,10 @@ export class CGServer {
                 if (stop) throw new MiddlewareProhibitFurtherExecution();
             };
 
-            const url = new URL(data.request.url, `http://${data.request.headers.host}`);
+            const url = new URL(
+                data.request.url,
+                `http://${data.request.headers.host}`,
+            );
             const id = url.searchParams.get('id')?.toString();
             if (!id) return answer(400, 'No id provided');
 
@@ -318,10 +386,15 @@ export class CGServer {
             if (!upload) return answer(404, 'Upload not found');
 
             const chunk = parseInt(url.searchParams.get('chunk'));
-            if (Number.isNaN(chunk) || chunk < 0 || chunk >= upload['data'].total) return answer(400, 'Invalid chunk');
+            if (
+                Number.isNaN(chunk) ||
+                chunk < 0 ||
+                chunk >= upload['data'].total
+            )
+                return answer(400, 'Invalid chunk');
 
             const buffer: Uint8Array[] = [];
-            data.request.on('data', (chunk) => buffer.push(chunk));
+            data.request.on('data', chunk => buffer.push(chunk));
             data.request.on('end', () => {
                 upload.bufferChunk(chunk, Buffer.concat(buffer));
                 answer(200, 'OK', false);
@@ -333,7 +406,10 @@ export class CGServer {
 
     web() {
         return async data => {
-            if (data.type === 'websocket-upgrade' && data.request.url.startsWith('/_next/')) {
+            if (
+                data.type === 'websocket-upgrade' &&
+                data.request.url.startsWith('/_next/')
+            ) {
                 onUpgrade(data.request, data.socket, data.head);
                 throw new MiddlewareProhibitFurtherExecution();
             }
@@ -351,8 +427,14 @@ export class CGServer {
             if (data.type !== 'http') return;
 
             data.response.setHeader('Access-Control-Allow-Origin', '*');
-            data.response.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
-            data.response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Authentication');
+            data.response.setHeader(
+                'Access-Control-Allow-Methods',
+                'GET, POST, PUT, PATCH, DELETE',
+            );
+            data.response.setHeader(
+                'Access-Control-Allow-Headers',
+                'Content-Type, Authorization, Authentication',
+            );
 
             if (data.request.method !== 'OPTIONS') return;
 
@@ -371,7 +453,11 @@ export class CGServer {
         await this.server.stop();
     }
 
-    public registerRoute(path: string, handler: Route['handler'], method: Method) {
+    public registerRoute(
+        path: string,
+        handler: Route['handler'],
+        method: Method,
+    ) {
         const route = {
             method,
             path: `/api/${path}`,
@@ -385,7 +471,9 @@ export class CGServer {
     }
 
     public unregisterRoute(route: Route) {
-        Logger.scope('API').debug(`Unregistering route ${route.method} ${route.path}`);
+        Logger.scope('API').debug(
+            `Unregistering route ${route.method} ${route.path}`,
+        );
         this.server.unregister(route);
     }
 }

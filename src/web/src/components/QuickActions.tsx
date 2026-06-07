@@ -1,28 +1,41 @@
-import {ButtonBase, IconButton, Modal, Stack, Tooltip, Typography, alpha} from '@mui/material';
+import {
+    ButtonBase,
+    IconButton,
+    Modal,
+    Stack,
+    Tooltip,
+    Typography,
+    alpha,
+} from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import React, {useEffect, useState} from 'react';
-import {useTranslation} from 'next-i18next';
-import {useSocket} from '../lib';
-import {EditRundown, type Rundown} from '../pages/play';
-import {RundownModals} from './RundownModals';
-import {type RundownEntry, Rundowns, useRundownEntries} from './Rundowns';
-import {useStoredString} from '../lib/hooks/useStoredString';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'next-i18next';
+import { useSocket } from '../lib';
+import { EditRundown, type Rundown } from '../pages/play';
+import { RundownModals } from './RundownModals';
+import { type RundownEntry, Rundowns, useRundownEntries } from './Rundowns';
+import { useStoredString } from '../lib/hooks/useStoredString';
 
 function useQuickActions() {
     const conn = useSocket();
     const [quickActions, setQuickActions] = useState<Rundown[]>([]);
 
     useEffect(() => {
-        conn.rawRequest('/api/rundown/quick', 'GET', {})
-            .then(quickActions => setQuickActions(quickActions.data ?? []));
+        conn.rawRequest('/api/rundown/quick', 'GET', {}).then(quickActions =>
+            setQuickActions(quickActions.data ?? []),
+        );
 
         const updateListener = {
             path: 'rundown',
             method: 'UPDATE',
             handler: (request: any) =>
                 setQuickActions(quickActions =>
-                    quickActions.map(v => v.id === request.getData().id ? {...v, name: request.getData().name} : v),
+                    quickActions.map(v =>
+                        v.id === request.getData().id
+                            ? { ...v, name: request.getData().name }
+                            : v,
+                    ),
                 ),
         };
 
@@ -39,9 +52,11 @@ function useQuickActions() {
             path: 'rundown',
             method: 'CREATE',
             handler: (request: any) =>
-                request.getData().type === 'quick' && setQuickActions(
-                    quickActions => [...quickActions, request.getData()],
-                ),
+                request.getData().type === 'quick' &&
+                setQuickActions(quickActions => [
+                    ...quickActions,
+                    request.getData(),
+                ]),
         };
 
         conn.routes.register(updateListener);
@@ -55,10 +70,13 @@ function useQuickActions() {
         };
     }, []);
 
-
     const updateQuickAction = (entry: Rundown) => {
         conn.rawRequest(`/api/rundown/${entry.id}`, 'UPDATE', entry.name);
-        setQuickActions(quickActions.map(v => v.id === entry.id ? {...v, name: entry.name} : v));
+        setQuickActions(
+            quickActions.map(v =>
+                v.id === entry.id ? { ...v, name: entry.name } : v,
+            ),
+        );
     };
 
     const deleteQuickAction = (entry: Rundown) => {
@@ -66,11 +84,13 @@ function useQuickActions() {
         setQuickActions(quickActions.filter(v => v.id !== entry.id));
     };
 
-    const createQuickAction = (name: string): Promise<Rundown | null> => conn.rawRequest('/api/rundown/quick', 'CREATE', name)
-        .then(({ data }) => {
-            setQuickActions([...quickActions, data]);
-            return data as Rundown;
-        });
+    const createQuickAction = (name: string): Promise<Rundown | null> =>
+        conn
+            .rawRequest('/api/rundown/quick', 'CREATE', name)
+            .then(({ data }) => {
+                setQuickActions([...quickActions, data]);
+                return data as Rundown;
+            });
 
     return {
         quickActions,
@@ -87,24 +107,42 @@ interface QuickActionTabProps {
     onClick: () => void;
 }
 
-const QuickActionTab: React.FC<QuickActionTabProps> = ({ rundown, active, onClick }) => (
+const QuickActionTab: React.FC<QuickActionTabProps> = ({
+    rundown,
+    active,
+    onClick,
+}) => (
     <ButtonBase
         onClick={onClick}
-        sx={(theme) => ({
+        sx={theme => ({
             px: 1.75,
             py: 0.75,
             borderRadius: 1.5,
             border: `1px solid ${active ? theme.palette.primary.main : theme.palette.divider}`,
-            bgcolor: active ? alpha(theme.palette.primary.main, 0.12) : 'transparent',
-            color: active ? theme.palette.text.primary : theme.palette.text.secondary,
-            transition: theme.transitions.create(['background-color', 'border-color', 'color'], { duration: 120 }),
+            bgcolor: active
+                ? alpha(theme.palette.primary.main, 0.12)
+                : 'transparent',
+            color: active
+                ? theme.palette.text.primary
+                : theme.palette.text.secondary,
+            transition: theme.transitions.create(
+                ['background-color', 'border-color', 'color'],
+                {
+                    duration: 120,
+                },
+            ),
             '&:hover': {
-                bgcolor: alpha(theme.palette.primary.main, active ? 0.16 : 0.06),
+                bgcolor: alpha(
+                    theme.palette.primary.main,
+                    active ? 0.16 : 0.06,
+                ),
                 color: theme.palette.text.primary,
             },
         })}
     >
-        <Typography variant="body1" fontWeight={active ? 600 : 400}>{rundown.name}</Typography>
+        <Typography variant="body1" fontWeight={active ? 600 : 400}>
+            {rundown.name}
+        </Typography>
     </ButtonBase>
 );
 
@@ -113,7 +151,7 @@ interface QuickActionsProps {
 }
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const conn = useSocket();
 
     const {
@@ -124,12 +162,16 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     } = useQuickActions();
 
     const [quickAction, setQuickAction] = useStoredString('quickAction');
-    const {entries, updateEntry, deleteEntry, createEntry, reorderEntries} = useRundownEntries(quickAction);
+    const { entries, updateEntry, deleteEntry, createEntry, reorderEntries } =
+        useRundownEntries(quickAction);
 
     // Reconcile: clear selection if the saved id no longer exists in the list.
     useEffect(() => {
         if (!quickAction) return;
-        if (quickActions.length && !quickActions.some(q => q.id === quickAction))
+        if (
+            quickActions.length &&
+            !quickActions.some(q => q.id === quickAction)
+        )
             setQuickAction(null);
     }, [quickActions, quickAction]);
 
@@ -142,9 +184,14 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     // Drop-to-insert is now owned by the inner <Rundowns /> — when an item is
     // dropped on a specific spot we remember the index here and use it when
     // the editor saves so the new entry lands in the right place.
-    const [pendingDropIndex, setPendingDropIndex] = useState<number | undefined>(undefined);
+    const [pendingDropIndex, setPendingDropIndex] = useState<
+        number | undefined
+    >(undefined);
 
-    const openEditorForDrop = (payload: { type: string; data?: unknown; title?: string }, index?: number) => {
+    const openEditorForDrop = (
+        payload: { type: string; data?: unknown; title?: string },
+        index?: number,
+    ) => {
         setEditing({
             id: Math.random().toString(36).substring(2, 11),
             title: payload.title ?? t('rundown.newItemDefaultTitle'),
@@ -159,12 +206,18 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
         if (next === null) setPendingDropIndex(undefined);
     };
 
-    const createEntryAtPending = (entry: RundownEntry) => createEntry(entry, pendingDropIndex);
+    const createEntryAtPending = (entry: RundownEntry) =>
+        createEntry(entry, pendingDropIndex);
 
     return (
         <>
             <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
-                <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+                <Stack
+                    direction="row"
+                    alignItems="center"
+                    gap={1}
+                    flexWrap="wrap"
+                >
                     {quickActions.map(rundown => (
                         <QuickActionTab
                             key={rundown.id}
@@ -178,10 +231,12 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                         <IconButton
                             size="small"
                             onClick={async () => {
-                                const created = await createQuickAction(t('rundown.quickActions.defaultName'));
+                                const created = await createQuickAction(
+                                    t('rundown.quickActions.defaultName'),
+                                );
                                 if (created) setQuickAction(created.id);
                             }}
-                            sx={(theme) => ({
+                            sx={theme => ({
                                 border: `1px dashed ${theme.palette.divider}`,
                                 color: theme.palette.text.secondary,
                                 '&:hover': {
@@ -195,7 +250,9 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                     </Tooltip>
 
                     {selected && (
-                        <Tooltip title={t('rundown.quickActions.renameOrDelete')}>
+                        <Tooltip
+                            title={t('rundown.quickActions.renameOrDelete')}
+                        >
                             <IconButton
                                 size="small"
                                 onClick={() => setQuickEditing(selected)}
@@ -208,7 +265,10 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                 </Stack>
 
                 {quickActions.length === 0 && (
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary' }}
+                    >
                         {t('rundown.quickActions.empty')}
                     </Typography>
                 )}
@@ -218,7 +278,11 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                         entries={entries}
                         locked={locked}
                         onEdit={entry => setEditing(entry)}
-                        onPlay={entry => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
+                        onPlay={entry =>
+                            conn.rawRequest('/api/rundown/execute', 'ACTION', {
+                                entry,
+                            })
+                        }
                         onAdd={() => setAdding(true)}
                         onDropItem={openEditorForDrop}
                         onReorder={reorderEntries}
@@ -226,7 +290,10 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                 )}
 
                 {!selected && quickActions.length > 0 && (
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary' }}
+                    >
                         {t('rundown.quickActions.selectPrompt')}
                     </Typography>
                 )}
@@ -235,10 +302,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
             <RundownModals
                 editing={editing}
                 setEditing={handleSetEditing}
-
                 adding={adding}
                 setAdding={setAdding}
-
                 entries={entries}
                 updateEntry={updateEntry}
                 createEntry={createEntryAtPending}
@@ -263,7 +328,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                         padding={3}
                         spacing={2}
                         direction="column"
-                        sx={(theme) => ({
+                        sx={theme => ({
                             bgcolor: theme.palette.surface.elevated,
                             border: `1px solid ${theme.palette.divider}`,
                             borderRadius: 1.5,
@@ -273,7 +338,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                         {quickEditing && (
                             <EditRundown
                                 rundown={quickEditing}
-                                onUpdate={(entry) => {
+                                onUpdate={entry => {
                                     updateQuickAction(entry);
                                     setQuickEditing(null);
                                 }}

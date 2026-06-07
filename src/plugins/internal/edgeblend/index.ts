@@ -1,5 +1,8 @@
-import {type BasicChannel, CasparPlugin, Transform} from '@lappis/cg-manager';
-import {EdgeblendEffect, type EdgeBlendEffectOptions} from './effects/edgeblend';
+import { type BasicChannel, CasparPlugin, Transform } from '@lappis/cg-manager';
+import {
+    EdgeblendEffect,
+    type EdgeBlendEffectOptions,
+} from './effects/edgeblend';
 
 export interface Layout {
     canvasSize: [number, number];
@@ -30,7 +33,8 @@ export default class EdgeblendPlugin extends CasparPlugin {
     protected onEnable() {
         this.api.registerEffect(
             'edgeblend',
-            (group, options) => new EdgeblendEffect(group, options as EdgeBlendEffectOptions),
+            (group, options) =>
+                new EdgeblendEffect(group, options as EdgeBlendEffectOptions),
         );
 
         this.api.onReconnect(this.handleReconnect);
@@ -41,7 +45,9 @@ export default class EdgeblendPlugin extends CasparPlugin {
     }
 
     public enableLayouts() {
-        return Promise.all(this.layouts.map(layout => this.enableLayout(layout)));
+        return Promise.all(
+            this.layouts.map(layout => this.enableLayout(layout)),
+        );
     }
 
     public disableLayouts() {
@@ -73,21 +79,31 @@ export default class EdgeblendPlugin extends CasparPlugin {
         effects.forEach(effect => effect.deactivate());
         effects.length = 0;
 
-        const totalProjectorSize = layout.size.map((v, i) => v * layout.projectorSize[i]);
+        const totalProjectorSize = layout.size.map(
+            (v, i) => v * layout.projectorSize[i],
+        );
         const canvasSize = layout.canvasSize;
 
-        const overlap = totalProjectorSize
-            .map((v, i) => (v - canvasSize[i]) / (v - layout.projectorSize[i]));
+        const overlap = totalProjectorSize.map(
+            (v, i) => (v - canvasSize[i]) / (v - layout.projectorSize[i]),
+        );
 
         const promises = [];
         for (let i = 0; i < layout.outputChannels.length; i++) {
-            const channel = this.api['_manager'].executor.getChannel(layout.outputChannels[i].getCasparChannel());
+            const channel = this.api['_manager'].executor.getChannel(
+                layout.outputChannels[i].getCasparChannel(),
+            );
 
             const x = i % layout.size[0];
             const y = Math.floor(i / layout.size[0]);
 
             const edgeblend = {
-                edgeblend: [overlap[0], overlap[0], overlap[1], overlap[1]] as [number, number, number, number],
+                edgeblend: [overlap[0], overlap[0], overlap[1], overlap[1]] as [
+                    number,
+                    number,
+                    number,
+                    number,
+                ],
                 g: 1.8,
                 p: 3,
                 a: 0.5,
@@ -99,8 +115,9 @@ export default class EdgeblendPlugin extends CasparPlugin {
             if (y === 0) edgeblend.edgeblend[2] = 0;
             if (y === layout.size[1] - 1) edgeblend.edgeblend[3] = 0;
 
-            const offset = [x, y]
-                .map((v, i) => v * (layout.projectorSize[i] - overlap[i]));
+            const offset = [x, y].map(
+                (v, i) => v * (layout.projectorSize[i] - overlap[i]),
+            );
 
             const sourceTransform = [
                 offset[0] / canvasSize[0],
@@ -109,7 +126,10 @@ export default class EdgeblendPlugin extends CasparPlugin {
                 (offset[1] + layout.projectorSize[1]) / canvasSize[1],
             ] as const;
 
-            const transform = new Transform(Transform.getRect(...sourceTransform), Transform.normalRect());
+            const transform = new Transform(
+                Transform.getRect(...sourceTransform),
+                Transform.normalRect(),
+            );
             const effect = new EdgeblendEffect(channel.getGroup('edgeblend'), {
                 source: layout.inputChannel,
                 transform,

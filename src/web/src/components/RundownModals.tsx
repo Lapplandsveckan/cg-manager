@@ -1,9 +1,9 @@
-import {Card, Modal, Stack, Typography, alpha} from '@mui/material';
-import React, {useEffect, useState} from 'react';
-import {useTranslation} from 'next-i18next';
-import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
-import {type RundownEntry} from './Rundowns';
-import {useSocket} from '../lib';
+import { Card, Modal, Stack, Typography, alpha } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'next-i18next';
+import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
+import { type RundownEntry } from './Rundowns';
+import { useSocket } from '../lib';
 
 interface BaseModalProps {
     editing: RundownEntry | null;
@@ -27,11 +27,14 @@ function formatTypeLabel(id: string): string {
         .replace(/([a-z])([A-Z])/g, '$1 $2')
         .replace(/\s+/g, ' ')
         .trim()
-        .replace(/\b\w/g, (c) => c.toUpperCase());
+        .replace(/\b\w/g, c => c.toUpperCase());
 }
 
-const TypeTile: React.FC<{ id: string; onPick: () => void }> = ({ id, onPick }) => {
-    const {t} = useTranslation('common');
+const TypeTile: React.FC<{ id: string; onPick: () => void }> = ({
+    id,
+    onPick,
+}) => {
+    const { t } = useTranslation('common');
     // Prefer a per-id translation under rundown.actionLabels.<id>; fall back
     // to the title-cased id so server-supplied action ids without a mapping
     // still render readably.
@@ -41,10 +44,15 @@ const TypeTile: React.FC<{ id: string; onPick: () => void }> = ({ id, onPick }) 
     return (
         <Card
             onClick={onPick}
-            sx={(theme) => ({
+            sx={theme => ({
                 p: 2,
                 cursor: 'pointer',
-                transition: theme.transitions.create(['background-color', 'border-color'], { duration: 120 }),
+                transition: theme.transitions.create(
+                    ['background-color', 'border-color'],
+                    {
+                        duration: 120,
+                    },
+                ),
                 '&:hover': {
                     bgcolor: theme.palette.surface.raised,
                     borderColor: alpha(theme.palette.primary.main, 0.45),
@@ -52,10 +60,12 @@ const TypeTile: React.FC<{ id: string; onPick: () => void }> = ({ id, onPick }) 
             })}
         >
             <Stack spacing={0.5}>
-                <Typography variant="h5" sx={{ wordBreak: 'break-word' }}>{label}</Typography>
+                <Typography variant="h5" sx={{ wordBreak: 'break-word' }}>
+                    {label}
+                </Typography>
                 <Typography
                     variant="caption"
-                    sx={(theme) => ({
+                    sx={theme => ({
                         fontFamily: '"SF Mono", "Menlo", "Consolas", monospace',
                         color: theme.palette.text.disabled,
                         wordBreak: 'break-all',
@@ -68,8 +78,10 @@ const TypeTile: React.FC<{ id: string; onPick: () => void }> = ({ id, onPick }) 
     );
 };
 
-const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({onChoose}) => {
-    const {t} = useTranslation('common');
+const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({
+    onChoose,
+}) => {
+    const { t } = useTranslation('common');
     const conn = useSocket();
     const [types, setTypes] = useState<string[] | null>(null);
 
@@ -82,7 +94,9 @@ const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({onChoo
     return (
         <Stack spacing={2}>
             <Stack spacing={0.5}>
-                <Typography variant="h3">{t('rundown.modals.addItem.title')}</Typography>
+                <Typography variant="h3">
+                    {t('rundown.modals.addItem.title')}
+                </Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {t('rundown.modals.addItem.description')}
                 </Typography>
@@ -117,7 +131,10 @@ const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({onChoo
     );
 };
 
-const ModalShell: React.FC<{ children: React.ReactNode; width?: number }> = ({ children, width = 500 }) => (
+const ModalShell: React.FC<{ children: React.ReactNode; width?: number }> = ({
+    children,
+    width = 500,
+}) => (
     <Stack
         justifyContent="center"
         alignItems="center"
@@ -129,7 +146,7 @@ const ModalShell: React.FC<{ children: React.ReactNode; width?: number }> = ({ c
         }}
     >
         <Card
-            sx={(theme) => ({
+            sx={theme => ({
                 padding: 3,
                 width,
                 bgcolor: theme.palette.surface.elevated,
@@ -149,56 +166,60 @@ const EditorModal: React.FC<BaseModalProps> = ({
     createEntry,
     deleteEntry,
 }) => (
-    <Modal
-        open={editing !== null}
-        onClose={() => setEditing(null)}
-    >
+    <Modal open={editing !== null} onClose={() => setEditing(null)}>
         <ModalShell>
             {editing !== null && (
-                <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${editing.type}`} props={{
-                    entry: editing,
-                    creating: !entries.some(e => e.id === editing.id),
+                <Injections
+                    zone={`${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${editing.type}`}
+                    props={{
+                        entry: editing,
+                        creating: !entries.some(e => e.id === editing.id),
 
-                    updateEntry: (entry: RundownEntry) => {
-                        setEditing(null);
-                        if (entries.some(e => e.id === entry.id)) return updateEntry(entry);
+                        updateEntry: (entry: RundownEntry) => {
+                            setEditing(null);
+                            if (entries.some(e => e.id === entry.id))
+                                return updateEntry(entry);
 
-                        createEntry(entry);
-                    },
+                            createEntry(entry);
+                        },
 
-                    deleteEntry: (entry: RundownEntry) => {
-                        setEditing(null);
-                        deleteEntry(entry);
-                    },
-                }} />
+                        deleteEntry: (entry: RundownEntry) => {
+                            setEditing(null);
+                            deleteEntry(entry);
+                        },
+                    }}
+                />
             )}
         </ModalShell>
     </Modal>
 );
 
-const AddModal: React.FC<BaseModalProps> = ({ setEditing, adding, setAdding }) => {
-    const {t} = useTranslation('common');
+const AddModal: React.FC<BaseModalProps> = ({
+    setEditing,
+    adding,
+    setAdding,
+}) => {
+    const { t } = useTranslation('common');
     return (
-        <Modal
-            open={adding}
-            onClose={() => setAdding(false)}
-        >
+        <Modal open={adding} onClose={() => setAdding(false)}>
             <ModalShell width={560}>
-                <AddRundownEntry onChoose={type => {
-                    setAdding(false);
-                    setEditing({
-                        id: Math.random().toString(36).substring(7),
-                        title: t('rundown.newItemDefaultTitle'),
-                        data: {},
-                        type,
-                    });
-                }} />
+                <AddRundownEntry
+                    onChoose={type => {
+                        setAdding(false);
+                        setEditing({
+                            id: Math.random().toString(36).substring(7),
+                            title: t('rundown.newItemDefaultTitle'),
+                            data: {},
+                            type,
+                        });
+                    }}
+                />
             </ModalShell>
         </Modal>
     );
 };
 
-export const RundownModals: React.FC<BaseModalProps> = (props) => (
+export const RundownModals: React.FC<BaseModalProps> = props => (
     <>
         <EditorModal {...props} />
         <AddModal {...props} />

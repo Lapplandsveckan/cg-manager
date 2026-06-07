@@ -1,9 +1,14 @@
 import * as xml2js from 'xml2js';
-import {type Config, type LogLevel} from './types';
-import {transforms} from './transforms';
+import { type Config, type LogLevel } from './types';
+import { transforms } from './transforms';
 
 const LOG_LEVELS: ReadonlySet<LogLevel> = new Set<LogLevel>([
-    'trace', 'debug', 'info', 'warning', 'error', 'fatal',
+    'trace',
+    'debug',
+    'info',
+    'warning',
+    'error',
+    'fatal',
 ]);
 
 export class ConfigParser {
@@ -18,14 +23,16 @@ export class ConfigParser {
     }
 
     private parseChannel(channel: any) {
-        const values = Object
-            .entries(typeof channel.consumers?.[0] === 'object' ? channel.consumers[0] : {})
+        const values = Object.entries(
+            typeof channel.consumers?.[0] === 'object'
+                ? channel.consumers[0]
+                : {},
+        )
             .map(([k, v]) =>
-                (v as any)
-                    .map((v: any) => ({
-                        type: k,
-                        data: typeof v === 'object' ? v : {},
-                    })),
+                (v as any).map((v: any) => ({
+                    type: k,
+                    data: typeof v === 'object' ? v : {},
+                })),
             )
             .flat()
             .map((consumer: any) => {
@@ -64,7 +71,10 @@ export class ConfigParser {
         if (header) config.version = header.version;
 
         const rawLogLevel = xml.configuration['log-level']?.[0];
-        if (typeof rawLogLevel === 'string' && LOG_LEVELS.has(rawLogLevel as LogLevel))
+        if (
+            typeof rawLogLevel === 'string' &&
+            LOG_LEVELS.has(rawLogLevel as LogLevel)
+        )
             config.logLevel = rawLogLevel as LogLevel;
 
         if (xml.configuration.html?.[0]) {
@@ -72,14 +82,19 @@ export class ConfigParser {
             config.html = {};
 
             const remoteDebuggingPort = html['remote-debugging-port']?.[0];
-            if (remoteDebuggingPort) config.html.remoteDebuggingPort = parseInt(remoteDebuggingPort);
+            if (remoteDebuggingPort)
+                config.html.remoteDebuggingPort = parseInt(remoteDebuggingPort);
 
             const enableGpu = html['enable-gpu']?.[0];
             if (enableGpu) config.html.enableGpu = enableGpu === 'true';
         }
 
-        config.videoModes = xml.configuration['video-modes'][0]['video-mode'].map(this.parseVideoMode);
-        config.channels = xml.configuration.channels[0].channel.map(this.parseChannel);
+        config.videoModes = xml.configuration['video-modes'][0][
+            'video-mode'
+        ].map(this.parseVideoMode);
+        config.channels = xml.configuration.channels[0].channel.map(
+            this.parseChannel,
+        );
         config._raw = xml;
 
         return config as Config;

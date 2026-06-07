@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Autocomplete,
     FormControl,
@@ -8,40 +8,54 @@ import {
     Stack,
     TextField,
 } from '@mui/material';
-import {MuiColorInput} from 'mui-color-input';
-import {useTranslation} from 'next-i18next';
-import {useSocket} from '../../lib/hooks/useSocket';
-import {type VideoRouteSource} from '../../lib/api/videoRoutes';
-import {type MediaDoc} from '../../lib/api/caspar';
-import {MediaSelect} from '../MediaView';
-import type {SourceType} from './RouteSourceTypePicker';
+import { MuiColorInput } from 'mui-color-input';
+import { useTranslation } from 'next-i18next';
+import { useSocket } from '../../lib/hooks/useSocket';
+import { type VideoRouteSource } from '../../lib/api/videoRoutes';
+import { type MediaDoc } from '../../lib/api/caspar';
+import { MediaSelect } from '../MediaView';
+import type { SourceType } from './RouteSourceTypePicker';
 
 export type DraftSource =
-    | {type: 'decklink'; device: string; format: string; keyDevice: string}
-    | {type: 'video'; video: string}
-    | {type: 'channel'; channel: string}
-    | {type: 'color'; color: string};
+    | { type: 'decklink'; device: string; format: string; keyDevice: string }
+    | { type: 'video'; video: string }
+    | { type: 'channel'; channel: string }
+    | { type: 'color'; color: string };
 
 export function defaultSourceFor(type: SourceType): DraftSource {
     switch (type) {
-        case 'decklink': return {type: 'decklink', device: '1', format: '1080i5000', keyDevice: ''};
-        case 'video':    return {type: 'video', video: ''};
-        case 'channel':  return {type: 'channel', channel: '1'};
-        case 'color':    return {type: 'color', color: '#000000'};
+        case 'decklink':
+            return {
+                type: 'decklink',
+                device: '1',
+                format: '1080i5000',
+                keyDevice: '',
+            };
+        case 'video':
+            return { type: 'video', video: '' };
+        case 'channel':
+            return { type: 'channel', channel: '1' };
+        case 'color':
+            return { type: 'color', color: '#000000' };
     }
 }
 
 export function sourceToDraft(src: VideoRouteSource): DraftSource {
     switch (src.type) {
-        case 'decklink': return {
-            type: 'decklink',
-            device: String(src.device),
-            format: src.format,
-            keyDevice: src.keyDevice !== undefined ? String(src.keyDevice) : '',
-        };
-        case 'video':   return {type: 'video', video: src.video};
-        case 'channel': return {type: 'channel', channel: String(src.channel)};
-        case 'color':   return {type: 'color', color: src.color};
+        case 'decklink':
+            return {
+                type: 'decklink',
+                device: String(src.device),
+                format: src.format,
+                keyDevice:
+                    src.keyDevice !== undefined ? String(src.keyDevice) : '',
+            };
+        case 'video':
+            return { type: 'video', video: src.video };
+        case 'channel':
+            return { type: 'channel', channel: String(src.channel) };
+        case 'color':
+            return { type: 'color', color: src.color };
     }
 }
 
@@ -97,8 +111,13 @@ interface SourceFieldsProps {
     setDraft: React.Dispatch<React.SetStateAction<DraftSource>>;
 }
 
-export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, videoModes, setDraft}) => {
-    const {t} = useTranslation('common');
+export const SourceFields: React.FC<SourceFieldsProps> = ({
+    draft,
+    channels,
+    videoModes,
+    setDraft,
+}) => {
+    const { t } = useTranslation('common');
     const socket = useSocket();
     const [videoClip, setVideoClip] = useState<MediaDoc | null>(null);
     const videoId = draft.type === 'video' ? draft.video : '';
@@ -109,17 +128,28 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, vide
     // preview just won't have a thumb.
     useEffect(() => {
         if (!socket) return;
-        if (draft.type !== 'video') { setVideoClip(null); return; }
-        if (!videoId) { setVideoClip(null); return; }
+        if (draft.type !== 'video') {
+            setVideoClip(null);
+            return;
+        }
+        if (!videoId) {
+            setVideoClip(null);
+            return;
+        }
         let cancelled = false;
-        socket.caspar.getMedia()
-            .then((m) => {
+        socket.caspar
+            .getMedia()
+            .then(m => {
                 if (cancelled) return;
                 const match = m.get(videoId);
-                setVideoClip(match ?? ({id: videoId} as MediaDoc));
+                setVideoClip(match ?? ({ id: videoId } as MediaDoc));
             })
-            .catch(() => { if (!cancelled) setVideoClip({id: videoId} as MediaDoc); });
-        return () => { cancelled = true; };
+            .catch(() => {
+                if (!cancelled) setVideoClip({ id: videoId } as MediaDoc);
+            });
+        return () => {
+            cancelled = true;
+        };
     }, [socket, draft.type, videoId]);
 
     // Type-guarded functional update: only patches the draft if the *current*
@@ -127,8 +157,15 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, vide
     // unmount fire) from reverting the source type.
     const patch = <T extends DraftSource['type']>(
         type: T,
-        update: (prev: Extract<DraftSource, {type: T}>) => Extract<DraftSource, {type: T}>,
-    ) => setDraft((prev) => prev.type === type ? update(prev as Extract<DraftSource, {type: T}>) : prev);
+        update: (
+            prev: Extract<DraftSource, { type: T }>,
+        ) => Extract<DraftSource, { type: T }>,
+    ) =>
+        setDraft(prev =>
+            prev.type === type
+                ? update(prev as Extract<DraftSource, { type: T }>)
+                : prev,
+        );
 
     if (draft.type === 'decklink') {
         // Video modes come from the CG config; if none are configured yet we
@@ -144,18 +181,25 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, vide
                     size="small"
                     type="number"
                     value={draft.device}
-                    onChange={(e) => patch('decklink', (p) => ({...p, device: e.target.value}))}
-                    inputProps={{step: 1, min: 1}}
-                    sx={{flex: '1 1 120px'}}
+                    onChange={e =>
+                        patch('decklink', p => ({
+                            ...p,
+                            device: e.target.value,
+                        }))
+                    }
+                    inputProps={{ step: 1, min: 1 }}
+                    sx={{ flex: '1 1 120px' }}
                 />
                 <Autocomplete
                     size="small"
                     freeSolo
                     options={modes}
                     value={draft.format}
-                    onInputChange={(_, v) => patch('decklink', (p) => ({...p, format: v ?? ''}))}
-                    sx={{flex: '2 1 220px'}}
-                    renderInput={(params) => (
+                    onInputChange={(_, v) =>
+                        patch('decklink', p => ({ ...p, format: v ?? '' }))
+                    }
+                    sx={{ flex: '2 1 220px' }}
+                    renderInput={params => (
                         <TextField
                             {...params}
                             label={t('videoRoutes.fields.format')}
@@ -168,35 +212,51 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, vide
                     size="small"
                     type="number"
                     value={draft.keyDevice}
-                    onChange={(e) => patch('decklink', (p) => ({...p, keyDevice: e.target.value}))}
-                    inputProps={{step: 1, min: 1}}
-                    sx={{flex: '1 1 160px'}}
+                    onChange={e =>
+                        patch('decklink', p => ({
+                            ...p,
+                            keyDevice: e.target.value,
+                        }))
+                    }
+                    inputProps={{ step: 1, min: 1 }}
+                    sx={{ flex: '1 1 160px' }}
                 />
             </Stack>
         );
     }
 
-    if (draft.type === 'video') return (
-        <MediaSelect
-            clip={videoClip}
-            onClipSelect={(clip) => setDraft({type: 'video', video: clip.id})}
-        />
-    );
+    if (draft.type === 'video')
+        return (
+            <MediaSelect
+                clip={videoClip}
+                onClipSelect={clip =>
+                    setDraft({ type: 'video', video: clip.id })
+                }
+            />
+        );
 
-    if (draft.type === 'channel') return (
-        <FormControl size="small" fullWidth>
-            <InputLabel>{t('videoRoutes.fields.channel')}</InputLabel>
-            <Select
-                label={t('videoRoutes.fields.channel')}
-                value={draft.channel}
-                onChange={(e) => patch('channel', (p) => ({...p, channel: String(e.target.value)}))}
-            >
-                {channels.map((ch) => (
-                    <MenuItem key={ch} value={String(ch)}>{ch}</MenuItem>
-                ))}
-            </Select>
-        </FormControl>
-    );
+    if (draft.type === 'channel')
+        return (
+            <FormControl size="small" fullWidth>
+                <InputLabel>{t('videoRoutes.fields.channel')}</InputLabel>
+                <Select
+                    label={t('videoRoutes.fields.channel')}
+                    value={draft.channel}
+                    onChange={e =>
+                        patch('channel', p => ({
+                            ...p,
+                            channel: String(e.target.value),
+                        }))
+                    }
+                >
+                    {channels.map(ch => (
+                        <MenuItem key={ch} value={String(ch)}>
+                            {ch}
+                        </MenuItem>
+                    ))}
+                </Select>
+            </FormControl>
+        );
 
     if (draft.type === 'color') {
         const hex8 = casparColorToHex8(draft.color);
@@ -207,7 +267,9 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({draft, channels, vide
                 fullWidth
                 format="hex8"
                 value={hex8}
-                onChange={(v) => patch('color', (p) => ({...p, color: hex8ToCasparColor(v)}))}
+                onChange={v =>
+                    patch('color', p => ({ ...p, color: hex8ToCasparColor(v) }))
+                }
                 helperText={t('videoRoutes.fields.colorHelper')}
             />
         );

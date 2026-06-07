@@ -1,10 +1,10 @@
-import {noTryAsync} from 'no-try';
+import { noTryAsync } from 'no-try';
 import config, { loadConfig } from './util/config';
-import {Logger} from './util/log';
-import {CGServer} from './api/server';
-import {Discovery} from './manager/discovery';
-import {CasparManager} from './manager';
-import {loadPlugins, unloadPlugins} from './plugins/plugins';
+import { Logger } from './util/log';
+import { CGServer } from './api/server';
+import { Discovery } from './manager/discovery';
+import { CasparManager } from './manager';
+import { loadPlugins, unloadPlugins } from './plugins/plugins';
 
 Logger.debug('Debug mode enabled!');
 
@@ -14,9 +14,12 @@ Logger.debug('Debug mode enabled!');
  *  protocol errors carry the AMCP 4xx/5xx code. */
 function isAmcpError(e: unknown): boolean {
     if (!e || typeof e !== 'object') return false;
-    const err = e as {name?: string; code?: number};
+    const err = e as { name?: string; code?: number };
     if (err.name === 'CasparResponseError') return true;
-    return typeof err.code === 'number' && (err.code === -1 || (err.code >= 400 && err.code < 600));
+    return (
+        typeof err.code === 'number' &&
+        (err.code === -1 || (err.code >= 400 && err.code < 600))
+    );
 }
 
 async function start() {
@@ -69,14 +72,16 @@ export function stop() {
 let stopHandler: () => Promise<void> | void;
 async function main() {
     const [err] = await noTryAsync(async () => {
-        process.on('uncaughtException', (e) => {
+        process.on('uncaughtException', e => {
             Logger.error(e);
             if (config.dev) stop();
             return false;
         });
 
-        process.on('unhandledRejection', (e) => {
-            Logger.error(typeof e === 'object' ? JSON.stringify(e) : e as Error);
+        process.on('unhandledRejection', e => {
+            Logger.error(
+                typeof e === 'object' ? JSON.stringify(e) : (e as Error),
+            );
 
             // AMCP errors (timeout, channel-out-of-range, 4xx/5xx response)
             // are catchable but a lot of plugin code doesn't bother. Rather
@@ -107,7 +112,7 @@ async function main() {
         stopHandler = stop;
 
         const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
-        signals.forEach((signal) => {
+        signals.forEach(signal => {
             process.on(signal, () => {
                 stop();
                 return false;

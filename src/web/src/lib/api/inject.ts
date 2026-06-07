@@ -1,8 +1,14 @@
-import {type REPClient} from 'rest-exchange-protocol-client';
-import React, {type ComponentType, createElement, Fragment, useEffect, useState} from 'react';
+import { type REPClient } from 'rest-exchange-protocol-client';
+import React, {
+    type ComponentType,
+    createElement,
+    Fragment,
+    useEffect,
+    useState,
+} from 'react';
 import * as material from '@mui/material';
 import * as ReactI18next from 'react-i18next';
-import {useSocket} from '../hooks/useSocket';
+import { useSocket } from '../hooks/useSocket';
 import * as weblib from '../';
 import i18n from '../i18n';
 
@@ -29,8 +35,11 @@ export const UI_INJECTION_ZONE = {
     UPLOAD_OPTIONS: 'upload-options',
 } as const;
 
-export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];
-export type UI_INJECTION_ZONE_KEY = UI_INJECTION_ZONE | `${UI_INJECTION_ZONE}.${string}`;
+export type UI_INJECTION_ZONE =
+    (typeof UI_INJECTION_ZONE)[keyof typeof UI_INJECTION_ZONE];
+export type UI_INJECTION_ZONE_KEY =
+    | UI_INJECTION_ZONE
+    | `${UI_INJECTION_ZONE}.${string}`;
 
 export interface Injection {
     zone: UI_INJECTION_ZONE;
@@ -40,7 +49,10 @@ export interface Injection {
 }
 
 export class PluginInjectionAPI {
-    private _loaded = new Map<string, React.ComponentType | Promise<React.ComponentType>>();
+    private _loaded = new Map<
+        string,
+        React.ComponentType | Promise<React.ComponentType>
+    >();
     private _plugins = new Map<string, Injection>();
     private _pluginPromise: Promise<Map<string, Injection>>;
     private socket: REPClient;
@@ -50,7 +62,7 @@ export class PluginInjectionAPI {
 
         this._pluginPromise = this.requestPlugins();
         this._pluginPromise
-            .then(() => this._pluginPromise = null)
+            .then(() => (this._pluginPromise = null))
             .catch(e => console.error('Failed to get plugins', e));
     }
 
@@ -65,20 +77,28 @@ export class PluginInjectionAPI {
     }
 
     private async _import(id: string) {
-        const data = await this.socket.request(`api/plugins/inject/${id}`, 'GET', {});
+        const data = await this.socket.request(
+            `api/plugins/inject/${id}`,
+            'GET',
+            {},
+        );
         const str = data.data as string;
 
         if (typeof URL.createObjectURL !== 'undefined') {
             const blob = new Blob([str], { type: 'text/javascript' });
             const url = URL.createObjectURL(blob);
-            const component = import(/* webpackIgnore: true */url).then(module => module.default);
+            const component = import(/* webpackIgnore: true */ url).then(
+                module => module.default,
+            );
             URL.revokeObjectURL(url);
 
             return component;
         }
 
         const url = `data:text/javascript;base64,${btoa(str)}`;
-        return import(/* webpackIgnore: true */url).then(module => module.default);
+        return import(/* webpackIgnore: true */ url).then(
+            module => module.default,
+        );
     }
 
     public async import(id: string): Promise<React.ComponentType> {
@@ -93,17 +113,24 @@ export class PluginInjectionAPI {
         return component;
     }
 
-    public async getInjects(zone: UI_INJECTION_ZONE_KEY, plugin: string | null = null): Promise<Injection[]> {
+    public async getInjects(
+        zone: UI_INJECTION_ZONE_KEY,
+        plugin: string | null = null,
+    ): Promise<Injection[]> {
         await this._pluginPromise;
-        return Array.from(this._plugins.values()).filter(p => p.zone === zone && (!plugin || p.plugin === plugin));
+        return Array.from(this._plugins.values()).filter(
+            p => p.zone === zone && (!plugin || p.plugin === plugin),
+        );
     }
 
-    public async inject(zone: UI_INJECTION_ZONE_KEY, plugin: string | null = null) {
+    public async inject(
+        zone: UI_INJECTION_ZONE_KEY,
+        plugin: string | null = null,
+    ) {
         const injects = await this.getInjects(zone, plugin);
         return await Promise.all(
             injects.map(i =>
-                this.import(i.id)
-                    .then(component => ({id: i.id, component})),
+                this.import(i.id).then(component => ({ id: i.id, component })),
             ),
         );
     }
@@ -115,13 +142,20 @@ interface InjectionsProps {
     props?: any;
 }
 
-export const Injections: React.FC<InjectionsProps> = ({zone, plugin, props}) => {
-    const [components, setComponents] = useState<{id: string, component: ComponentType}[]>([]);
+export const Injections: React.FC<InjectionsProps> = ({
+    zone,
+    plugin,
+    props,
+}) => {
+    const [components, setComponents] = useState<
+        { id: string; component: ComponentType }[]
+    >([]);
     const socket = useSocket();
 
     useEffect(() => {
         let mounted = true;
-        socket.injects.inject(zone, plugin)
+        socket.injects
+            .inject(zone, plugin)
             .then(components => mounted && setComponents(components));
 
         return () => void (mounted = false);
@@ -130,8 +164,10 @@ export const Injections: React.FC<InjectionsProps> = ({zone, plugin, props}) => 
     return createElement(
         Fragment,
         null,
-        components.map((inject) =>
-            inject.component ? createElement(inject.component, {key: inject.id, ...props}) : null,
+        components.map(inject =>
+            inject.component
+                ? createElement(inject.component, { key: inject.id, ...props })
+                : null,
         ),
     );
 };

@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     FormControl,
     InputLabel,
@@ -8,8 +8,8 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import {RundownEditorActionBar, useSocket} from '@web-lib';
-import {useTranslation} from 'react-i18next';
+import { RundownEditorActionBar, useSocket } from '@web-lib';
+import { useTranslation } from 'react-i18next';
 
 interface VideoRoute {
     id: string;
@@ -31,9 +31,14 @@ interface Props {
     deleteEntry: (entry: Entry) => void;
 }
 
-const ToggleVideoRouteEditor: React.FC<Props> = ({entry, creating, updateEntry, deleteEntry}) => {
+const ToggleVideoRouteEditor: React.FC<Props> = ({
+    entry,
+    creating,
+    updateEntry,
+    deleteEntry,
+}) => {
     const conn = useSocket();
-    const {t} = useTranslation();
+    const { t } = useTranslation();
 
     const [title, setTitle] = useState(entry.title ?? '');
     const [routeId, setRouteId] = useState<string>(entry.data?.routeId ?? '');
@@ -41,10 +46,13 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({entry, creating, updateEntry, 
 
     useEffect(() => {
         let mounted = true;
-        conn.videoRoutes.list()
+        conn.videoRoutes
+            .list()
             .then((list: VideoRoute[]) => mounted && setRoutes(list ?? []))
             .catch(() => mounted && setRoutes([]));
-        return () => { mounted = false; };
+        return () => {
+            mounted = false;
+        };
     }, [conn]);
 
     const selectedExists = useMemo(
@@ -55,16 +63,20 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({entry, creating, updateEntry, 
     const onSave = () => {
         updateEntry({
             ...entry,
-            title: title.trim() || t('plugins.essentials.toggleVideoRoute.defaultTitle'),
-            data: {...(entry.data ?? {}), routeId: routeId || undefined},
+            title:
+                title.trim() ||
+                t('plugins.essentials.toggleVideoRoute.defaultTitle'),
+            data: { ...(entry.data ?? {}), routeId: routeId || undefined },
         });
     };
 
     return (
         <Stack spacing={2.5}>
             <Stack spacing={0.5}>
-                <Typography variant="h3">{t('plugins.essentials.toggleVideoRoute.title')}</Typography>
-                <Typography variant="body2" sx={{color: 'text.secondary'}}>
+                <Typography variant="h3">
+                    {t('plugins.essentials.toggleVideoRoute.title')}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {t('plugins.essentials.toggleVideoRoute.description')}
                 </Typography>
             </Stack>
@@ -89,7 +101,13 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({entry, creating, updateEntry, 
                     displayEmpty
                 >
                     <MenuItem value="">
-                        <em>{routes === null ? t('actions.loading') : t('plugins.essentials.toggleVideoRoute.selectRoute')}</em>
+                        <em>
+                            {routes === null
+                                ? t('actions.loading')
+                                : t(
+                                      'plugins.essentials.toggleVideoRoute.selectRoute',
+                                  )}
+                        </em>
                     </MenuItem>
                     {(routes ?? []).map(r => (
                         <MenuItem key={r.id} value={r.id}>
@@ -100,8 +118,10 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({entry, creating, updateEntry, 
             </FormControl>
 
             {!selectedExists && (
-                <Typography variant="caption" sx={{color: 'warning.main'}}>
-                    {t('plugins.essentials.toggleVideoRoute.routeGone', {id: routeId})}
+                <Typography variant="caption" sx={{ color: 'warning.main' }}>
+                    {t('plugins.essentials.toggleVideoRoute.routeGone', {
+                        id: routeId,
+                    })}
                 </Typography>
             )}
 

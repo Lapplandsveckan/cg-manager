@@ -1,5 +1,5 @@
-import {EventEmitter} from 'events';
-import {noTry} from 'no-try';
+import { EventEmitter } from 'events';
+import { noTry } from 'no-try';
 
 export interface MediaDoc {
     id: string;
@@ -29,7 +29,7 @@ export interface MediaDoc {
                 time_base: string;
                 tag_string: string;
                 is_avc: any;
-            },
+            };
 
             // Video
             width: number;
@@ -66,15 +66,15 @@ export interface MediaDoc {
             duration: number;
             bit_rate: number;
             max_bit_rate: number;
-        },
+        };
     };
 
     _attachments?: {
         'thumb.png': {
             content_type: string;
             data: Buffer;
-        }
-    }
+        };
+    };
 }
 
 export class FileDatabase extends EventEmitter {
@@ -138,8 +138,9 @@ export class FileDatabase extends EventEmitter {
     save() {
         return JSON.stringify(
             Object.fromEntries(
-                Array.from(this.hash.entries())
-                    .filter(([_, value]) => !value._invalidate),
+                Array.from(this.hash.entries()).filter(
+                    ([_, value]) => !value._invalidate,
+                ),
             ),
         );
     }
@@ -148,6 +149,6 @@ export class FileDatabase extends EventEmitter {
         const [err, parsed] = noTry(() => JSON.parse(data));
         const hash = err ? {} : parsed;
         for (const [key, value] of Object.entries(hash))
-            this.put(key, {...(value as MediaDoc), _invalidate: true});
+            this.put(key, { ...(value as MediaDoc), _invalidate: true });
     }
 }

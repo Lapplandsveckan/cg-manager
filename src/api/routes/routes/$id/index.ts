@@ -1,30 +1,28 @@
-import {WebError} from 'rest-exchange-protocol';
-import {type RouteExport} from '../../../route';
-import {CasparManager} from '../../../../manager';
+import { WebError } from 'rest-exchange-protocol';
+import { type RouteExport } from '../../../route';
+import { CasparManager } from '../../../../manager';
 
 export default {
-    'GET': async (request) => {
+    GET: async request => {
         if (!request.params.id) throw new WebError('No id', 400);
 
-        const route = CasparManager
-            .getManager()
-            .routes
-            .getVideoRoute(request.params.id);
+        const route = CasparManager.getManager().routes.getVideoRoute(
+            request.params.id,
+        );
 
         if (!route) throw new WebError('Route not found', 404);
         return route;
     },
-    'DELETE': async (request) => {
+    DELETE: async request => {
         if (!request.params.id) throw new WebError('No id', 400);
 
-        await CasparManager
-            .getManager()
-            .routes
-            .deleteVideoRoute(request.params.id);
+        await CasparManager.getManager().routes.deleteVideoRoute(
+            request.params.id,
+        );
 
         return { ok: true };
     },
-    'UPDATE': async (request) => {
+    UPDATE: async request => {
         if (!request.params.id) throw new WebError('No id', 400);
 
         const data = request.getData();
@@ -48,10 +46,12 @@ export default {
             source: payload.source ?? existing.source,
             destination: payload.destination ?? existing.destination,
             enabled: payload.enabled ?? existing.enabled,
-            ...(payload.transform   ? {transform:   payload.transform}   : {}),
-            ...(payload.edgeblend   ? {edgeblend:   payload.edgeblend}   : {}),
-            ...(payload.perspective ? {perspective: payload.perspective} : {}),
-            ...(payload.metadata    ? {metadata:    payload.metadata}    : {}),
+            ...(payload.transform ? { transform: payload.transform } : {}),
+            ...(payload.edgeblend ? { edgeblend: payload.edgeblend } : {}),
+            ...(payload.perspective
+                ? { perspective: payload.perspective }
+                : {}),
+            ...(payload.metadata ? { metadata: payload.metadata } : {}),
         };
 
         await manager.routes.updateVideoRoute(next);

@@ -1,4 +1,4 @@
-import {createTheme, alpha} from '@mui/material/styles';
+import { createTheme, alpha } from '@mui/material/styles';
 
 // Cool-technical dark palette, leaning toward broadcast tooling (OBS / vMix).
 // Neutral-cool surfaces, a desaturated copper accent for primary actions
@@ -13,11 +13,11 @@ const surface = {
 };
 
 const accent = {
-    primary: '#c98049',     // copper — toned amber
+    primary: '#c98049', // copper — toned amber
     primaryDark: '#a06234',
     primaryLight: '#d99a6b',
 
-    secondary: '#5e8fa1',   // muted steel-blue — used sparingly
+    secondary: '#5e8fa1', // muted steel-blue — used sparingly
 };
 
 const TEXT_WHITE = '#e8eaed';
@@ -60,15 +60,35 @@ export const theme = createTheme({
     },
     typography: {
         fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-        h1: { fontSize: '2rem',    fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.15 }, // 32
-        h2: { fontSize: '1.5rem',  fontWeight: 600, letterSpacing: '-0.01em', lineHeight: 1.2 },  // 24
+        h1: {
+            fontSize: '2rem',
+            fontWeight: 700,
+            letterSpacing: '-0.02em',
+            lineHeight: 1.15,
+        }, // 32
+        h2: {
+            fontSize: '1.5rem',
+            fontWeight: 600,
+            letterSpacing: '-0.01em',
+            lineHeight: 1.2,
+        }, // 24
         h3: { fontSize: '1.25rem', fontWeight: 600, lineHeight: 1.3 }, // 20
         h4: { fontSize: '1.125rem', fontWeight: 500, lineHeight: 1.35 }, // 18
-        h5: { fontSize: '1rem',    fontWeight: 500, lineHeight: 1.4 },  // 16
-        h6: { fontSize: '0.75rem', fontWeight: 600, lineHeight: 1.4, textTransform: 'uppercase', letterSpacing: '0.08em' }, // 12 — used as section labels
+        h5: { fontSize: '1rem', fontWeight: 500, lineHeight: 1.4 }, // 16
+        h6: {
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            lineHeight: 1.4,
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+        }, // 12 — used as section labels
         body1: { fontSize: '0.875rem', lineHeight: 1.55 }, // 14
         body2: { fontSize: '0.8125rem', lineHeight: 1.5 }, // 13
-        caption: { fontSize: '0.6875rem', lineHeight: 1.4, color: text.secondary }, // 11
+        caption: {
+            fontSize: '0.6875rem',
+            lineHeight: 1.4,
+            color: text.secondary,
+        }, // 11
         button: { textTransform: 'none', fontWeight: 500 },
     },
     components: {

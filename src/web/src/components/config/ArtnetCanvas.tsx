@@ -1,14 +1,14 @@
-import React, {useEffect, useLayoutEffect, useRef, useState} from 'react';
-import {Box, Stack, Typography, alpha} from '@mui/material';
-import {useTranslation} from 'next-i18next';
-import {ChannelPreview} from '../ChannelPreview';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Box, Stack, Typography, alpha } from '@mui/material';
+import { useTranslation } from 'next-i18next';
+import { ChannelPreview } from '../ChannelPreview';
 
 export interface Fixture {
     type?: string;
     startAddress?: number;
     fixtureCount?: string;
     fixtureChannels?: number;
-    flux?: {r?: number; g?: number; b?: number; w?: number};
+    flux?: { r?: number; g?: number; b?: number; w?: number };
     left?: number;
     top?: number;
     width?: number;
@@ -32,7 +32,7 @@ type Handle = 'move' | 'tl' | 'tr' | 'br' | 'bl';
 interface DragState {
     fixtureIndex: number;
     handle: Handle;
-    startMouseCanvas: {x: number; y: number}; // canvas-pixel space (matches fixture units)
+    startMouseCanvas: { x: number; y: number }; // canvas-pixel space (matches fixture units)
     startFixture: Fixture;
 }
 
@@ -45,11 +45,14 @@ const normalize = (f: Fixture): Normalized => ({
     height: f.height ?? 100,
 });
 
-const parseCount = (str: string | undefined): {w: number; h: number} => {
-    if (!str) return {w: 1, h: 1};
+const parseCount = (str: string | undefined): { w: number; h: number } => {
+    if (!str) return { w: 1, h: 1 };
     const m = String(str).match(/^(\d+)(?:x(\d+))?$/i);
-    if (!m) return {w: 1, h: 1};
-    return {w: parseInt(m[1], 10) || 1, h: m[2] ? parseInt(m[2], 10) || 1 : 1};
+    if (!m) return { w: 1, h: 1 };
+    return {
+        w: parseInt(m[1], 10) || 1,
+        h: m[2] ? parseInt(m[2], 10) || 1 : 1,
+    };
 };
 
 const clamp = (v: number, lo: number, hi: number) =>
@@ -109,7 +112,6 @@ function applyDrag(
         newH = bounds.height - newTop;
     }
 
-
     newW = Math.max(minSize, newW);
     newH = Math.max(minSize, newH);
 
@@ -133,7 +135,7 @@ interface FixtureViewProps {
     onClick: () => void;
 }
 
-const FixtureGrid: React.FC<{w: number; h: number}> = ({w, h}) => {
+const FixtureGrid: React.FC<{ w: number; h: number }> = ({ w, h }) => {
     if (w <= 1 && h <= 1) return null;
     return (
         <Box
@@ -148,7 +150,7 @@ const FixtureGrid: React.FC<{w: number; h: number}> = ({w, h}) => {
                 pointerEvents: 'none',
             }}
         >
-            {Array.from({length: w - 1}, (_, i) => (
+            {Array.from({ length: w - 1 }, (_, i) => (
                 <line
                     key={`v${i}`}
                     x1={i + 1}
@@ -161,7 +163,7 @@ const FixtureGrid: React.FC<{w: number; h: number}> = ({w, h}) => {
                     vectorEffect="non-scaling-stroke"
                 />
             ))}
-            {Array.from({length: h - 1}, (_, i) => (
+            {Array.from({ length: h - 1 }, (_, i) => (
                 <line
                     key={`h${i}`}
                     x1={0}
@@ -178,9 +180,15 @@ const FixtureGrid: React.FC<{w: number; h: number}> = ({w, h}) => {
     );
 };
 
-const FixtureView: React.FC<FixtureViewProps> = ({fixture, scale, selected, onPointerDownHandle, onClick}) => {
+const FixtureView: React.FC<FixtureViewProps> = ({
+    fixture,
+    scale,
+    selected,
+    onPointerDownHandle,
+    onClick,
+}) => {
     const f = normalize(fixture);
-    const {w, h} = parseCount(fixture.fixtureCount);
+    const { w, h } = parseCount(fixture.fixtureCount);
     const count = fixture.fixtureCount ? ` × ${fixture.fixtureCount}` : '';
     const label = `${fixture.type ?? '—'}${count}`;
 
@@ -199,7 +207,10 @@ const FixtureView: React.FC<FixtureViewProps> = ({fixture, scale, selected, onPo
             right: isLeft ? undefined : -HANDLE_SIZE / 2,
             top: isTop ? -HANDLE_SIZE / 2 : undefined,
             bottom: isTop ? undefined : -HANDLE_SIZE / 2,
-            cursor: corner === 'tl' || corner === 'br' ? 'nwse-resize' : 'nesw-resize',
+            cursor:
+                corner === 'tl' || corner === 'br'
+                    ? 'nwse-resize'
+                    : 'nesw-resize',
             zIndex: 2,
         };
     };
@@ -212,13 +223,15 @@ const FixtureView: React.FC<FixtureViewProps> = ({fixture, scale, selected, onPo
                 top: f.top * scale,
                 width: f.width * scale,
                 height: f.height * scale,
-                outline: selected ? `2px solid ${FIXTURE_COLOR}` : `1px solid ${alpha(FIXTURE_COLOR, 0.55)}`,
+                outline: selected
+                    ? `2px solid ${FIXTURE_COLOR}`
+                    : `1px solid ${alpha(FIXTURE_COLOR, 0.55)}`,
                 background: alpha(FIXTURE_COLOR, selected ? 0.22 : 0.14),
                 cursor: 'move',
                 userSelect: 'none',
                 touchAction: 'none',
             }}
-            onPointerDown={(e) => {
+            onPointerDown={e => {
                 e.stopPropagation();
                 onClick();
                 onPointerDownHandle(e, 'move');
@@ -247,16 +260,17 @@ const FixtureView: React.FC<FixtureViewProps> = ({fixture, scale, selected, onPo
                 {label}
             </Box>
 
-            {selected && (['tl', 'tr', 'br', 'bl'] as Handle[]).map((corner) => (
-                <Box
-                    key={corner}
-                    sx={handleStyle(corner)}
-                    onPointerDown={(e) => {
-                        e.stopPropagation();
-                        onPointerDownHandle(e, corner);
-                    }}
-                />
-            ))}
+            {selected &&
+                (['tl', 'tr', 'br', 'bl'] as Handle[]).map(corner => (
+                    <Box
+                        key={corner}
+                        sx={handleStyle(corner)}
+                        onPointerDown={e => {
+                            e.stopPropagation();
+                            onPointerDownHandle(e, corner);
+                        }}
+                    />
+                ))}
         </Box>
     );
 };
@@ -270,7 +284,7 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
     onChange,
     previewChannel,
 }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const stageRef = useRef<HTMLDivElement | null>(null);
     const wrapperRef = useRef<HTMLDivElement | null>(null);
     const [scale, setScale] = useState(1);
@@ -294,17 +308,24 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
 
     const toCanvas = (clientX: number, clientY: number) => {
         const rect = stageRef.current!.getBoundingClientRect();
-        return {x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale};
+        return {
+            x: (clientX - rect.left) / scale,
+            y: (clientY - rect.top) / scale,
+        };
     };
 
-    const handlePointerDown = (e: React.PointerEvent, index: number, handle: Handle) => {
+    const handlePointerDown = (
+        e: React.PointerEvent,
+        index: number,
+        handle: Handle,
+    ) => {
         const target = e.currentTarget as HTMLElement;
         target.setPointerCapture(e.pointerId);
         dragRef.current = {
             fixtureIndex: index,
             handle,
             startMouseCanvas: toCanvas(e.clientX, e.clientY),
-            startFixture: {...fixtures[index]},
+            startFixture: { ...fixtures[index] },
         };
     };
 
@@ -315,13 +336,25 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
             const mouse = toCanvas(e.clientX, e.clientY);
             const dx = mouse.x - state.startMouseCanvas.x;
             const dy = mouse.y - state.startMouseCanvas.y;
-            const updated = applyDrag(state.startFixture, state.handle, dx, dy, {
-                width: canvasWidth,
-                height: canvasHeight,
-            });
-            onChange(fixtures.map((f, i) => (i === state.fixtureIndex ? updated : f)));
+            const updated = applyDrag(
+                state.startFixture,
+                state.handle,
+                dx,
+                dy,
+                {
+                    width: canvasWidth,
+                    height: canvasHeight,
+                },
+            );
+            onChange(
+                fixtures.map((f, i) =>
+                    i === state.fixtureIndex ? updated : f,
+                ),
+            );
         };
-        const onUp = () => { dragRef.current = null; };
+        const onUp = () => {
+            dragRef.current = null;
+        };
         window.addEventListener('pointermove', onMove);
         window.addEventListener('pointerup', onUp);
         window.addEventListener('pointercancel', onUp);
@@ -333,24 +366,27 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
     }, [fixtures, onChange, scale, canvasWidth, canvasHeight]);
 
     return (
-        <Stack spacing={1} ref={wrapperRef} sx={{minWidth: 0, flex: 1}}>
+        <Stack spacing={1} ref={wrapperRef} sx={{ minWidth: 0, flex: 1 }}>
             <Stack
                 direction="row"
                 justifyContent="space-between"
                 alignItems="baseline"
-                sx={{color: 'text.secondary'}}
+                sx={{ color: 'text.secondary' }}
             >
-                <Typography variant="caption" sx={{fontFamily: 'monospace'}}>
-                    {t('config.artnet.canvas.stage', {width: canvasWidth, height: canvasHeight})}
+                <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                    {t('config.artnet.canvas.stage', {
+                        width: canvasWidth,
+                        height: canvasHeight,
+                    })}
                 </Typography>
-                <Typography variant="caption" sx={{fontFamily: 'monospace'}}>
+                <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
                     {Math.round(scale * 100)}%
                 </Typography>
             </Stack>
             <Box
                 ref={stageRef}
                 onPointerDown={() => onSelect(null)}
-                sx={(theme) => ({
+                sx={theme => ({
                     position: 'relative',
                     width: canvasWidth * scale,
                     height: canvasHeight * scale,
@@ -365,14 +401,21 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
                     flexShrink: 0,
                 })}
             >
-                {previewChannel != null && <ChannelPreview channel={previewChannel} objectFit="cover" />}
+                {previewChannel != null && (
+                    <ChannelPreview
+                        channel={previewChannel}
+                        objectFit="cover"
+                    />
+                )}
                 {fixtures.map((fixture, i) => (
                     <FixtureView
                         key={i}
                         fixture={fixture}
                         scale={scale}
                         selected={i === selectedIndex}
-                        onPointerDownHandle={(e, handle) => handlePointerDown(e, i, handle)}
+                        onPointerDownHandle={(e, handle) =>
+                            handlePointerDown(e, i, handle)
+                        }
                         onClick={() => onSelect(i)}
                     />
                 ))}

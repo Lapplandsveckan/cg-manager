@@ -1,5 +1,5 @@
-import {useEffect, useState} from 'react';
-import {getStorageItem, setStorageItem} from '../storage';
+import { useEffect, useState } from 'react';
+import { getStorageItem, setStorageItem } from '../storage';
 
 const identity = (n: number) => n;
 

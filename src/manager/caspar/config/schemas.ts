@@ -22,7 +22,12 @@ export const schemas = {
         keyDevice: schema.number(),
         embeddedAudio: schema.boolean(),
         latency: schema.enum(['normal', 'low', 'default'] as const),
-        keyer: schema.enum(['external', 'external_separate_device', 'internal', 'default'] as const),
+        keyer: schema.enum([
+            'external',
+            'external_separate_device',
+            'internal',
+            'default',
+        ] as const),
         keyOnly: schema.boolean(),
         bufferDepth: schema.number(),
         videoMode: schema.string(),
@@ -59,7 +64,10 @@ export const schemas = {
         device: schema.number(),
         embeddedAudio: schema.boolean(),
         keyer: schema.enum(['external', 'internal', 'disabled'] as const),
-        internalKeyerAudioSource: schema.enum(['videooutputchannel', 'sdivideoinput'] as const),
+        internalKeyerAudioSource: schema.enum([
+            'videooutputchannel',
+            'sdivideoinput',
+        ] as const),
         watchdog: schema.number(),
         uhdMode: schema.enum([0, 1, 2, 3] as const),
     }),
@@ -70,7 +78,12 @@ export const schemas = {
     screen: schema.schema({
         device: schema.number(),
         aspectRatio: schema.enum(['4:3', '16:9', 'default'] as const),
-        stretch: schema.enum(['fill', 'uniform', 'uniform_to_fill', 'none'] as const),
+        stretch: schema.enum([
+            'fill',
+            'uniform',
+            'uniform_to_fill',
+            'none',
+        ] as const),
         windowed: schema.boolean(),
         keyOnly: schema.boolean(),
         vsync: schema.boolean(),
@@ -82,7 +95,11 @@ export const schemas = {
         width: schema.number(),
         height: schema.number(),
         sbsKey: schema.boolean(),
-        colourSpace: schema.enum(['RGB', 'datavideo-full', 'datavideo-limited'] as const),
+        colourSpace: schema.enum([
+            'RGB',
+            'datavideo-full',
+            'datavideo-limited',
+        ] as const),
     }),
     ndi: schema.schema({
         name: schema.string(),

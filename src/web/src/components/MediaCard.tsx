@@ -1,9 +1,16 @@
-import React, {useMemo} from 'react';
-import {Card, Grid, IconButton, Stack, Tooltip, Typography} from '@mui/material';
+import React, { useMemo } from 'react';
+import {
+    Card,
+    Grid,
+    IconButton,
+    Stack,
+    Tooltip,
+    Typography,
+} from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
-import {useTranslation} from 'next-i18next';
-import {MEDIA_MOVE_DRAG_MIME} from '../lib/dragPayload';
+import { useTranslation } from 'next-i18next';
+import { MEDIA_MOVE_DRAG_MIME } from '../lib/dragPayload';
 
 function getDurationString(duration: number) {
     const hours = Math.floor(duration / 3600);
@@ -53,27 +60,39 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     onRename,
     dragId,
 }) => {
-    const {t} = useTranslation('common');
-    const durationString = useMemo(() => getDurationString(duration), [duration]);
+    const { t } = useTranslation('common');
+    const durationString = useMemo(
+        () => getDurationString(duration),
+        [duration],
+    );
     const span = 60 / (columns ?? 5);
 
     const hasActions = Boolean(onDelete || onRename);
 
     return (
         <Grid
-            item xs={span} sm={span / 2} md={span / 3} lg={span / 4} xl={span / 5}
+            item
+            xs={span}
+            sm={span / 2}
+            md={span / 3}
+            lg={span / 4}
+            xl={span / 5}
         >
             <Card
                 onClick={() => onClick?.()}
                 draggable={Boolean(dragId)}
-                onDragStart={dragId ? (e) => {
-                    e.dataTransfer.setData(
-                        MEDIA_MOVE_DRAG_MIME,
-                        JSON.stringify({id: dragId}),
-                    );
-                    e.dataTransfer.effectAllowed = 'move';
-                } : undefined}
-                sx={(theme) => ({
+                onDragStart={
+                    dragId
+                        ? e => {
+                              e.dataTransfer.setData(
+                                  MEDIA_MOVE_DRAG_MIME,
+                                  JSON.stringify({ id: dragId }),
+                              );
+                              e.dataTransfer.effectAllowed = 'move';
+                          }
+                        : undefined
+                }
+                sx={theme => ({
                     position: 'relative',
                     aspectRatio: '16/9',
                     backgroundImage: `url(${backgroundUrl})`,
@@ -84,7 +103,9 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                     backgroundPosition: 'center',
                     backgroundColor: theme.palette.surface.base,
                     cursor: onClick ? 'pointer' : 'default',
-                    '&:hover .media-card-actions': hasActions ? { opacity: 1 } : {},
+                    '&:hover .media-card-actions': hasActions
+                        ? { opacity: 1 }
+                        : {},
                 })}
             >
                 {hasActions && (
@@ -103,18 +124,26 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                             backdropFilter: 'blur(4px)',
                             padding: '2px',
                         }}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
                     >
                         {onRename && (
                             <Tooltip title={t('actions.rename')}>
-                                <IconButton size="small" onClick={onRename} sx={{ color: 'rgba(232, 234, 237, 0.85)' }}>
+                                <IconButton
+                                    size="small"
+                                    onClick={onRename}
+                                    sx={{ color: 'rgba(232, 234, 237, 0.85)' }}
+                                >
                                     <DriveFileRenameOutlineRoundedIcon fontSize="small" />
                                 </IconButton>
                             </Tooltip>
                         )}
                         {onDelete && (
                             <Tooltip title={t('actions.delete')}>
-                                <IconButton size="small" onClick={onDelete} sx={{ color: '#e88c8c' }}>
+                                <IconButton
+                                    size="small"
+                                    onClick={onDelete}
+                                    sx={{ color: '#e88c8c' }}
+                                >
                                     <DeleteOutlineRoundedIcon fontSize="small" />
                                 </IconButton>
                             </Tooltip>
@@ -122,19 +151,34 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                     </Stack>
                 )}
 
-                <Stack height="100%" direction="column" alignItems="stretch" justifyContent="end">
+                <Stack
+                    height="100%"
+                    direction="column"
+                    alignItems="stretch"
+                    justifyContent="end"
+                >
                     <Stack
                         direction="row"
                         alignItems="center"
                         justifyContent="space-between"
-
                         sx={{
                             backgroundColor: 'rgba(0, 0, 0, 0.55)',
                             padding: '5px',
                         }}
                     >
-                        <Typography fontSize="11px" color="#e8eaed" sx={{ wordBreak: 'break-all' }}>{name}</Typography>
-                        <Typography fontSize="10px" color="rgba(232, 234, 237, 0.65)">{durationString}</Typography>
+                        <Typography
+                            fontSize="11px"
+                            color="#e8eaed"
+                            sx={{ wordBreak: 'break-all' }}
+                        >
+                            {name}
+                        </Typography>
+                        <Typography
+                            fontSize="10px"
+                            color="rgba(232, 234, 237, 0.65)"
+                        >
+                            {durationString}
+                        </Typography>
                     </Stack>
                 </Stack>
             </Card>

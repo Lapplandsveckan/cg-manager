@@ -1,5 +1,5 @@
 import i18n from 'i18next';
-import {initReactI18next} from 'react-i18next';
+import { initReactI18next } from 'react-i18next';
 
 import enCommon from './locales/en/common.json';
 import svCommon from './locales/sv/common.json';
@@ -9,9 +9,8 @@ import svCommon from './locales/sv/common.json';
 // To add a locale: drop a folder under src/web/src/lib/locales, import its
 // common.json below, add it to `resources`, and extend `supportedLngs` here
 // + the `locales` array in next-i18next.config.js (Next routing).
-if (!i18n.isInitialized) i18n
-    .use(initReactI18next)
-    .init({
+if (!i18n.isInitialized)
+    i18n.use(initReactI18next).init({
         fallbackLng: 'en',
         supportedLngs: ['en', 'sv'],
         defaultNS: 'common',

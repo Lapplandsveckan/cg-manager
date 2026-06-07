@@ -15,8 +15,6 @@ module.exports = {
         incomingRequests: false,
     },
     async redirects() {
-        return [
-            {source: '/', destination: '/play', permanent: false},
-        ];
+        return [{ source: '/', destination: '/play', permanent: false }];
     },
 };

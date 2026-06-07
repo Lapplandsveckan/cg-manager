@@ -1,9 +1,7 @@
-import {type RouteExport} from '../../../route';
-import {CasparManager} from '../../../../manager';
+import { type RouteExport } from '../../../route';
+import { CasparManager } from '../../../../manager';
 
 export default {
-    'GET': async () => CasparManager
-        .getManager()
-        .rundowns.executor
-        .getActionDescriptors(),
+    GET: async () =>
+        CasparManager.getManager().rundowns.executor.getActionDescriptors(),
 } satisfies RouteExport;

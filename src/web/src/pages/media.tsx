@@ -1,20 +1,32 @@
-import {Button, Card, Modal, Stack, TextField, Typography} from '@mui/material';
+import {
+    Button,
+    Card,
+    Modal,
+    Stack,
+    TextField,
+    Typography,
+} from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import CreateNewFolderRoundedIcon from '@mui/icons-material/CreateNewFolderRounded';
-import React, {useEffect, useState} from 'react';
-import {useRouter} from 'next/router';
-import {noTryAsync} from 'no-try';
-import {useTranslation} from 'next-i18next';
-import {UploadButton, Dropzone, UploadModal, useFileUpload} from '../components/Upload';
-import {MediaView} from '../components/MediaView';
-import {PathBreadcrumb} from '../components/PathBreadcrumb';
-import {useSocket} from '../lib';
-import {type MediaDoc} from '../lib/api/caspar';
-import {DefaultContentLayout} from '../components/DefaultContentLayout';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { noTryAsync } from 'no-try';
+import { useTranslation } from 'next-i18next';
+import {
+    UploadButton,
+    Dropzone,
+    UploadModal,
+    useFileUpload,
+} from '../components/Upload';
+import { MediaView } from '../components/MediaView';
+import { PathBreadcrumb } from '../components/PathBreadcrumb';
+import { useSocket } from '../lib';
+import { type MediaDoc } from '../lib/api/caspar';
+import { DefaultContentLayout } from '../components/DefaultContentLayout';
 
 const ModalCard: React.FC<{ children: React.ReactNode }> = ({ children }) => (
     <Card
-        sx={(theme) => ({
+        sx={theme => ({
             position: 'absolute',
             top: '50%',
             left: '50%',
@@ -34,7 +46,7 @@ function clipShortName(clip: MediaDoc): string {
 }
 
 const Page = () => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const socket = useSocket();
     const router = useRouter();
 
@@ -63,12 +75,17 @@ const Page = () => {
         if (!socket) return;
         const basename = clipId.split('/').pop();
         if (!basename) return;
-        const newPath = folderFullPath ? `${folderFullPath}/${basename}` : basename;
+        const newPath = folderFullPath
+            ? `${folderFullPath}/${basename}`
+            : basename;
         // No-op if the clip is already in this folder.
         if (newPath === clipId) return;
         setError(null);
-        const [err] = await noTryAsync(() => socket.caspar.moveMedia(clipId, newPath));
-        if (err) setError((err as Error)?.message ?? t('media.errors.moveFailed'));
+        const [err] = await noTryAsync(() =>
+            socket.caspar.moveMedia(clipId, newPath),
+        );
+        if (err)
+            setError((err as Error)?.message ?? t('media.errors.moveFailed'));
     };
 
     const navigate = (next: string) => {
@@ -82,9 +99,12 @@ const Page = () => {
         // always a single string — flatten arrays by joining segments back,
         // empty otherwise.
         const raw = router.query.path;
-        const next = typeof raw === 'string'
-            ? raw
-            : Array.isArray(raw) ? raw.join('/') : '';
+        const next =
+            typeof raw === 'string'
+                ? raw
+                : Array.isArray(raw)
+                  ? raw.join('/')
+                  : '';
         setPath(next);
     }, [router.query.path]);
 
@@ -96,11 +116,12 @@ const Page = () => {
         if (!deleting || !socket) return;
         setBusy(true);
         setError(null);
-        const [err] = await noTryAsync(() => socket.caspar.deleteMedia(deleting.id));
+        const [err] = await noTryAsync(() =>
+            socket.caspar.deleteMedia(deleting.id),
+        );
         if (err)
             setError((err as Error)?.message ?? t('media.errors.deleteFailed'));
-        else
-            setDeleting(null);
+        else setDeleting(null);
 
         setBusy(false);
     };
@@ -114,11 +135,12 @@ const Page = () => {
         }
         setBusy(true);
         setError(null);
-        const [err] = await noTryAsync(async () => socket.caspar.renameMedia(renaming.id, next));
+        const [err] = await noTryAsync(async () =>
+            socket.caspar.renameMedia(renaming.id, next),
+        );
         if (err)
             setError((err as Error)?.message ?? t('media.errors.renameFailed'));
-        else
-            setRenaming(null);
+        else setRenaming(null);
 
         setBusy(false);
     };
@@ -136,10 +158,14 @@ const Page = () => {
         // slash from `path` (we already have one if non-empty) and join.
         const from = `${path}${renamingFolder}`;
         const to = `${path}${next}`;
-        const [err] = await noTryAsync(() => socket.caspar.renameFolder(from, to));
+        const [err] = await noTryAsync(() =>
+            socket.caspar.renameFolder(from, to),
+        );
         setBusy(false);
         if (err) {
-            setError((err as Error)?.message ?? t('media.errors.renameFolderFailed'));
+            setError(
+                (err as Error)?.message ?? t('media.errors.renameFolderFailed'),
+            );
             return;
         }
         setRenamingFolder(null);
@@ -150,7 +176,9 @@ const Page = () => {
         setBusy(true);
         setError(null);
         const target = `${path}${deletingFolder}`;
-        const [err] = await noTryAsync(() => socket.caspar.deleteFolder(target));
+        const [err] = await noTryAsync(() =>
+            socket.caspar.deleteFolder(target),
+        );
         setBusy(false);
         if (err) {
             // The server returns 409 ("Folder is not empty (N items)") when
@@ -172,7 +200,9 @@ const Page = () => {
         // operator's mental model "create here" rather than asking them to
         // type the absolute path.
         const target = `${path}${name}`;
-        const [err, res] = await noTryAsync(() => socket.caspar.createFolder(target));
+        const [err, res] = await noTryAsync(() =>
+            socket.caspar.createFolder(target),
+        );
         setBusy(false);
         if (err || !res) {
             setError(err?.message ?? t('media.errors.createFolderFailed'));
@@ -198,13 +228,29 @@ const Page = () => {
                 fill
                 onDrop={uploadCtrl.start}
                 accept={['video/*', 'audio/*', 'image/*']}
-                disabled={uploadCtrl.state.phase === 'starting' || uploadCtrl.state.phase === 'uploading'}
-                overlayLabel={t('media.page.dropOverlay', {path: path || '/'})}
+                disabled={
+                    uploadCtrl.state.phase === 'starting' ||
+                    uploadCtrl.state.phase === 'uploading'
+                }
+                overlayLabel={t('media.page.dropOverlay', {
+                    path: path || '/',
+                })}
             >
-                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={2} mb={1}>
+                <Stack
+                    direction="row"
+                    alignItems="flex-start"
+                    justifyContent="space-between"
+                    gap={2}
+                    mb={1}
+                >
                     <Stack spacing={1}>
-                        <Typography variant="h1">{t('media.page.title')}</Typography>
-                        <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                        <Typography variant="h1">
+                            {t('media.page.title')}
+                        </Typography>
+                        <Typography
+                            variant="body1"
+                            sx={{ color: 'text.secondary' }}
+                        >
                             {t('media.page.subtitle')}
                         </Typography>
                     </Stack>
@@ -229,7 +275,12 @@ const Page = () => {
                                     accept: {
                                         'audio/*': ['mp3', 'wav', 'ogg'],
                                         'video/*': ['mp4', 'webm', 'mkv'],
-                                        'image/*': ['png', 'jpg', 'jpeg', 'gif'],
+                                        'image/*': [
+                                            'png',
+                                            'jpg',
+                                            'jpeg',
+                                            'gif',
+                                        ],
                                     },
                                 },
                             ]}
@@ -238,17 +289,30 @@ const Page = () => {
                 </Stack>
 
                 <Card sx={{ p: 1.5, mb: 3 }}>
-                    <PathBreadcrumb path={path} onNavigate={navigate} onMediaDrop={handleMediaMove} />
+                    <PathBreadcrumb
+                        path={path}
+                        onNavigate={navigate}
+                        onMediaDrop={handleMediaMove}
+                    />
                 </Card>
 
                 <MediaView
                     prefix={path}
                     showAsDirectories
                     onNavigate={folder => navigate(`${path}${folder}/`)}
-                    onClipDelete={(clip) => { setError(null); setDeleting(clip); }}
-                    onClipRename={(clip) => { setError(null); setRenaming(clip); }}
-                    onFolderDelete={(folder) => { setError(null); setDeletingFolder(folder); }}
-                    onFolderRename={(folder) => {
+                    onClipDelete={clip => {
+                        setError(null);
+                        setDeleting(clip);
+                    }}
+                    onClipRename={clip => {
+                        setError(null);
+                        setRenaming(clip);
+                    }}
+                    onFolderDelete={folder => {
+                        setError(null);
+                        setDeletingFolder(folder);
+                    }}
+                    onFolderRename={folder => {
                         setError(null);
                         setRenamingFolder(folder);
                         setFolderRenameValue(folder);
@@ -266,27 +330,61 @@ const Page = () => {
                 // plugin's "Skip encoding" checkbox) need to know
                 // the absolute path the file will land at server-side.
                 // The scanner stores them upper-cased, so match that.
-                targetPathFor={(file) => `${path}${file.name}`}
+                targetPathFor={file => `${path}${file.name}`}
             />
 
-            <Modal open={Boolean(deleting)} onClose={() => !busy && setDeleting(null)}>
+            <Modal
+                open={Boolean(deleting)}
+                onClose={() => !busy && setDeleting(null)}
+            >
                 <ModalCard>
                     <Stack spacing={2}>
                         <Stack direction="row" alignItems="center" gap={1.5}>
-                            <WarningAmberRoundedIcon sx={{ color: '#e88c8c' }} />
-                            <Typography variant="h3">{t('media.deleteMedia.title')}</Typography>
+                            <WarningAmberRoundedIcon
+                                sx={{ color: '#e88c8c' }}
+                            />
+                            <Typography variant="h3">
+                                {t('media.deleteMedia.title')}
+                            </Typography>
                         </Stack>
-                        <Typography variant="body1" sx={{ color: 'text.secondary', wordBreak: 'break-all' }}>
-                            <strong style={{ color: 'inherit' }}>{deleting?.id}</strong>{' '}
+                        <Typography
+                            variant="body1"
+                            sx={{
+                                color: 'text.secondary',
+                                wordBreak: 'break-all',
+                            }}
+                        >
+                            <strong style={{ color: 'inherit' }}>
+                                {deleting?.id}
+                            </strong>{' '}
                             {t('media.deleteMedia.body')}
                         </Typography>
-                        {error && <Typography variant="body2" color="error">{error}</Typography>}
-                        <Stack direction="row" justifyContent="flex-end" gap={1}>
-                            <Button onClick={() => setDeleting(null)} disabled={busy} color="inherit">
+                        {error && (
+                            <Typography variant="body2" color="error">
+                                {error}
+                            </Typography>
+                        )}
+                        <Stack
+                            direction="row"
+                            justifyContent="flex-end"
+                            gap={1}
+                        >
+                            <Button
+                                onClick={() => setDeleting(null)}
+                                disabled={busy}
+                                color="inherit"
+                            >
                                 {t('actions.cancel')}
                             </Button>
-                            <Button onClick={confirmDelete} disabled={busy} variant="contained" color="error">
-                                {busy ? t('media.deleteMedia.deleting') : t('actions.delete')}
+                            <Button
+                                onClick={confirmDelete}
+                                disabled={busy}
+                                variant="contained"
+                                color="error"
+                            >
+                                {busy
+                                    ? t('media.deleteMedia.deleting')
+                                    : t('actions.delete')}
                             </Button>
                         </Stack>
                     </Stack>
@@ -295,21 +393,48 @@ const Page = () => {
 
             <Modal
                 open={Boolean(deletingFolder)}
-                onClose={() => { if (!busy) setDeletingFolder(null); }}
+                onClose={() => {
+                    if (!busy) setDeletingFolder(null);
+                }}
             >
                 <ModalCard>
                     <Stack spacing={2}>
                         <Stack direction="row" alignItems="center" gap={1.5}>
-                            <WarningAmberRoundedIcon sx={{ color: '#e88c8c' }} />
-                            <Typography variant="h3">{t('media.deleteFolder.title')}</Typography>
+                            <WarningAmberRoundedIcon
+                                sx={{ color: '#e88c8c' }}
+                            />
+                            <Typography variant="h3">
+                                {t('media.deleteFolder.title')}
+                            </Typography>
                         </Stack>
-                        <Typography variant="body1" sx={{ color: 'text.secondary', wordBreak: 'break-all' }}>
-                            <strong style={{ color: 'inherit' }}>{path}{deletingFolder}</strong>{' '}
+                        <Typography
+                            variant="body1"
+                            sx={{
+                                color: 'text.secondary',
+                                wordBreak: 'break-all',
+                            }}
+                        >
+                            <strong style={{ color: 'inherit' }}>
+                                {path}
+                                {deletingFolder}
+                            </strong>{' '}
                             {t('media.deleteFolder.body')}
                         </Typography>
-                        {error && <Typography variant="body2" color="error">{error}</Typography>}
-                        <Stack direction="row" justifyContent="flex-end" gap={1}>
-                            <Button onClick={() => setDeletingFolder(null)} disabled={busy} color="inherit">
+                        {error && (
+                            <Typography variant="body2" color="error">
+                                {error}
+                            </Typography>
+                        )}
+                        <Stack
+                            direction="row"
+                            justifyContent="flex-end"
+                            gap={1}
+                        >
+                            <Button
+                                onClick={() => setDeletingFolder(null)}
+                                disabled={busy}
+                                color="inherit"
+                            >
                                 {t('actions.cancel')}
                             </Button>
                             <Button
@@ -318,7 +443,9 @@ const Page = () => {
                                 variant="contained"
                                 color="error"
                             >
-                                {busy ? t('media.deleteMedia.deleting') : t('actions.delete')}
+                                {busy
+                                    ? t('media.deleteMedia.deleting')
+                                    : t('actions.delete')}
                             </Button>
                         </Stack>
                     </Stack>
@@ -327,31 +454,57 @@ const Page = () => {
 
             <Modal
                 open={creatingFolder}
-                onClose={() => { if (!busy) { setCreatingFolder(false); setFolderName(''); } }}
+                onClose={() => {
+                    if (!busy) {
+                        setCreatingFolder(false);
+                        setFolderName('');
+                    }
+                }}
             >
                 <ModalCard>
                     <Stack spacing={2}>
                         <Stack direction="row" alignItems="center" gap={1.5}>
-                            <CreateNewFolderRoundedIcon sx={{ color: 'primary.main' }} />
-                            <Typography variant="h3">{t('media.createFolder.title')}</Typography>
+                            <CreateNewFolderRoundedIcon
+                                sx={{ color: 'primary.main' }}
+                            />
+                            <Typography variant="h3">
+                                {t('media.createFolder.title')}
+                            </Typography>
                         </Stack>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        <Typography
+                            variant="body2"
+                            sx={{ color: 'text.secondary' }}
+                        >
                             {t('media.createFolder.bodyBefore')}{' '}
-                            <strong>{path || '/'}</strong>{t('media.createFolder.bodyBetween')}{' '}
-                            <code>/</code>{t('media.createFolder.bodyAfter')}
+                            <strong>{path || '/'}</strong>
+                            {t('media.createFolder.bodyBetween')} <code>/</code>
+                            {t('media.createFolder.bodyAfter')}
                         </Typography>
                         <TextField
                             label={t('media.createFolder.nameLabel')}
                             value={folderName}
-                            onChange={(e) => setFolderName(e.target.value)}
+                            onChange={e => setFolderName(e.target.value)}
                             autoFocus
                             disabled={busy}
-                            onKeyDown={(e) => { if (e.key === 'Enter') confirmCreateFolder(); }}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') confirmCreateFolder();
+                            }}
                         />
-                        {error && <Typography variant="body2" color="error">{error}</Typography>}
-                        <Stack direction="row" justifyContent="flex-end" gap={1}>
+                        {error && (
+                            <Typography variant="body2" color="error">
+                                {error}
+                            </Typography>
+                        )}
+                        <Stack
+                            direction="row"
+                            justifyContent="flex-end"
+                            gap={1}
+                        >
                             <Button
-                                onClick={() => { setCreatingFolder(false); setFolderName(''); }}
+                                onClick={() => {
+                                    setCreatingFolder(false);
+                                    setFolderName('');
+                                }}
                                 disabled={busy}
                                 color="inherit"
                             >
@@ -362,67 +515,121 @@ const Page = () => {
                                 disabled={busy || !folderName.trim()}
                                 variant="contained"
                             >
-                                {busy ? t('media.createFolder.creating') : t('actions.create')}
+                                {busy
+                                    ? t('media.createFolder.creating')
+                                    : t('actions.create')}
                             </Button>
                         </Stack>
                     </Stack>
                 </ModalCard>
             </Modal>
 
-            <Modal open={Boolean(renaming)} onClose={() => !busy && setRenaming(null)}>
+            <Modal
+                open={Boolean(renaming)}
+                onClose={() => !busy && setRenaming(null)}
+            >
                 <ModalCard>
                     <Stack spacing={2}>
-                        <Typography variant="h3">{t('media.renameMedia.title')}</Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        <Typography variant="h3">
+                            {t('media.renameMedia.title')}
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{ color: 'text.secondary' }}
+                        >
                             {t('media.renameMedia.body')}
                         </Typography>
                         <TextField
                             label={t('media.renameMedia.nameLabel')}
                             value={renameValue}
-                            onChange={(e) => setRenameValue(e.target.value)}
+                            onChange={e => setRenameValue(e.target.value)}
                             autoFocus
                             disabled={busy}
-                            onKeyDown={(e) => {
+                            onKeyDown={e => {
                                 if (e.key === 'Enter') confirmRename();
                             }}
                         />
-                        {error && <Typography variant="body2" color="error">{error}</Typography>}
-                        <Stack direction="row" justifyContent="flex-end" gap={1}>
-                            <Button onClick={() => setRenaming(null)} disabled={busy} color="inherit">
+                        {error && (
+                            <Typography variant="body2" color="error">
+                                {error}
+                            </Typography>
+                        )}
+                        <Stack
+                            direction="row"
+                            justifyContent="flex-end"
+                            gap={1}
+                        >
+                            <Button
+                                onClick={() => setRenaming(null)}
+                                disabled={busy}
+                                color="inherit"
+                            >
                                 {t('actions.cancel')}
                             </Button>
-                            <Button onClick={confirmRename} disabled={busy} variant="contained">
-                                {busy ? t('media.renameMedia.renaming') : t('actions.rename')}
+                            <Button
+                                onClick={confirmRename}
+                                disabled={busy}
+                                variant="contained"
+                            >
+                                {busy
+                                    ? t('media.renameMedia.renaming')
+                                    : t('actions.rename')}
                             </Button>
                         </Stack>
                     </Stack>
                 </ModalCard>
             </Modal>
 
-            <Modal open={Boolean(renamingFolder)} onClose={() => !busy && setRenamingFolder(null)}>
+            <Modal
+                open={Boolean(renamingFolder)}
+                onClose={() => !busy && setRenamingFolder(null)}
+            >
                 <ModalCard>
                     <Stack spacing={2}>
-                        <Typography variant="h3">{t('media.renameFolder.title')}</Typography>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        <Typography variant="h3">
+                            {t('media.renameFolder.title')}
+                        </Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{ color: 'text.secondary' }}
+                        >
                             {t('media.renameFolder.body')}
                         </Typography>
                         <TextField
                             label={t('media.renameFolder.nameLabel')}
                             value={folderRenameValue}
-                            onChange={(e) => setFolderRenameValue(e.target.value)}
+                            onChange={e => setFolderRenameValue(e.target.value)}
                             autoFocus
                             disabled={busy}
-                            onKeyDown={(e) => {
+                            onKeyDown={e => {
                                 if (e.key === 'Enter') confirmRenameFolder();
                             }}
                         />
-                        {error && <Typography variant="body2" color="error">{error}</Typography>}
-                        <Stack direction="row" justifyContent="flex-end" gap={1}>
-                            <Button onClick={() => setRenamingFolder(null)} disabled={busy} color="inherit">
+                        {error && (
+                            <Typography variant="body2" color="error">
+                                {error}
+                            </Typography>
+                        )}
+                        <Stack
+                            direction="row"
+                            justifyContent="flex-end"
+                            gap={1}
+                        >
+                            <Button
+                                onClick={() => setRenamingFolder(null)}
+                                disabled={busy}
+                                color="inherit"
+                            >
                                 {t('actions.cancel')}
                             </Button>
-                            <Button onClick={confirmRenameFolder} disabled={busy} variant="contained">
-                                {busy ? t('media.renameFolder.renaming') : t('actions.rename')}
+                            <Button
+                                onClick={confirmRenameFolder}
+                                disabled={busy}
+                                variant="contained"
+                            >
+                                {busy
+                                    ? t('media.renameFolder.renaming')
+                                    : t('actions.rename')}
                             </Button>
                         </Stack>
                     </Stack>

@@ -1,4 +1,4 @@
-import {noTry} from 'no-try';
+import { noTry } from 'no-try';
 
 export function getStorageItem(key: string): string | null {
     if (typeof window === 'undefined') return null;

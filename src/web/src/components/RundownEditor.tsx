@@ -1,7 +1,7 @@
 import React from 'react';
-import {Box, Button, IconButton, Stack, Tooltip} from '@mui/material';
+import { Box, Button, IconButton, Stack, Tooltip } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import {useTranslation} from 'next-i18next';
+import { useTranslation } from 'next-i18next';
 
 interface RundownEditorActionBarProps {
     /** Primary action — saves the edit. Always present. */
@@ -29,10 +29,13 @@ export const RundownEditorActionBar: React.FC<RundownEditorActionBarProps> = ({
     onDelete,
     exists,
 }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const legacyMode = exists !== undefined;
-    const showDelete = legacyMode ? exists === true && Boolean(onDelete) : Boolean(onDelete);
-    const cancelHandler = onCancel ?? (legacyMode && exists === false ? onDelete : undefined);
+    const showDelete = legacyMode
+        ? exists === true && Boolean(onDelete)
+        : Boolean(onDelete);
+    const cancelHandler =
+        onCancel ?? (legacyMode && exists === false ? onDelete : undefined);
 
     return (
         <Stack
@@ -47,7 +50,7 @@ export const RundownEditorActionBar: React.FC<RundownEditorActionBarProps> = ({
                     <IconButton
                         size="small"
                         onClick={() => onDelete?.()}
-                        sx={(theme) => ({
+                        sx={theme => ({
                             color: '#cf5b4a',
                             border: `1px solid ${theme.palette.divider}`,
                             borderRadius: 1,
@@ -60,7 +63,9 @@ export const RundownEditorActionBar: React.FC<RundownEditorActionBarProps> = ({
                         <DeleteOutlineRoundedIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
-            ) : <Box />}
+            ) : (
+                <Box />
+            )}
 
             <Stack direction="row" gap={1}>
                 {cancelHandler && (

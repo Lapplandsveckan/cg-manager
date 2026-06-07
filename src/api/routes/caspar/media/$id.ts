@@ -1,17 +1,22 @@
-import {promises as fs} from 'fs';
+import { promises as fs } from 'fs';
 import * as path from 'path';
-import {WebError} from 'rest-exchange-protocol';
-import {noTry} from 'no-try';
-import {type RouteExport} from '../../../route';
-import {CasparManager} from '../../../../manager';
+import { WebError } from 'rest-exchange-protocol';
+import { noTry } from 'no-try';
+import { type RouteExport } from '../../../route';
+import { CasparManager } from '../../../../manager';
 import scannerConfig from '../../../../manager/scanner/config';
-import {resolveSafePath, validateFilename} from '../../../../manager/scanner/util';
-import {normalizeFolderPath, PLACEHOLDER_NAME} from '../../../../manager/scanner/folders';
+import {
+    resolveSafePath,
+    validateFilename,
+} from '../../../../manager/scanner/util';
+import {
+    normalizeFolderPath,
+    PLACEHOLDER_NAME,
+} from '../../../../manager/scanner/folders';
 
 function resolveDoc(id: string) {
     const decoded = decodeURIComponent(id);
-    const doc = CasparManager
-        .getManager()
+    const doc = CasparManager.getManager()
         .getMediaScanner()
         .getDatabase()
         .get(decoded);
@@ -21,21 +26,23 @@ function resolveDoc(id: string) {
 
     // Defensive: re-validate that the doc's mediaPath is still inside the
     // configured media root before any fs operation.
-    const safe = resolveSafePath(scannerConfig.paths.media, path.relative(scannerConfig.paths.media, doc.mediaPath));
+    const safe = resolveSafePath(
+        scannerConfig.paths.media,
+        path.relative(scannerConfig.paths.media, doc.mediaPath),
+    );
     return { doc, mediaPath: safe };
 }
 
 export default {
-    'GET': async (request) => {
+    GET: async request => {
         if (!request.params.id) throw new WebError('No media id provided', 400);
 
-        return CasparManager
-            .getManager()
+        return CasparManager.getManager()
             .getMediaScanner()
             .getDatabase()
             .get(decodeURIComponent(request.params.id));
     },
-    'DELETE': async (request) => {
+    DELETE: async request => {
         if (!request.params.id) throw new WebError('No media id provided', 400);
 
         const { mediaPath } = resolveDoc(request.params.id);
@@ -46,7 +53,7 @@ export default {
 
         return { ok: true };
     },
-    'UPDATE': async (request) => {
+    UPDATE: async request => {
         if (!request.params.id) throw new WebError('No media id provided', 400);
 
         const data = request.getData();
@@ -72,26 +79,42 @@ export default {
         // Build target as a path relative to media root, no extension.
         let targetRel: string;
         if (typeof newPath === 'string') {
-            const [normErr, segments] = noTry(() => normalizeFolderPath(newPath));
-            if (normErr || !segments) throw new WebError(normErr?.message ?? 'Invalid path', 400);
+            const [normErr, segments] = noTry(() =>
+                normalizeFolderPath(newPath),
+            );
+            if (normErr || !segments)
+                throw new WebError(normErr?.message ?? 'Invalid path', 400);
             for (const segment of segments) {
                 const [err] = noTry(() => validateFilename(segment));
-                if (err) throw new WebError(`Invalid segment "${segment}": ${err.message}`, 400);
-                if (segment === PLACEHOLDER_NAME) throw new WebError('Reserved name', 400);
+                if (err)
+                    throw new WebError(
+                        `Invalid segment "${segment}": ${err.message}`,
+                        400,
+                    );
+                if (segment === PLACEHOLDER_NAME)
+                    throw new WebError('Reserved name', 400);
             }
             targetRel = segments.join(path.sep);
         } else {
             const [err] = noTry(() => validateFilename(newName as string));
             if (err) throw new WebError((err as Error).message, 400);
             const dir = path.dirname(mediaPath);
-            targetRel = path.join(path.relative(scannerConfig.paths.media, dir), newName as string);
+            targetRel = path.join(
+                path.relative(scannerConfig.paths.media, dir),
+                newName as string,
+            );
         }
 
-        const target = resolveSafePath(scannerConfig.paths.media, `${targetRel}${ext}`);
+        const target = resolveSafePath(
+            scannerConfig.paths.media,
+            `${targetRel}${ext}`,
+        );
         if (target === mediaPath) return { ok: true };
 
         await fs.access(target).then(
-            () => { throw new WebError('A file with that name already exists', 409); },
+            () => {
+                throw new WebError('A file with that name already exists', 409);
+            },
             () => undefined,
         );
 
@@ -99,7 +122,7 @@ export default {
         // this is a no-op; for cross-folder moves the user may be moving
         // into a folder that exists already (or one they implicitly want
         // created — `recursive: true` handles both).
-        await fs.mkdir(path.dirname(target), {recursive: true});
+        await fs.mkdir(path.dirname(target), { recursive: true });
 
         await fs.rename(mediaPath, target).catch(err => {
             throw new WebError(`Failed to rename: ${err.message}`, 500);

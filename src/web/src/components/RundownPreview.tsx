@@ -1,11 +1,23 @@
-import React, {useEffect, useState} from 'react';
-import {Box, ButtonBase, IconButton, Stack, Tooltip, Typography, alpha} from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import {
+    Box,
+    ButtonBase,
+    IconButton,
+    Stack,
+    Tooltip,
+    Typography,
+    alpha,
+} from '@mui/material';
 import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import {useTranslation} from 'next-i18next';
-import {useSocket} from '../lib/hooks/useSocket';
-import {getStorageItem, removeStorageItem, setStorageItem} from '../lib/storage';
-import {ChannelPreview} from './ChannelPreview';
+import { useTranslation } from 'next-i18next';
+import { useSocket } from '../lib/hooks/useSocket';
+import {
+    getStorageItem,
+    removeStorageItem,
+    setStorageItem,
+} from '../lib/storage';
+import { ChannelPreview } from './ChannelPreview';
 
 const STORAGE_KEY = 'rundown-preview-channel';
 
@@ -20,7 +32,7 @@ const STORAGE_KEY = 'rundown-preview-channel';
  * Renders nothing when CasparCG reports zero channels.
  */
 export const RundownPreview: React.FC = () => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const socket = useSocket();
     const [channels, setChannels] = useState<number[] | null>(null);
     const [selected, setSelected] = useState<number | null>(null);
@@ -35,7 +47,9 @@ export const RundownPreview: React.FC = () => {
         let cancelled = false;
         let hydrated = false;
 
-        const applyConfig = (cfg: { channels: { videoMode: string }[] } | null) => {
+        const applyConfig = (
+            cfg: { channels: { videoMode: string }[] } | null,
+        ) => {
             if (cancelled) return;
             const list = cfg ? cfg.channels.map((_, i) => i + 1) : [];
             setChannels(list);
@@ -48,18 +62,23 @@ export const RundownPreview: React.FC = () => {
                 hydrated = true;
                 const raw = getStorageItem(STORAGE_KEY);
                 const stored = raw ? Number(raw) : NaN;
-                if (Number.isInteger(stored) && list.includes(stored)) setSelected(stored);
+                if (Number.isInteger(stored) && list.includes(stored))
+                    setSelected(stored);
                 return;
             }
 
-            setSelected((current) => (current != null && !list.includes(current) ? null : current));
+            setSelected(current =>
+                current != null && !list.includes(current) ? null : current,
+            );
         };
 
-        socket.caspar.getRunningConfig()
+        socket.caspar
+            .getRunningConfig()
             .then(applyConfig)
             .catch(() => applyConfig(null));
 
-        const listener = (cfg: { channels: { videoMode: string }[] } | null) => applyConfig(cfg);
+        const listener = (cfg: { channels: { videoMode: string }[] } | null) =>
+            applyConfig(cfg);
         socket.caspar.on('running-config', listener);
 
         return () => {
@@ -93,7 +112,7 @@ export const RundownPreview: React.FC = () => {
     // gap to the page bottom vertically.
     return (
         <Box
-            sx={(theme) => ({
+            sx={theme => ({
                 flexShrink: 0,
                 mx: 1,
                 mb: 1,
@@ -114,35 +133,51 @@ export const RundownPreview: React.FC = () => {
                     {t('actions.preview')}
                 </Typography>
                 <Stack direction="row" alignItems="center" gap={0.75}>
-                    {channels.map((ch) => {
+                    {channels.map(ch => {
                         const active = ch === selected;
                         return (
                             <Tooltip
                                 key={ch}
-                                title={active
-                                    ? t('rundown.preview.stopChannel', { channel: ch })
-                                    : t('rundown.preview.previewChannel', { channel: ch })}
+                                title={
+                                    active
+                                        ? t('rundown.preview.stopChannel', {
+                                              channel: ch,
+                                          })
+                                        : t('rundown.preview.previewChannel', {
+                                              channel: ch,
+                                          })
+                                }
                             >
                                 <ButtonBase
                                     onClick={() => pickChannel(ch)}
-                                    sx={(theme) => ({
+                                    sx={theme => ({
                                         minWidth: 28,
                                         height: 26,
                                         px: 1,
                                         borderRadius: 1,
                                         border: `1px solid ${active ? theme.palette.primary.main : theme.palette.divider}`,
                                         bgcolor: active
-                                            ? alpha(theme.palette.primary.main, 0.16)
+                                            ? alpha(
+                                                  theme.palette.primary.main,
+                                                  0.16,
+                                              )
                                             : 'transparent',
-                                        color: active ? theme.palette.primary.main : 'text.secondary',
+                                        color: active
+                                            ? theme.palette.primary.main
+                                            : 'text.secondary',
                                         fontSize: '0.8125rem',
                                         fontWeight: 600,
                                         transition: theme.transitions.create(
-                                            ['background-color', 'border-color', 'color'],
+                                            [
+                                                'background-color',
+                                                'border-color',
+                                                'color',
+                                            ],
                                             { duration: 120 },
                                         ),
                                         '&:hover': {
-                                            borderColor: theme.palette.primary.main,
+                                            borderColor:
+                                                theme.palette.primary.main,
                                             color: theme.palette.primary.main,
                                         },
                                     })}
@@ -167,7 +202,7 @@ export const RundownPreview: React.FC = () => {
             </Stack>
 
             <Box
-                sx={(theme) => ({
+                sx={theme => ({
                     position: 'relative',
                     aspectRatio: '16 / 9',
                     bgcolor: '#0c0d10',

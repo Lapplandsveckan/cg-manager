@@ -1,7 +1,7 @@
-import React, {useEffect, useRef} from 'react';
-import {Dropzone} from './Dropzone';
-import {type UploadFileResult, UploadModal, useFileUpload} from './Upload';
-import {ManagerApi} from '../lib/api/api';
+import React, { useEffect, useRef } from 'react';
+import { Dropzone } from './Dropzone';
+import { type UploadFileResult, UploadModal, useFileUpload } from './Upload';
+import { ManagerApi } from '../lib/api/api';
 
 export interface MediaDropZoneProps {
     /** Server-side directory prefix that uploaded files will land in.
@@ -53,12 +53,17 @@ export const MediaDropZone: React.FC<MediaDropZoneProps> = ({
     // When createUpload is custom, the caller owns paths — only feed
     // targetPathFor to the modal if they also gave us one, so plugin
     // injections aren't lied to about where files land.
-    const effectiveTargetPathFor = targetPathFor
-        ?? (createUpload ? undefined : defaultPathFor);
+    const effectiveTargetPathFor =
+        targetPathFor ?? (createUpload ? undefined : defaultPathFor);
 
     const ctrl = useFileUpload({
-        createUpload: createUpload
-            ?? (file => ManagerApi.getConnection().caspar.uploadMedia(defaultPathFor(file), file)),
+        createUpload:
+            createUpload ??
+            (file =>
+                ManagerApi.getConnection().caspar.uploadMedia(
+                    defaultPathFor(file),
+                    file,
+                )),
     });
 
     // Latest onComplete in a ref so the effect's dep list can stay
@@ -67,7 +72,7 @@ export const MediaDropZone: React.FC<MediaDropZoneProps> = ({
     const onCompleteRef = useRef(onComplete);
     onCompleteRef.current = onComplete;
 
-    const {phase, completed} = ctrl.state;
+    const { phase, completed } = ctrl.state;
     useEffect(() => {
         if (phase !== 'done' && phase !== 'error') return;
         // `completed` is set in the same setState as the terminal phase,

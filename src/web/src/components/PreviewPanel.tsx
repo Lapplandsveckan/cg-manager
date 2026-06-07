@@ -1,5 +1,5 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {noTry, noTryAsync} from 'no-try';
+import React, { useEffect, useRef, useState } from 'react';
+import { noTry, noTryAsync } from 'no-try';
 import {
     Box,
     Button,
@@ -12,9 +12,9 @@ import {
 } from '@mui/material';
 import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import {useTranslation} from 'next-i18next';
-import {useSocket} from '../lib/hooks/useSocket';
-import {type CasparStatus} from '../lib/api/caspar';
+import { useTranslation } from 'next-i18next';
+import { useSocket } from '../lib/hooks/useSocket';
+import { type CasparStatus } from '../lib/api/caspar';
 
 interface PreviewCardProps {
     channel: number;
@@ -28,17 +28,34 @@ interface ViewportPlaceholderProps {
     action?: React.ReactNode;
 }
 
-const ViewportPlaceholder: React.FC<ViewportPlaceholderProps> = ({icon, title, detail, action}) => (
+const ViewportPlaceholder: React.FC<ViewportPlaceholderProps> = ({
+    icon,
+    title,
+    detail,
+    action,
+}) => (
     <Stack
         spacing={1}
-        sx={{position: 'absolute', inset: 0, alignItems: 'center', justifyContent: 'center', p: 2}}
+        sx={{
+            position: 'absolute',
+            inset: 0,
+            alignItems: 'center',
+            justifyContent: 'center',
+            p: 2,
+        }}
     >
-        <Box sx={{color: 'text.disabled'}}>{icon}</Box>
-        <Typography variant="body2" sx={{color: 'text.secondary', textAlign: 'center'}}>
+        <Box sx={{ color: 'text.disabled' }}>{icon}</Box>
+        <Typography
+            variant="body2"
+            sx={{ color: 'text.secondary', textAlign: 'center' }}
+        >
             {title}
         </Typography>
         {detail && (
-            <Typography variant="caption" sx={{color: 'text.disabled', textAlign: 'center'}}>
+            <Typography
+                variant="caption"
+                sx={{ color: 'text.disabled', textAlign: 'center' }}
+            >
                 {detail}
             </Typography>
         )}
@@ -52,10 +69,15 @@ const whepUrlForChannel = (channel: number, nonce: number): string =>
 /** Standard WHEP exchange: POST the local SDP offer, server replies with the
  *  SDP answer. No DataChannel, no ICE-restart, no DELETE — keep alive until
  *  the peer connection itself closes. */
-async function whepExchange(channel: number, offerSdp: string, nonce: number, signal: AbortSignal): Promise<string> {
+async function whepExchange(
+    channel: number,
+    offerSdp: string,
+    nonce: number,
+    signal: AbortSignal,
+): Promise<string> {
     const resp = await fetch(whepUrlForChannel(channel, nonce), {
         method: 'POST',
-        headers: {'Content-Type': 'application/sdp'},
+        headers: { 'Content-Type': 'application/sdp' },
         body: offerSdp,
         signal,
     });
@@ -66,8 +88,8 @@ async function whepExchange(channel: number, offerSdp: string, nonce: number, si
     return resp.text();
 }
 
-const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
-    const {t} = useTranslation('common');
+const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
+    const { t } = useTranslation('common');
     const [enabled, setEnabled] = useState(false);
     // Bump on each (re)load — used in the URL so a Retry forces a fresh
     // exchange rather than reusing whatever the browser/proxy might cache.
@@ -102,39 +124,53 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
         (async () => {
             const [e] = await noTryAsync(async () => {
                 pc = new RTCPeerConnection();
-                pc.addTransceiver('video', {direction: 'recvonly'});
+                pc.addTransceiver('video', { direction: 'recvonly' });
 
-                pc.ontrack = (event) => {
+                pc.ontrack = event => {
                     const video = videoRef.current;
                     if (!video) return;
-                    video.srcObject = event.streams[0] ?? new MediaStream([event.track]);
+                    video.srcObject =
+                        event.streams[0] ?? new MediaStream([event.track]);
                 };
 
                 pc.onconnectionstatechange = () => {
                     if (!pc || abort.signal.aborted) return;
-                    if (pc.connectionState === 'failed') setError(t('media.preview.errors.failed'));
-                    if (pc.connectionState === 'disconnected') setError(t('media.preview.errors.disconnected'));
+                    if (pc.connectionState === 'failed')
+                        setError(t('media.preview.errors.failed'));
+                    if (pc.connectionState === 'disconnected')
+                        setError(t('media.preview.errors.disconnected'));
                 };
 
                 const offer = await pc.createOffer();
                 await pc.setLocalDescription(offer);
 
-                const answerSdp = await whepExchange(channel, offer.sdp ?? '', reloadKey, abort.signal);
+                const answerSdp = await whepExchange(
+                    channel,
+                    offer.sdp ?? '',
+                    reloadKey,
+                    abort.signal,
+                );
                 if (abort.signal.aborted) return;
 
-                await pc.setRemoteDescription({type: 'answer', sdp: answerSdp});
+                await pc.setRemoteDescription({
+                    type: 'answer',
+                    sdp: answerSdp,
+                });
             });
 
             if (e) {
                 if (abort.signal.aborted) return;
-                setError((e as Error).message ?? t('media.preview.errors.startFailed'));
+                setError(
+                    (e as Error).message ??
+                        t('media.preview.errors.startFailed'),
+                );
             }
         })();
 
         return () => {
             abort.abort();
             if (pc) {
-                noTry(() => pc.getSenders().forEach((s) => s.track?.stop()));
+                noTry(() => pc.getSenders().forEach(s => s.track?.stop()));
                 noTry(() => pc.close());
             }
             const video = videoRef.current;
@@ -146,41 +182,52 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
         setEnabled(next);
         setError(null);
         setLoaded(false);
-        if (next) setReloadKey((k) => k + 1);
+        if (next) setReloadKey(k => k + 1);
     };
 
     const retry = () => {
         setError(null);
         setLoaded(false);
-        setReloadKey((k) => k + 1);
+        setReloadKey(k => k + 1);
     };
 
     const switchLabel = !running
         ? t('media.preview.switch.serverOff')
         : enabled
-            ? t('media.preview.switch.live')
-            : t('media.preview.switch.off');
+          ? t('media.preview.switch.live')
+          : t('media.preview.switch.off');
 
     return (
-        <Card sx={{p: 2, flex: '1 1 320px', minWidth: 280, maxWidth: 480}}>
+        <Card sx={{ p: 2, flex: '1 1 320px', minWidth: 280, maxWidth: 480 }}>
             <Stack spacing={1.5}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Typography variant="h4">{t('media.preview.channel', {channel})}</Typography>
+                <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                >
+                    <Typography variant="h4">
+                        {t('media.preview.channel', { channel })}
+                    </Typography>
                     <FormControlLabel
                         control={
                             <Switch
                                 checked={enabled}
                                 disabled={!running}
-                                onChange={(e) => handleToggle(e.target.checked)}
+                                onChange={e => handleToggle(e.target.checked)}
                             />
                         }
                         label={switchLabel}
                         labelPlacement="start"
-                        sx={{m: 0, '& .MuiFormControlLabel-label': {color: 'text.secondary'}}}
+                        sx={{
+                            m: 0,
+                            '& .MuiFormControlLabel-label': {
+                                color: 'text.secondary',
+                            },
+                        }}
                     />
                 </Stack>
                 <Box
-                    sx={(theme) => ({
+                    sx={theme => ({
                         position: 'relative',
                         aspectRatio: '16 / 9',
                         bgcolor: '#0c0d10',
@@ -205,15 +252,20 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                             // Hide the partially-rendered video element until
                             // the first frame arrives; the placeholder/spinner
                             // covers the gap during DTLS/ICE handshake.
-                            visibility: live && loaded && !error ? 'visible' : 'hidden',
+                            visibility:
+                                live && loaded && !error ? 'visible' : 'hidden',
                         }}
                     />
 
                     {!running && (
                         <ViewportPlaceholder
                             icon={<VideocamOffRoundedIcon fontSize="large" />}
-                            title={t('media.preview.placeholder.notRunning.title')}
-                            detail={t('media.preview.placeholder.notRunning.detail')}
+                            title={t(
+                                'media.preview.placeholder.notRunning.title',
+                            )}
+                            detail={t(
+                                'media.preview.placeholder.notRunning.detail',
+                            )}
                         />
                     )}
 
@@ -227,11 +279,20 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
 
                     {running && enabled && error && (
                         <ViewportPlaceholder
-                            icon={<WarningAmberRoundedIcon fontSize="large" color="warning" />}
+                            icon={
+                                <WarningAmberRoundedIcon
+                                    fontSize="large"
+                                    color="warning"
+                                />
+                            }
                             title={t('media.preview.placeholder.failed.title')}
                             detail={error}
                             action={
-                                <Button size="small" variant="outlined" onClick={retry}>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={retry}
+                                >
                                     {t('actions.retry')}
                                 </Button>
                             }
@@ -249,7 +310,10 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
                             }}
                         >
                             <CircularProgress size={20} />
-                            <Typography variant="caption" sx={{color: 'text.disabled'}}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.disabled' }}
+                            >
                                 {t('actions.loading')}
                             </Typography>
                         </Stack>
@@ -261,7 +325,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({channel, running}) => {
 };
 
 export const PreviewPanel: React.FC = () => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const socket = useSocket();
     const [channels, setChannels] = useState<number[] | null>(null);
     const [running, setRunning] = useState(false);
@@ -279,11 +343,13 @@ export const PreviewPanel: React.FC = () => {
             setChannels(cfg ? cfg.channels.map((_, i) => i + 1) : []);
         };
 
-        socket.caspar.getRunningConfig()
+        socket.caspar
+            .getRunningConfig()
             .then(apply)
             .catch(() => apply(null));
 
-        const listener = (cfg: { channels: { videoMode: string }[] } | null) => apply(cfg);
+        const listener = (cfg: { channels: { videoMode: string }[] } | null) =>
+            apply(cfg);
         socket.caspar.on('running-config', listener);
 
         return () => {
@@ -296,8 +362,13 @@ export const PreviewPanel: React.FC = () => {
         if (!socket) return;
         const listener = (s: CasparStatus) => setRunning(Boolean(s.running));
         socket.caspar.on('status', listener);
-        socket.caspar.getStatus().then(listener).catch(() => setRunning(false));
-        return () => { socket.caspar.off('status', listener); };
+        socket.caspar
+            .getStatus()
+            .then(listener)
+            .catch(() => setRunning(false));
+        return () => {
+            socket.caspar.off('status', listener);
+        };
     }, [socket]);
 
     // null = initial fetch hasn't resolved yet (avoid a brief empty flash).
@@ -306,17 +377,22 @@ export const PreviewPanel: React.FC = () => {
     if (channels === null) return null;
 
     return (
-        <Card sx={{p: 3}}>
+        <Card sx={{ p: 3 }}>
             <Stack spacing={2}>
                 <Stack spacing={0.5}>
-                    <Typography variant="h3">{t('media.preview.title')}</Typography>
-                    <Typography variant="body2" sx={{color: 'text.secondary'}}>
+                    <Typography variant="h3">
+                        {t('media.preview.title')}
+                    </Typography>
+                    <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary' }}
+                    >
                         {t('media.preview.subtitle')}
                     </Typography>
                 </Stack>
                 {channels.length === 0 ? (
                     <Card
-                        sx={(theme) => ({
+                        sx={theme => ({
                             p: 3,
                             bgcolor: theme.palette.surface.elevated,
                             display: 'flex',
@@ -324,18 +400,29 @@ export const PreviewPanel: React.FC = () => {
                             gap: 2,
                         })}
                     >
-                        <VideocamOffRoundedIcon sx={{color: 'text.disabled', fontSize: 32}} />
+                        <VideocamOffRoundedIcon
+                            sx={{ color: 'text.disabled', fontSize: 32 }}
+                        />
                         <Stack spacing={0.25}>
-                            <Typography variant="body1">{t('media.preview.offline.title')}</Typography>
-                            <Typography variant="body2" sx={{color: 'text.secondary'}}>
+                            <Typography variant="body1">
+                                {t('media.preview.offline.title')}
+                            </Typography>
+                            <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {t('media.preview.offline.detail')}
                             </Typography>
                         </Stack>
                     </Card>
                 ) : (
                     <Stack direction="row" gap={2} flexWrap="wrap">
-                        {channels.map((ch) => (
-                            <PreviewCard key={ch} channel={ch} running={running} />
+                        {channels.map(ch => (
+                            <PreviewCard
+                                key={ch}
+                                channel={ch}
+                                running={running}
+                            />
                         ))}
                     </Stack>
                 )}

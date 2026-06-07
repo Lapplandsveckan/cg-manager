@@ -1,12 +1,15 @@
 import fs from 'fs/promises';
 import path from 'path';
-import {noTry, noTryAsync} from 'no-try';
-import {type RundownActionMetadata, type RundownItemDragPayload} from '@lappis/cg-manager';
-import {Logger} from '../../util/log';
-import {UUID} from '../../util/uuid';
+import { noTry, noTryAsync } from 'no-try';
+import {
+    type RundownActionMetadata,
+    type RundownItemDragPayload,
+} from '@lappis/cg-manager';
+import { Logger } from '../../util/log';
+import { UUID } from '../../util/uuid';
 import config from '../../util/config';
-import {safeMediaPath} from '../scanner/util';
-import {DirectoryManager} from '../scanner/dir';
+import { safeMediaPath } from '../scanner/util';
+import { DirectoryManager } from '../scanner/dir';
 
 export interface RundownItem {
     id: string;
@@ -52,7 +55,7 @@ export class RundownManager {
         };
 
         const state = {};
-        this.rundowns.set(id, {rundown, state});
+        this.rundowns.set(id, { rundown, state });
         return rundown;
     }
 
@@ -61,11 +64,15 @@ export class RundownManager {
     }
 
     public getRundowns(): Rundown[] {
-        return Array.from(this.rundowns.values()).map(({rundown}) => rundown).filter(rundown => rundown.type !== 'quick');
+        return Array.from(this.rundowns.values())
+            .map(({ rundown }) => rundown)
+            .filter(rundown => rundown.type !== 'quick');
     }
 
     public getQuickActions(): Rundown[] {
-        return Array.from(this.rundowns.values()).map(({rundown}) => rundown).filter(rundown => rundown.type === 'quick');
+        return Array.from(this.rundowns.values())
+            .map(({ rundown }) => rundown)
+            .filter(rundown => rundown.type === 'quick');
     }
 
     public async updateRundown(id: string, name: string) {
@@ -92,7 +99,11 @@ export class RundownManager {
             Logger.error(`Failed to parse rundown (${p}): ${parseErr.message}`);
             return null;
         }
-        if (!parsed || typeof parsed !== 'object' || typeof parsed.id !== 'string') {
+        if (
+            !parsed ||
+            typeof parsed !== 'object' ||
+            typeof parsed.id !== 'string'
+        ) {
             Logger.error(`Rundown (${p}) has unexpected shape — skipping`);
             return null;
         }
@@ -115,13 +126,20 @@ export class RundownManager {
 
         const recovered = await this.parseRundownFile(tmp);
         if (recovered) {
-            Logger.warn(`Recovering rundown ${file} from .tmp — primary file was empty/corrupt`);
+            Logger.warn(
+                `Recovering rundown ${file} from .tmp — primary file was empty/corrupt`,
+            );
             const [renameErr] = await noTryAsync(() => fs.rename(tmp, primary));
-            if (renameErr) Logger.error(`Failed to commit recovered .tmp: ${renameErr.message}`);
+            if (renameErr)
+                Logger.error(
+                    `Failed to commit recovered .tmp: ${renameErr.message}`,
+                );
             return recovered;
         }
 
-        Logger.error(`Rundown ${file} is empty/corrupt and no .tmp recovery is available — skipping`);
+        Logger.error(
+            `Rundown ${file} is empty/corrupt and no .tmp recovery is available — skipping`,
+        );
         return null;
     }
 
@@ -135,11 +153,15 @@ export class RundownManager {
         }
 
         const jsonFiles = files.filter(file => file.endsWith('.json'));
-        const rundowns = await Promise.all(jsonFiles.map(file => this.readWithRecovery(file)));
+        const rundowns = await Promise.all(
+            jsonFiles.map(file => this.readWithRecovery(file)),
+        );
 
         rundowns
             .filter((r): r is Rundown => Boolean(r))
-            .forEach(rundown => this.rundowns.set(rundown.id, {rundown, state: {}}));
+            .forEach(rundown =>
+                this.rundowns.set(rundown.id, { rundown, state: {} }),
+            );
     }
 
     public startAutosave() {
@@ -191,7 +213,11 @@ export class RundownManager {
     }
 
     public async saveAllRundowns() {
-        await Promise.all(Array.from(this.rundowns.values()).map(({rundown}) => this.saveRundown(rundown)));
+        await Promise.all(
+            Array.from(this.rundowns.values()).map(({ rundown }) =>
+                this.saveRundown(rundown),
+            ),
+        );
     }
 
     public async deleteRundown(id: string) {
@@ -275,7 +301,9 @@ export class RundownExecutor {
         return out;
     }
 
-    public async matchFile(file: RundownFileMatchInput): Promise<RundownFileMatchResult[]> {
+    public async matchFile(
+        file: RundownFileMatchInput,
+    ): Promise<RundownFileMatchResult[]> {
         const matches: RundownFileMatchResult[] = [];
         const mediaRoot = DirectoryManager.getManager()['mediaPath'];
         for (const [id, entry] of this.actions) {
@@ -289,7 +317,10 @@ export class RundownExecutor {
             // file.path / file.mediaId the predicate sees consistent with
             // what the upload will land at. file.name stays raw so the
             // plugin can use it for the display title.
-            const filePath = await safeMediaPath(destination + file.name, mediaRoot);
+            const filePath = await safeMediaPath(
+                destination + file.name,
+                mediaRoot,
+            );
             const mediaId = relPathToMediaId(filePath);
 
             // TODO: drop the cast once @lappis/cg-manager publishes a
@@ -301,20 +332,28 @@ export class RundownExecutor {
                 path: string;
                 mediaId: string;
             }) => RundownItemDragPayload | null;
-            const [err, payload] = noTry(() => matchFn({
-                name: file.name,
-                type: file.type,
-                size: file.size,
-                path: filePath,
-                mediaId,
-            }));
+            const [err, payload] = noTry(() =>
+                matchFn({
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                    path: filePath,
+                    mediaId,
+                }),
+            );
             if (err) {
                 Logger.warn(`Action ${id} accepts.match threw: ${err.message}`);
                 continue;
             }
             if (!payload) continue;
 
-            matches.push({actionId: id, payload, path: filePath, mediaId, destination});
+            matches.push({
+                actionId: id,
+                payload,
+                path: filePath,
+                mediaId,
+                destination,
+            });
         }
         return matches;
     }

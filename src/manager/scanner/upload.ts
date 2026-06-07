@@ -1,9 +1,9 @@
 import * as path from 'path';
 import { promises as fs, type WriteStream } from 'fs';
 import * as os from 'os';
-import {Logger} from '../../util/log';
-import {DirectoryManager} from './dir';
-import {resolveSafePath, sanitizeMediaPath} from './util';
+import { Logger } from '../../util/log';
+import { DirectoryManager } from './dir';
+import { resolveSafePath, sanitizeMediaPath } from './util';
 
 interface UploadDestination {
     uri: string;
@@ -50,20 +50,25 @@ export class Upload {
         };
 
         this.logger = Logger.scope('File Upload').scope(this.id);
-        this.logger.info(`Started upload to ${this.destinationLog} (${total} chunks)`);
+        this.logger.info(
+            `Started upload to ${this.destinationLog} (${total} chunks)`,
+        );
 
         this.tempPath = this.getTemporaryPath();
         Upload.uploads.set(this.id, this);
     }
 
     private get destinationLog() {
-        const type = this.data.destination.type === 'template' ? 'Template' : 'Media';
+        const type =
+            this.data.destination.type === 'template' ? 'Template' : 'Media';
         return `${type} ${this.data.destination.uri}`;
     }
 
     private get basePath() {
-        if (this.data.destination.type === 'template') return DirectoryManager.getManager()['templatePath'];
-        if (this.data.destination.type === 'media') return DirectoryManager.getManager()['mediaPath'];
+        if (this.data.destination.type === 'template')
+            return DirectoryManager.getManager()['templatePath'];
+        if (this.data.destination.type === 'media')
+            return DirectoryManager.getManager()['mediaPath'];
 
         throw new Error('Invalid destination type');
     }
@@ -92,12 +97,13 @@ export class Upload {
             const { stream, handle } = this.file;
             this.file = undefined;
 
-            await new Promise<void>((res) => stream.end(() => res()));
+            await new Promise<void>(res => stream.end(() => res()));
             await handle.close().catch(() => {});
         }
 
         if (deleteFile)
-            await fs.unlink(this.getTemporaryPath())
+            await fs
+                .unlink(this.getTemporaryPath())
                 .catch(() => this.logger.warn('Failed to delete file'));
     }
 
@@ -162,14 +168,21 @@ export class Upload {
         return Upload.uploads.get(id);
     }
 
-    public static async create(type: UploadDestination['type'], uri: string, chunks: number) {
+    public static async create(
+        type: UploadDestination['type'],
+        uri: string,
+        chunks: number,
+    ) {
         // CasparCG can't reference non-ASCII media names. Normalize at the
         // entrypoint so every code path lands at the same on-disk name —
         // including legacy callers that don't sanitize themselves.
-        const upload = new Upload({
-            type,
-            uri: sanitizeMediaPath(uri),
-        }, chunks);
+        const upload = new Upload(
+            {
+                type,
+                uri: sanitizeMediaPath(uri),
+            },
+            chunks,
+        );
         await upload.openFile();
 
         return upload;

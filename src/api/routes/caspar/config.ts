@@ -1,7 +1,7 @@
-import {WebError} from 'rest-exchange-protocol';
-import {type RouteExport} from '../../route';
-import {configuration} from '../../../manager/config';
-import {type Config} from '../../../manager/caspar/config/types';
+import { WebError } from 'rest-exchange-protocol';
+import { type RouteExport } from '../../route';
+import { configuration } from '../../../manager/config';
+import { type Config } from '../../../manager/caspar/config/types';
 
 function validate(data: any): data is Config {
     if (!data || typeof data !== 'object') return false;
@@ -16,20 +16,21 @@ function validate(data: any): data is Config {
 }
 
 export default {
-    'GET': async () => {
+    GET: async () => {
         // Force a re-read so the page reflects what's actually on disk,
         // not a stale snapshot from CasparCG startup. `_raw` is the parsed
         // XML and not useful to clients.
         const config = await configuration.get(true);
-        const {_raw, ...rest} = config;
+        const { _raw, ...rest } = config;
         return rest;
     },
-    'UPDATE': async (request) => {
+    UPDATE: async request => {
         const payload = request.getData();
-        if (!validate(payload)) throw new WebError('Invalid config payload', 400);
+        if (!validate(payload))
+            throw new WebError('Invalid config payload', 400);
 
         const updated = await configuration.set(payload);
-        const {_raw, ...rest} = updated;
+        const { _raw, ...rest } = updated;
         return rest;
     },
 } satisfies RouteExport;

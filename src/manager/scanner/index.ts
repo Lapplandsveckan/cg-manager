@@ -3,9 +3,9 @@ import config from './config';
 import baseConfig from '../../util/config';
 import Scanner from './scanner';
 import App from './app';
-import {FileDatabase} from './db';
-import {DirectoryManager} from './dir';
-import {ensureFolderPlaceholders} from './folders';
+import { FileDatabase } from './db';
+import { DirectoryManager } from './dir';
+import { ensureFolderPlaceholders } from './folders';
 
 export class MediaScanner {
     private db: FileDatabase;
@@ -20,7 +20,8 @@ export class MediaScanner {
 
         this.db = new FileDatabase();
 
-        const data = await fs.readFile(baseConfig['db-file'], 'utf8')
+        const data = await fs
+            .readFile(baseConfig['db-file'], 'utf8')
             .catch(() => '{}');
 
         this.db.load(data);
@@ -29,7 +30,10 @@ export class MediaScanner {
         const app = App(this.db);
         this.server = app.listen(8000);
 
-        await DirectoryManager.getManager().initialize(config.paths.media, config.paths.template);
+        await DirectoryManager.getManager().initialize(
+            config.paths.media,
+            config.paths.template,
+        );
 
         // Backfill: ensure every existing folder under media root has a .cgkeep placeholder
         // so it persists even if its real media is removed later

@@ -7,12 +7,18 @@ import {
     PlayCommand,
     Transform,
     LoadBGCommand,
-    ResumeCommand, MixerCommand,
+    ResumeCommand,
+    MixerCommand,
 } from '@lappis/cg-manager';
 
-
-type Tuple<T, N extends number> = N extends N ? number extends N ? T[] : _TupleOf<T, N, []> : never;
-type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _TupleOf<T, N, [T, ...R]>;
+type Tuple<T, N extends number> = N extends N
+    ? number extends N
+        ? T[]
+        : _TupleOf<T, N, []>
+    : never;
+type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N
+    ? R
+    : _TupleOf<T, N, [T, ...R]>;
 
 export interface VideoEffectOptions {
     video: string;
@@ -31,7 +37,8 @@ export class VideoEffect extends Effect {
         this.options = options;
         this.allocateLayers();
 
-        if (options.transform) this.setTransform(Transform.fromArray(options.transform));
+        if (options.transform)
+            this.setTransform(Transform.fromArray(options.transform));
     }
 
     protected playing: boolean = false;
@@ -63,13 +70,17 @@ export class VideoEffect extends Effect {
         if (!this.active) return;
         if (!this.options.edgeblend) return;
 
-        const [...points] = this.options.edgeblend.slice(0, 4) as [number, number, number, number];
+        const [...points] = this.options.edgeblend.slice(0, 4) as [
+            number,
+            number,
+            number,
+            number,
+        ];
         const [g, p, a] = this.options.edgeblend.slice(4);
 
         for (const layer of this.layers)
             this.executor.execute(
-                MixerCommand
-                    .create()
+                MixerCommand.create()
                     .edgeblend({ edgeblend: points, g, p, a })
                     .allocate(layer),
             );
@@ -82,18 +93,15 @@ export class VideoEffect extends Effect {
 
         const p = this.options.perspective;
         const perspective = {
-            top_left:     { x: p[0], y: p[1] },
-            top_right:    { x: p[2], y: p[3] },
+            top_left: { x: p[0], y: p[1] },
+            top_right: { x: p[2], y: p[3] },
             bottom_right: { x: p[4], y: p[5] },
-            bottom_left:  { x: p[6], y: p[7] },
+            bottom_left: { x: p[6], y: p[7] },
         };
 
         for (const layer of this.layers)
             this.executor.execute(
-                MixerCommand
-                    .create()
-                    .perspective(perspective)
-                    .allocate(layer),
+                MixerCommand.create().perspective(perspective).allocate(layer),
             );
     }
     /* eslint-enable camelcase */

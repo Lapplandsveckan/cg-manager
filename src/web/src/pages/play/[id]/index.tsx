@@ -1,19 +1,26 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {useTranslation} from 'next-i18next';
-import {Box, Stack, Tooltip, Typography} from '@mui/material';
-import {useRouter} from 'next/router';
-import {noTry} from 'no-try';
-import {getStorageItem, setStorageItem} from '../../../lib/storage';
-import {useDragAutoScroll} from '../../../lib/hooks/useDragAutoScroll';
-import {DefaultContentLayout} from '../../../components/DefaultContentLayout';
-import {useSocket} from '../../../lib/hooks/useSocket';
-import {Injections, UI_INJECTION_ZONE} from '../../../lib/api/inject';
-import {EditIndicator, LiveIndicator, LockToggle, type RundownEntry, Rundowns, useRundownEntries} from '../../../components/Rundowns';
-import {RundownModals} from '../../../components/RundownModals';
-import {QuickActions} from '../../../components/QuickActions';
-import {BottomPanel} from '../../../components/BottomPanel';
-import {RundownPreview} from '../../../components/RundownPreview';
-import {type RundownItemDragPayload} from '../../../lib/dragPayload';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'next-i18next';
+import { Box, Stack, Tooltip, Typography } from '@mui/material';
+import { useRouter } from 'next/router';
+import { noTry } from 'no-try';
+import { getStorageItem, setStorageItem } from '../../../lib/storage';
+import { useDragAutoScroll } from '../../../lib/hooks/useDragAutoScroll';
+import { DefaultContentLayout } from '../../../components/DefaultContentLayout';
+import { useSocket } from '../../../lib/hooks/useSocket';
+import { Injections, UI_INJECTION_ZONE } from '../../../lib/api/inject';
+import {
+    EditIndicator,
+    LiveIndicator,
+    LockToggle,
+    type RundownEntry,
+    Rundowns,
+    useRundownEntries,
+} from '../../../components/Rundowns';
+import { RundownModals } from '../../../components/RundownModals';
+import { QuickActions } from '../../../components/QuickActions';
+import { BottomPanel } from '../../../components/BottomPanel';
+import { RundownPreview } from '../../../components/RundownPreview';
+import { type RundownItemDragPayload } from '../../../lib/dragPayload';
 
 // Default sizes target ~80% of the previous defaults (560/560/480) so the
 // three columns fit comfortably side-by-side on a standard 1440px viewport
@@ -25,15 +32,25 @@ const MAX_COLUMN_WIDTH = 700;
 const STORAGE_KEY = 'play-column-widths';
 
 function clampWidth(w: number): number {
-    return Math.max(MIN_COLUMN_WIDTH, Math.min(MAX_COLUMN_WIDTH, Math.round(w)));
+    return Math.max(
+        MIN_COLUMN_WIDTH,
+        Math.min(MAX_COLUMN_WIDTH, Math.round(w)),
+    );
 }
 
 function loadStoredWidths(): number[] | null {
     const raw = getStorageItem(STORAGE_KEY);
     if (!raw) return null;
     const [err, parsed] = noTry(() => JSON.parse(raw));
-    if (err || !Array.isArray(parsed) || parsed.length !== COLUMN_DEFAULTS.length) return null;
-    return parsed.map((v: unknown) => clampWidth(Number(v) || MIN_COLUMN_WIDTH));
+    if (
+        err ||
+        !Array.isArray(parsed) ||
+        parsed.length !== COLUMN_DEFAULTS.length
+    )
+        return null;
+    return parsed.map((v: unknown) =>
+        clampWidth(Number(v) || MIN_COLUMN_WIDTH),
+    );
 }
 
 function useColumnWidths(): [number[], (index: number, width: number) => void] {
@@ -45,8 +62,10 @@ function useColumnWidths(): [number[], (index: number, width: number) => void] {
     }, []);
 
     const setWidth = (index: number, width: number) => {
-        setWidths((prev) => {
-            const next = prev.map((v, i) => i === index ? clampWidth(width) : v);
+        setWidths(prev => {
+            const next = prev.map((v, i) =>
+                i === index ? clampWidth(width) : v,
+            );
             setStorageItem(STORAGE_KEY, JSON.stringify(next));
             return next;
         });
@@ -63,8 +82,14 @@ interface ResizeHandleProps {
     onReset?: () => void;
 }
 
-const ResizeHandle: React.FC<ResizeHandleProps> = ({ startWidth, minWidth, maxWidth, onResize, onReset }) => {
-    const {t} = useTranslation('common');
+const ResizeHandle: React.FC<ResizeHandleProps> = ({
+    startWidth,
+    minWidth,
+    maxWidth,
+    onResize,
+    onReset,
+}) => {
+    const { t } = useTranslation('common');
     const dragRef = useRef<{ x: number; w: number } | null>(null);
 
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -105,7 +130,7 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({ startWidth, minWidth, maxWi
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerUp}
                 onDoubleClick={() => onReset?.()}
-                sx={(theme) => ({
+                sx={theme => ({
                     position: 'relative',
                     // Wide drag zone so the handle is the visual gap between
                     // columns rather than a thin sliver flush against the right
@@ -123,7 +148,12 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({ startWidth, minWidth, maxWi
                         width: '1px',
                         bgcolor: theme.palette.divider,
                         transform: 'translateX(-50%)',
-                        transition: theme.transitions.create(['background-color', 'width'], { duration: 120 }),
+                        transition: theme.transitions.create(
+                            ['background-color', 'width'],
+                            {
+                                duration: 120,
+                            },
+                        ),
                     },
                     '&:hover::after, &:active::after': {
                         bgcolor: theme.palette.primary.main,
@@ -136,7 +166,7 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({ startWidth, minWidth, maxWi
 };
 
 const Page = () => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const conn = useSocket();
     const router = useRouter();
     const {
@@ -161,9 +191,14 @@ const Page = () => {
     // remember the target index here so that whenever the editor modal saves
     // (after pre-fill / edit) the new entry lands at that position rather
     // than at the end. Cleared whenever the modal closes.
-    const [pendingDropIndex, setPendingDropIndex] = useState<number | undefined>(undefined);
+    const [pendingDropIndex, setPendingDropIndex] = useState<
+        number | undefined
+    >(undefined);
 
-    const openEditorForDrop = (payload: RundownItemDragPayload, index?: number) => {
+    const openEditorForDrop = (
+        payload: RundownItemDragPayload,
+        index?: number,
+    ) => {
         setEditing({
             id: Math.random().toString(36).substring(2, 11),
             title: payload.title ?? t('playPage.detail.newItemTitle'),
@@ -178,7 +213,8 @@ const Page = () => {
         if (next === null) setPendingDropIndex(undefined);
     };
 
-    const createEntryAtPending = (entry: RundownEntry) => createEntry(entry, pendingDropIndex);
+    const createEntryAtPending = (entry: RundownEntry) =>
+        createEntry(entry, pendingDropIndex);
 
     return (
         <DefaultContentLayout>
@@ -210,7 +246,7 @@ const Page = () => {
                             sx={{ minWidth: 0 }}
                         >
                             <Box
-                                sx={(theme) => ({
+                                sx={theme => ({
                                     width: 3,
                                     borderRadius: 2,
                                     bgcolor: theme.palette.primary.main,
@@ -226,7 +262,9 @@ const Page = () => {
                                     fontSize: '1.75rem',
                                     lineHeight: 1.2,
                                     wordBreak: 'break-word',
-                                    color: name ? 'text.primary' : 'text.disabled',
+                                    color: name
+                                        ? 'text.primary'
+                                        : 'text.disabled',
                                 }}
                             >
                                 {name ?? t('playPage.detail.untitled')}
@@ -234,7 +272,11 @@ const Page = () => {
                         </Stack>
                         {locked ? <EditIndicator /> : <LiveIndicator />}
                     </Stack>
-                    <LockToggle locked={locked} onToggle={() => setLocked(l => !l)} label={t('playPage.detail.itemsLabel')} />
+                    <LockToggle
+                        locked={locked}
+                        onToggle={() => setLocked(l => !l)}
+                        label={t('playPage.detail.itemsLabel')}
+                    />
                 </Stack>
 
                 <Stack
@@ -264,12 +306,20 @@ const Page = () => {
                             gap: 2,
                         }}
                     >
-                        <Typography variant="h2">{t('playPage.detail.rundownHeading')}</Typography>
+                        <Typography variant="h2">
+                            {t('playPage.detail.rundownHeading')}
+                        </Typography>
                         <Rundowns
                             entries={entries}
                             locked={locked}
                             onEdit={entry => setEditing(entry)}
-                            onPlay={entry => conn.rawRequest('/api/rundown/execute', 'ACTION', { entry })}
+                            onPlay={entry =>
+                                conn.rawRequest(
+                                    '/api/rundown/execute',
+                                    'ACTION',
+                                    { entry },
+                                )
+                            }
                             onAdd={() => setAdding(true)}
                             onDropItem={openEditorForDrop}
                             onReorder={reorderEntries}
@@ -280,7 +330,7 @@ const Page = () => {
                         startWidth={widths[0]}
                         minWidth={MIN_COLUMN_WIDTH}
                         maxWidth={MAX_COLUMN_WIDTH}
-                        onResize={(w) => setWidth(0, w)}
+                        onResize={w => setWidth(0, w)}
                         onReset={() => setWidth(0, COLUMN_DEFAULTS[0])}
                     />
 
@@ -295,8 +345,13 @@ const Page = () => {
                         }}
                     >
                         <Stack spacing={0.5}>
-                            <Typography variant="h2">{t('playPage.detail.quickActionsHeading')}</Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            <Typography variant="h2">
+                                {t('playPage.detail.quickActionsHeading')}
+                            </Typography>
+                            <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {t('playPage.detail.quickActionsDescription')}
                             </Typography>
                         </Stack>
@@ -307,7 +362,7 @@ const Page = () => {
                         startWidth={widths[1]}
                         minWidth={MIN_COLUMN_WIDTH}
                         maxWidth={MAX_COLUMN_WIDTH}
-                        onResize={(w) => setWidth(1, w)}
+                        onResize={w => setWidth(1, w)}
                         onReset={() => setWidth(1, COLUMN_DEFAULTS[1])}
                     />
 
@@ -328,7 +383,10 @@ const Page = () => {
                             <Injections zone={UI_INJECTION_ZONE.RUNDOWN_SIDE} />
                             <Box
                                 aria-hidden
-                                sx={{ height: 'calc(100% - 200px)', minHeight: 120 }}
+                                sx={{
+                                    height: 'calc(100% - 200px)',
+                                    minHeight: 120,
+                                }}
                             />
                         </Box>
                         {/* Pinned to the bottom of the column — sits below
@@ -344,10 +402,8 @@ const Page = () => {
             <RundownModals
                 editing={editing}
                 setEditing={handleSetEditing}
-
                 adding={adding}
                 setAdding={setAdding}
-
                 entries={entries}
                 updateEntry={updateEntry}
                 createEntry={createEntryAtPending}

@@ -1,8 +1,8 @@
 import net from 'net';
-import {CommandExecutor} from '@lappis/cg-manager';
-import {noTry} from 'no-try';
-import {Logger} from '../../util/log';
-import {getTemplatesWithContent} from '../scanner/scanner';
+import { CommandExecutor } from '@lappis/cg-manager';
+import { noTry } from 'no-try';
+import { Logger } from '../../util/log';
+import { getTemplatesWithContent } from '../scanner/scanner';
 
 // AMCP socket usually accepts within a few hundred ms of CasparCG starting,
 // so retry briefly while it warms up and only surface a warning if it stays
@@ -63,7 +63,10 @@ export class CasparExecutor extends CommandExecutor {
         this.client.on('error', e => this.onDisconnect(e));
 
         let responseBuffer = '';
-        this.client.on('data', d => responseBuffer = this.receive(responseBuffer + d.toString()));
+        this.client.on(
+            'data',
+            d => (responseBuffer = this.receive(responseBuffer + d.toString())),
+        );
     }
 
     public disconnect() {
@@ -72,7 +75,7 @@ export class CasparExecutor extends CommandExecutor {
     }
 
     protected send(data: string) {
-        if (!this.client) return this.buffer += data;
+        if (!this.client) return (this.buffer += data);
         if (this.buffer) data = this.buffer + data;
         this.client.write(data);
 
@@ -96,7 +99,9 @@ export class CasparExecutor extends CommandExecutor {
         for (const listener of this.connectListeners) listener();
         this.connectListeners = [];
 
-        Logger.info(`Caspar CG executor ${isReconnect ? 'reconnected' : 'connected'}`);
+        Logger.info(
+            `Caspar CG executor ${isReconnect ? 'reconnected' : 'connected'}`,
+        );
 
         if (isReconnect) {
             // Snapshot the listener list so a handler that subscribes/
@@ -106,7 +111,6 @@ export class CasparExecutor extends CommandExecutor {
                 const [err] = noTry(() => handler());
                 if (err) Logger.error(err as Error);
             }
-
         }
     }
 
@@ -151,11 +155,17 @@ export class CasparExecutor extends CommandExecutor {
         } else if (this.retry) {
             this.failedAttempts++;
             if (this.failedAttempts === WARN_AFTER_FAILED_ATTEMPTS)
-                Logger.warn(`Caspar CG executor still cannot connect after ${this.failedAttempts} attempts${error ? `: ${error}` : ''}`);
+                Logger.warn(
+                    `Caspar CG executor still cannot connect after ${this.failedAttempts} attempts${error ? `: ${error}` : ''}`,
+                );
         }
 
         if (this.retryTimeout) clearTimeout(this.retryTimeout);
-        if (this.retry) this.retryTimeout = setTimeout(() => this._internalConnect(), RETRY_INTERVAL_MS);
+        if (this.retry)
+            this.retryTimeout = setTimeout(
+                () => this._internalConnect(),
+                RETRY_INTERVAL_MS,
+            );
     }
 
     public getEffectGroup(identifier: string, index?: number) {
@@ -180,7 +190,7 @@ export class CasparExecutor extends CommandExecutor {
         if (!channel) {
             Logger.scope('AMCP').warn(
                 `Channel ${casparChannel} not allocated — lazy-allocating ` +
-                '(Caspar likely offline).',
+                    '(Caspar likely offline).',
             );
             channel = this.allocateChannel(casparChannel);
         }
@@ -199,11 +209,13 @@ export class CasparExecutor extends CommandExecutor {
      */
     public bounce() {
         const now = Date.now();
-        this.bounceTimestamps = this.bounceTimestamps.filter(t => now - t < BOUNCE_WINDOW_MS);
+        this.bounceTimestamps = this.bounceTimestamps.filter(
+            t => now - t < BOUNCE_WINDOW_MS,
+        );
         if (this.bounceTimestamps.length >= BOUNCE_MAX) {
             Logger.scope('AMCP').error(
                 `AMCP bounce rate-limited (${BOUNCE_MAX} in ${BOUNCE_WINDOW_MS / 1000}s) — ` +
-                'something is causing repeated errors; suppressing this bounce.',
+                    'something is causing repeated errors; suppressing this bounce.',
             );
             return;
         }

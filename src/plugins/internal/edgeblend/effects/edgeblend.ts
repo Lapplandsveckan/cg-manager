@@ -4,11 +4,21 @@ import {
     PlayCommand,
     StopCommand,
     type Transform,
-    type Command, CommandGroup, MixerCommand, LayeredCommand, type BasicChannel,
+    type Command,
+    CommandGroup,
+    MixerCommand,
+    LayeredCommand,
+    type BasicChannel,
 } from '@lappis/cg-manager';
 
-type Tuple<T, N extends number> = N extends N ? number extends N ? T[] : _TupleOf<T, N, []> : never;
-type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _TupleOf<T, N, [T, ...R]>;
+type Tuple<T, N extends number> = N extends N
+    ? number extends N
+        ? T[]
+        : _TupleOf<T, N, []>
+    : never;
+type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N
+    ? R
+    : _TupleOf<T, N, [T, ...R]>;
 
 export interface EdgeBlendOptions {
     edgeblend?: Tuple<number, 4>;
@@ -19,7 +29,7 @@ export interface EdgeBlendOptions {
 
 export interface EdgeBlendEffectOptions {
     source: BasicChannel;
-    transform: Transform,
+    transform: Transform;
     edgeblend: EdgeBlendOptions;
 }
 
@@ -37,7 +47,12 @@ class EdgeblendCommand extends LayeredCommand {
 
     public getArguments(): string[] {
         const position = this.getPosition();
-        const args = [...this.options.edgeblend, this.options.g, this.options.p, this.options.a].map(v => v.toString());
+        const args = [
+            ...this.options.edgeblend,
+            this.options.g,
+            this.options.p,
+            this.options.a,
+        ].map(v => v.toString());
         return [position, 'EDGEBLEND', ...args];
     }
 }
@@ -86,10 +101,6 @@ export class EdgeblendEffect extends Effect {
 
     public updatePositions(): Command[] {
         if (!this.active) return [];
-        return [
-            PlayCommand
-                .route(this.options.source)
-                .allocate(this.layer),
-        ];
+        return [PlayCommand.route(this.options.source).allocate(this.layer)];
     }
 }

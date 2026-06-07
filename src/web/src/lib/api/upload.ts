@@ -1,15 +1,18 @@
-import {ManagerApi} from './api';
+import { ManagerApi } from './api';
 
 const CHUNK_SIZE = 1024 * 1024; // 1MB
 
 async function sendChunk(chunk: Blob, chunkIndex: number, uploadId: string) {
-    const query = new URLSearchParams({ chunk: chunkIndex.toString(), id: uploadId });
+    const query = new URLSearchParams({
+        chunk: chunkIndex.toString(),
+        id: uploadId,
+    });
     const res = await fetch(`/api/upload/chunk?${query}`, {
         method: 'POST',
         body: chunk,
     });
 
-    if (await res.text() !== 'OK') throw new Error('Failed to send chunk');
+    if ((await res.text()) !== 'OK') throw new Error('Failed to send chunk');
 }
 
 export function getChunkSize() {
@@ -20,7 +23,12 @@ export function getChunkCount(file: Blob) {
     return Math.ceil(file.size / getChunkSize());
 }
 
-async function _uploadFile(id: string, file: Blob, data: {canceled: boolean}, onProgress?: (progress: number) => void) {
+async function _uploadFile(
+    id: string,
+    file: Blob,
+    data: { canceled: boolean },
+    onProgress?: (progress: number) => void,
+) {
     const CHUNK_COUNT = getChunkCount(file);
 
     let sent = 0;
@@ -44,8 +52,12 @@ async function _uploadFile(id: string, file: Blob, data: {canceled: boolean}, on
     }
 }
 
-export function uploadFile(id: string, file: Blob, onProgress?: (progress: number) => void) {
+export function uploadFile(
+    id: string,
+    file: Blob,
+    onProgress?: (progress: number) => void,
+) {
     const data = { canceled: false };
     const promise = _uploadFile(id, file, data, onProgress);
-    return [promise, () => data.canceled = true] as const;
+    return [promise, () => (data.canceled = true)] as const;
 }

@@ -1,7 +1,7 @@
-import {promises as fs} from 'fs';
+import { promises as fs } from 'fs';
 import * as path from 'path';
-import {noTryAsync} from 'no-try';
-import {Logger} from '../../util/log';
+import { noTryAsync } from 'no-try';
+import { Logger } from '../../util/log';
 
 /**
  * Folder management for the CasparCG media root.
@@ -38,9 +38,15 @@ const logger = Logger.scope('Folders');
 export async function listAllFolders(root: string): Promise<string[]> {
     const out: string[] = [];
 
-    async function walk(dir: string, prefix: string, depth: number): Promise<void> {
+    async function walk(
+        dir: string,
+        prefix: string,
+        depth: number,
+    ): Promise<void> {
         if (depth > MAX_FOLDER_DEPTH) return;
-        const [, entries] = await noTryAsync(() => fs.readdir(dir, {withFileTypes: true}));
+        const [, entries] = await noTryAsync(() =>
+            fs.readdir(dir, { withFileTypes: true }),
+        );
         if (!entries) return;
         for (const entry of entries) {
             if (!entry.isDirectory()) continue;
@@ -64,19 +70,28 @@ export async function ensureFolderPlaceholders(root: string): Promise<void> {
 
     async function walk(dir: string, depth: number): Promise<void> {
         if (depth > MAX_FOLDER_DEPTH) return;
-        const [, entries] = await noTryAsync(() => fs.readdir(dir, {withFileTypes: true}));
+        const [, entries] = await noTryAsync(() =>
+            fs.readdir(dir, { withFileTypes: true }),
+        );
         if (!entries) return;
 
         const hasPlaceholder = entries.some(
-            (e) => e.isFile() && e.name === PLACEHOLDER_NAME,
+            e => e.isFile() && e.name === PLACEHOLDER_NAME,
         );
         if (!hasPlaceholder) {
             const [writeErr] = await noTryAsync(() =>
-                fs.writeFile(path.join(dir, PLACEHOLDER_NAME), '', {flag: 'wx'}),
+                fs.writeFile(path.join(dir, PLACEHOLDER_NAME), '', {
+                    flag: 'wx',
+                }),
             );
             // EEXIST can happen if a parallel writer beat us; benign.
-            if (writeErr && (writeErr as NodeJS.ErrnoException).code !== 'EEXIST')
-                logger.warn(`couldn't backfill placeholder in ${dir}: ${writeErr.message}`);
+            if (
+                writeErr &&
+                (writeErr as NodeJS.ErrnoException).code !== 'EEXIST'
+            )
+                logger.warn(
+                    `couldn't backfill placeholder in ${dir}: ${writeErr.message}`,
+                );
             else if (!writeErr) touched++;
         }
 
@@ -124,13 +139,15 @@ export async function removeEmptyFolder(targetAbs: string): Promise<void> {
     const entries = await fs.readdir(targetAbs);
     // Hidden / dotfile entries are infrastructure (our placeholder,
     // sidecars, OS noise); they don't count toward "non-empty".
-    const stray = entries.filter((name) => !name.startsWith('.'));
+    const stray = entries.filter(name => !name.startsWith('.'));
     if (stray.length > 0)
-        throw new Error(`Folder is not empty (${stray.length} item${stray.length === 1 ? '' : 's'})`);
+        throw new Error(
+            `Folder is not empty (${stray.length} item${stray.length === 1 ? '' : 's'})`,
+        );
 
     // Sweep every dotfile so rmdir actually succeeds (it won't touch
     // files). ENOENT on any of them is fine — they were just gone.
-    const dotfiles = entries.filter((name) => name.startsWith('.'));
+    const dotfiles = entries.filter(name => name.startsWith('.'));
     for (const name of dotfiles)
         await noTryAsync(() => fs.unlink(path.join(targetAbs, name)));
 

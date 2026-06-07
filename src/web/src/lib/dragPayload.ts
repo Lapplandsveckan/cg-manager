@@ -1,4 +1,4 @@
-import {noTry} from 'no-try';
+import { noTry } from 'no-try';
 
 /**
  * Drag contract for adding items to a rundown via drag-and-drop.
@@ -42,7 +42,9 @@ export interface RundownItemDragPayload {
  * Read and validate the payload from a DataTransfer. Returns null when the
  * data is missing, isn't JSON, or doesn't include a string `type`.
  */
-export function parseRundownItemPayload(dt: DataTransfer | null): RundownItemDragPayload | null {
+export function parseRundownItemPayload(
+    dt: DataTransfer | null,
+): RundownItemDragPayload | null {
     if (!dt) return null;
     const raw = dt.getData(RUNDOWN_ITEM_DRAG_MIME);
     if (!raw) return null;
@@ -76,7 +78,9 @@ export interface MediaMoveDragPayload {
     id: string;
 }
 
-export function parseMediaMovePayload(dt: DataTransfer | null): MediaMoveDragPayload | null {
+export function parseMediaMovePayload(
+    dt: DataTransfer | null,
+): MediaMoveDragPayload | null {
     if (!dt) return null;
     const raw = dt.getData(MEDIA_MOVE_DRAG_MIME);
     if (!raw) return null;

@@ -1,7 +1,7 @@
-import React, {useEffect, useState} from 'react';
-import {Stack, Typography} from '@mui/material';
-import {useSocket} from '@web-lib';
-import {useTranslation} from 'react-i18next';
+import React, { useEffect, useState } from 'react';
+import { Stack, Typography } from '@mui/material';
+import { useSocket } from '@web-lib';
+import { useTranslation } from 'react-i18next';
 
 interface VideoRoute {
     id: string;
@@ -16,9 +16,9 @@ interface Props {
     };
 }
 
-const ToggleVideoRouteItem: React.FC<Props> = ({entry}) => {
+const ToggleVideoRouteItem: React.FC<Props> = ({ entry }) => {
     const conn = useSocket();
-    const {t} = useTranslation();
+    const { t } = useTranslation();
     const [route, setRoute] = useState<VideoRoute | null>(null);
     const [missing, setMissing] = useState(false);
 
@@ -32,11 +32,17 @@ const ToggleVideoRouteItem: React.FC<Props> = ({entry}) => {
         }
 
         let mounted = true;
-        conn.videoRoutes.get(routeId)
+        conn.videoRoutes
+            .get(routeId)
             .then((r: VideoRoute) => {
                 if (!mounted) return;
-                if (r?.id) { setRoute(r); setMissing(false); }
-                else { setRoute(null); setMissing(true); }
+                if (r?.id) {
+                    setRoute(r);
+                    setMissing(false);
+                } else {
+                    setRoute(null);
+                    setMissing(true);
+                }
             })
             .catch(() => mounted && setMissing(true));
 
@@ -69,27 +75,37 @@ const ToggleVideoRouteItem: React.FC<Props> = ({entry}) => {
         };
     }, [routeId, conn]);
 
-    if (!routeId) return (
-        <Typography variant="body2" sx={{color: 'text.secondary', fontStyle: 'italic'}}>
-            {t('plugins.essentials.routeItem.noRouteSelected')}
-        </Typography>
-    );
+    if (!routeId)
+        return (
+            <Typography
+                variant="body2"
+                sx={{ color: 'text.secondary', fontStyle: 'italic' }}
+            >
+                {t('plugins.essentials.routeItem.noRouteSelected')}
+            </Typography>
+        );
 
-    if (missing) return (
-        <Typography variant="body2" sx={{color: 'warning.main'}}>
-            {t('plugins.essentials.routeItem.routeNotFound', {id: routeId})}
-        </Typography>
-    );
+    if (missing)
+        return (
+            <Typography variant="body2" sx={{ color: 'warning.main' }}>
+                {t('plugins.essentials.routeItem.routeNotFound', {
+                    id: routeId,
+                })}
+            </Typography>
+        );
 
-    if (!route) return (
-        <Typography variant="body2" sx={{color: 'text.disabled'}}>
-            {t('actions.loading')}
-        </Typography>
-    );
+    if (!route)
+        return (
+            <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                {t('actions.loading')}
+            </Typography>
+        );
 
     return (
         <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="body2" sx={{color: 'text.secondary'}}>{t('plugins.essentials.routeItem.toggles')}</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {t('plugins.essentials.routeItem.toggles')}
+            </Typography>
             <Typography variant="body2">{route.name || route.id}</Typography>
             <Typography
                 variant="caption"
@@ -97,14 +113,20 @@ const ToggleVideoRouteItem: React.FC<Props> = ({entry}) => {
                     px: 0.75,
                     py: 0.125,
                     borderRadius: 0.75,
-                    bgcolor: route.enabled ? 'success.dark' : 'action.disabledBackground',
-                    color: route.enabled ? 'success.contrastText' : 'text.secondary',
+                    bgcolor: route.enabled
+                        ? 'success.dark'
+                        : 'action.disabledBackground',
+                    color: route.enabled
+                        ? 'success.contrastText'
+                        : 'text.secondary',
                     fontFamily: '"SF Mono", "Menlo", "Consolas", monospace',
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                 }}
             >
-                {route.enabled ? t('plugins.essentials.routeItem.on') : t('plugins.essentials.routeItem.off')}
+                {route.enabled
+                    ? t('plugins.essentials.routeItem.on')
+                    : t('plugins.essentials.routeItem.off')}
             </Typography>
         </Stack>
     );

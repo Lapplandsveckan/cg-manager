@@ -1,7 +1,7 @@
-import React, {useState} from 'react';
-import {Box, Stack, Typography, alpha} from '@mui/material';
+import React, { useState } from 'react';
+import { Box, Stack, Typography, alpha } from '@mui/material';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
-import {hasMediaMovePayload, parseMediaMovePayload} from '../lib/dragPayload';
+import { hasMediaMovePayload, parseMediaMovePayload } from '../lib/dragPayload';
 
 interface CrumbProps {
     label: React.ReactNode;
@@ -13,54 +13,87 @@ interface CrumbProps {
     onMediaDrop?: (clipId: string, folderFullPath: string) => void;
 }
 
-const Crumb: React.FC<CrumbProps> = ({ label, onClick, active, dropTarget, onMediaDrop }) => {
+const Crumb: React.FC<CrumbProps> = ({
+    label,
+    onClick,
+    active,
+    dropTarget,
+    onMediaDrop,
+}) => {
     const [dropHover, setDropHover] = useState(false);
 
     const canAccept = dropTarget !== undefined && Boolean(onMediaDrop);
-    const isMediaDrag = (e: React.DragEvent) => hasMediaMovePayload(e.dataTransfer);
+    const isMediaDrag = (e: React.DragEvent) =>
+        hasMediaMovePayload(e.dataTransfer);
 
     return (
         <Box
             component="button"
             onClick={onClick}
-            onDragEnter={canAccept ? (e) => {
-                if (!isMediaDrag(e)) return;
-                e.preventDefault();
-                setDropHover(true);
-            } : undefined}
-            onDragOver={canAccept ? (e) => {
-                if (!isMediaDrag(e)) return;
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                if (!dropHover) setDropHover(true);
-            } : undefined}
-            onDragLeave={canAccept ? (e) => {
-                if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-                setDropHover(false);
-            } : undefined}
-            onDrop={canAccept ? (e) => {
-                if (!isMediaDrag(e)) return;
-                e.preventDefault();
-                setDropHover(false);
-                const payload = parseMediaMovePayload(e.dataTransfer);
-                if (payload) onMediaDrop?.(payload.id, dropTarget!);
-            } : undefined}
-            sx={(theme) => ({
+            onDragEnter={
+                canAccept
+                    ? e => {
+                          if (!isMediaDrag(e)) return;
+                          e.preventDefault();
+                          setDropHover(true);
+                      }
+                    : undefined
+            }
+            onDragOver={
+                canAccept
+                    ? e => {
+                          if (!isMediaDrag(e)) return;
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                          if (!dropHover) setDropHover(true);
+                      }
+                    : undefined
+            }
+            onDragLeave={
+                canAccept
+                    ? e => {
+                          if (e.currentTarget.contains(e.relatedTarget as Node))
+                              return;
+                          setDropHover(false);
+                      }
+                    : undefined
+            }
+            onDrop={
+                canAccept
+                    ? e => {
+                          if (!isMediaDrag(e)) return;
+                          e.preventDefault();
+                          setDropHover(false);
+                          const payload = parseMediaMovePayload(e.dataTransfer);
+                          if (payload) onMediaDrop?.(payload.id, dropTarget!);
+                      }
+                    : undefined
+            }
+            sx={theme => ({
                 appearance: 'none',
-                background: dropHover ? alpha(theme.palette.primary.main, 0.18) : 'transparent',
+                background: dropHover
+                    ? alpha(theme.palette.primary.main, 0.18)
+                    : 'transparent',
                 border: dropHover
                     ? `1px solid ${theme.palette.primary.main}`
                     : '1px solid transparent',
                 padding: '4px 8px',
                 borderRadius: 1,
                 cursor: 'pointer',
-                color: active ? theme.palette.text.primary : theme.palette.text.secondary,
+                color: active
+                    ? theme.palette.text.primary
+                    : theme.palette.text.secondary,
                 fontWeight: active ? 600 : 400,
                 fontSize: '0.875rem',
                 lineHeight: 1.4,
                 display: 'inline-flex',
                 alignItems: 'center',
-                transition: theme.transitions.create(['background-color', 'border-color'], { duration: 120 }),
+                transition: theme.transitions.create(
+                    ['background-color', 'border-color'],
+                    {
+                        duration: 120,
+                    },
+                ),
                 '&:hover': {
                     bgcolor: alpha(theme.palette.primary.main, 0.08),
                     color: theme.palette.text.primary,
@@ -81,7 +114,11 @@ export interface PathBreadcrumbProps {
     onMediaDrop?: (clipId: string, folderFullPath: string) => void;
 }
 
-export const PathBreadcrumb: React.FC<PathBreadcrumbProps> = ({ path, onNavigate, onMediaDrop }) => {
+export const PathBreadcrumb: React.FC<PathBreadcrumbProps> = ({
+    path,
+    onNavigate,
+    onMediaDrop,
+}) => {
     // `path` should always be a string from the page's state but the
     // upstream `router.query.path` can transiently be `undefined` (before
     // hydration) or `string[]` (`?path=a&path=b`); coerce defensively so
@@ -96,7 +133,12 @@ export const PathBreadcrumb: React.FC<PathBreadcrumbProps> = ({ path, onNavigate
     return (
         <Stack direction="row" alignItems="center" gap={0.5} flexWrap="wrap">
             <Crumb
-                label={<HomeRoundedIcon fontSize="small" sx={{ display: 'block' }} />}
+                label={
+                    <HomeRoundedIcon
+                        fontSize="small"
+                        sx={{ display: 'block' }}
+                    />
+                }
                 onClick={() => onNavigate('')}
                 dropTarget={onMediaDrop ? '' : undefined}
                 onMediaDrop={onMediaDrop}
@@ -106,13 +148,24 @@ export const PathBreadcrumb: React.FC<PathBreadcrumbProps> = ({ path, onNavigate
                 const isActive = index === segments.length - 1;
                 return (
                     <React.Fragment key={index}>
-                        <Typography variant="body2" sx={{ color: 'text.disabled' }}>/</Typography>
+                        <Typography
+                            variant="body2"
+                            sx={{ color: 'text.disabled' }}
+                        >
+                            /
+                        </Typography>
                         <Crumb
                             label={segment}
                             onClick={() => onNavigate(`${prefix}/`)}
                             active={isActive}
-                            dropTarget={onMediaDrop && !isActive ? prefix : undefined}
-                            onMediaDrop={onMediaDrop && !isActive ? onMediaDrop : undefined}
+                            dropTarget={
+                                onMediaDrop && !isActive ? prefix : undefined
+                            }
+                            onMediaDrop={
+                                onMediaDrop && !isActive
+                                    ? onMediaDrop
+                                    : undefined
+                            }
                         />
                     </React.Fragment>
                 );

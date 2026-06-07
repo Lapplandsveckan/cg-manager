@@ -1,16 +1,28 @@
 /* eslint-disable max-lines */
-import {Box, Button, IconButton, Stack, Tooltip, Typography, alpha} from '@mui/material';
+import {
+    Box,
+    Button,
+    IconButton,
+    Stack,
+    Tooltip,
+    Typography,
+    alpha,
+} from '@mui/material';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
-import React, {useEffect, useRef, useState} from 'react';
-import {useTranslation} from 'next-i18next';
-import {noTryAsync} from 'no-try';
-import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
-import {useSocket} from '../lib';
-import {type RundownItemDragPayload, hasRundownItemPayload, parseRundownItemPayload} from '../lib/dragPayload';
-import {useDragAutoScroll} from '../lib/hooks/useDragAutoScroll';
-import {UploadModal, useFileUpload} from './Upload';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'next-i18next';
+import { noTryAsync } from 'no-try';
+import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
+import { useSocket } from '../lib';
+import {
+    type RundownItemDragPayload,
+    hasRundownItemPayload,
+    parseRundownItemPayload,
+} from '../lib/dragPayload';
+import { useDragAutoScroll } from '../lib/hooks/useDragAutoScroll';
+import { UploadModal, useFileUpload } from './Upload';
 
 /** Mirrors the server's RundownFileMatchResult — keep them in sync. */
 interface RundownFileMatchResult {
@@ -26,7 +38,7 @@ function isFileDrag(dt: DataTransfer | null): boolean {
     return Array.from(dt.types).includes('Files');
 }
 
-export {EditIndicator, LiveIndicator, LockToggle} from './RundownChrome';
+export { EditIndicator, LiveIndicator, LockToggle } from './RundownChrome';
 export const RUNDOWN_REORDER_MIME = 'application/x-cg-rundown-reorder';
 
 export interface RundownEntry {
@@ -62,11 +74,17 @@ export function useRundownEntries(rundown: string) {
                 if (id !== rundown) return;
 
                 if (Array.isArray(entry)) {
-                    const updates = new Map<string, RundownEntry>(entry.map(item => [item.id, item]));
-                    return setEntries(entries => entries.map(item => updates.get(item.id) ?? item));
+                    const updates = new Map<string, RundownEntry>(
+                        entry.map(item => [item.id, item]),
+                    );
+                    return setEntries(entries =>
+                        entries.map(item => updates.get(item.id) ?? item),
+                    );
                 }
 
-                setEntries(entries => entries.map(item => item.id === entry.id ? entry : item));
+                setEntries(entries =>
+                    entries.map(item => (item.id === entry.id ? entry : item)),
+                );
             },
         };
 
@@ -95,7 +113,11 @@ export function useRundownEntries(rundown: string) {
                 setEntries(entries => {
                     if (typeof index !== 'number') return [...entries, entry];
                     const next = [...entries];
-                    next.splice(Math.max(0, Math.min(next.length, index)), 0, entry);
+                    next.splice(
+                        Math.max(0, Math.min(next.length, index)),
+                        0,
+                        entry,
+                    );
                     return next;
                 });
             },
@@ -167,7 +189,7 @@ export function useRundownEntries(rundown: string) {
 
     const updateEntry = (entry: RundownEntry) => {
         conn.rawRequest(`/api/rundown/${rundown}/entry`, 'UPDATE', entry);
-        setEntries(entries.map(v => v.id === entry.id ? entry : v));
+        setEntries(entries.map(v => (v.id === entry.id ? entry : v)));
     };
 
     const deleteEntry = (entry: RundownEntry) => {
@@ -187,7 +209,11 @@ export function useRundownEntries(rundown: string) {
         for (const item of byId.values()) reordered.push(item);
 
         setEntries(reordered);
-        conn.rawRequest(`/api/rundown/${rundown}/order`, 'ACTION', reordered.map(item => item.id));
+        conn.rawRequest(
+            `/api/rundown/${rundown}/order`,
+            'ACTION',
+            reordered.map(item => item.id),
+        );
     };
 
     return {
@@ -242,7 +268,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     dropIndicator,
     isDragging,
 }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const cardClickable = !locked;
     const supportsReorder = Boolean(onReorderDragStart);
     // Reorder is an editing affordance — only show/allow it when the rundown
@@ -260,7 +286,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
             <Stack
                 ref={cardRef}
                 direction="row"
-                sx={(theme) => ({
+                sx={theme => ({
                     position: 'relative',
                     py: 2,
                     pr: 2,
@@ -271,19 +297,22 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                     borderRadius: 1.5,
                     width: '100%',
                     cursor: cardClickable ? 'pointer' : 'default',
-                    opacity: isDragging ? 0.4 : (disabled ? 0.55 : 1),
+                    opacity: isDragging ? 0.4 : disabled ? 0.55 : 1,
                     transition: theme.transitions.create(
                         ['border-color', 'background-color', 'opacity'],
-                        { duration: 120 },
+                        {
+                            duration: 120,
+                        },
                     ),
-                    '&:hover': cardClickable ? {
-                        bgcolor: theme.palette.surface.elevated,
-                        borderColor: 'primary.main',
-                    } : {
-                        bgcolor: theme.palette.surface.elevated,
-                    },
+                    '&:hover': cardClickable
+                        ? {
+                              bgcolor: theme.palette.surface.elevated,
+                              borderColor: 'primary.main',
+                          }
+                        : {
+                              bgcolor: theme.palette.surface.elevated,
+                          },
                 })}
-
                 onClick={e => {
                     if (!cardClickable) return;
                     e.stopPropagation();
@@ -294,10 +323,15 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                     <Box
                         className="rundown-drag-handle"
                         draggable={draggable}
-                        title={draggable ? t('rundown.entry.dragToReorder') : undefined}
-                        onDragStart={(e) => {
+                        title={
+                            draggable
+                                ? t('rundown.entry.dragToReorder')
+                                : undefined
+                        }
+                        onDragStart={e => {
                             if (cardRef.current) {
-                                const rect = cardRef.current.getBoundingClientRect();
+                                const rect =
+                                    cardRef.current.getBoundingClientRect();
                                 e.dataTransfer.setDragImage(
                                     cardRef.current,
                                     e.clientX - rect.left,
@@ -309,7 +343,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                         }}
                         onDragEnd={() => onReorderDragEnd?.()}
                         onClick={e => e.stopPropagation()}
-                        sx={(theme) => ({
+                        sx={theme => ({
                             position: 'absolute',
                             left: 2,
                             top: 0,
@@ -321,7 +355,9 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                             cursor: draggable ? 'grab' : 'default',
                             visibility: draggable ? 'visible' : 'hidden',
                             color: theme.palette.text.secondary,
-                            transition: theme.transitions.create('color', { duration: 120 }),
+                            transition: theme.transitions.create('color', {
+                                duration: 120,
+                            }),
                             '&:active': { cursor: 'grabbing' },
                             '&:hover': { color: theme.palette.text.primary },
                         })}
@@ -337,7 +373,10 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                         justifyContent="space-between"
                         gap={1}
                     >
-                        <Typography variant="h4" sx={{ minWidth: 0, wordBreak: 'break-word' }}>
+                        <Typography
+                            variant="h4"
+                            sx={{ minWidth: 0, wordBreak: 'break-word' }}
+                        >
                             {title}
                         </Typography>
                         <Stack
@@ -348,13 +387,21 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                             onClick={e => e.stopPropagation()}
                         >
                             <Tooltip title={t('actions.edit')}>
-                                <IconButton size="small" onClick={onEdit} sx={{ color: 'text.secondary' }}>
+                                <IconButton
+                                    size="small"
+                                    onClick={onEdit}
+                                    sx={{ color: 'text.secondary' }}
+                                >
                                     <EditOutlinedIcon fontSize="small" />
                                 </IconButton>
                             </Tooltip>
-                            <Tooltip title={locked
-                                ? t('rundown.entry.playLockedTooltip')
-                                : t('actions.play')}>
+                            <Tooltip
+                                title={
+                                    locked
+                                        ? t('rundown.entry.playLockedTooltip')
+                                        : t('actions.play')
+                                }
+                            >
                                 <IconButton
                                     size="small"
                                     onClick={onPlay}
@@ -366,10 +413,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                         </Stack>
                     </Stack>
                     {children && (
-                        <Stack
-                            spacing={1.5}
-                            direction="column"
-                        >
+                        <Stack spacing={1.5} direction="column">
                             {children}
                         </Stack>
                     )}
@@ -381,9 +425,11 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     );
 };
 
-const DropIndicator: React.FC<{ position: 'top' | 'bottom' }> = ({ position }) => (
+const DropIndicator: React.FC<{ position: 'top' | 'bottom' }> = ({
+    position,
+}) => (
     <Box
-        sx={(theme) => ({
+        sx={theme => ({
             position: 'absolute',
             left: 0,
             right: 0,
@@ -423,12 +469,25 @@ function hasReorderPayload(dt: DataTransfer | null): boolean {
     return Array.from(dt.types).includes(RUNDOWN_REORDER_MIME);
 }
 
-export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAdd, onDropItem, onReorder, locked}) => {
-    const {t} = useTranslation('common');
+export const Rundowns: React.FC<RundownsProps> = ({
+    entries,
+    onEdit,
+    onPlay,
+    onAdd,
+    onDropItem,
+    onReorder,
+    locked,
+}) => {
+    const { t } = useTranslation('common');
     const conn = useSocket();
     const [dragOver, setDragOver] = useState(false);
-    const [reorderDraggingId, setReorderDraggingId] = useState<string | null>(null);
-    const [insertion, setInsertion] = useState<{ id: string; position: 'before' | 'after' } | null>(null);
+    const [reorderDraggingId, setReorderDraggingId] = useState<string | null>(
+        null,
+    );
+    const [insertion, setInsertion] = useState<{
+        id: string;
+        position: 'before' | 'after';
+    } | null>(null);
 
     // Fetched once on mount; not refreshed on live action registration changes.
     const [activeTypes, setActiveTypes] = useState<Set<string> | null>(null);
@@ -437,7 +496,9 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
         conn.rawRequest('/api/rundown/types', 'GET', {})
             .then(res => mounted && setActiveTypes(new Set(res.data ?? [])))
             .catch(() => mounted && setActiveTypes(new Set()));
-        return () => { mounted = false; };
+        return () => {
+            mounted = false;
+        };
     }, [conn]);
 
     const acceptsDrop = Boolean(onDropItem);
@@ -464,7 +525,7 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
 
     // `completed` is set alongside the terminal phase, so it's current
     // when this effect runs.
-    const {phase: uploadPhase} = uploadCtrl.state;
+    const { phase: uploadPhase } = uploadCtrl.state;
     useEffect(() => {
         if (uploadPhase !== 'done' && uploadPhase !== 'error') return;
 
@@ -473,9 +534,10 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
             if (result.error) continue;
             const match = fileMatchesRef.current.get(result.file);
             if (!match) continue;
-            const index = fileBaseIndexRef.current !== undefined
-                ? fileBaseIndexRef.current + offset++
-                : undefined;
+            const index =
+                fileBaseIndexRef.current !== undefined
+                    ? fileBaseIndexRef.current + offset++
+                    : undefined;
             onDropItemRef.current?.(match.payload, index);
         }
         fileMatchesRef.current.clear();
@@ -485,21 +547,32 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
         if (uploadPhase === 'done') uploadCtrl.reset();
     }, [uploadPhase]);
 
-    const handleFileDrop = async (files: File[], baseIndex: number | undefined) => {
+    const handleFileDrop = async (
+        files: File[],
+        baseIndex: number | undefined,
+    ) => {
         // Run matches in parallel; they don't depend on each other.
-        const matchResults = await Promise.all(files.map(async file => {
-            const [err, res] = await noTryAsync(() => conn.rawRequest(
-                '/api/rundown/actions/match',
-                'ACTION',
-                {name: file.name, type: file.type, size: file.size},
-            ));
-            if (err) return {file, matches: [] as RundownFileMatchResult[]};
-            return {file, matches: (res?.data as RundownFileMatchResult[]) ?? []};
-        }));
+        const matchResults = await Promise.all(
+            files.map(async file => {
+                const [err, res] = await noTryAsync(() =>
+                    conn.rawRequest('/api/rundown/actions/match', 'ACTION', {
+                        name: file.name,
+                        type: file.type,
+                        size: file.size,
+                    }),
+                );
+                if (err)
+                    return { file, matches: [] as RundownFileMatchResult[] };
+                return {
+                    file,
+                    matches: (res?.data as RundownFileMatchResult[]) ?? [],
+                };
+            }),
+        );
 
         const accepted: File[] = [];
         const unmatched: string[] = [];
-        for (const {file, matches} of matchResults) {
+        for (const { file, matches } of matchResults) {
             if (!matches.length) {
                 unmatched.push(file.name);
                 continue;
@@ -513,7 +586,6 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
             // eslint-disable-next-line no-console
             console.warn('No rundown action accepted:', unmatched.join(', '));
 
-
         if (!accepted.length) return;
 
         fileBaseIndexRef.current = baseIndex;
@@ -524,7 +596,11 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
     };
 
     const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        if (acceptsDrop && (hasRundownItemPayload(e.dataTransfer) || isFileDrag(e.dataTransfer))) {
+        if (
+            acceptsDrop &&
+            (hasRundownItemPayload(e.dataTransfer) ||
+                isFileDrag(e.dataTransfer))
+        ) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
             if (!dragOver) setDragOver(true);
@@ -580,9 +656,11 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
 
     const onItemDragOver = (e: React.DragEvent<HTMLDivElement>, id: string) => {
         const isReorder = hasReorderPayload(e.dataTransfer);
-        const isCreate = !isReorder && acceptsDrop && (
-            hasRundownItemPayload(e.dataTransfer) || isFileDrag(e.dataTransfer)
-        );
+        const isCreate =
+            !isReorder &&
+            acceptsDrop &&
+            (hasRundownItemPayload(e.dataTransfer) ||
+                isFileDrag(e.dataTransfer));
 
         if (isReorder && acceptsReorder) {
             if (reorderDraggingId === id) {
@@ -596,7 +674,9 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
             const position: 'before' | 'after' =
                 e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
             setInsertion(prev =>
-                prev?.id === id && prev?.position === position ? prev : { id, position },
+                prev?.id === id && prev?.position === position
+                    ? prev
+                    : { id, position },
             );
             return;
         }
@@ -608,7 +688,9 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
             const position: 'before' | 'after' =
                 e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
             setInsertion(prev =>
-                prev?.id === id && prev?.position === position ? prev : { id, position },
+                prev?.id === id && prev?.position === position
+                    ? prev
+                    : { id, position },
             );
         }
     };
@@ -654,7 +736,7 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
-                sx={(theme) => ({
+                sx={theme => ({
                     position: 'relative',
                     flex: 1,
                     minHeight: 0,
@@ -664,11 +746,16 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                         ? `2px dashed ${alpha(theme.palette.primary.main, 0.6)}`
                         : '2px dashed transparent',
                     outlineOffset: 4,
-                    transition: theme.transitions.create('outline-color', { duration: 120 }),
+                    transition: theme.transitions.create('outline-color', {
+                        duration: 120,
+                    }),
                 })}
             >
                 {entries.length === 0 && (
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary' }}
+                    >
                         {acceptsDrop
                             ? t('rundown.empty.dropOrAdd')
                             : t('rundown.empty.addOne')}
@@ -678,23 +765,29 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                 {entries.map(entry => (
                     <Box
                         key={entry.id}
-                        onDragOver={(e) => onItemDragOver(e, entry.id)}
+                        onDragOver={e => onItemDragOver(e, entry.id)}
                     >
                         <RundownEntry
                             title={entry.title}
                             type={entry.type}
                             active={false}
                             locked={locked}
-                            disabled={activeTypes !== null && !activeTypes.has(entry.type)}
+                            disabled={
+                                activeTypes !== null &&
+                                !activeTypes.has(entry.type)
+                            }
                             onEdit={() => onEdit(entry)}
                             onPlay={() => onPlay(entry)}
                             onReorderDragStart={
                                 acceptsReorder
-                                    ? (e) => {
-                                        e.dataTransfer.setData(RUNDOWN_REORDER_MIME, entry.id);
-                                        e.dataTransfer.effectAllowed = 'move';
-                                        setReorderDraggingId(entry.id);
-                                    }
+                                    ? e => {
+                                          e.dataTransfer.setData(
+                                              RUNDOWN_REORDER_MIME,
+                                              entry.id,
+                                          );
+                                          e.dataTransfer.effectAllowed = 'move';
+                                          setReorderDraggingId(entry.id);
+                                      }
                                     : undefined
                             }
                             onReorderDragEnd={() => {
@@ -702,11 +795,16 @@ export const Rundowns: React.FC<RundownsProps> = ({entries, onEdit, onPlay, onAd
                                 setInsertion(null);
                             }}
                             dropIndicator={
-                                insertion?.id === entry.id ? insertion.position : null
+                                insertion?.id === entry.id
+                                    ? insertion.position
+                                    : null
                             }
                             isDragging={reorderDraggingId === entry.id}
                         >
-                            <Injections zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`} props={{entry}} />
+                            <Injections
+                                zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`}
+                                props={{ entry }}
+                            />
                         </RundownEntry>
                     </Box>
                 ))}

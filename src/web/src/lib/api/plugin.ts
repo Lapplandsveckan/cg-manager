@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import {type REPClient} from 'rest-exchange-protocol-client';
+import { type REPClient } from 'rest-exchange-protocol-client';
 
 export interface Plugin {
     name: string;
@@ -20,7 +20,7 @@ export class PluginApi extends EventEmitter {
 
         this._pluginPromise = this.requestPlugin();
         this._pluginPromise
-            .then(() => this._pluginPromise = null)
+            .then(() => (this._pluginPromise = null))
             .catch(e => console.error('Failed to get plugins', e));
     }
 
@@ -37,9 +37,15 @@ export class PluginApi extends EventEmitter {
     }
 
     public async setEnabled(name: string, enabled: boolean): Promise<boolean> {
-        const res = await this.socket.request(`api/plugins/${encodeURIComponent(name)}/status`, 'ACTION', { enabled });
+        const res = await this.socket.request(
+            `api/plugins/${encodeURIComponent(name)}/status`,
+            'ACTION',
+            { enabled },
+        );
         if (typeof res.data !== 'boolean')
-            throw new Error(`Plugin toggle returned unexpected value: ${JSON.stringify(res.data)}`);
+            throw new Error(
+                `Plugin toggle returned unexpected value: ${JSON.stringify(res.data)}`,
+            );
         return res.data;
     }
 }

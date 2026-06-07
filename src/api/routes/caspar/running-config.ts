@@ -1,5 +1,5 @@
-import {type RouteExport} from '../../route';
-import {CasparManager} from '../../../manager';
+import { type RouteExport } from '../../route';
+import { CasparManager } from '../../../manager';
 
 /**
  * Snapshot of the config CasparCG was started with. Returns `null` when
@@ -11,11 +11,13 @@ import {CasparManager} from '../../../manager';
  * itself reads `caspar/config` so it can show what's about to be applied.
  */
 export default {
-    'GET': async () => {
-        const cfg = CasparManager.getManager().getCasparProcess().getRunningConfig();
+    GET: async () => {
+        const cfg = CasparManager.getManager()
+            .getCasparProcess()
+            .getRunningConfig();
         if (!cfg) return null;
         // `_raw` is the parsed XML — not useful to clients and not JSON-safe.
-        const {_raw, ...rest} = cfg;
+        const { _raw, ...rest } = cfg;
         return rest;
     },
 } satisfies RouteExport;

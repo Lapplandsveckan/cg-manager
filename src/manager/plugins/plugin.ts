@@ -1,9 +1,9 @@
 import fs from 'fs/promises';
-import {type CasparPlugin, PluginAPI} from '@lappis/cg-manager';
-import {noTry, noTryAsync} from 'no-try';
-import {Logger} from '../../util/log';
+import { type CasparPlugin, PluginAPI } from '@lappis/cg-manager';
+import { noTry, noTryAsync } from 'no-try';
+import { Logger } from '../../util/log';
 import config from '../../util/config';
-import {CasparManager} from '../index';
+import { CasparManager } from '../index';
 
 export class PluginManager {
     private _plugins: CasparPlugin[] = [];
@@ -14,21 +14,29 @@ export class PluginManager {
         if (!file) return;
 
         const logger = Logger.scope('Plugin Loader');
-        const [readErr, raw] = await noTryAsync(() => fs.readFile(file, 'utf8'));
+        const [readErr, raw] = await noTryAsync(() =>
+            fs.readFile(file, 'utf8'),
+        );
         if (readErr) {
             if ((readErr as NodeJS.ErrnoException).code !== 'ENOENT')
-                logger.error(`Failed to read plugin state: ${Logger.formatError(readErr)}`);
+                logger.error(
+                    `Failed to read plugin state: ${Logger.formatError(readErr)}`,
+                );
             return;
         }
 
         const [parseErr, parsed] = noTry(() => JSON.parse(raw));
         if (parseErr) {
-            logger.error(`Failed to parse plugin state: ${Logger.formatError(parseErr)}`);
+            logger.error(
+                `Failed to parse plugin state: ${Logger.formatError(parseErr)}`,
+            );
             return;
         }
 
         const disabled = Array.isArray(parsed?.disabled)
-            ? parsed.disabled.filter((n: unknown): n is string => typeof n === 'string')
+            ? parsed.disabled.filter(
+                  (n: unknown): n is string => typeof n === 'string',
+              )
             : [];
         this._disabled = new Set(disabled);
     }
@@ -37,27 +45,42 @@ export class PluginManager {
         const file = config['plugin-state-file'];
         if (!file) return;
 
-        const content = JSON.stringify({disabled: [...this._disabled].sort()}, null, 2);
-        const [err] = await noTryAsync(() => fs.writeFile(file, content, 'utf8'));
-        if (err) Logger.scope('Plugin Loader')
-            .error(`Failed to save plugin state: ${Logger.formatError(err)}`);
+        const content = JSON.stringify(
+            { disabled: [...this._disabled].sort() },
+            null,
+            2,
+        );
+        const [err] = await noTryAsync(() =>
+            fs.writeFile(file, content, 'utf8'),
+        );
+        if (err)
+            Logger.scope('Plugin Loader').error(
+                `Failed to save plugin state: ${Logger.formatError(err)}`,
+            );
     }
 
     public register(plugin: typeof CasparPlugin) {
         const loaderLogger = Logger.scope('Plugin Loader');
-        const pluginLabel = (plugin as any).pluginName ?? plugin.name ?? 'unknown';
+        const pluginLabel =
+            (plugin as any).pluginName ?? plugin.name ?? 'unknown';
 
         const [instErr, _plugin] = noTry(() => new plugin());
         if (instErr) {
-            loaderLogger.error(`Failed to instantiate plugin "${pluginLabel}": ${Logger.formatError(instErr)}`);
+            loaderLogger.error(
+                `Failed to instantiate plugin "${pluginLabel}": ${Logger.formatError(instErr)}`,
+            );
             return;
         }
 
         const pluginLogger = loaderLogger.scope(_plugin.pluginName);
 
-        const [apiErr] = noTry(() => new PluginAPI(CasparManager.getManager() as any, _plugin));
+        const [apiErr] = noTry(
+            () => new PluginAPI(CasparManager.getManager() as any, _plugin),
+        );
         if (apiErr) {
-            pluginLogger.error(`Failed to attach plugin API: ${Logger.formatError(apiErr)}`);
+            pluginLogger.error(
+                `Failed to attach plugin API: ${Logger.formatError(apiErr)}`,
+            );
             return;
         }
 
@@ -73,7 +96,9 @@ export class PluginManager {
         if (index < 0) return;
 
         this._plugins.splice(index, 1);
-        const pluginLogger = Logger.scope('Plugin Loader').scope(plugin.pluginName);
+        const pluginLogger = Logger.scope('Plugin Loader').scope(
+            plugin.pluginName,
+        );
         this._applyDisable(plugin, pluginLogger);
     }
 
@@ -88,7 +113,9 @@ export class PluginManager {
 
         for (const plugin of this._plugins) {
             if (this._disabled.has(plugin.pluginName)) continue;
-            const pluginLogger = Logger.scope('Plugin Loader').scope(plugin.pluginName);
+            const pluginLogger = Logger.scope('Plugin Loader').scope(
+                plugin.pluginName,
+            );
             this._applyEnable(plugin, pluginLogger);
         }
     }
@@ -98,7 +125,9 @@ export class PluginManager {
         this._enabled = false;
 
         for (const plugin of this._plugins) {
-            const pluginLogger = Logger.scope('Plugin Loader').scope(plugin.pluginName);
+            const pluginLogger = Logger.scope('Plugin Loader').scope(
+                plugin.pluginName,
+            );
             this._applyDisable(plugin, pluginLogger);
         }
     }
@@ -118,7 +147,8 @@ export class PluginManager {
 
     private _applyEnable(plugin: CasparPlugin, logger: Logger) {
         const [err] = noTry(() => plugin['enable'](logger));
-        if (err) logger.error(`Failed to enable plugin: ${Logger.formatError(err)}`);
+        if (err)
+            logger.error(`Failed to enable plugin: ${Logger.formatError(err)}`);
     }
 
     // Tears the plugin down, then strips any rundown actions it had
@@ -129,8 +159,13 @@ export class PluginManager {
     // actions.
     private _applyDisable(plugin: CasparPlugin, logger: Logger) {
         const [err] = noTry(() => plugin['disable'](logger));
-        if (err) logger.error(`Failed to disable plugin: ${Logger.formatError(err)}`);
-        CasparManager.getManager().rundowns.executor.unregisterActionsByOwner(plugin.pluginName);
+        if (err)
+            logger.error(
+                `Failed to disable plugin: ${Logger.formatError(err)}`,
+            );
+        CasparManager.getManager().rundowns.executor.unregisterActionsByOwner(
+            plugin.pluginName,
+        );
     }
 
     public get enabled() {

@@ -1,4 +1,4 @@
-import {type schemas} from './schemas';
+import { type schemas } from './schemas';
 
 export interface Transform<T> {
     parse: (value: any) => T;
@@ -8,11 +8,11 @@ export interface Transform<T> {
 export interface Consumers {
     decklink: typeof schemas.decklink;
     bluefish: typeof schemas.bluefish;
-    'system-audio': typeof schemas['system-audio'];
-    screen: typeof schemas['screen'];
-    ndi: typeof schemas['ndi'];
-    ffmpeg: typeof schemas['ffmpeg'];
-    artnet: typeof schemas['artnet'];
+    'system-audio': (typeof schemas)['system-audio'];
+    screen: (typeof schemas)['screen'];
+    ndi: (typeof schemas)['ndi'];
+    ffmpeg: (typeof schemas)['ffmpeg'];
+    artnet: (typeof schemas)['artnet'];
 }
 
 type Consumer = {
@@ -34,7 +34,13 @@ export interface ConfigVideoMode {
     cadence: number;
 }
 
-export type LogLevel = 'trace' | 'debug' | 'info' | 'warning' | 'error' | 'fatal';
+export type LogLevel =
+    | 'trace'
+    | 'debug'
+    | 'info'
+    | 'warning'
+    | 'error'
+    | 'fatal';
 
 export interface Config {
     version: string;
@@ -44,7 +50,7 @@ export interface Config {
     html?: {
         remoteDebuggingPort?: number;
         enableGpu?: boolean;
-    }
+    };
 
     _raw?: string;
 }

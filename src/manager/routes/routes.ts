@@ -1,12 +1,12 @@
 import fs from 'fs/promises';
 import path from 'path';
-import {noTryAsync} from 'no-try';
-import {type Effect, type EffectGroup} from '@lappis/cg-manager';
-import {UUID} from '../../util/uuid';
+import { noTryAsync } from 'no-try';
+import { type Effect, type EffectGroup } from '@lappis/cg-manager';
+import { UUID } from '../../util/uuid';
 import config from '../../util/config';
-import {Logger} from '../../util/log';
-import {type CasparManager} from '../index';
-import {type CasparExecutor} from '../caspar/executor';
+import { Logger } from '../../util/log';
+import { type CasparManager } from '../index';
+import { type CasparExecutor } from '../caspar/executor';
 
 interface DecklinkSource {
     device: number;
@@ -82,8 +82,11 @@ export class VideoRoutesManager {
     // clients on the `routes` topic. Lets the UI live-update on changes
     // made anywhere (API endpoint, plugin rundown action, internal caller)
     // without polling.
-    private notify(method: 'CREATE' | 'UPDATE' | 'DELETE', data: VideoRoute | string) {
-        this.manager.emit('route-change', {method, data});
+    private notify(
+        method: 'CREATE' | 'UPDATE' | 'DELETE',
+        data: VideoRoute | string,
+    ) {
+        this.manager.emit('route-change', { method, data });
     }
 
     public createVideoRoute(data: Omit<VideoRoute, 'id'>): VideoRoute {
@@ -93,7 +96,7 @@ export class VideoRoutesManager {
             ...data,
         } as VideoRoute;
 
-        this.routes.set(id, {route, enabled: route.enabled ?? true});
+        this.routes.set(id, { route, enabled: route.enabled ?? true });
         this.checkState(route.id);
         this.saveVideoRoute(route);
 
@@ -106,7 +109,7 @@ export class VideoRoutesManager {
     }
 
     public getVideoRoutes(): VideoRoute[] {
-        return Array.from(this.routes.values()).map(({route}) => route);
+        return Array.from(this.routes.values()).map(({ route }) => route);
     }
 
     public async updateVideoRoute(data: VideoRoute) {
@@ -138,22 +141,29 @@ export class VideoRoutesManager {
             return;
         }
 
-        const routes: VideoRoute[] = await Promise.all(files.filter(file => file.endsWith('.json')).map(async file => {
-            const content = await fs.readFile(path.join(dir, file), 'utf8').catch(e => {
-                Logger.error(`Failed to read route (${file})`);
-                Logger.error(e);
-                return null;
-            });
+        const routes: VideoRoute[] = await Promise.all(
+            files
+                .filter(file => file.endsWith('.json'))
+                .map(async file => {
+                    const content = await fs
+                        .readFile(path.join(dir, file), 'utf8')
+                        .catch(e => {
+                            Logger.error(`Failed to read route (${file})`);
+                            Logger.error(e);
+                            return null;
+                        });
 
-            return content && JSON.parse(content);
-        }));
+                    return content && JSON.parse(content);
+                }),
+        );
 
-        routes
-            .filter(Boolean)
-            .forEach(route => {
-                this.routes.set(route.id, {route, enabled: route.enabled ?? true});
-                this.checkState(route.id);
+        routes.filter(Boolean).forEach(route => {
+            this.routes.set(route.id, {
+                route,
+                enabled: route.enabled ?? true,
             });
+            this.checkState(route.id);
+        });
     }
 
     public async saveVideoRoute(route: VideoRoute) {
@@ -232,21 +242,21 @@ export class VideoRoutesManager {
      */
     public refreshAfterReconnect() {
         if (this.routes.size === 0) return;
-        Logger.info(`Refreshing ${this.routes.size} video route${this.routes.size === 1 ? '' : 's'} after CasparCG reconnect`);
+        Logger.info(
+            `Refreshing ${this.routes.size} video route${this.routes.size === 1 ? '' : 's'} after CasparCG reconnect`,
+        );
         for (const id of this.routes.keys()) {
             this.checkState(id, true); // dispose stale effect
-            this.checkState(id);        // re-create + re-activate if enabled
+            this.checkState(id); // re-create + re-activate if enabled
         }
     }
-
 
     private checkState(route: string, removal = false) {
         const state = this.routes.get(route);
         if (!state) return;
 
         if (removal) {
-            if (state._enabled)
-                state._effect.dispose();
+            if (state._enabled) state._effect.dispose();
 
             delete state._effect;
             delete state._enabled;
@@ -255,7 +265,11 @@ export class VideoRoutesManager {
 
         if (typeof state._enabled === 'undefined') {
             const group = this.getDestination(state.route.destination);
-            state._effect = this.getSource(state.route.source, group, state.route);
+            state._effect = this.getSource(
+                state.route.source,
+                group,
+                state.route,
+            );
             state._enabled = false;
         }
 
@@ -267,19 +281,27 @@ export class VideoRoutesManager {
     }
 
     private getDestination(dest: Destination): EffectGroup {
-        if (dest.type === 'effect-group') return this.executor.getEffectGroup(dest.effectLayer, dest.index);
+        if (dest.type === 'effect-group')
+            return this.executor.getEffectGroup(dest.effectLayer, dest.index);
 
         Logger.warn(`Unknown destination type: ${dest.type}`);
     }
 
-    private getSource(src: Source, group: EffectGroup, route: VideoRoute): Effect {
+    private getSource(
+        src: Source,
+        group: EffectGroup,
+        route: VideoRoute,
+    ): Effect {
         const { transform, edgeblend, perspective } = route;
-        const {type, ...data} = src;
-        const options = {transform, edgeblend, perspective, ...data};
+        const { type, ...data } = src;
+        const options = { transform, edgeblend, perspective, ...data };
 
-        if (type === 'decklink') return this.manager.effects.create('decklink', group, options);
-        if (type === 'video') return this.manager.effects.create('video', group, options);
-        if (type === 'color') return this.manager.effects.create('color', group, options);
+        if (type === 'decklink')
+            return this.manager.effects.create('decklink', group, options);
+        if (type === 'video')
+            return this.manager.effects.create('video', group, options);
+        if (type === 'color')
+            return this.manager.effects.create('color', group, options);
 
         if (type === 'channel') {
             const channelId = (data as ChannelSource).channel;
@@ -289,16 +311,29 @@ export class VideoRoutesManager {
             // path on reconnect: infinite tight loop. Fall back to black so the
             // host stays in a coherent state until the route is reconfigured.
             const channels = this.manager.caspar.config?.channels;
-            const channelExists = channels && channelId >= 1 && channelId <= channels.length;
-            const channel = channelExists ? this.executor.getChannel(channelId) : null;
+            const channelExists =
+                channels && channelId >= 1 && channelId <= channels.length;
+            const channel = channelExists
+                ? this.executor.getChannel(channelId)
+                : null;
             if (!channel) {
-                Logger.warn(`Channel ${channelId} not available — falling back to black`);
+                Logger.warn(
+                    `Channel ${channelId} not available — falling back to black`,
+                );
                 return this.manager.effects.create('color', group, {
-                    color: 'black', transform, edgeblend, perspective,
+                    color: 'black',
+                    transform,
+                    edgeblend,
+                    perspective,
                 });
             }
 
-            return this.manager.effects.create('route', group, {channel, edgeblend, transform, perspective});
+            return this.manager.effects.create('route', group, {
+                channel,
+                edgeblend,
+                transform,
+                perspective,
+            });
         }
 
         Logger.warn(`Unknown source type: ${type}`);

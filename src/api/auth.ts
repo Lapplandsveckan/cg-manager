@@ -25,7 +25,9 @@ class AuthManagerImpl {
     /** Whether auth is configured. When false, all requests are allowed
      *  through — preserves the pre-auth open behavior. */
     get enabled(): boolean {
-        return typeof config.password === 'string' && config.password.length > 0;
+        return (
+            typeof config.password === 'string' && config.password.length > 0
+        );
     }
 
     /** Compare a candidate password against the configured one in constant
@@ -46,7 +48,7 @@ class AuthManagerImpl {
 
     createSession(): string {
         const token = crypto.randomBytes(32).toString('hex');
-        this.sessions.set(token, {lastSeen: Date.now()});
+        this.sessions.set(token, { lastSeen: Date.now() });
         return token;
     }
 
@@ -92,13 +94,14 @@ class AuthManagerImpl {
     private gc() {
         const now = Date.now();
         for (const [token, session] of this.sessions)
-            if (now - session.lastSeen > SESSION_TTL_MS) this.sessions.delete(token);
+            if (now - session.lastSeen > SESSION_TTL_MS)
+                this.sessions.delete(token);
     }
 
     private delay(ms: number): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, ms));
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 }
 
 export const AuthManager = new AuthManagerImpl();
-export {COOKIE_NAME as AUTH_COOKIE_NAME};
+export { COOKIE_NAME as AUTH_COOKIE_NAME };

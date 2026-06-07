@@ -1,7 +1,19 @@
 import React from 'react';
-import {Box, Card, CardActionArea, Modal, Stack, Typography, alpha} from '@mui/material';
-import {useTranslation} from 'next-i18next';
-import {CONSUMER_TYPES, type ConsumerType, formatConsumerType} from './fields';
+import {
+    Box,
+    Card,
+    CardActionArea,
+    Modal,
+    Stack,
+    Typography,
+    alpha,
+} from '@mui/material';
+import { useTranslation } from 'next-i18next';
+import {
+    CONSUMER_TYPES,
+    type ConsumerType,
+    formatConsumerType,
+} from './fields';
 
 interface ConsumerTypePickerProps {
     open: boolean;
@@ -9,8 +21,12 @@ interface ConsumerTypePickerProps {
     onSelect: (type: ConsumerType) => void;
 }
 
-export const ConsumerTypePicker: React.FC<ConsumerTypePickerProps> = ({open, onClose, onSelect}) => {
-    const {t} = useTranslation('common');
+export const ConsumerTypePicker: React.FC<ConsumerTypePickerProps> = ({
+    open,
+    onClose,
+    onSelect,
+}) => {
+    const { t } = useTranslation('common');
     return (
         <Modal open={open} onClose={onClose}>
             <Box
@@ -24,11 +40,16 @@ export const ConsumerTypePicker: React.FC<ConsumerTypePickerProps> = ({open, onC
                     overflowY: 'auto',
                 }}
             >
-                <Card sx={{p: 3}}>
+                <Card sx={{ p: 3 }}>
                     <Stack spacing={3}>
                         <Stack spacing={1}>
-                            <Typography variant="h3">{t('config.consumers.pickerTitle')}</Typography>
-                            <Typography variant="body2" sx={{color: 'text.secondary'}}>
+                            <Typography variant="h3">
+                                {t('config.consumers.pickerTitle')}
+                            </Typography>
+                            <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {t('config.consumers.pickerDescription')}
                             </Typography>
                         </Stack>
@@ -36,38 +57,69 @@ export const ConsumerTypePicker: React.FC<ConsumerTypePickerProps> = ({open, onC
                         <Box
                             sx={{
                                 display: 'grid',
-                                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                                gridTemplateColumns:
+                                    'repeat(auto-fit, minmax(220px, 1fr))',
                                 gap: 1.5,
                             }}
                         >
-                            {CONSUMER_TYPES.map((type) => (
+                            {CONSUMER_TYPES.map(type => (
                                 <Card
                                     key={type}
                                     variant="outlined"
-                                    sx={(theme) => ({
+                                    sx={theme => ({
                                         bgcolor: theme.palette.surface.elevated,
                                         transition: theme.transitions.create(
-                                            ['background-color', 'border-color'],
-                                            {duration: 120},
+                                            [
+                                                'background-color',
+                                                'border-color',
+                                            ],
+                                            {
+                                                duration: 120,
+                                            },
                                         ),
                                         '&:hover': {
-                                            borderColor: theme.palette.primary.main,
-                                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                            borderColor:
+                                                theme.palette.primary.main,
+                                            bgcolor: alpha(
+                                                theme.palette.primary.main,
+                                                0.08,
+                                            ),
                                         },
                                     })}
                                 >
                                     <CardActionArea
                                         onClick={() => onSelect(type)}
-                                        sx={{p: 2, height: '100%', alignItems: 'flex-start'}}
+                                        sx={{
+                                            p: 2,
+                                            height: '100%',
+                                            alignItems: 'flex-start',
+                                        }}
                                     >
-                                        <Stack spacing={0.5} sx={{textAlign: 'left', width: '100%'}}>
+                                        <Stack
+                                            spacing={0.5}
+                                            sx={{
+                                                textAlign: 'left',
+                                                width: '100%',
+                                            }}
+                                        >
                                             <Typography variant="h4">
-                                                {t(`config.consumers.types.${type}`, {
-                                                    defaultValue: formatConsumerType(type),
-                                                })}
+                                                {t(
+                                                    `config.consumers.types.${type}`,
+                                                    {
+                                                        defaultValue:
+                                                            formatConsumerType(
+                                                                type,
+                                                            ),
+                                                    },
+                                                )}
                                             </Typography>
-                                            <Typography variant="body2" sx={{color: 'text.secondary'}}>
-                                                {t(`config.consumers.descriptions.${type}`)}
+                                            <Typography
+                                                variant="body2"
+                                                sx={{ color: 'text.secondary' }}
+                                            >
+                                                {t(
+                                                    `config.consumers.descriptions.${type}`,
+                                                )}
                                             </Typography>
                                         </Stack>
                                     </CardActionArea>

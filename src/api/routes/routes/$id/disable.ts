@@ -1,9 +1,9 @@
-import {WebError} from 'rest-exchange-protocol';
-import {type RouteExport} from '../../../route';
-import {CasparManager} from '../../../../manager';
+import { WebError } from 'rest-exchange-protocol';
+import { type RouteExport } from '../../../route';
+import { CasparManager } from '../../../../manager';
 
 export default {
-    'ACTION': async (request) => {
+    ACTION: async request => {
         if (!request.params.id) throw new WebError('No id', 400);
 
         const manager = CasparManager.getManager();

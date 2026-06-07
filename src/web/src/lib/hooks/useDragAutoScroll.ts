@@ -1,4 +1,4 @@
-import {type RefObject, useEffect} from 'react';
+import { type RefObject, useEffect } from 'react';
 
 /**
  * Auto-scrolls the referenced element when a drag is in progress and the
@@ -9,9 +9,9 @@ import {type RefObject, useEffect} from 'react';
  * zone to `MAX_SPEED` at the very edge of the container. The `EDGE_ZONE`
  * cap means scrolling never accelerates indefinitely.
  */
-const EDGE_ZONE = 72;       // px from top/bottom edge that triggers scroll
-const MIN_SPEED = 2;        // px per frame at the boundary of the zone
-const MAX_SPEED = 18;       // px per frame at the very edge
+const EDGE_ZONE = 72; // px from top/bottom edge that triggers scroll
+const MIN_SPEED = 2; // px per frame at the boundary of the zone
+const MAX_SPEED = 18; // px per frame at the very edge
 
 function lerp(a: number, b: number, t: number) {
     return a + (b - a) * t;
@@ -55,8 +55,7 @@ export function useDragAutoScroll(ref: RefObject<HTMLElement>) {
             }
 
             speed = next;
-            if (speed !== 0 && raf === null)
-                raf = requestAnimationFrame(step);
+            if (speed !== 0 && raf === null) raf = requestAnimationFrame(step);
         };
 
         const stop = () => {

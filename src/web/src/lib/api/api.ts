@@ -2,12 +2,11 @@
  * Licenced under Eliyah Enterprises Ltd Inc.
  * All credit goes to Eliyah.
  */
-import {REPClient} from 'rest-exchange-protocol-client';
-import {CasparServerApi} from './caspar';
-import {PluginInjectionAPI} from './inject';
-import {PluginApi} from './plugin';
-import {VideoRoutesApi} from './videoRoutes';
-
+import { REPClient } from 'rest-exchange-protocol-client';
+import { CasparServerApi } from './caspar';
+import { PluginInjectionAPI } from './inject';
+import { PluginApi } from './plugin';
+import { VideoRoutesApi } from './videoRoutes';
 
 export class ManagerApi {
     private socket: REPClient;

@@ -1,12 +1,20 @@
-import React, {useEffect, useState} from 'react';
-import {useRouter} from 'next/router';
-import {Alert, Box, Button, Card, Stack, TextField, Typography} from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import {
+    Alert,
+    Box,
+    Button,
+    Card,
+    Stack,
+    TextField,
+    Typography,
+} from '@mui/material';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
-import {useTranslation} from 'next-i18next';
-import {noTryAsync} from 'no-try';
+import { useTranslation } from 'next-i18next';
+import { noTryAsync } from 'no-try';
 
 const Page = () => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const router = useRouter();
     const [password, setPassword] = useState('');
     const [busy, setBusy] = useState(false);
@@ -24,18 +32,23 @@ const Page = () => {
 
         let cancelled = false;
         (async () => {
-            const [, resp] = await noTryAsync(
-                () => fetch('/api/auth/check', {credentials: 'same-origin'}),
+            const [, resp] = await noTryAsync(() =>
+                fetch('/api/auth/check', { credentials: 'same-origin' }),
             );
             if (cancelled || !resp?.ok) return;
             const [, json] = await noTryAsync(() => resp.json());
-            const status = json as {enabled: boolean; authenticated: boolean};
+            const status = json as { enabled: boolean; authenticated: boolean };
             if (!status?.enabled || status.authenticated) {
-                const from = typeof router.query.from === 'string' ? router.query.from : '/';
+                const from =
+                    typeof router.query.from === 'string'
+                        ? router.query.from
+                        : '/';
                 router.replace(from);
             }
         })();
-        return () => { cancelled = true; };
+        return () => {
+            cancelled = true;
+        };
     }, [router, router.isReady]);
 
     const submit = async () => {
@@ -43,12 +56,14 @@ const Page = () => {
         setBusy(true);
         setError(null);
 
-        const [err, resp] = await noTryAsync(() => fetch('/api/auth/login', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            credentials: 'same-origin',
-            body: JSON.stringify({password}),
-        }));
+        const [err, resp] = await noTryAsync(() =>
+            fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ password }),
+            }),
+        );
 
         setBusy(false);
 
@@ -58,13 +73,14 @@ const Page = () => {
             return;
         }
 
-        const from = typeof router.query.from === 'string' ? router.query.from : '/';
+        const from =
+            typeof router.query.from === 'string' ? router.query.from : '/';
         router.replace(from);
     };
 
     return (
         <Box
-            sx={(theme) => ({
+            sx={theme => ({
                 display: 'flex',
                 height: '100vh',
                 width: '100%',
@@ -74,11 +90,11 @@ const Page = () => {
                 px: 2,
             })}
         >
-            <Card sx={{p: 4, width: 360, maxWidth: '100%'}}>
+            <Card sx={{ p: 4, width: 360, maxWidth: '100%' }}>
                 <Stack spacing={2.5}>
                     <Stack direction="row" alignItems="center" gap={1.5}>
                         <Box
-                            sx={(theme) => ({
+                            sx={theme => ({
                                 width: 36,
                                 height: 36,
                                 borderRadius: 1,
@@ -93,8 +109,13 @@ const Page = () => {
                             <LockRoundedIcon fontSize="small" />
                         </Box>
                         <Stack spacing={0}>
-                            <Typography variant="h3">{t('brand.name')}</Typography>
-                            <Typography variant="caption" sx={{color: 'text.secondary'}}>
+                            <Typography variant="h3">
+                                {t('brand.name')}
+                            </Typography>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {t('login.subtitle')}
                             </Typography>
                         </Stack>
@@ -106,13 +127,17 @@ const Page = () => {
                         autoFocus
                         size="small"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
+                        onChange={e => setPassword(e.target.value)}
+                        onKeyDown={e => {
+                            if (e.key === 'Enter') submit();
+                        }}
                         disabled={busy}
                     />
 
                     {error && (
-                        <Alert severity="error" variant="outlined">{error}</Alert>
+                        <Alert severity="error" variant="outlined">
+                            {error}
+                        </Alert>
                     )}
 
                     <Button

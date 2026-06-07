@@ -47,7 +47,7 @@ export function pickFiles(options: PickFilesOptions = {}): Promise<File[]> {
 
     document.body.appendChild(input);
 
-    return new Promise<File[]>((resolve) => {
+    return new Promise<File[]>(resolve => {
         let settled = false;
         const finish = (files: File[]) => {
             if (settled) return;
@@ -56,9 +56,13 @@ export function pickFiles(options: PickFilesOptions = {}): Promise<File[]> {
             resolve(files);
         };
 
-        input.addEventListener('change', () => {
-            finish(input.files ? Array.from(input.files) : []);
-        }, { once: true });
+        input.addEventListener(
+            'change',
+            () => {
+                finish(input.files ? Array.from(input.files) : []);
+            },
+            { once: true },
+        );
 
         // Modern browsers (Chrome 113+, Firefox 91+, Safari 17+) fire `cancel`
         // when the user dismisses the picker. Older browsers won't — the

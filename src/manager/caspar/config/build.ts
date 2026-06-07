@@ -1,6 +1,6 @@
 import * as xml2js from 'xml2js';
-import {type Config, type ConfigChannel, type ConfigVideoMode} from './types';
-import {transforms} from './transforms';
+import { type Config, type ConfigChannel, type ConfigVideoMode } from './types';
+import { transforms } from './transforms';
 
 export class ConfigBuilder {
     private config: Config;
@@ -18,7 +18,9 @@ export class ConfigBuilder {
             if (!consumers[consumer.type]) consumers[consumer.type] = [];
 
             const transform = transforms[consumer.type];
-            const data = transform ? transform.serialize(consumer.data) : consumer.data;
+            const data = transform
+                ? transform.serialize(consumer.data)
+                : consumer.data;
             consumers[consumer.type].push(data);
         }
 
@@ -50,10 +52,14 @@ export class ConfigBuilder {
                     'template-path': 'template/',
                 },
                 'video-modes': {
-                    'video-mode': this.config.videoModes.map((videoMode: any) => this.buildConfigVideoMode(videoMode)),
+                    'video-mode': this.config.videoModes.map((videoMode: any) =>
+                        this.buildConfigVideoMode(videoMode),
+                    ),
                 },
                 channels: {
-                    channel: this.config.channels.map((channel: any) => this.buildConfigChannel(channel)),
+                    channel: this.config.channels.map((channel: any) =>
+                        this.buildConfigChannel(channel),
+                    ),
                 },
                 controllers: {
                     tcp: {
@@ -71,7 +77,8 @@ export class ConfigBuilder {
                     },
                 },
                 html: {
-                    'remote-debugging-port': this.config.html?.remoteDebuggingPort ?? 9222,
+                    'remote-debugging-port':
+                        this.config.html?.remoteDebuggingPort ?? 9222,
                     'enable-gpu': this.config.html?.enableGpu ?? false,
                 },
             },

@@ -1,10 +1,18 @@
-import React, {useState} from 'react';
-import {Card, Grid, IconButton, Stack, Tooltip, Typography, alpha} from '@mui/material';
+import React, { useState } from 'react';
+import {
+    Card,
+    Grid,
+    IconButton,
+    Stack,
+    Tooltip,
+    Typography,
+    alpha,
+} from '@mui/material';
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
-import {useTranslation} from 'next-i18next';
-import {hasMediaMovePayload, parseMediaMovePayload} from '../lib/dragPayload';
+import { useTranslation } from 'next-i18next';
+import { hasMediaMovePayload, parseMediaMovePayload } from '../lib/dragPayload';
 
 export interface MediaFolderProps {
     name: string;
@@ -19,13 +27,21 @@ export interface MediaFolderProps {
     onMediaDrop?: (mediaId: string) => void;
 }
 
-export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick, onDelete, onRename, onMediaDrop}) => {
-    const {t} = useTranslation('common');
+export const MediaFolder: React.FC<MediaFolderProps> = ({
+    name,
+    columns,
+    onClick,
+    onDelete,
+    onRename,
+    onMediaDrop,
+}) => {
+    const { t } = useTranslation('common');
     const span = 60 / (columns ?? 5);
     const [dropHover, setDropHover] = useState(false);
     const hasActions = Boolean(onDelete || onRename);
 
-    const isMediaDrag = (e: React.DragEvent) => hasMediaMovePayload(e.dataTransfer);
+    const isMediaDrag = (e: React.DragEvent) =>
+        hasMediaMovePayload(e.dataTransfer);
 
     const onDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
         if (!onMediaDrop || !isMediaDrag(e)) return;
@@ -54,7 +70,12 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick,
 
     return (
         <Grid
-            item xs={span} sm={span / 2} md={span / 3} lg={span / 4} xl={span / 5}
+            item
+            xs={span}
+            sm={span / 2}
+            md={span / 3}
+            lg={span / 4}
+            xl={span / 5}
         >
             <Card
                 onClick={() => onClick?.()}
@@ -62,16 +83,28 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick,
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
-                sx={(theme) => ({
+                sx={theme => ({
                     position: 'relative',
                     aspectRatio: '16/9',
                     cursor: onClick ? 'pointer' : 'default',
-                    transition: theme.transitions.create(['border-color', 'background-color'], { duration: 120 }),
-                    '&:hover': onClick ? {
-                        borderColor: alpha(theme.palette.primary.main, 0.45),
-                        bgcolor: theme.palette.surface.elevated,
-                    } : undefined,
-                    '&:hover .media-folder-actions': hasActions ? { opacity: 1 } : {},
+                    transition: theme.transitions.create(
+                        ['border-color', 'background-color'],
+                        {
+                            duration: 120,
+                        },
+                    ),
+                    '&:hover': onClick
+                        ? {
+                              borderColor: alpha(
+                                  theme.palette.primary.main,
+                                  0.45,
+                              ),
+                              bgcolor: theme.palette.surface.elevated,
+                          }
+                        : undefined,
+                    '&:hover .media-folder-actions': hasActions
+                        ? { opacity: 1 }
+                        : {},
                     ...(dropHover && {
                         borderColor: theme.palette.primary.main,
                         bgcolor: alpha(theme.palette.primary.main, 0.12),
@@ -94,7 +127,7 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick,
                             backdropFilter: 'blur(4px)',
                             padding: '2px',
                         }}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
                     >
                         {onRename && (
                             <Tooltip title={t('actions.rename')}>
@@ -127,8 +160,18 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({name, columns, onClick,
                     justifyContent="center"
                     gap={1}
                 >
-                    <FolderOutlinedIcon sx={{ color: 'text.secondary', fontSize: 28 }} />
-                    <Typography variant="body1" sx={{ color: 'text.primary', wordBreak: 'break-word', textAlign: 'center', px: 1 }}>
+                    <FolderOutlinedIcon
+                        sx={{ color: 'text.secondary', fontSize: 28 }}
+                    />
+                    <Typography
+                        variant="body1"
+                        sx={{
+                            color: 'text.primary',
+                            wordBreak: 'break-word',
+                            textAlign: 'center',
+                            px: 1,
+                        }}
+                    >
                         {name}
                     </Typography>
                 </Stack>

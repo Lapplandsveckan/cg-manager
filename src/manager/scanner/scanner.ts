@@ -1,17 +1,23 @@
 /* eslint-disable camelcase */
 
-import { promises as fs, existsSync  } from 'fs';
+import { promises as fs, existsSync } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import ffmpeg from 'fluent-ffmpeg';
 import moment from 'moment';
-import {noTryAsync} from 'no-try';
+import { noTryAsync } from 'no-try';
 import * as chokidar from 'chokidar';
-import {extractGDDJSON, getGDDScriptElement, getId, readFile, hashFile} from './util';
-import {Logger} from '../../util/log';
+import {
+    extractGDDJSON,
+    getGDDScriptElement,
+    getId,
+    readFile,
+    hashFile,
+} from './util';
+import { Logger } from '../../util/log';
 import managerConfig from '../../util/config';
 import config from './config';
-import {type FileDatabase, type MediaDoc} from './db';
+import { type FileDatabase, type MediaDoc } from './db';
 
 const logger = Logger.scope('Scanner');
 
@@ -62,17 +68,28 @@ function configureBinaries() {
     if (!folder) return;
 
     const ext = process.platform === 'win32' ? '.exe' : '';
-    const ffmpegPath  = path.join(folder, `ffmpeg${ext}`);
+    const ffmpegPath = path.join(folder, `ffmpeg${ext}`);
     const ffprobePath = path.join(folder, `ffprobe${ext}`);
 
-    if (existsSync(ffmpegPath))  ffmpeg.setFfmpegPath(ffmpegPath);
-    else logger.warn(`ffmpeg not found at ${ffmpegPath} — falling back to PATH lookup`);
+    if (existsSync(ffmpegPath)) ffmpeg.setFfmpegPath(ffmpegPath);
+    else
+        logger.warn(
+            `ffmpeg not found at ${ffmpegPath} — falling back to PATH lookup`,
+        );
 
     if (existsSync(ffprobePath)) ffmpeg.setFfprobePath(ffprobePath);
-    else logger.warn(`ffprobe not found at ${ffprobePath} — falling back to PATH lookup`);
+    else
+        logger.warn(
+            `ffprobe not found at ${ffprobePath} — falling back to PATH lookup`,
+        );
 }
 
-async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: FileDatabase) {
+async function scanFile(
+    mediaPath: string,
+    mediaId: string,
+    mediaStat: any,
+    db: FileDatabase,
+) {
     if (!mediaId || mediaStat.isDirectory()) return;
     if (!MEDIA_EXTENSIONS.has(path.extname(mediaPath).toLowerCase())) return;
 
@@ -82,7 +99,11 @@ async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: 
     delete doc._invalidate;
 
     if (doc.mediaPath && doc.mediaPath !== mediaPath) doc.mediaPath = mediaPath;
-    if (doc.mediaSize === mediaStat.size && doc.mediaTime === mediaStat.mtime.getTime()) return mediaLogger.debug('Unchanged');
+    if (
+        doc.mediaSize === mediaStat.size &&
+        doc.mediaTime === mediaStat.mtime.getTime()
+    )
+        return mediaLogger.debug('Unchanged');
 
     doc.mediaPath = mediaPath;
     doc.mediaSize = mediaStat.size;
@@ -115,7 +136,10 @@ async function scanFile(mediaPath: string, mediaId: string, mediaStat: any, db: 
 }
 
 async function generateThumb(doc: MediaDoc) {
-    const tmpPath = `${path.join(os.tmpdir(), Math.random().toString(16).substring(2))}.png`;
+    const tmpPath = `${path.join(
+        os.tmpdir(),
+        Math.random().toString(16).substring(2),
+    )}.png`;
 
     await fs.mkdir(path.dirname(tmpPath), { recursive: true });
     await new Promise<void>((resolve, reject) => {
@@ -147,7 +171,7 @@ async function generateThumb(doc: MediaDoc) {
     doc._attachments = {
         'thumb.png': {
             content_type: 'image/png',
-            data: (await readFile(tmpPath)),
+            data: await readFile(tmpPath),
         },
     };
 
@@ -175,17 +199,19 @@ async function generateInfo(doc: MediaDoc) {
 function generateCinf(doc, json) {
     const stream = json.streams[0];
 
-    const dur = parseFloat(json.format.duration) || (1 / 24);
+    const dur = parseFloat(json.format.duration) || 1 / 24;
     let tb = (stream.time_base || '1/25').split('/');
 
     let type = 'AUDIO';
-    if (stream.pix_fmt) type = dur <= (1 / 24) ? 'STILL' : 'MOVIE';
+    if (stream.pix_fmt) type = dur <= 1 / 24 ? 'STILL' : 'MOVIE';
 
     switch (type) {
         case 'AUDIO':
             break;
         case 'MOVIE': {
-            const fr = String(stream.avg_frame_rate || stream.r_frame_rate || '').split('/');
+            const fr = String(
+                stream.avg_frame_rate || stream.r_frame_rate || '',
+            ).split('/');
             if (fr.length === 2) tb = [fr[1], fr[0]];
             break;
         }
@@ -207,7 +233,10 @@ function generateCinf(doc, json) {
     return `${cinf.join(' ')}\r\n`;
 }
 
-function generateMediainfo(doc: MediaDoc, json: ffmpeg.FfprobeData): MediaDoc['mediainfo'] {
+function generateMediainfo(
+    doc: MediaDoc,
+    json: ffmpeg.FfprobeData,
+): MediaDoc['mediainfo'] {
     return {
         name: doc.id,
         path: doc.mediaPath,
@@ -262,7 +291,9 @@ function generateMediainfo(doc: MediaDoc, json: ffmpeg.FfprobeData): MediaDoc['m
     };
 }
 
-function createWatcher(callback: (_: [path: string, stat?: any]) => Promise<void> | void) {
+function createWatcher(
+    callback: (_: [path: string, stat?: any]) => Promise<void> | void,
+) {
     const watcher = chokidar
         .watch(config.paths.media, {
             alwaysStat: true,
@@ -274,7 +305,7 @@ function createWatcher(callback: (_: [path: string, stat?: any]) => Promise<void
         .on('error', err => logger.error(err))
         .on('add', (path, stat) => callback([path, stat]))
         .on('change', (path, stat) => callback([path, stat]))
-        .on('unlink', (path) => callback([path]));
+        .on('unlink', path => callback([path]));
 
     return () => watcher.close();
 }
@@ -292,29 +323,43 @@ export async function getTemplates() {
     const rows = await fs.readdir(config.paths.template, { recursive: true });
     return rows
         .filter(x => /\.(ft|wt|ct|swf|htm|html)$/.test(x))
-        .map(x => ({ path: path.join(config.paths.template, x), id: getId(config.paths.template, x)}));
+        .map(x => ({
+            path: path.join(config.paths.template, x),
+            id: getId(config.paths.template, x),
+        }));
 }
 
 export async function getTemplatesWithContent() {
     const files = await getTemplates();
-    const templates = await Promise.all(files.map(async (file) => {
-        const match = file.path.match(/\.(ft|wt|ct|swf)$/);
-        const info: TemplateInfo = { ...file, type: match ? match[1] : 'html' };
+    const templates = await Promise.all(
+        files.map(async file => {
+            const match = file.path.match(/\.(ft|wt|ct|swf)$/);
+            const info: TemplateInfo = {
+                ...file,
+                type: match ? match[1] : 'html',
+            };
 
-        if (!match) {
-            const [error] = await noTryAsync(async () => {
-                const gddScriptElement = await getGDDScriptElement(file.path);
-                if (gddScriptElement) info.gdd = await extractGDDJSON(file.path, gddScriptElement);
-            });
+            if (!match) {
+                const [error] = await noTryAsync(async () => {
+                    const gddScriptElement = await getGDDScriptElement(
+                        file.path,
+                    );
+                    if (gddScriptElement)
+                        info.gdd = await extractGDDJSON(
+                            file.path,
+                            gddScriptElement,
+                        );
+                });
 
-            if (error) {
-                info.error = error.toString();
-                logger.error(error);
+                if (error) {
+                    info.error = error.toString();
+                    logger.error(error);
+                }
             }
-        }
 
-        return info as TemplateInfo;
-    }));
+            return info as TemplateInfo;
+        }),
+    );
 
     templates.sort((a, b) => {
         if (a.id < b.id) return -1;

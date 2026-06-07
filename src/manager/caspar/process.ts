@@ -1,11 +1,11 @@
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import { EventEmitter } from 'events';
 import path from 'path';
-import {noTryAsync} from 'no-try';
-import {Logger} from '../../util/log';
+import { noTryAsync } from 'no-try';
+import { Logger } from '../../util/log';
 import config from '../../util/config';
-import {configuration} from '../config';
-import {type Config} from './config/types';
+import { configuration } from '../config';
+import { type Config } from './config/types';
 
 export interface CasparStatus {
     running: boolean;
@@ -60,9 +60,10 @@ export class CasparProcess extends EventEmitter {
                 return;
             }
 
-            const cmd = process.platform === 'win32'
-                ? path.join(this.casparPath, 'casparcg.exe')
-                : path.join(this.casparPath, 'run.sh');
+            const cmd =
+                process.platform === 'win32'
+                    ? path.join(this.casparPath, 'casparcg.exe')
+                    : path.join(this.casparPath, 'run.sh');
 
             this.lastError = null;
             const proc = spawn(cmd, [], { cwd: this.casparPath });
@@ -74,28 +75,29 @@ export class CasparProcess extends EventEmitter {
             // don't update this until restart.
             this.emit('running-config', this.getRunningConfig());
 
-            proc.stdout.on('data', (data) => {
+            proc.stdout.on('data', data => {
                 this.appendLog(data.toString());
                 if (config['pipe-caspar']) logger.debug(data.toString());
             });
-            proc.stderr.on('data', (data) => {
+            proc.stderr.on('data', data => {
                 this.appendLog(data.toString());
                 logger.error(data.toString());
             });
 
-            proc.on('error', (err) => {
+            proc.on('error', err => {
                 this.lastError = `Could not start CasparCG: ${err.message}`;
                 logger.error(this.lastError);
                 this.emit('status', this.getStatus());
             });
 
-            proc.on('close', (code) => {
+            proc.on('close', code => {
                 logger.warn(`CasparCG exited with code ${code}`);
                 // Only clear `this.process` if it still points at us — guards
                 // against a stale close from an older proc nulling the
                 // reference to a newer survivor.
                 if (this.process === proc) this.process = null;
-                if (code !== 0 && code !== null) this.lastError = `CasparCG exited with code ${code}.`;
+                if (code !== 0 && code !== null)
+                    this.lastError = `CasparCG exited with code ${code}.`;
                 this.emit('status', this.getStatus());
                 this.emit('running-config', this.getRunningConfig());
             });
@@ -109,7 +111,9 @@ export class CasparProcess extends EventEmitter {
     async stop() {
         if (!this.process) return;
         const proc = this.process;
-        const closed = new Promise<void>((resolve) => proc.once('close', () => resolve()));
+        const closed = new Promise<void>(resolve =>
+            proc.once('close', () => resolve()),
+        );
         proc.kill();
         await closed;
     }

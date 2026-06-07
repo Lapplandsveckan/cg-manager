@@ -15,13 +15,12 @@ export interface InternalMediaData {
 export class DirectoryManager {
     private static instance: DirectoryManager;
     public static getManager() {
-        if (!DirectoryManager.instance) DirectoryManager.instance = new DirectoryManager();
+        if (!DirectoryManager.instance)
+            DirectoryManager.instance = new DirectoryManager();
         return DirectoryManager.instance;
     }
 
-    private constructor() {
-
-    }
+    private constructor() {}
 
     private mediaPath: string;
     private templatePath: string;
@@ -40,8 +39,12 @@ export class DirectoryManager {
         this._created = true;
 
         return Promise.all([
-            fs.mkdir(path.join(this.mediaPath, '_internal'), {recursive: true}),
-            fs.mkdir(path.join(this.templatePath, '_internal'), {recursive: true}),
+            fs.mkdir(path.join(this.mediaPath, '_internal'), {
+                recursive: true,
+            }),
+            fs.mkdir(path.join(this.templatePath, '_internal'), {
+                recursive: true,
+            }),
         ]);
     }
 
@@ -49,19 +52,32 @@ export class DirectoryManager {
         this._created = false;
         this.media.clear();
 
-        if (!this.mediaPath || !this.templatePath) return Promise.resolve([] as void[]);
+        if (!this.mediaPath || !this.templatePath)
+            return Promise.resolve([] as void[]);
 
         return Promise.all([
-            fs.rm(path.join(this.mediaPath, '_internal'), {recursive: true, force: true}),
-            fs.rm(path.join(this.templatePath, '_internal'), {recursive: true, force: true}),
+            fs.rm(path.join(this.mediaPath, '_internal'), {
+                recursive: true,
+                force: true,
+            }),
+            fs.rm(path.join(this.templatePath, '_internal'), {
+                recursive: true,
+                force: true,
+            }),
         ]);
     }
 
-    public async createDirectory(type: 'media' | 'template', from: string): Promise<InternalMediaData> {
+    public async createDirectory(
+        type: 'media' | 'template',
+        from: string,
+    ): Promise<InternalMediaData> {
         if (!this._created) throw new Error('Directories not created');
 
         const id = uuid();
-        const base = path.join(type === 'media' ? this.mediaPath : this.templatePath, '_internal');
+        const base = path.join(
+            type === 'media' ? this.mediaPath : this.templatePath,
+            '_internal',
+        );
         const location = path.join(base, id);
         const ext = path.extname(from);
         const filename = `${id}${ext}`;

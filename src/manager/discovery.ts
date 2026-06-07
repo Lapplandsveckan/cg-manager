@@ -1,8 +1,8 @@
 import dgram from 'dgram';
 import os from 'os';
-import {noTry} from 'no-try';
+import { noTry } from 'no-try';
 import config from '../util/config';
-import {Logger} from '../util/log';
+import { Logger } from '../util/log';
 
 /**
  * LAN discovery beacon. Periodically broadcasts a JSON announcement so
@@ -35,22 +35,29 @@ interface BeaconPayload {
 function readVersion(): string {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const [, pkg] = noTry(() => require('../../package.json'));
-    return (pkg as {version?: string} | undefined)?.version ?? '0.0.0';
+    return (pkg as { version?: string } | undefined)?.version ?? '0.0.0';
 }
 
 function broadcastAddress(ip: string, netmask: string): string | null {
-    const [ipErr, ipParts] = noTry(() => ip.split('.').map((p) => {
-        const n = Number(p);
-        if (!Number.isInteger(n) || n < 0 || n > 255) throw new Error('bad octet');
-        return n;
-    }));
-    const [maskErr, maskParts] = noTry(() => netmask.split('.').map((p) => {
-        const n = Number(p);
-        if (!Number.isInteger(n) || n < 0 || n > 255) throw new Error('bad octet');
-        return n;
-    }));
-    if (ipErr || maskErr || ipParts.length !== 4 || maskParts.length !== 4) return null;
-    return ipParts.map((p, i) => (p | (~maskParts[i] & 0xff))).join('.');
+    const [ipErr, ipParts] = noTry(() =>
+        ip.split('.').map(p => {
+            const n = Number(p);
+            if (!Number.isInteger(n) || n < 0 || n > 255)
+                throw new Error('bad octet');
+            return n;
+        }),
+    );
+    const [maskErr, maskParts] = noTry(() =>
+        netmask.split('.').map(p => {
+            const n = Number(p);
+            if (!Number.isInteger(n) || n < 0 || n > 255)
+                throw new Error('bad octet');
+            return n;
+        }),
+    );
+    if (ipErr || maskErr || ipParts.length !== 4 || maskParts.length !== 4)
+        return null;
+    return ipParts.map((p, i) => p | (~maskParts[i] & 0xff)).join('.');
 }
 
 function broadcastTargets(): string[] {
@@ -73,7 +80,7 @@ export class Discovery {
     private readonly version = readVersion();
 
     async start(): Promise<void> {
-        const socket = dgram.createSocket({type: 'udp4', reuseAddr: true});
+        const socket = dgram.createSocket({ type: 'udp4', reuseAddr: true });
 
         await new Promise<void>((resolve, reject) => {
             socket.once('error', reject);
@@ -88,13 +95,17 @@ export class Discovery {
             });
         });
 
-        socket.on('error', (err) => logger.warn(`beacon socket error: ${err.message}`));
+        socket.on('error', err =>
+            logger.warn(`beacon socket error: ${err.message}`),
+        );
         this.socket = socket;
 
         this.broadcast();
         this.timer = setInterval(() => this.broadcast(), BEACON_INTERVAL_MS);
 
-        logger.info(`Broadcasting beacon on UDP :${BEACON_PORT} every ${BEACON_INTERVAL_MS}ms`);
+        logger.info(
+            `Broadcasting beacon on UDP :${BEACON_PORT} every ${BEACON_INTERVAL_MS}ms`,
+        );
     }
 
     async stop(): Promise<void> {
@@ -105,7 +116,7 @@ export class Discovery {
         this.socket = null;
         if (!socket) return;
 
-        await new Promise<void>((resolve) => socket.close(() => resolve()));
+        await new Promise<void>(resolve => socket.close(() => resolve()));
     }
 
     private broadcast() {
@@ -126,7 +137,8 @@ export class Discovery {
             const [err] = noTry(() => socket.send(buf, BEACON_PORT, target));
             // ENETUNREACH on a transient interface (VPN dropping etc.) is
             // expected; log at debug so we don't spam during reconnects.
-            if (err) logger.debug(`beacon send to ${target} failed: ${err.message}`);
+            if (err)
+                logger.debug(`beacon send to ${target} failed: ${err.message}`);
         }
     }
 }

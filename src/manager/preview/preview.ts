@@ -1,18 +1,18 @@
 import net from 'net';
 import dgram from 'dgram';
 import path from 'path';
-import {spawn, type ChildProcess} from 'child_process';
-import {BasicCommand} from '@lappis/cg-manager';
+import { spawn, type ChildProcess } from 'child_process';
+import { BasicCommand } from '@lappis/cg-manager';
 import {
     MediaStreamTrack,
     RTCPeerConnection,
     RTCRtpCodecParameters,
     RtpPacket,
 } from 'werift';
-import {noTry, noTryAsync} from 'no-try';
+import { noTry, noTryAsync } from 'no-try';
 import managerConfig from '../../util/config';
-import {Logger} from '../../util/log';
-import {type CasparExecutor} from '../caspar/executor';
+import { Logger } from '../../util/log';
+import { type CasparExecutor } from '../caspar/executor';
 
 const logger = Logger.scope('Preview');
 
@@ -25,7 +25,8 @@ const WEBRTC_VIDEO_CODEC = new RTCRtpCodecParameters({
     mimeType: 'video/H264',
     clockRate: 90000,
     payloadType: 96,
-    parameters: 'level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f',
+    parameters:
+        'level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f',
 });
 
 // ffmpeg args for the CasparCG-side encoder. We can't use ffmpeg's `rtp`
@@ -132,7 +133,7 @@ async function pickFreeTcpPort(): Promise<number> {
         });
     });
     const port = (probe.address() as net.AddressInfo).port;
-    await new Promise<void>((resolve) => probe.close(() => resolve()));
+    await new Promise<void>(resolve => probe.close(() => resolve()));
     return port;
 }
 
@@ -165,9 +166,13 @@ export class PreviewManager {
      * ffmpeg's RFC 6184 packetizer (the same one mediasoup et al. consume)
      * instead of writing our own.
      */
-    public async openWebRTC(opts: WebRTCSessionOptions): Promise<WebRTCSession> {
+    public async openWebRTC(
+        opts: WebRTCSessionOptions,
+    ): Promise<WebRTCSession> {
         if (!this.executor.connected)
-            throw new Error('CasparCG is not connected — start the server first');
+            throw new Error(
+                'CasparCG is not connected — start the server first',
+            );
 
         const consumerIndex = nextConsumerIndex++;
 
@@ -184,32 +189,38 @@ export class PreviewManager {
         const tcpPort = await pickFreeTcpPort();
 
         const pc = new RTCPeerConnection({
-            codecs: {video: [WEBRTC_VIDEO_CODEC]},
+            codecs: { video: [WEBRTC_VIDEO_CODEC] },
             iceServers: [],
         });
-        const track = new MediaStreamTrack({kind: 'video'});
-        pc.addTransceiver(track, {direction: 'sendonly'});
+        const track = new MediaStreamTrack({ kind: 'video' });
+        pc.addTransceiver(track, { direction: 'sendonly' });
 
-        const ffmpeg = spawn(ffmpegBinary(), [
-            '-fflags',
-            '+nobuffer',
-            '-flags',
-            'low_delay',
-            '-f',
-            'h264',
-            '-i',
-            `tcp://127.0.0.1:${tcpPort}?listen=1&listen_timeout=0`,
-            '-an',
-            '-c:v',
-            'copy',
-            '-payload_type',
-            String(RTP_PAYLOAD_TYPE),
-            '-f',
-            'rtp',
-            `rtp://127.0.0.1:${udpPort}`,
-        ], {stdio: ['ignore', 'ignore', 'pipe']});
-        ffmpeg.on('error', (e) => logger.warn(`sidecar ffmpeg spawn failed: ${e.message}`));
-        ffmpeg.stderr?.on('data', (d) => {
+        const ffmpeg = spawn(
+            ffmpegBinary(),
+            [
+                '-fflags',
+                '+nobuffer',
+                '-flags',
+                'low_delay',
+                '-f',
+                'h264',
+                '-i',
+                `tcp://127.0.0.1:${tcpPort}?listen=1&listen_timeout=0`,
+                '-an',
+                '-c:v',
+                'copy',
+                '-payload_type',
+                String(RTP_PAYLOAD_TYPE),
+                '-f',
+                'rtp',
+                `rtp://127.0.0.1:${udpPort}`,
+            ],
+            { stdio: ['ignore', 'ignore', 'pipe'] },
+        );
+        ffmpeg.on('error', e =>
+            logger.warn(`sidecar ffmpeg spawn failed: ${e.message}`),
+        );
+        ffmpeg.stderr?.on('data', d => {
             const line = d.toString();
             if (/error|fatal|cannot/i.test(line))
                 logger.warn(`sidecar ffmpeg: ${line.trim()}`);
@@ -218,8 +229,10 @@ export class PreviewManager {
         // Plain deSerialize + writeRtp (the canonical werift sendonly pattern).
         // ffmpeg sends one RTP packet per UDP datagram, so there's no
         // fragmentation/concurrency hazard like with hand-rolled packetizing.
-        udpSocket.on('message', (buf) => {
-            const [err] = noTry(() => track.writeRtp(RtpPacket.deSerialize(buf)));
+        udpSocket.on('message', buf => {
+            const [err] = noTry(() =>
+                track.writeRtp(RtpPacket.deSerialize(buf)),
+            );
             if (err) logger.warn(`writeRtp failed: ${err.message}`);
         });
 
@@ -228,21 +241,26 @@ export class PreviewManager {
         // sidecar. Firing them in parallel shaves the AMCP round-trip off
         // perceived activation time.
         const sdpPromise = noTryAsync(async () => {
-            await pc.setRemoteDescription({type: 'offer', sdp: opts.sdpOffer});
+            await pc.setRemoteDescription({
+                type: 'offer',
+                sdp: opts.sdpOffer,
+            });
             await pc.setLocalDescription(await pc.createAnswer());
             const sdp = pc.localDescription?.sdp;
             if (!sdp) throw new Error('werift failed to produce an SDP answer');
             return sdp;
         });
-        const addPromise = noTryAsync(() => this.executor.execute(
-            BasicCommand.construct(
-                'ADD',
-                `${opts.channel}-${consumerIndex}`,
-                'STREAM',
-                `tcp://127.0.0.1:${tcpPort}`,
-                ...H264_PREVIEW_ARGS,
+        const addPromise = noTryAsync(() =>
+            this.executor.execute(
+                BasicCommand.construct(
+                    'ADD',
+                    `${opts.channel}-${consumerIndex}`,
+                    'STREAM',
+                    `tcp://127.0.0.1:${tcpPort}`,
+                    ...H264_PREVIEW_ARGS,
+                ),
             ),
-        ));
+        );
 
         const [sdpErr, sdpAnswer] = await sdpPromise;
         const [addErr] = await addPromise;
@@ -253,9 +271,15 @@ export class PreviewManager {
             await noTryAsync(() => pc.close());
             // If ADD landed but SDP failed, undo the consumer so we don't
             // leave a dangling encoder feeding nothing.
-            if (!addErr) await noTryAsync(() => this.executor.execute(
-                BasicCommand.construct('REMOVE', `${opts.channel}-${consumerIndex}`),
-            ));
+            if (!addErr)
+                await noTryAsync(() =>
+                    this.executor.execute(
+                        BasicCommand.construct(
+                            'REMOVE',
+                            `${opts.channel}-${consumerIndex}`,
+                        ),
+                    ),
+                );
             if (sdpErr) throw sdpErr;
             throw new Error(`AMCP ADD failed: ${addErr!.message ?? addErr}`);
         }
@@ -273,41 +297,57 @@ export class PreviewManager {
 
         // The peer connection closing (browser tab closed, ICE failed, etc.)
         // should tear everything down on its own — no DELETE endpoint needed.
-        pc.connectionStateChange.subscribe((state) => {
-            if (state === 'closed' || state === 'failed' || state === 'disconnected')
-                this.closeWebRTCSession(session)
-                    .catch((e) => logger.warn(`close failed: ${(e as Error).message}`));
+        pc.connectionStateChange.subscribe(state => {
+            if (
+                state === 'closed' ||
+                state === 'failed' ||
+                state === 'disconnected'
+            )
+                this.closeWebRTCSession(session).catch(e =>
+                    logger.warn(`close failed: ${(e as Error).message}`),
+                );
         });
 
         this.webrtcSessions.add(session);
         logger.debug(
             `Opened WebRTC preview ch=${opts.channel} idx=${consumerIndex} ` +
-            `tcp=${tcpPort} udp=${udpPort} ffmpeg=${ffmpeg.pid}`,
+                `tcp=${tcpPort} udp=${udpPort} ffmpeg=${ffmpeg.pid}`,
         );
 
         return session;
     }
 
-    private async closeWebRTCSession(session: InternalWebRTCSession): Promise<void> {
+    private async closeWebRTCSession(
+        session: InternalWebRTCSession,
+    ): Promise<void> {
         if (session.closed) return;
         session.closed = true;
         this.webrtcSessions.delete(session);
 
-        const [removeErr] = await noTryAsync(() => this.executor.execute(
-            BasicCommand.construct('REMOVE', `${session.channel}-${session.consumerIndex}`),
-        ));
+        const [removeErr] = await noTryAsync(() =>
+            this.executor.execute(
+                BasicCommand.construct(
+                    'REMOVE',
+                    `${session.channel}-${session.consumerIndex}`,
+                ),
+            ),
+        );
         if (removeErr)
-            logger.warn(`AMCP REMOVE failed for ${session.channel}-${session.consumerIndex}: ${removeErr.message ?? removeErr}`);
+            logger.warn(
+                `AMCP REMOVE failed for ${session.channel}-${session.consumerIndex}: ${removeErr.message ?? removeErr}`,
+            );
 
         await noTryAsync(() => session.pc.close());
         noTry(() => session.udpSocket.close());
         noTry(() => session.ffmpeg.kill('SIGTERM'));
 
-        logger.debug(`Closed WebRTC preview ch=${session.channel} idx=${session.consumerIndex}`);
+        logger.debug(
+            `Closed WebRTC preview ch=${session.channel} idx=${session.consumerIndex}`,
+        );
     }
 
     public async disposeAll(): Promise<void> {
         const webrtc = Array.from(this.webrtcSessions);
-        await Promise.all(webrtc.map((s) => this.closeWebRTCSession(s)));
+        await Promise.all(webrtc.map(s => this.closeWebRTCSession(s)));
     }
 }

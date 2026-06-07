@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Box,
     Button,
@@ -13,9 +13,9 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import {useTranslation} from 'next-i18next';
-import {useStoredBoolean} from '../../lib/hooks/useStoredBoolean';
-import {GeometryStage} from './GeometryStage';
+import { useTranslation } from 'next-i18next';
+import { useStoredBoolean } from '../../lib/hooks/useStoredBoolean';
+import { GeometryStage } from './GeometryStage';
 import {
     EdgeBlendHandles,
     type EdgeBlendInsets,
@@ -48,19 +48,23 @@ interface GeometryEditorProps {
     onSave: (value: GeometryValues) => void;
 }
 
-const IDENTITY_RECT: NormRect = {x: 0, y: 0, w: 1, h: 1};
+const IDENTITY_RECT: NormRect = { x: 0, y: 0, w: 1, h: 1 };
 const IDENTITY_QUAD: Perspective = {
-    tl: {x: 0, y: 0},
-    tr: {x: 1, y: 0},
-    br: {x: 1, y: 1},
-    bl: {x: 0, y: 1},
+    tl: { x: 0, y: 0 },
+    tr: { x: 1, y: 0 },
+    br: { x: 1, y: 1 },
+    bl: { x: 0, y: 1 },
 };
-const ZERO_INSETS: EdgeBlendInsets = {left: 0, right: 0, top: 0, bottom: 0};
+const ZERO_INSETS: EdgeBlendInsets = { left: 0, right: 0, top: 0, bottom: 0 };
 
-function rectFromArr(arr: number[] | undefined, offset: number, fallback: NormRect): NormRect {
-    if (!arr || arr.length < offset + 4) return {...fallback};
+function rectFromArr(
+    arr: number[] | undefined,
+    offset: number,
+    fallback: NormRect,
+): NormRect {
+    if (!arr || arr.length < offset + 4) return { ...fallback };
     const [x1, y1, x2, y2] = arr.slice(offset, offset + 4);
-    return {x: x1, y: y1, w: x2 - x1, h: y2 - y1};
+    return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
 }
 
 function arrFromRect(r: NormRect): number[] {
@@ -68,12 +72,12 @@ function arrFromRect(r: NormRect): number[] {
 }
 
 function quadFromArr(arr: number[] | undefined): Perspective {
-    if (!arr || arr.length < 8) return {...IDENTITY_QUAD};
+    if (!arr || arr.length < 8) return { ...IDENTITY_QUAD };
     return {
-        tl: {x: arr[0], y: arr[1]},
-        tr: {x: arr[2], y: arr[3]},
-        br: {x: arr[4], y: arr[5]},
-        bl: {x: arr[6], y: arr[7]},
+        tl: { x: arr[0], y: arr[1] },
+        tr: { x: arr[2], y: arr[3] },
+        br: { x: arr[4], y: arr[5] },
+        bl: { x: arr[6], y: arr[7] },
     };
 }
 
@@ -82,8 +86,8 @@ function arrFromQuad(q: Perspective): number[] {
 }
 
 function insetsFromArr(arr: number[] | undefined): EdgeBlendInsets {
-    if (!arr || arr.length < 4) return {...ZERO_INSETS};
-    return {left: arr[0], right: arr[1], top: arr[2], bottom: arr[3]};
+    if (!arr || arr.length < 4) return { ...ZERO_INSETS };
+    return { left: arr[0], right: arr[1], top: arr[2], bottom: arr[3] };
 }
 
 function isIdentityRect(r: NormRect): boolean {
@@ -91,10 +95,16 @@ function isIdentityRect(r: NormRect): boolean {
 }
 
 function isIdentityQuad(q: Perspective): boolean {
-    return q.tl.x === 0 && q.tl.y === 0
-        && q.tr.x === 1 && q.tr.y === 0
-        && q.br.x === 1 && q.br.y === 1
-        && q.bl.x === 0 && q.bl.y === 1;
+    return (
+        q.tl.x === 0 &&
+        q.tl.y === 0 &&
+        q.tr.x === 1 &&
+        q.tr.y === 0 &&
+        q.br.x === 1 &&
+        q.br.y === 1 &&
+        q.bl.x === 0 &&
+        q.bl.y === 1
+    );
 }
 
 function isZeroInsets(i: EdgeBlendInsets): boolean {
@@ -114,10 +124,13 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
     onClose,
     onSave,
 }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const stageRef = useRef<HTMLDivElement | null>(null);
     const [tab, setTab] = useState<Tabkey>('position');
-    const [showPreview, setShowPreview] = useStoredBoolean(PREVIEW_PREF_KEY, false);
+    const [showPreview, setShowPreview] = useStoredBoolean(
+        PREVIEW_PREF_KEY,
+        false,
+    );
 
     const [destRect, setDestRect] = useState<NormRect>(IDENTITY_RECT);
     const [srcRect, setSrcRect] = useState<NormRect>(IDENTITY_RECT);
@@ -142,21 +155,36 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
     const handleSave = () => {
         const next: GeometryValues = {};
         if (!isIdentityRect(srcRect) || !isIdentityRect(destRect))
-            next.transform = [...arrFromRect(srcRect), ...arrFromRect(destRect)];
-        if (!isIdentityQuad(quad))
-            next.perspective = arrFromQuad(quad);
+            next.transform = [
+                ...arrFromRect(srcRect),
+                ...arrFromRect(destRect),
+            ];
+        if (!isIdentityQuad(quad)) next.perspective = arrFromQuad(quad);
         if (!isZeroInsets(insets))
-            next.edgeblend = [insets.left, insets.right, insets.top, insets.bottom, gamma, power, alpha];
+            next.edgeblend = [
+                insets.left,
+                insets.right,
+                insets.top,
+                insets.bottom,
+                gamma,
+                power,
+                alpha,
+            ];
         onSave(next);
         onClose();
     };
 
     const resetCurrentTab = () => {
-        if (tab === 'position') { setSrcRect(IDENTITY_RECT); setDestRect(IDENTITY_RECT); }
+        if (tab === 'position') {
+            setSrcRect(IDENTITY_RECT);
+            setDestRect(IDENTITY_RECT);
+        }
         if (tab === 'perspective') setQuad(IDENTITY_QUAD);
         if (tab === 'edgeblend') {
             setInsets(ZERO_INSETS);
-            setGamma(1.8); setPower(3.0); setAlpha(0.5);
+            setGamma(1.8);
+            setPower(3.0);
+            setAlpha(0.5);
         }
     };
 
@@ -173,12 +201,22 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
                     overflowY: 'auto',
                 }}
             >
-                <Card sx={{p: 3}}>
+                <Card sx={{ p: 3 }}>
                     <Stack spacing={2}>
-                        <Stack direction="row" alignItems="baseline" justifyContent="space-between" gap={2}>
+                        <Stack
+                            direction="row"
+                            alignItems="baseline"
+                            justifyContent="space-between"
+                            gap={2}
+                        >
                             <Stack spacing={0.5}>
-                                <Typography variant="h3">{t('videoRoutes.geometry.title')}</Typography>
-                                <Typography variant="body2" sx={{color: 'text.secondary'}}>
+                                <Typography variant="h3">
+                                    {t('videoRoutes.geometry.title')}
+                                </Typography>
+                                <Typography
+                                    variant="body2"
+                                    sx={{ color: 'text.secondary' }}
+                                >
                                     {t('videoRoutes.geometry.description')}
                                 </Typography>
                             </Stack>
@@ -189,37 +227,73 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
                                             <Switch
                                                 size="small"
                                                 checked={showPreview}
-                                                onChange={(e) => setShowPreview(e.target.checked)}
+                                                onChange={e =>
+                                                    setShowPreview(
+                                                        e.target.checked,
+                                                    )
+                                                }
                                             />
                                         }
                                         label={
                                             <Typography variant="caption">
-                                                {t('videoRoutes.geometry.livePreview', {channel: previewChannel})}
+                                                {t(
+                                                    'videoRoutes.geometry.livePreview',
+                                                    {
+                                                        channel: previewChannel,
+                                                    },
+                                                )}
                                             </Typography>
                                         }
                                         labelPlacement="start"
-                                        sx={{m: 0, '& .MuiFormControlLabel-label': {color: 'text.secondary'}}}
+                                        sx={{
+                                            m: 0,
+                                            '& .MuiFormControlLabel-label': {
+                                                color: 'text.secondary',
+                                            },
+                                        }}
                                     />
                                 )}
-                                <Typography variant="caption" sx={{color: 'text.disabled', fontFamily: 'monospace'}}>
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        color: 'text.disabled',
+                                        fontFamily: 'monospace',
+                                    }}
+                                >
                                     {canvasWidth}×{canvasHeight}
                                 </Typography>
                             </Stack>
                         </Stack>
 
-                        <Tabs value={tab} onChange={(_, v) => setTab(v as Tabkey)}>
-                            <Tab value="position" label={t('videoRoutes.geometry.tabs.position')} />
-                            <Tab value="perspective" label={t('videoRoutes.geometry.tabs.perspective')} />
-                            <Tab value="edgeblend" label={t('videoRoutes.geometry.tabs.edgeblend')} />
+                        <Tabs
+                            value={tab}
+                            onChange={(_, v) => setTab(v as Tabkey)}
+                        >
+                            <Tab
+                                value="position"
+                                label={t('videoRoutes.geometry.tabs.position')}
+                            />
+                            <Tab
+                                value="perspective"
+                                label={t(
+                                    'videoRoutes.geometry.tabs.perspective',
+                                )}
+                            />
+                            <Tab
+                                value="edgeblend"
+                                label={t('videoRoutes.geometry.tabs.edgeblend')}
+                            />
                         </Tabs>
 
-                        <Box ref={stageRef} sx={{position: 'relative'}}>
+                        <Box ref={stageRef} sx={{ position: 'relative' }}>
                             <GeometryStage
                                 canvasWidth={canvasWidth}
                                 canvasHeight={canvasHeight}
-                                previewChannel={showPreview ? previewChannel : null}
+                                previewChannel={
+                                    showPreview ? previewChannel : null
+                                }
                             >
-                                {({width, height}) => (
+                                {({ width, height }) => (
                                     <StageContent
                                         tab={tab}
                                         stageRef={stageRef}
@@ -250,13 +324,24 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
                             setAlpha={setAlpha}
                         />
 
-                        <Stack direction="row" justifyContent="space-between" alignItems="center">
+                        <Stack
+                            direction="row"
+                            justifyContent="space-between"
+                            alignItems="center"
+                        >
                             <Button color="inherit" onClick={resetCurrentTab}>
                                 {t('videoRoutes.geometry.resetTab')}
                             </Button>
                             <Stack direction="row" gap={1}>
-                                <Button onClick={onClose} color="inherit">{t('actions.cancel')}</Button>
-                                <Button onClick={handleSave} variant="contained">{t('actions.save')}</Button>
+                                <Button onClick={onClose} color="inherit">
+                                    {t('actions.cancel')}
+                                </Button>
+                                <Button
+                                    onClick={handleSave}
+                                    variant="contained"
+                                >
+                                    {t('actions.save')}
+                                </Button>
                             </Stack>
                         </Stack>
                     </Stack>
@@ -280,39 +365,49 @@ interface StageContentProps {
 }
 
 const StageContent: React.FC<StageContentProps> = ({
-    tab, stageRef, width, height,
-    destRect, quad, insets,
-    setDestRect, setQuad, setInsets,
+    tab,
+    stageRef,
+    width,
+    height,
+    destRect,
+    quad,
+    insets,
+    setDestRect,
+    setQuad,
+    setInsets,
 }) => {
-    const {t} = useTranslation('common');
-    if (tab === 'position') return (
-        <RectHandles
-            rect={destRect}
-            onChange={setDestRect}
-            width={width}
-            height={height}
-            stageRef={stageRef}
-            label={t('videoRoutes.geometry.fillLabel')}
-        />
-    );
-    if (tab === 'perspective') return (
-        <PerspectiveHandles
-            quad={quad}
-            onChange={setQuad}
-            width={width}
-            height={height}
-            stageRef={stageRef}
-        />
-    );
-    if (tab === 'edgeblend') return (
-        <EdgeBlendHandles
-            insets={insets}
-            onChange={setInsets}
-            width={width}
-            height={height}
-            stageRef={stageRef}
-        />
-    );
+    const { t } = useTranslation('common');
+    if (tab === 'position')
+        return (
+            <RectHandles
+                rect={destRect}
+                onChange={setDestRect}
+                width={width}
+                height={height}
+                stageRef={stageRef}
+                label={t('videoRoutes.geometry.fillLabel')}
+            />
+        );
+    if (tab === 'perspective')
+        return (
+            <PerspectiveHandles
+                quad={quad}
+                onChange={setQuad}
+                width={width}
+                height={height}
+                stageRef={stageRef}
+            />
+        );
+    if (tab === 'edgeblend')
+        return (
+            <EdgeBlendHandles
+                insets={insets}
+                onChange={setInsets}
+                width={width}
+                height={height}
+                stageRef={stageRef}
+            />
+        );
     return null;
 };
 
@@ -333,38 +428,78 @@ interface TabControlsProps {
 const formatRect = (r: NormRect) =>
     `x ${r.x.toFixed(3)}  y ${r.y.toFixed(3)}  w ${r.w.toFixed(3)}  h ${r.h.toFixed(3)}`;
 
-const formatPoint = (p: {x: number; y: number}) =>
+const formatPoint = (p: { x: number; y: number }) =>
     `(${p.x.toFixed(3)}, ${p.y.toFixed(3)})`;
 
 const TabControls: React.FC<TabControlsProps> = ({
-    tab, srcRect, destRect, quad, insets,
-    gamma, power, alpha,
-    setGamma, setPower, setAlpha,
+    tab,
+    srcRect,
+    destRect,
+    quad,
+    insets,
+    gamma,
+    power,
+    alpha,
+    setGamma,
+    setPower,
+    setAlpha,
 }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const readout = useMemo(() => {
-        if (tab === 'position') return [
-            {label: t('videoRoutes.geometry.readout.destination'), value: formatRect(destRect)},
-            {label: t('videoRoutes.geometry.readout.source'), value: formatRect(srcRect)},
-        ];
-        if (tab === 'perspective') return [
-            {label: t('videoRoutes.geometry.readout.topLeft'),     value: formatPoint(quad.tl)},
-            {label: t('videoRoutes.geometry.readout.topRight'),    value: formatPoint(quad.tr)},
-            {label: t('videoRoutes.geometry.readout.bottomRight'), value: formatPoint(quad.br)},
-            {label: t('videoRoutes.geometry.readout.bottomLeft'),  value: formatPoint(quad.bl)},
-        ];
+        if (tab === 'position')
+            return [
+                {
+                    label: t('videoRoutes.geometry.readout.destination'),
+                    value: formatRect(destRect),
+                },
+                {
+                    label: t('videoRoutes.geometry.readout.source'),
+                    value: formatRect(srcRect),
+                },
+            ];
+        if (tab === 'perspective')
+            return [
+                {
+                    label: t('videoRoutes.geometry.readout.topLeft'),
+                    value: formatPoint(quad.tl),
+                },
+                {
+                    label: t('videoRoutes.geometry.readout.topRight'),
+                    value: formatPoint(quad.tr),
+                },
+                {
+                    label: t('videoRoutes.geometry.readout.bottomRight'),
+                    value: formatPoint(quad.br),
+                },
+                {
+                    label: t('videoRoutes.geometry.readout.bottomLeft'),
+                    value: formatPoint(quad.bl),
+                },
+            ];
         return [
-            {label: t('videoRoutes.geometry.readout.left'),   value: insets.left.toFixed(3)},
-            {label: t('videoRoutes.geometry.readout.right'),  value: insets.right.toFixed(3)},
-            {label: t('videoRoutes.geometry.readout.top'),    value: insets.top.toFixed(3)},
-            {label: t('videoRoutes.geometry.readout.bottom'), value: insets.bottom.toFixed(3)},
+            {
+                label: t('videoRoutes.geometry.readout.left'),
+                value: insets.left.toFixed(3),
+            },
+            {
+                label: t('videoRoutes.geometry.readout.right'),
+                value: insets.right.toFixed(3),
+            },
+            {
+                label: t('videoRoutes.geometry.readout.top'),
+                value: insets.top.toFixed(3),
+            },
+            {
+                label: t('videoRoutes.geometry.readout.bottom'),
+                value: insets.bottom.toFixed(3),
+            },
         ];
     }, [tab, srcRect, destRect, quad, insets, t]);
 
     return (
         <Stack spacing={1.5}>
             {tab === 'perspective' && (
-                <Typography variant="caption" sx={{color: 'text.disabled'}}>
+                <Typography variant="caption" sx={{ color: 'text.disabled' }}>
                     {t('videoRoutes.geometry.perspectiveHint')}
                 </Typography>
             )}
@@ -376,12 +511,20 @@ const TabControls: React.FC<TabControlsProps> = ({
                     gap: 1,
                 }}
             >
-                {readout.map((r) => (
+                {readout.map(r => (
                     <Stack key={r.label} spacing={0.25}>
-                        <Typography variant="caption" sx={{color: 'text.disabled'}}>{r.label}</Typography>
+                        <Typography
+                            variant="caption"
+                            sx={{ color: 'text.disabled' }}
+                        >
+                            {r.label}
+                        </Typography>
                         <Typography
                             variant="body2"
-                            sx={{fontFamily: 'monospace', color: 'text.secondary'}}
+                            sx={{
+                                fontFamily: 'monospace',
+                                color: 'text.secondary',
+                            }}
                         >
                             {r.value}
                         </Typography>
@@ -392,33 +535,49 @@ const TabControls: React.FC<TabControlsProps> = ({
             {tab === 'edgeblend' && (
                 <Stack
                     spacing={1.5}
-                    sx={(theme) => ({
+                    sx={theme => ({
                         p: 2,
                         bgcolor: theme.palette.surface.elevated,
                         borderRadius: 1,
                     })}
                 >
-                    <Typography variant="caption" sx={{color: 'text.disabled'}}>
+                    <Typography
+                        variant="caption"
+                        sx={{ color: 'text.disabled' }}
+                    >
                         {t('videoRoutes.geometry.edgeblendHint')}
                     </Typography>
                     <Box
                         sx={{
                             display: 'grid',
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                            gridTemplateColumns:
+                                'repeat(auto-fit, minmax(220px, 1fr))',
                             gap: 2,
                         }}
                     >
                         <FloatSlider
                             label={t('videoRoutes.geometry.gamma')}
-                            value={gamma} min={0.1} max={5} step={0.05} onChange={setGamma}
+                            value={gamma}
+                            min={0.1}
+                            max={5}
+                            step={0.05}
+                            onChange={setGamma}
                         />
                         <FloatSlider
                             label={t('videoRoutes.geometry.power')}
-                            value={power} min={0.1} max={10} step={0.1}  onChange={setPower}
+                            value={power}
+                            min={0.1}
+                            max={10}
+                            step={0.1}
+                            onChange={setPower}
                         />
                         <FloatSlider
                             label={t('videoRoutes.geometry.alpha')}
-                            value={alpha} min={0}   max={1}  step={0.01} onChange={setAlpha}
+                            value={alpha}
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            onChange={setAlpha}
                         />
                     </Box>
                 </Stack>
@@ -436,20 +595,33 @@ interface FloatSliderProps {
     onChange: (v: number) => void;
 }
 
-const FloatSlider: React.FC<FloatSliderProps> = ({label, value, min, max, step, onChange}) => (
+const FloatSlider: React.FC<FloatSliderProps> = ({
+    label,
+    value,
+    min,
+    max,
+    step,
+    onChange,
+}) => (
     <Stack spacing={0.5}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="caption" sx={{color: 'text.secondary'}}>{label}</Typography>
+        <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+        >
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {label}
+            </Typography>
             <TextField
                 size="small"
                 type="number"
                 value={value}
-                onChange={(e) => {
+                onChange={e => {
                     const n = Number(e.target.value);
                     if (Number.isFinite(n)) onChange(n);
                 }}
-                inputProps={{step, min, max}}
-                sx={{width: 100}}
+                inputProps={{ step, min, max }}
+                sx={{ width: 100 }}
             />
         </Stack>
         <Slider

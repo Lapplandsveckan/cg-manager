@@ -1,7 +1,7 @@
-import {noTry} from 'no-try';
+import { noTry } from 'no-try';
 
 export const SUPPORTED_LANGUAGES = ['en', 'sv'] as const;
-export type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
+export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
 
 export const LANGUAGE_STORAGE_KEY = 'language';
 
@@ -17,7 +17,9 @@ export const LANGUAGE_STORAGE_KEY = 'language';
 export function detectLanguage(): SupportedLanguage {
     if (typeof window === 'undefined') return 'en';
 
-    const [, stored] = noTry(() => window.localStorage.getItem(LANGUAGE_STORAGE_KEY));
+    const [, stored] = noTry(() =>
+        window.localStorage.getItem(LANGUAGE_STORAGE_KEY),
+    );
     if (stored && (SUPPORTED_LANGUAGES as readonly string[]).includes(stored))
         return stored as SupportedLanguage;
 

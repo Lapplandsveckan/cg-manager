@@ -1,7 +1,7 @@
-import {Stack, Box, Typography} from '@mui/material';
+import { Stack, Box, Typography } from '@mui/material';
 import React from 'react';
-import {useTranslation} from 'next-i18next';
-import {Navbar} from './Navbar';
+import { useTranslation } from 'next-i18next';
+import { Navbar } from './Navbar';
 
 class ErrorBoundary extends React.Component<
     { children: React.ReactNode; fallback: React.ReactNode },
@@ -23,10 +23,10 @@ class ErrorBoundary extends React.Component<
 }
 
 const ErrorFallback: React.FC = () => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     return (
         <Stack
-            sx={(theme) => ({
+            sx={theme => ({
                 m: 4,
                 p: 4,
                 borderRadius: 2,
@@ -49,7 +49,7 @@ export const DefaultContentLayout = (props: { children: React.ReactNode }) => (
         direction="row"
         alignItems="stretch"
         justifyContent="start"
-        sx={(theme) => ({
+        sx={theme => ({
             width: '100%',
             flex: 1,
             minHeight: 0,

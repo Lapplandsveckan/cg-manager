@@ -1,10 +1,10 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import {noTryAsync} from 'no-try';
-import {ConfigParser} from './parse';
-import {ConfigBuilder} from './build';
-import {Logger} from '../../../util/log';
-import {type Config} from './types';
+import { noTryAsync } from 'no-try';
+import { ConfigParser } from './parse';
+import { ConfigBuilder } from './build';
+import { Logger } from '../../../util/log';
+import { type Config } from './types';
 
 function getDefaults() {
     return {
@@ -43,7 +43,8 @@ export class ConfigManager {
 
     public setPath(uri: string) {
         this.path = uri || process.cwd();
-        if (this.path.endsWith('/')) this.path = path.join(this.path, 'casparcg.config');
+        if (this.path.endsWith('/'))
+            this.path = path.join(this.path, 'casparcg.config');
     }
 
     private loading: Promise<any>;
@@ -54,14 +55,17 @@ export class ConfigManager {
 
     private async load() {
         const stat = await fs.stat(this.path).catch(() => null);
-        if (stat?.isDirectory()) this.path = path.join(this.path, 'casparcg.config');
+        if (stat?.isDirectory())
+            this.path = path.join(this.path, 'casparcg.config');
 
         const data = await fs.readFile(this.path, 'utf-8').catch(() => null);
         const parser = new ConfigParser(data);
 
         this.config = await parser.parse();
         if (!this.config) {
-            const [error] = await noTryAsync(() => fs.rename(this.path, `${this.path}-${Date.now()}.bak`));
+            const [error] = await noTryAsync(() =>
+                fs.rename(this.path, `${this.path}-${Date.now()}.bak`),
+            );
 
             if (error)
                 if ((error as any).code !== 'ENOENT') this.logger.error(error);
@@ -80,7 +84,7 @@ export class ConfigManager {
         // Preserve _raw so subsequent reads stay consistent — clients never
         // get _raw back over the wire, but ConfigManager itself uses it.
         const raw = this.config?._raw;
-        this.config = {...config, _raw: raw};
+        this.config = { ...config, _raw: raw };
         await this.save();
         return this.config;
     }
@@ -89,7 +93,8 @@ export class ConfigManager {
         if (!this.config) return;
 
         const stat = await fs.stat(this.path).catch(() => null);
-        if (stat?.isDirectory()) this.path = path.join(this.path, 'casparcg.config');
+        if (stat?.isDirectory())
+            this.path = path.join(this.path, 'casparcg.config');
 
         const builder = new ConfigBuilder(this.config);
         const content = builder.build();

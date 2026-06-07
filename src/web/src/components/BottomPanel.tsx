@@ -1,12 +1,24 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {Box, IconButton, Stack, Tab, Tabs, Tooltip, Typography} from '@mui/material';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Box,
+    IconButton,
+    Stack,
+    Tab,
+    Tabs,
+    Tooltip,
+    Typography,
+} from '@mui/material';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import {useTranslation} from 'next-i18next';
-import {useSocket} from '../lib/hooks/useSocket';
-import {useStoredBoolean} from '../lib/hooks/useStoredBoolean';
-import {useStoredNumber} from '../lib/hooks/useStoredNumber';
-import {type Injection, Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
+import { useTranslation } from 'next-i18next';
+import { useSocket } from '../lib/hooks/useSocket';
+import { useStoredBoolean } from '../lib/hooks/useStoredBoolean';
+import { useStoredNumber } from '../lib/hooks/useStoredNumber';
+import {
+    type Injection,
+    Injections,
+    UI_INJECTION_ZONE,
+} from '../lib/api/inject';
 
 const DEFAULT_HEIGHT = 280;
 const MIN_HEIGHT = 160;
@@ -23,8 +35,11 @@ interface ResizeProps {
     getCurrentHeight: () => number;
 }
 
-const VerticalResizeHandle: React.FC<ResizeProps> = ({ onResize, getCurrentHeight }) => {
-    const {t} = useTranslation('common');
+const VerticalResizeHandle: React.FC<ResizeProps> = ({
+    onResize,
+    getCurrentHeight,
+}) => {
+    const { t } = useTranslation('common');
     const dragRef = useRef<{ y: number; h: number } | null>(null);
 
     const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -62,7 +77,7 @@ const VerticalResizeHandle: React.FC<ResizeProps> = ({ onResize, getCurrentHeigh
                 onPointerUp={onPointerUp}
                 onPointerCancel={onPointerUp}
                 onDoubleClick={() => onResize(DEFAULT_HEIGHT)}
-                sx={(theme) => ({
+                sx={theme => ({
                     position: 'relative',
                     height: 10,
                     cursor: 'row-resize',
@@ -77,7 +92,12 @@ const VerticalResizeHandle: React.FC<ResizeProps> = ({ onResize, getCurrentHeigh
                         height: '1px',
                         bgcolor: theme.palette.divider,
                         transform: 'translateY(-50%)',
-                        transition: theme.transitions.create(['background-color', 'height'], { duration: 120 }),
+                        transition: theme.transitions.create(
+                            ['background-color', 'height'],
+                            {
+                                duration: 120,
+                            },
+                        ),
                     },
                     '&:hover::after, &:active::after': {
                         bgcolor: theme.palette.primary.main,
@@ -89,13 +109,16 @@ const VerticalResizeHandle: React.FC<ResizeProps> = ({ onResize, getCurrentHeigh
     );
 };
 
-
 export const BottomPanel: React.FC = () => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const socket = useSocket();
     const [injections, setInjections] = useState<Injection[] | null>(null);
 
-    const [height, setHeight] = useStoredNumber(HEIGHT_KEY, DEFAULT_HEIGHT, clampHeight);
+    const [height, setHeight] = useStoredNumber(
+        HEIGHT_KEY,
+        DEFAULT_HEIGHT,
+        clampHeight,
+    );
     const [collapsed, setCollapsed] = useStoredBoolean(COLLAPSED_KEY, false);
 
     const [activePlugin, setActivePlugin] = useState<string | null>(null);
@@ -103,10 +126,17 @@ export const BottomPanel: React.FC = () => {
     useEffect(() => {
         if (!socket) return;
         let mounted = true;
-        socket.injects.getInjects(UI_INJECTION_ZONE.RUNDOWN_BOTTOM_PANEL)
-            .then((list) => { if (mounted) setInjections(list); })
-            .catch(() => { if (mounted) setInjections([]); });
-        return () => { mounted = false; };
+        socket.injects
+            .getInjects(UI_INJECTION_ZONE.RUNDOWN_BOTTOM_PANEL)
+            .then(list => {
+                if (mounted) setInjections(list);
+            })
+            .catch(() => {
+                if (mounted) setInjections([]);
+            });
+        return () => {
+            mounted = false;
+        };
     }, [socket]);
 
     // Group injections by plugin so each plugin contributes one tab. A plugin
@@ -139,7 +169,7 @@ export const BottomPanel: React.FC = () => {
 
     return (
         <Stack
-            sx={(theme) => ({
+            sx={theme => ({
                 // Match the page background so the surrounding layout padding
                 // doesn't create a visible "frame" around the panel. The top
                 // divider still gives a clean break from the columns above.
@@ -147,7 +177,9 @@ export const BottomPanel: React.FC = () => {
                 // When the panel is open the resize handle's hairline already
                 // serves as the top edge; only draw our own divider when the
                 // handle is hidden (collapsed state).
-                borderTop: collapsed ? `1px solid ${theme.palette.divider}` : 'none',
+                borderTop: collapsed
+                    ? `1px solid ${theme.palette.divider}`
+                    : 'none',
                 flexShrink: 0,
                 // Pull the panel out into the page padding so it can sit flush
                 // against the layout's edges horizontally and at the bottom.
@@ -169,7 +201,7 @@ export const BottomPanel: React.FC = () => {
                 alignItems="center"
                 justifyContent="space-between"
                 onClick={() => setCollapsed(v => !v)}
-                onKeyDown={(e) => {
+                onKeyDown={e => {
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         setCollapsed(v => !v);
@@ -178,12 +210,16 @@ export const BottomPanel: React.FC = () => {
                 role="button"
                 tabIndex={0}
                 aria-expanded={!collapsed}
-                aria-label={collapsed
-                    ? t('rundown.bottomPanel.expandAria')
-                    : t('rundown.bottomPanel.collapseAria')}
-                sx={(theme) => ({
+                aria-label={
+                    collapsed
+                        ? t('rundown.bottomPanel.expandAria')
+                        : t('rundown.bottomPanel.collapseAria')
+                }
+                sx={theme => ({
                     px: 2,
-                    borderBottom: collapsed ? 'none' : `1px solid ${theme.palette.divider}`,
+                    borderBottom: collapsed
+                        ? 'none'
+                        : `1px solid ${theme.palette.divider}`,
                     minHeight: 40,
                     cursor: 'pointer',
                     userSelect: 'none',
@@ -201,7 +237,7 @@ export const BottomPanel: React.FC = () => {
                     <Tabs
                         value={activePlugin ?? false}
                         onChange={(_, v) => setActivePlugin(v)}
-                        onClick={(e) => e.stopPropagation()}
+                        onClick={e => e.stopPropagation()}
                         variant="scrollable"
                         scrollButtons="auto"
                         sx={{ minHeight: 36 }}
@@ -225,22 +261,28 @@ export const BottomPanel: React.FC = () => {
                     </Typography>
                 )}
 
-                <Tooltip title={collapsed
-                    ? t('rundown.bottomPanel.expand')
-                    : t('rundown.bottomPanel.collapse')}>
+                <Tooltip
+                    title={
+                        collapsed
+                            ? t('rundown.bottomPanel.expand')
+                            : t('rundown.bottomPanel.collapse')
+                    }
+                >
                     <IconButton
                         size="small"
                         // The icon button delegates to the same toggle as the
                         // bar; stopPropagation prevents double-toggling.
-                        onClick={(e) => {
+                        onClick={e => {
                             e.stopPropagation();
                             setCollapsed(v => !v);
                         }}
                         sx={{ color: 'text.secondary', mr: 0.5 }}
                     >
-                        {collapsed
-                            ? <ExpandLessRoundedIcon fontSize="small" />
-                            : <ExpandMoreRoundedIcon fontSize="small" />}
+                        {collapsed ? (
+                            <ExpandLessRoundedIcon fontSize="small" />
+                        ) : (
+                            <ExpandMoreRoundedIcon fontSize="small" />
+                        )}
                     </IconButton>
                 </Tooltip>
             </Stack>

@@ -2,8 +2,8 @@ import path from 'path';
 import { v4 as uuid } from 'uuid';
 import webpack from 'webpack';
 import MemoryFS from 'memory-fs';
-import {noTryAsync} from 'no-try';
-import {Logger} from '../../util/log';
+import { noTryAsync } from 'no-try';
+import { Logger } from '../../util/log';
 export const UI_INJECTION_ZONE = {
     PLUGIN_PAGE: 'plugin-page',
 
@@ -19,8 +19,11 @@ export const UI_INJECTION_ZONE = {
     UPLOAD_OPTIONS: 'upload-options',
 } as const;
 
-export type UI_INJECTION_ZONE = typeof UI_INJECTION_ZONE[keyof typeof UI_INJECTION_ZONE];
-export type UI_INJECTION_ZONE_KEY = UI_INJECTION_ZONE | `${UI_INJECTION_ZONE}.${string}`;
+export type UI_INJECTION_ZONE =
+    (typeof UI_INJECTION_ZONE)[keyof typeof UI_INJECTION_ZONE];
+export type UI_INJECTION_ZONE_KEY =
+    | UI_INJECTION_ZONE
+    | `${UI_INJECTION_ZONE}.${string}`;
 
 export interface Injection {
     zone: UI_INJECTION_ZONE_KEY;
@@ -34,7 +37,8 @@ export class UIInjector {
     private bundledComponents = new Map<string, string | Promise<string>>();
 
     public register(zone: UI_INJECTION_ZONE_KEY, file: string, plugin: string) {
-        if (!this._injectionsZones.has(zone)) this._injectionsZones.set(zone, []);
+        if (!this._injectionsZones.has(zone))
+            this._injectionsZones.set(zone, []);
 
         const obj = { zone, file, plugin, id: uuid() };
         this._injectionsZones.get(zone).push(obj);
@@ -64,7 +68,8 @@ export class UIInjector {
     }
 
     public async bundle(id: string) {
-        if (this.bundledComponents.has(id)) return this.bundledComponents.get(id);
+        if (this.bundledComponents.has(id))
+            return this.bundledComponents.get(id);
 
         const path = this._injections.get(id)?.file;
         if (!path) return null;
@@ -85,7 +90,10 @@ export class UIInjector {
         return file;
     }
 
-    public getInjectionZone(zone: UI_INJECTION_ZONE_KEY, key: string): UI_INJECTION_ZONE_KEY {
+    public getInjectionZone(
+        zone: UI_INJECTION_ZONE_KEY,
+        key: string,
+    ): UI_INJECTION_ZONE_KEY {
         return `${zone}.${key}` as const;
     }
 }
@@ -108,7 +116,10 @@ function getConfig(entry: string) {
                         loader: require.resolve('babel-loader'),
                         options: {
                             presets: [
-                                [require.resolve('@babel/preset-env'), { targets: {chrome: 100} }],
+                                [
+                                    require.resolve('@babel/preset-env'),
+                                    { targets: { chrome: 100 } },
+                                ],
                                 require.resolve('@babel/preset-react'),
                                 require.resolve('@babel/preset-typescript'),
                             ],
@@ -130,7 +141,7 @@ function getConfig(entry: string) {
             '@mui/material': 'MaterialUI',
             'mui-color-input': 'MUIColorInput',
             '@web-lib': 'WebLib',
-            'i18next': 'i18n',
+            i18next: 'i18n',
             'react-i18next': 'ReactI18next',
         },
         experiments: {
@@ -149,7 +160,9 @@ function bundleFile(file: string) {
     return new Promise<string>((resolve, reject) => {
         compiler.run((err, stats) => {
             if (err || stats.hasErrors())
-                return reject(stats.hasErrors() ? stats.compilation.errors : err);
+                return reject(
+                    stats.hasErrors() ? stats.compilation.errors : err,
+                );
 
             resolve(memfs.readFileSync('/bundle.js').toString());
         });

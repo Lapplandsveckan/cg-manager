@@ -1,16 +1,15 @@
-import {WebError} from 'rest-exchange-protocol';
-import {type RouteExport} from '../../../route';
-import {CasparManager} from '../../../../manager';
+import { WebError } from 'rest-exchange-protocol';
+import { type RouteExport } from '../../../route';
+import { CasparManager } from '../../../../manager';
 
 export default {
-    'GET': async (request) => {
-        if (!request.params.id) throw new WebError('No plugin id provided', 400);
+    GET: async request => {
+        if (!request.params.id)
+            throw new WebError('No plugin id provided', 400);
 
-        const plugin = CasparManager
-            .getManager()
+        const plugin = CasparManager.getManager()
             .getPlugins()
-            .plugins
-            .find((plugin) => plugin.pluginName === request.params.id);
+            .plugins.find(plugin => plugin.pluginName === request.params.id);
 
         if (!plugin) throw new WebError('Plugin not found', 404);
 

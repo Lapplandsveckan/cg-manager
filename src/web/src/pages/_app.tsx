@@ -1,19 +1,19 @@
 import '../../public/style.css';
-import type {AppProps} from 'next/app';
+import type { AppProps } from 'next/app';
 import Head from 'next/head';
-import {useRouter} from 'next/router';
+import { useRouter } from 'next/router';
 import CssBaseline from '@mui/material/CssBaseline';
-import {Stack} from '@mui/material';
+import { Stack } from '@mui/material';
 import React from 'react';
-import {ThemeProvider} from '@mui/material/styles';
-import {appWithTranslation} from 'next-i18next';
-import {SocketProvider} from '../components/SocketProvider';
-import {ConnectionProvider} from '../components/ConnectionProvider';
-import {ConnectionBanner} from '../components/ConnectionBanner';
-import {AuthGate} from '../components/AuthGate';
-import {theme} from '../lib/theme';
+import { ThemeProvider } from '@mui/material/styles';
+import { appWithTranslation } from 'next-i18next';
+import { SocketProvider } from '../components/SocketProvider';
+import { ConnectionProvider } from '../components/ConnectionProvider';
+import { ConnectionBanner } from '../components/ConnectionBanner';
+import { AuthGate } from '../components/AuthGate';
+import { theme } from '../lib/theme';
 import i18n from '../lib/i18n';
-import {detectLanguage} from '../lib/detectLanguage';
+import { detectLanguage } from '../lib/detectLanguage';
 
 function App({ Component, pageProps }: AppProps) {
     const router = useRouter();
@@ -34,7 +34,10 @@ function App({ Component, pageProps }: AppProps) {
         <>
             <Head>
                 <title>Caspar Manager</title>
-                <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+                <meta
+                    name="viewport"
+                    content="initial-scale=1.0, width=device-width"
+                />
             </Head>
             <ThemeProvider theme={theme}>
                 <CssBaseline />
@@ -44,9 +47,12 @@ function App({ Component, pageProps }: AppProps) {
                     <AuthGate>
                         <SocketProvider>
                             <ConnectionProvider>
-                                <Stack direction="column" sx={{height: '100vh', width: '100%'}}>
+                                <Stack
+                                    direction="column"
+                                    sx={{ height: '100vh', width: '100%' }}
+                                >
                                     <ConnectionBanner />
-                                    <Stack sx={{flex: 1, minHeight: 0}}>
+                                    <Stack sx={{ flex: 1, minHeight: 0 }}>
                                         <Component {...pageProps} />
                                     </Stack>
                                 </Stack>

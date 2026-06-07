@@ -1,4 +1,4 @@
-import {type REPClient} from 'rest-exchange-protocol-client';
+import { type REPClient } from 'rest-exchange-protocol-client';
 
 export interface DecklinkSource {
     type: 'decklink';
@@ -22,7 +22,11 @@ export interface ColorSource {
     color: string;
 }
 
-export type VideoRouteSource = DecklinkSource | VideoSource | ChannelSource | ColorSource;
+export type VideoRouteSource =
+    | DecklinkSource
+    | VideoSource
+    | ChannelSource
+    | ColorSource;
 
 export interface VideoRouteDestination {
     type: 'effect-group';
@@ -66,17 +70,28 @@ export class VideoRoutesApi {
     }
 
     public async get(id: string): Promise<VideoRoute> {
-        const res = await this.socket.request(`api/routes/${encodeURIComponent(id)}`, 'GET', {});
+        const res = await this.socket.request(
+            `api/routes/${encodeURIComponent(id)}`,
+            'GET',
+            {},
+        );
         return res.data as VideoRoute;
     }
 
     public async delete(id: string): Promise<void> {
-        await this.socket.request(`api/routes/${encodeURIComponent(id)}`, 'DELETE', {});
+        await this.socket.request(
+            `api/routes/${encodeURIComponent(id)}`,
+            'DELETE',
+            {},
+        );
     }
 
     /** Patch one or more fields on a route. The server merges the patch over
      *  the existing route, re-creates its effect, and persists to disk. */
-    public async update(id: string, patch: Partial<VideoRoute>): Promise<VideoRoute> {
+    public async update(
+        id: string,
+        patch: Partial<VideoRoute>,
+    ): Promise<VideoRoute> {
         const res = await this.socket.request(
             `api/routes/${encodeURIComponent(id)}`,
             'UPDATE',

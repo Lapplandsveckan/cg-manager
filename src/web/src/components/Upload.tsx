@@ -1,11 +1,24 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {Box, Button, Card, LinearProgress, Modal, Stack, Typography, alpha} from '@mui/material';
-import {CloudUploadRounded, CheckCircleRounded, ErrorOutlineRounded} from '@mui/icons-material';
-import {noTryAsync} from 'no-try';
-import {useTranslation} from 'next-i18next';
-import {uploadFile} from '../lib/api/upload';
-import {pickFiles, type PickFilesOptions} from '../lib/filePicker';
-import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import {
+    Box,
+    Button,
+    Card,
+    LinearProgress,
+    Modal,
+    Stack,
+    Typography,
+    alpha,
+} from '@mui/material';
+import {
+    CloudUploadRounded,
+    CheckCircleRounded,
+    ErrorOutlineRounded,
+} from '@mui/icons-material';
+import { noTryAsync } from 'no-try';
+import { useTranslation } from 'next-i18next';
+import { uploadFile } from '../lib/api/upload';
+import { pickFiles, type PickFilesOptions } from '../lib/filePicker';
+import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
 
 /** `review` is a "user confirms before chunks go out" phase. It's the
  *  natural place for plugin-driven options (encode-skip, etc.) to take
@@ -13,7 +26,13 @@ import {Injections, UI_INJECTION_ZONE} from '../lib/api/inject';
  *  picks files → modal opens in `review` → they tick whatever they
  *  want → they confirm → upload proceeds. Cancellation here just
  *  drops back to idle without any server interaction. */
-export type UploadPhase = 'idle' | 'review' | 'starting' | 'uploading' | 'done' | 'error';
+export type UploadPhase =
+    | 'idle'
+    | 'review'
+    | 'starting'
+    | 'uploading'
+    | 'done'
+    | 'error';
 
 export interface UploadFileResult {
     file: File;
@@ -65,8 +84,10 @@ export interface UseFileUploadOptions {
  * Errors on a single file are recorded and the queue continues; cancel
  * aborts the current upload and drops the rest.
  */
-export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadController {
-    const {t} = useTranslation('common');
+export function useFileUpload({
+    createUpload,
+}: UseFileUploadOptions): FileUploadController {
+    const { t } = useTranslation('common');
     const [state, setState] = useState<FileUploadState>(IDLE_STATE);
     const cancelRef = useRef<(() => unknown) | null>(null);
     const canceledRef = useRef(false);
@@ -76,7 +97,12 @@ export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadC
     // to know which files to upload, which complicates the flow.
     const queueRef = useRef<File[]>([]);
 
-    useEffect(() => () => { cancelRef.current?.(); }, []);
+    useEffect(
+        () => () => {
+            cancelRef.current?.();
+        },
+        [],
+    );
 
     const reset = () => {
         cancelRef.current = null;
@@ -131,7 +157,7 @@ export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadC
             if (canceledRef.current) break;
 
             const file = files[i];
-            setState((s) => ({
+            setState(s => ({
                 ...s,
                 phase: 'starting',
                 currentIndex: i,
@@ -142,18 +168,17 @@ export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadC
 
             const [createErr, id] = await noTryAsync(() => createUpload(file));
             if (createErr || !id) {
-                const msg = createErr?.message ?? t('media.upload.errors.startFailed');
-                completed.push({file, error: msg});
-                setState((s) => ({...s, error: msg}));
+                const msg =
+                    createErr?.message ?? t('media.upload.errors.startFailed');
+                completed.push({ file, error: msg });
+                setState(s => ({ ...s, error: msg }));
                 continue;
             }
 
-            setState((s) => ({...s, phase: 'uploading'}));
+            setState(s => ({ ...s, phase: 'uploading' }));
 
-            const [promise, cancelFn] = uploadFile(
-                id,
-                file,
-                (p) => setState((s) => ({...s, currentProgress: Math.round(p * 100)})),
+            const [promise, cancelFn] = uploadFile(id, file, p =>
+                setState(s => ({ ...s, currentProgress: Math.round(p * 100) })),
             );
             cancelRef.current = cancelFn;
 
@@ -161,22 +186,25 @@ export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadC
             cancelRef.current = null;
 
             if (canceledRef.current) {
-                completed.push({file, error: t('media.upload.errors.canceled')});
+                completed.push({
+                    file,
+                    error: t('media.upload.errors.canceled'),
+                });
                 break;
             }
             if (uploadErr) {
-                completed.push({file, error: uploadErr.message});
-                setState((s) => ({...s, error: uploadErr.message}));
+                completed.push({ file, error: uploadErr.message });
+                setState(s => ({ ...s, error: uploadErr.message }));
                 continue;
             }
 
-            completed.push({file});
+            completed.push({ file });
         }
 
         // If the consumer canceled, they likely also called reset() to clear
         // the modal — don't clobber that with a 'done'/'error' final state.
         if (!canceledRef.current) {
-            const anyError = completed.some((c) => c.error);
+            const anyError = completed.some(c => c.error);
             setState({
                 phase: anyError ? 'error' : 'done',
                 queue: files,
@@ -184,14 +212,14 @@ export function useFileUpload({createUpload}: UseFileUploadOptions): FileUploadC
                 currentIndex: -1,
                 currentProgress: 0,
                 currentFile: null,
-                error: completed.find((c) => c.error)?.error ?? null,
+                error: completed.find(c => c.error)?.error ?? null,
             });
         }
 
         runningRef.current = false;
     };
 
-    return {state, start, confirm, cancel, reset};
+    return { state, start, confirm, cancel, reset };
 }
 
 interface UploadModalProps {
@@ -208,17 +236,24 @@ interface UploadModalProps {
     targetPathFor?: (file: File) => string;
 }
 
-export const UploadModal: React.FC<UploadModalProps> = ({state, onClose, onCancel, onConfirm, targetPathFor}) => {
+export const UploadModal: React.FC<UploadModalProps> = ({
+    state,
+    onClose,
+    onCancel,
+    onConfirm,
+    targetPathFor,
+}) => {
     const open = state.phase !== 'idle';
     const handleClose = () => {
-        if (state.phase === 'uploading' || state.phase === 'starting') onCancel?.();
+        if (state.phase === 'uploading' || state.phase === 'starting')
+            onCancel?.();
         onClose();
     };
 
     return (
         <Modal open={open} onClose={handleClose}>
             <Card
-                sx={(theme) => ({
+                sx={theme => ({
                     position: 'absolute',
                     top: '50%',
                     left: '50%',
@@ -248,12 +283,25 @@ interface UploadModalContentProps {
     targetPathFor?: (file: File) => string;
 }
 
-const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, onConfirm, targetPathFor}) => {
-    const {t} = useTranslation('common');
-    const {phase, queue, completed, currentIndex, currentProgress, currentFile, error} = state;
+const UploadModalContent: React.FC<UploadModalContentProps> = ({
+    state,
+    onClose,
+    onConfirm,
+    targetPathFor,
+}) => {
+    const { t } = useTranslation('common');
+    const {
+        phase,
+        queue,
+        completed,
+        currentIndex,
+        currentProgress,
+        currentFile,
+        error,
+    } = state;
     const multi = queue.length > 1;
-    const successCount = completed.filter((c) => !c.error).length;
-    const failedCount = completed.filter((c) => c.error).length;
+    const successCount = completed.filter(c => !c.error).length;
+    const failedCount = completed.filter(c => c.error).length;
 
     // Resolved server-side paths for the files currently in the queue.
     // Passed to plugin injections so they can act per-file (e.g. write
@@ -271,21 +319,35 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, 
 
     let title: string;
     if (phase === 'review')
-        title = multi ? t('media.upload.title.reviewMulti', {count: queue.length}) : t('media.upload.title.reviewOne');
+        title = multi
+            ? t('media.upload.title.reviewMulti', { count: queue.length })
+            : t('media.upload.title.reviewOne');
     else if (phase === 'starting')
         title = multi
-            ? t('media.upload.title.preparingMulti', {current: currentIndex + 1, total: queue.length})
+            ? t('media.upload.title.preparingMulti', {
+                  current: currentIndex + 1,
+                  total: queue.length,
+              })
             : t('media.upload.title.preparingOne');
     else if (phase === 'uploading')
         title = multi
-            ? t('media.upload.title.uploadingMulti', {current: currentIndex + 1, total: queue.length})
+            ? t('media.upload.title.uploadingMulti', {
+                  current: currentIndex + 1,
+                  total: queue.length,
+              })
             : t('media.upload.title.uploadingOne');
     else if (phase === 'done')
-        title = multi ? t('media.upload.title.doneMulti', {count: successCount}) : t('media.upload.title.doneOne');
+        title = multi
+            ? t('media.upload.title.doneMulti', { count: successCount })
+            : t('media.upload.title.doneOne');
     else
-        title = failedCount === queue.length
-            ? t('media.upload.title.failed')
-            : t('media.upload.title.partial', {success: successCount, total: queue.length});
+        title =
+            failedCount === queue.length
+                ? t('media.upload.title.failed')
+                : t('media.upload.title.partial', {
+                      success: successCount,
+                      total: queue.length,
+                  });
 
     return (
         <Stack spacing={2}>
@@ -295,7 +357,10 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, 
             </Stack>
 
             {currentFile && (phase === 'starting' || phase === 'uploading') && (
-                <Typography variant="body2" sx={{color: 'text.secondary', wordBreak: 'break-all'}}>
+                <Typography
+                    variant="body2"
+                    sx={{ color: 'text.secondary', wordBreak: 'break-all' }}
+                >
                     {currentFile.name}
                 </Typography>
             )}
@@ -304,12 +369,15 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, 
                 // The full list of staged files. For one-file uploads it
                 // collapses to a single line — same look as the
                 // currentFile preview above during 'uploading'.
-                <Stack spacing={0.25} sx={{maxHeight: 160, overflow: 'auto'}}>
+                <Stack spacing={0.25} sx={{ maxHeight: 160, overflow: 'auto' }}>
                     {queue.map((f, idx) => (
                         <Typography
                             key={`${f.name}-${idx}`}
                             variant="body2"
-                            sx={{color: 'text.secondary', wordBreak: 'break-all'}}
+                            sx={{
+                                color: 'text.secondary',
+                                wordBreak: 'break-all',
+                            }}
                         >
                             {f.name}
                         </Typography>
@@ -319,8 +387,16 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, 
 
             {phase === 'uploading' && (
                 <Stack spacing={0.5}>
-                    <LinearProgress variant="determinate" value={currentProgress} />
-                    <Typography variant="caption" sx={{alignSelf: 'flex-end'}}>{currentProgress}%</Typography>
+                    <LinearProgress
+                        variant="determinate"
+                        value={currentProgress}
+                    />
+                    <Typography
+                        variant="caption"
+                        sx={{ alignSelf: 'flex-end' }}
+                    >
+                        {currentProgress}%
+                    </Typography>
                 </Stack>
             )}
 
@@ -340,24 +416,49 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, 
                 </Box>
             )}
 
-            {(phase === 'done' || phase === 'error') && multi && completed.length > 0 && (
-                // Multi-file summary. Errors first so they don't get buried.
-                <Stack spacing={0.5} sx={{maxHeight: 160, overflow: 'auto'}}>
-                    {completed.filter((c) => c.error).map((c, idx) => (
-                        <Typography key={`e-${idx}`} variant="body2" color="error" sx={{wordBreak: 'break-all'}}>
-                            ✗ {c.file.name} — {c.error}
-                        </Typography>
-                    ))}
-                    {completed.filter((c) => !c.error).map((c, idx) => (
-                        <Typography key={`o-${idx}`} variant="body2" sx={{color: 'text.secondary', wordBreak: 'break-all'}}>
-                            ✓ {c.file.name}
-                        </Typography>
-                    ))}
-                </Stack>
-            )}
+            {(phase === 'done' || phase === 'error') &&
+                multi &&
+                completed.length > 0 && (
+                    // Multi-file summary. Errors first so they don't get buried.
+                    <Stack
+                        spacing={0.5}
+                        sx={{ maxHeight: 160, overflow: 'auto' }}
+                    >
+                        {completed
+                            .filter(c => c.error)
+                            .map((c, idx) => (
+                                <Typography
+                                    key={`e-${idx}`}
+                                    variant="body2"
+                                    color="error"
+                                    sx={{ wordBreak: 'break-all' }}
+                                >
+                                    ✗ {c.file.name} — {c.error}
+                                </Typography>
+                            ))}
+                        {completed
+                            .filter(c => !c.error)
+                            .map((c, idx) => (
+                                <Typography
+                                    key={`o-${idx}`}
+                                    variant="body2"
+                                    sx={{
+                                        color: 'text.secondary',
+                                        wordBreak: 'break-all',
+                                    }}
+                                >
+                                    ✓ {c.file.name}
+                                </Typography>
+                            ))}
+                    </Stack>
+                )}
 
             {phase === 'error' && error && !multi && (
-                <Typography variant="body2" color="error" sx={{wordBreak: 'break-word'}}>
+                <Typography
+                    variant="body2"
+                    color="error"
+                    sx={{ wordBreak: 'break-word' }}
+                >
                     {error}
                 </Typography>
             )}
@@ -365,7 +466,9 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, 
             <Stack direction="row" justifyContent="flex-end" gap={1}>
                 {phase === 'review' ? (
                     <>
-                        <Button onClick={onClose} color="inherit">{t('actions.cancel')}</Button>
+                        <Button onClick={onClose} color="inherit">
+                            {t('actions.cancel')}
+                        </Button>
                         <Button
                             onClick={() => onConfirm?.()}
                             variant="contained"
@@ -376,7 +479,9 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, 
                     </>
                 ) : (
                     <Button onClick={onClose} color="inherit">
-                        {phase === 'uploading' || phase === 'starting' ? t('actions.cancel') : t('actions.done')}
+                        {phase === 'uploading' || phase === 'starting'
+                            ? t('actions.cancel')
+                            : t('actions.done')}
                     </Button>
                 )}
             </Stack>
@@ -384,12 +489,13 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({state, onClose, 
     );
 };
 
-const PhaseIcon: React.FC<{ phase: UploadPhase }> = ({phase}) => {
-    if (phase === 'done') return <CheckCircleRounded sx={{color: '#5fc97a'}} />;
+const PhaseIcon: React.FC<{ phase: UploadPhase }> = ({ phase }) => {
+    if (phase === 'done')
+        return <CheckCircleRounded sx={{ color: '#5fc97a' }} />;
     if (phase === 'error') return <ErrorOutlineRounded color="error" />;
     return (
         <Box
-            sx={(theme) => ({
+            sx={theme => ({
                 width: 24,
                 height: 24,
                 borderRadius: '50%',
@@ -399,7 +505,10 @@ const PhaseIcon: React.FC<{ phase: UploadPhase }> = ({phase}) => {
                 justifyContent: 'center',
             })}
         >
-            <CloudUploadRounded fontSize="small" sx={{color: 'primary.main'}} />
+            <CloudUploadRounded
+                fontSize="small"
+                sx={{ color: 'primary.main' }}
+            />
         </Box>
     );
 };
@@ -418,18 +527,30 @@ interface UploadButtonProps {
 }
 
 export const UploadButton: React.FC<UploadButtonProps> = ({
-    types, createUpload, controller, multiple = true, label, targetPathFor,
+    types,
+    createUpload,
+    controller,
+    multiple = true,
+    label,
+    targetPathFor,
 }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     // If an external controller wasn't supplied, create our own. Either way
     // we render an UploadModal — when shared, both the Dropzone and the
     // button feed into the same modal.
-    const own = useFileUpload({createUpload: createUpload ?? (() => { throw new Error('createUpload required'); })});
+    const own = useFileUpload({
+        createUpload:
+            createUpload ??
+            (() => {
+                throw new Error('createUpload required');
+            }),
+    });
     const ctrl = controller ?? own;
 
     const handleClick = async () => {
-        if (ctrl.state.phase === 'starting' || ctrl.state.phase === 'uploading') return;
-        const files = await pickFiles({types, multiple});
+        if (ctrl.state.phase === 'starting' || ctrl.state.phase === 'uploading')
+            return;
+        const files = await pickFiles({ types, multiple });
         if (files.length) ctrl.start(files);
     };
 
@@ -439,7 +560,10 @@ export const UploadButton: React.FC<UploadButtonProps> = ({
                 variant="contained"
                 startIcon={<CloudUploadRounded />}
                 onClick={handleClick}
-                disabled={ctrl.state.phase === 'starting' || ctrl.state.phase === 'uploading'}
+                disabled={
+                    ctrl.state.phase === 'starting' ||
+                    ctrl.state.phase === 'uploading'
+                }
             >
                 {label ?? t('actions.upload')}
             </Button>
@@ -459,4 +583,4 @@ export const UploadButton: React.FC<UploadButtonProps> = ({
     );
 };
 
-export {Dropzone} from './Dropzone';
+export { Dropzone } from './Dropzone';

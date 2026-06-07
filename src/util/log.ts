@@ -1,5 +1,5 @@
 import path from 'path';
-import {promises as fs} from 'fs';
+import { promises as fs } from 'fs';
 import chalk from 'chalk';
 import config from './config';
 
@@ -12,7 +12,7 @@ export enum LogLevel {
     ERROR = 'ERROR',
     FATAL = 'FATAL',
 
-    NONE = 'NONE'
+    NONE = 'NONE',
 }
 
 const Console = {
@@ -38,10 +38,13 @@ export class Logger {
             method = method === 'log' ? 'debug' : method;
             const log = logger[method].bind(logger);
             return (...args) => {
-                const joined = args.map((arg) => arg?.toString() ?? 'undefined').join(' ');
-                const truncated = joined.length > Logger.consoleMessageLimit
-                    ? `${joined.slice(0, Logger.consoleMessageLimit)} … [truncated ${joined.length - Logger.consoleMessageLimit} chars]`
-                    : joined;
+                const joined = args
+                    .map(arg => arg?.toString() ?? 'undefined')
+                    .join(' ');
+                const truncated =
+                    joined.length > Logger.consoleMessageLimit
+                        ? `${joined.slice(0, Logger.consoleMessageLimit)} … [truncated ${joined.length - Logger.consoleMessageLimit} chars]`
+                        : joined;
                 log(truncated);
             };
         };
@@ -108,7 +111,10 @@ export class Logger {
         this.flushingLogs = true;
 
         const date = new Date();
-        const dateString = date.toISOString().substring(0, 10).replace('T', ' ');
+        const dateString = date
+            .toISOString()
+            .substring(0, 10)
+            .replace('T', ' ');
 
         const writeData = Logger.logFileQueue;
         Logger.logFileQueue = '';
@@ -117,11 +123,10 @@ export class Logger {
             .map(file => path.join(config['log-dir'], file))
             .map(file => fs.appendFile(file, writeData, 'utf8'));
 
-        await Promise.all(files)
-            .catch(() => {
-                Logger.logFileQueue = writeData + Logger.logFileQueue;
-                Logger.warn('Failed to write to log file!');
-            });
+        await Promise.all(files).catch(() => {
+            Logger.logFileQueue = writeData + Logger.logFileQueue;
+            Logger.warn('Failed to write to log file!');
+        });
 
         this.flushingLogs = false;
         if (this.flushAgain) {
@@ -178,7 +183,8 @@ export class Logger {
     }
 
     public static error(message: string | Error): void {
-        if (message instanceof Error) return Logger.error(`Exception ${this.formatError(message)}`);
+        if (message instanceof Error)
+            return Logger.error(`Exception ${this.formatError(message)}`);
         Logger.log(LogLevel.ERROR, message);
     }
 
@@ -187,7 +193,8 @@ export class Logger {
     }
 
     public static fatal(message: string | Error): void {
-        if (message instanceof Error) return Logger.fatal(`Exception ${this.formatError(message)}`);
+        if (message instanceof Error)
+            return Logger.fatal(`Exception ${this.formatError(message)}`);
         Logger.log(LogLevel.FATAL, message);
     }
 
@@ -201,7 +208,10 @@ export class Logger {
 
     private readonly scope_: string;
     private readonly logger: (level: LogLevel, message: string) => void;
-    private constructor(scope: string, logger?: (level: LogLevel, message: string) => void) {
+    private constructor(
+        scope: string,
+        logger?: (level: LogLevel, message: string) => void,
+    ) {
         this.scope_ = scope;
         this.logger = logger || Logger.log.bind(Logger);
     }
@@ -219,7 +229,8 @@ export class Logger {
     }
 
     public error(message: string | Error): void {
-        if (message instanceof Error) return this.error(`Exception ${Logger.formatError(message)}`);
+        if (message instanceof Error)
+            return this.error(`Exception ${Logger.formatError(message)}`);
         this.log(LogLevel.ERROR, message);
     }
 
@@ -228,7 +239,8 @@ export class Logger {
     }
 
     public fatal(message: string | Error): void {
-        if (message instanceof Error) return this.fatal(`Exception ${Logger.formatError(message)}`);
+        if (message instanceof Error)
+            return this.fatal(`Exception ${Logger.formatError(message)}`);
         this.log(LogLevel.FATAL, message);
     }
 

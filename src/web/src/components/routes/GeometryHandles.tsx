@@ -1,14 +1,32 @@
-import React, {useEffect, useRef} from 'react';
-import {Box} from '@mui/material';
+import React, { useEffect, useRef } from 'react';
+import { Box } from '@mui/material';
 
 const HANDLE_SIZE = 14;
 const PRIMARY = '#c98049';
 const SECONDARY = '#6daedb';
 
-export interface NormRect { x: number; y: number; w: number; h: number }
-export interface NormPoint { x: number; y: number }
-export interface Perspective { tl: NormPoint; tr: NormPoint; br: NormPoint; bl: NormPoint }
-export interface EdgeBlendInsets { left: number; right: number; top: number; bottom: number }
+export interface NormRect {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+}
+export interface NormPoint {
+    x: number;
+    y: number;
+}
+export interface Perspective {
+    tl: NormPoint;
+    tr: NormPoint;
+    br: NormPoint;
+    bl: NormPoint;
+}
+export interface EdgeBlendInsets {
+    left: number;
+    right: number;
+    top: number;
+    bottom: number;
+}
 
 type RectHandle = 'move' | 'tl' | 'tr' | 'br' | 'bl';
 type CornerKey = keyof Perspective;
@@ -19,12 +37,16 @@ interface PointerCaptureProps {
     onMove: (clientX: number, clientY: number) => void;
 }
 
-function useGlobalDrag({onMove}: PointerCaptureProps) {
+function useGlobalDrag({ onMove }: PointerCaptureProps) {
     const activeRef = useRef(false);
 
     useEffect(() => {
-        const move = (e: PointerEvent) => { if (activeRef.current) onMove(e.clientX, e.clientY); };
-        const up = () => { activeRef.current = false; };
+        const move = (e: PointerEvent) => {
+            if (activeRef.current) onMove(e.clientX, e.clientY);
+        };
+        const up = () => {
+            activeRef.current = false;
+        };
         window.addEventListener('pointermove', move);
         window.addEventListener('pointerup', up);
         window.addEventListener('pointercancel', up);
@@ -43,7 +65,11 @@ function useGlobalDrag({onMove}: PointerCaptureProps) {
     };
 }
 
-function toNorm(stage: HTMLElement, clientX: number, clientY: number): NormPoint {
+function toNorm(
+    stage: HTMLElement,
+    clientX: number,
+    clientY: number,
+): NormPoint {
     const rect = stage.getBoundingClientRect();
     return {
         x: rect.width === 0 ? 0 : (clientX - rect.left) / rect.width,
@@ -51,7 +77,10 @@ function toNorm(stage: HTMLElement, clientX: number, clientY: number): NormPoint
     };
 }
 
-const handleBoxStyle = (corner: RectHandle, color: string): React.CSSProperties => {
+const handleBoxStyle = (
+    corner: RectHandle,
+    color: string,
+): React.CSSProperties => {
     const isLeft = corner === 'tl' || corner === 'bl';
     const isTop = corner === 'tl' || corner === 'tr';
     return {
@@ -66,7 +95,8 @@ const handleBoxStyle = (corner: RectHandle, color: string): React.CSSProperties 
         right: isLeft ? undefined : -HANDLE_SIZE / 2,
         top: isTop ? -HANDLE_SIZE / 2 : undefined,
         bottom: isTop ? undefined : -HANDLE_SIZE / 2,
-        cursor: corner === 'tl' || corner === 'br' ? 'nwse-resize' : 'nesw-resize',
+        cursor:
+            corner === 'tl' || corner === 'br' ? 'nwse-resize' : 'nesw-resize',
         zIndex: 2,
     };
 };
@@ -81,9 +111,21 @@ interface RectHandlesProps {
     stageRef: React.RefObject<HTMLElement | null>;
 }
 
-export const RectHandles: React.FC<RectHandlesProps> = (props) => {
-    const {rect, onChange, color = PRIMARY, label, width, height, stageRef} = props;
-    const stateRef = useRef<{handle: RectHandle; start: NormPoint; startRect: NormRect} | null>(null);
+export const RectHandles: React.FC<RectHandlesProps> = props => {
+    const {
+        rect,
+        onChange,
+        color = PRIMARY,
+        label,
+        width,
+        height,
+        stageRef,
+    } = props;
+    const stateRef = useRef<{
+        handle: RectHandle;
+        start: NormPoint;
+        startRect: NormRect;
+    } | null>(null);
 
     const drag = useGlobalDrag({
         onMove: (clientX, clientY) => {
@@ -105,7 +147,7 @@ export const RectHandles: React.FC<RectHandlesProps> = (props) => {
         stateRef.current = {
             handle,
             start: toNorm(stage, e.clientX, e.clientY),
-            startRect: {...rect},
+            startRect: { ...rect },
         };
     };
 
@@ -123,7 +165,7 @@ export const RectHandles: React.FC<RectHandlesProps> = (props) => {
                 touchAction: 'none',
                 userSelect: 'none',
             }}
-            onPointerDown={(e) => begin(e, 'move')}
+            onPointerDown={e => begin(e, 'move')}
         >
             {label && (
                 <Box
@@ -142,18 +184,23 @@ export const RectHandles: React.FC<RectHandlesProps> = (props) => {
                     {label}
                 </Box>
             )}
-            {(['tl', 'tr', 'br', 'bl'] as RectHandle[]).map((corner) => (
+            {(['tl', 'tr', 'br', 'bl'] as RectHandle[]).map(corner => (
                 <Box
                     key={corner}
                     sx={handleBoxStyle(corner, color)}
-                    onPointerDown={(e) => begin(e, corner)}
+                    onPointerDown={e => begin(e, corner)}
                 />
             ))}
         </Box>
     );
 };
 
-function applyRectDrag(start: NormRect, handle: RectHandle, dx: number, dy: number): NormRect {
+function applyRectDrag(
+    start: NormRect,
+    handle: RectHandle,
+    dx: number,
+    dy: number,
+): NormRect {
     if (handle === 'move') {
         const x = clamp01(start.x + dx);
         const y = clamp01(start.y + dy);
@@ -174,11 +221,19 @@ function applyRectDrag(start: NormRect, handle: RectHandle, dx: number, dy: numb
     let newX = signX === -1 ? start.x + (start.w - newW) : start.x;
     let newY = signY === -1 ? start.y + (start.h - newH) : start.y;
 
-    if (signX === -1 && newX < 0) { newW += newX; newX = 0; }
-    else if (signX === 1 && newX + newW > 1) {newW = 1 - newX;}
+    if (signX === -1 && newX < 0) {
+        newW += newX;
+        newX = 0;
+    } else if (signX === 1 && newX + newW > 1) {
+        newW = 1 - newX;
+    }
 
-    if (signY === -1 && newY < 0) { newH += newY; newY = 0; }
-    else if (signY === 1 && newY + newH > 1) {newH = 1 - newY;}
+    if (signY === -1 && newY < 0) {
+        newH += newY;
+        newY = 0;
+    } else if (signY === 1 && newY + newH > 1) {
+        newH = 1 - newY;
+    }
 
     return {
         x: newX,
@@ -196,8 +251,14 @@ interface PerspectiveHandlesProps {
     stageRef: React.RefObject<HTMLElement | null>;
 }
 
-export const PerspectiveHandles: React.FC<PerspectiveHandlesProps> = ({quad, onChange, width, height, stageRef}) => {
-    const stateRef = useRef<{corner: CornerKey} | null>(null);
+export const PerspectiveHandles: React.FC<PerspectiveHandlesProps> = ({
+    quad,
+    onChange,
+    width,
+    height,
+    stageRef,
+}) => {
+    const stateRef = useRef<{ corner: CornerKey } | null>(null);
 
     const drag = useGlobalDrag({
         onMove: (clientX, clientY) => {
@@ -209,21 +270,24 @@ export const PerspectiveHandles: React.FC<PerspectiveHandlesProps> = ({quad, onC
             // beyond stage" warps, but for an interactive UI we keep them on
             // the stage to avoid the user dragging a point to (-9, 0) by
             // mistake.
-            onChange({...quad, [state.corner]: {x: clamp01(p.x), y: clamp01(p.y)}});
+            onChange({
+                ...quad,
+                [state.corner]: { x: clamp01(p.x), y: clamp01(p.y) },
+            });
         },
     });
 
     const begin = (e: React.PointerEvent, corner: CornerKey) => {
         e.stopPropagation();
         drag.begin(e);
-        stateRef.current = {corner};
+        stateRef.current = { corner };
     };
 
-    const corners: {key: CornerKey; cursor: string}[] = [
-        {key: 'tl', cursor: 'nwse-resize'},
-        {key: 'tr', cursor: 'nesw-resize'},
-        {key: 'br', cursor: 'nwse-resize'},
-        {key: 'bl', cursor: 'nesw-resize'},
+    const corners: { key: CornerKey; cursor: string }[] = [
+        { key: 'tl', cursor: 'nwse-resize' },
+        { key: 'tr', cursor: 'nesw-resize' },
+        { key: 'br', cursor: 'nwse-resize' },
+        { key: 'bl', cursor: 'nesw-resize' },
     ];
 
     return (
@@ -231,11 +295,17 @@ export const PerspectiveHandles: React.FC<PerspectiveHandlesProps> = ({quad, onC
             <Box
                 component="svg"
                 viewBox={`0 0 ${width} ${height}`}
-                sx={{position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none'}}
+                sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                }}
             >
                 <polygon
                     points={[quad.tl, quad.tr, quad.br, quad.bl]
-                        .map((p) => `${p.x * width},${p.y * height}`)
+                        .map(p => `${p.x * width},${p.y * height}`)
                         .join(' ')}
                     fill={`${SECONDARY}22`}
                     stroke={SECONDARY}
@@ -243,7 +313,7 @@ export const PerspectiveHandles: React.FC<PerspectiveHandlesProps> = ({quad, onC
                     vectorEffect="non-scaling-stroke"
                 />
             </Box>
-            {corners.map(({key, cursor}) => {
+            {corners.map(({ key, cursor }) => {
                 const p = quad[key];
                 return (
                     <Box
@@ -262,7 +332,7 @@ export const PerspectiveHandles: React.FC<PerspectiveHandlesProps> = ({quad, onC
                             touchAction: 'none',
                             zIndex: 3,
                         }}
-                        onPointerDown={(e) => begin(e, key)}
+                        onPointerDown={e => begin(e, key)}
                     />
                 );
             })}
@@ -281,9 +351,13 @@ interface EdgeBlendHandlesProps {
 }
 
 // Range is clamped per-edge so left+right (and top+bottom) can never overlap.
-export const EdgeBlendHandles: React.FC<EdgeBlendHandlesProps> = (props) => {
-    const {insets, onChange, width, height, stageRef} = props;
-    const stateRef = useRef<{edge: Edge; start: NormPoint; startInsets: EdgeBlendInsets} | null>(null);
+export const EdgeBlendHandles: React.FC<EdgeBlendHandlesProps> = props => {
+    const { insets, onChange, width, height, stageRef } = props;
+    const stateRef = useRef<{
+        edge: Edge;
+        start: NormPoint;
+        startInsets: EdgeBlendInsets;
+    } | null>(null);
 
     const drag = useGlobalDrag({
         onMove: (clientX, clientY) => {
@@ -295,12 +369,17 @@ export const EdgeBlendHandles: React.FC<EdgeBlendHandlesProps> = (props) => {
             const dy = now.y - state.start.y;
             const max = 0.5;
             const s = state.startInsets;
-            const next = {...s};
-            const clamp = (v: number, lim: number) => Math.max(0, Math.min(max, Math.min(lim, v)));
-            if (state.edge === 'left')   next.left   = clamp(s.left + dx,   1 - s.right);
-            if (state.edge === 'right')  next.right  = clamp(s.right - dx,  1 - s.left);
-            if (state.edge === 'top')    next.top    = clamp(s.top + dy,    1 - s.bottom);
-            if (state.edge === 'bottom') next.bottom = clamp(s.bottom - dy, 1 - s.top);
+            const next = { ...s };
+            const clamp = (v: number, lim: number) =>
+                Math.max(0, Math.min(max, Math.min(lim, v)));
+            if (state.edge === 'left')
+                next.left = clamp(s.left + dx, 1 - s.right);
+            if (state.edge === 'right')
+                next.right = clamp(s.right - dx, 1 - s.left);
+            if (state.edge === 'top')
+                next.top = clamp(s.top + dy, 1 - s.bottom);
+            if (state.edge === 'bottom')
+                next.bottom = clamp(s.bottom - dy, 1 - s.top);
             onChange(next);
         },
     });
@@ -313,78 +392,170 @@ export const EdgeBlendHandles: React.FC<EdgeBlendHandlesProps> = (props) => {
         stateRef.current = {
             edge,
             start: toNorm(stage, e.clientX, e.clientY),
-            startInsets: {...insets},
+            startInsets: { ...insets },
         };
     };
 
-    const bands: {edge: Edge; style: React.CSSProperties; grad: string; hasWidth: boolean}[] = [
+    const bands: {
+        edge: Edge;
+        style: React.CSSProperties;
+        grad: string;
+        hasWidth: boolean;
+    }[] = [
         {
             edge: 'left',
-            style: {left: 0, top: 0, width: insets.left * width, height},
+            style: { left: 0, top: 0, width: insets.left * width, height },
             grad: `linear-gradient(to right, ${SECONDARY}55, ${SECONDARY}00)`,
             hasWidth: insets.left > 0,
         },
         {
             edge: 'right',
-            style: {right: 0, top: 0, width: insets.right * width, height},
+            style: { right: 0, top: 0, width: insets.right * width, height },
             grad: `linear-gradient(to left, ${SECONDARY}55, ${SECONDARY}00)`,
             hasWidth: insets.right > 0,
         },
         {
             edge: 'top',
-            style: {left: 0, top: 0, width, height: insets.top * height},
+            style: { left: 0, top: 0, width, height: insets.top * height },
             grad: `linear-gradient(to bottom, ${SECONDARY}55, ${SECONDARY}00)`,
             hasWidth: insets.top > 0,
         },
         {
             edge: 'bottom',
-            style: {left: 0, bottom: 0, width, height: insets.bottom * height},
+            style: {
+                left: 0,
+                bottom: 0,
+                width,
+                height: insets.bottom * height,
+            },
             grad: `linear-gradient(to top, ${SECONDARY}55, ${SECONDARY}00)`,
             hasWidth: insets.bottom > 0,
         },
     ];
 
-    interface Hp { edge: Edge; left?: number; top?: number; right?: number; bottom?: number; vertical: boolean }
+    interface Hp {
+        edge: Edge;
+        left?: number;
+        top?: number;
+        right?: number;
+        bottom?: number;
+        vertical: boolean;
+    }
     const handlePositions: Hp[] = [
-        {edge: 'left',   left: insets.left * width,    top: height / 2,                vertical: false},
-        {edge: 'right',  right: insets.right * width,  top: height / 2,                vertical: false},
-        {edge: 'top',    left: width / 2,              top: insets.top * height,       vertical: true},
-        {edge: 'bottom', left: width / 2,              bottom: insets.bottom * height, vertical: true},
+        {
+            edge: 'left',
+            left: insets.left * width,
+            top: height / 2,
+            vertical: false,
+        },
+        {
+            edge: 'right',
+            right: insets.right * width,
+            top: height / 2,
+            vertical: false,
+        },
+        {
+            edge: 'top',
+            left: width / 2,
+            top: insets.top * height,
+            vertical: true,
+        },
+        {
+            edge: 'bottom',
+            left: width / 2,
+            bottom: insets.bottom * height,
+            vertical: true,
+        },
     ];
 
     return (
         <>
-            {bands.filter((b) => b.hasWidth).map((b) => (
-                <Box
-                    key={b.edge}
-                    sx={{position: 'absolute', ...b.style, background: b.grad, pointerEvents: 'none'}}
-                />
-            ))}
+            {bands
+                .filter(b => b.hasWidth)
+                .map(b => (
+                    <Box
+                        key={b.edge}
+                        sx={{
+                            position: 'absolute',
+                            ...b.style,
+                            background: b.grad,
+                            pointerEvents: 'none',
+                        }}
+                    />
+                ))}
             {insets.left > 0 && (
-                <Box sx={{position: 'absolute', left: insets.left * width, top: 0, width: 0, height,
-                    borderLeft: `1px dashed ${SECONDARY}88`, pointerEvents: 'none'}} />
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        left: insets.left * width,
+                        top: 0,
+                        width: 0,
+                        height,
+                        borderLeft: `1px dashed ${SECONDARY}88`,
+                        pointerEvents: 'none',
+                    }}
+                />
             )}
             {insets.right > 0 && (
-                <Box sx={{position: 'absolute', right: insets.right * width, top: 0, width: 0, height,
-                    borderRight: `1px dashed ${SECONDARY}88`, pointerEvents: 'none'}} />
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        right: insets.right * width,
+                        top: 0,
+                        width: 0,
+                        height,
+                        borderRight: `1px dashed ${SECONDARY}88`,
+                        pointerEvents: 'none',
+                    }}
+                />
             )}
             {insets.top > 0 && (
-                <Box sx={{position: 'absolute', left: 0, top: insets.top * height, width, height: 0,
-                    borderTop: `1px dashed ${SECONDARY}88`, pointerEvents: 'none'}} />
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        left: 0,
+                        top: insets.top * height,
+                        width,
+                        height: 0,
+                        borderTop: `1px dashed ${SECONDARY}88`,
+                        pointerEvents: 'none',
+                    }}
+                />
             )}
             {insets.bottom > 0 && (
-                <Box sx={{position: 'absolute', left: 0, bottom: insets.bottom * height, width, height: 0,
-                    borderBottom: `1px dashed ${SECONDARY}88`, pointerEvents: 'none'}} />
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        left: 0,
+                        bottom: insets.bottom * height,
+                        width,
+                        height: 0,
+                        borderBottom: `1px dashed ${SECONDARY}88`,
+                        pointerEvents: 'none',
+                    }}
+                />
             )}
-            {handlePositions.map((p) => (
+            {handlePositions.map(p => (
                 <Box
                     key={p.edge}
                     sx={{
                         position: 'absolute',
-                        left: p.left !== undefined ? p.left - HANDLE_SIZE / 2 : undefined,
-                        right: p.right !== undefined ? p.right - HANDLE_SIZE / 2 : undefined,
-                        top: p.top !== undefined ? p.top - HANDLE_SIZE / 2 : undefined,
-                        bottom: p.bottom !== undefined ? p.bottom - HANDLE_SIZE / 2 : undefined,
+                        left:
+                            p.left !== undefined
+                                ? p.left - HANDLE_SIZE / 2
+                                : undefined,
+                        right:
+                            p.right !== undefined
+                                ? p.right - HANDLE_SIZE / 2
+                                : undefined,
+                        top:
+                            p.top !== undefined
+                                ? p.top - HANDLE_SIZE / 2
+                                : undefined,
+                        bottom:
+                            p.bottom !== undefined
+                                ? p.bottom - HANDLE_SIZE / 2
+                                : undefined,
                         width: HANDLE_SIZE,
                         height: HANDLE_SIZE,
                         borderRadius: '50%',
@@ -395,7 +566,7 @@ export const EdgeBlendHandles: React.FC<EdgeBlendHandlesProps> = (props) => {
                         touchAction: 'none',
                         zIndex: 4,
                     }}
-                    onPointerDown={(e) => begin(e, p.edge)}
+                    onPointerDown={e => begin(e, p.edge)}
                 />
             ))}
         </>

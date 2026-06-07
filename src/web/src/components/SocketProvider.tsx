@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {ManagerApi} from '../lib/api/api';
+import { ManagerApi } from '../lib/api/api';
 
 interface SocketContextValue {
     conn: ManagerApi | null;
@@ -9,7 +9,7 @@ export const SocketContext = React.createContext<SocketContextValue>({
     conn: null,
 });
 
-export const SocketProvider: React.FC<{children: React.ReactNode}> = ({
+export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
     const [conn] = useState<ManagerApi | null>(() => {
@@ -20,11 +20,13 @@ export const SocketProvider: React.FC<{children: React.ReactNode}> = ({
     useEffect(() => {
         if (!conn) return;
         conn.connect();
-        return () => { conn.disconnect(); };
+        return () => {
+            conn.disconnect();
+        };
     }, [conn]);
 
     return (
-        <SocketContext.Provider value={{conn}}>
+        <SocketContext.Provider value={{ conn }}>
             {children}
         </SocketContext.Provider>
     );

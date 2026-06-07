@@ -1,8 +1,8 @@
-import {useTranslation} from 'next-i18next';
-import {DefaultContentLayout} from '../components/DefaultContentLayout';
+import { useTranslation } from 'next-i18next';
+import { DefaultContentLayout } from '../components/DefaultContentLayout';
 
 const Page = () => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     return (
         <DefaultContentLayout>
             <h1>{t('notFound.title')}</h1>

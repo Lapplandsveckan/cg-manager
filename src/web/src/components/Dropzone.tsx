@@ -1,7 +1,7 @@
-import React, {useRef, useState} from 'react';
-import {Box, Stack, Typography, alpha} from '@mui/material';
-import {CloudUploadRounded} from '@mui/icons-material';
-import {useTranslation} from 'next-i18next';
+import React, { useRef, useState } from 'react';
+import { Box, Stack, Typography, alpha } from '@mui/material';
+import { CloudUploadRounded } from '@mui/icons-material';
+import { useTranslation } from 'next-i18next';
 
 interface DropzoneProps {
     /** Called with the dropped File list (already filtered + multiple-applied). */
@@ -23,8 +23,9 @@ interface DropzoneProps {
 
 function matchesAccept(file: File, accept: string[]): boolean {
     if (!accept.length) return true;
-    return accept.some((a) => {
-        if (a.startsWith('.')) return file.name.toLowerCase().endsWith(a.toLowerCase());
+    return accept.some(a => {
+        if (a.startsWith('.'))
+            return file.name.toLowerCase().endsWith(a.toLowerCase());
         if (a.endsWith('/*')) return file.type.startsWith(a.slice(0, -1));
         return file.type === a;
     });
@@ -42,13 +43,20 @@ function matchesAccept(file: File, accept: string[]): boolean {
  * (e.g. text selections, plugin rundown-item payloads).
  */
 export const Dropzone: React.FC<DropzoneProps> = ({
-    onDrop, children, accept = [], multiple = true, disabled, overlayLabel, fill,
+    onDrop,
+    children,
+    accept = [],
+    multiple = true,
+    disabled,
+    overlayLabel,
+    fill,
 }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const [hovering, setHovering] = useState(false);
     const dragDepth = useRef(0);
 
-    const isFileDrag = (e: React.DragEvent) => e.dataTransfer.types?.includes('Files');
+    const isFileDrag = (e: React.DragEvent) =>
+        e.dataTransfer.types?.includes('Files');
 
     const onDragEnter = (e: React.DragEvent) => {
         if (disabled || !isFileDrag(e)) return;
@@ -83,7 +91,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
 
         let files = Array.from(e.dataTransfer.files);
         if (!multiple) files = files.slice(0, 1);
-        if (accept.length) files = files.filter((f) => matchesAccept(f, accept));
+        if (accept.length) files = files.filter(f => matchesAccept(f, accept));
         if (files.length) onDrop(files);
     };
 
@@ -93,12 +101,12 @@ export const Dropzone: React.FC<DropzoneProps> = ({
             onDragLeave={onDragLeave}
             onDragOver={onDragOver}
             onDrop={onDropEvt}
-            sx={{position: 'relative', ...(fill && {minHeight: '100%'})}}
+            sx={{ position: 'relative', ...(fill && { minHeight: '100%' }) }}
         >
             {children}
             {hovering && (
                 <Box
-                    sx={(theme) => ({
+                    sx={theme => ({
                         position: 'absolute',
                         inset: 0,
                         bgcolor: alpha(theme.palette.primary.main, 0.12),
@@ -112,8 +120,10 @@ export const Dropzone: React.FC<DropzoneProps> = ({
                     })}
                 >
                     <Stack alignItems="center" spacing={1}>
-                        <CloudUploadRounded sx={{fontSize: 48, color: 'primary.main'}} />
-                        <Typography variant="h3" sx={{color: 'primary.main'}}>
+                        <CloudUploadRounded
+                            sx={{ fontSize: 48, color: 'primary.main' }}
+                        />
+                        <Typography variant="h3" sx={{ color: 'primary.main' }}>
                             {overlayLabel ?? t('media.dropzone.dropToUpload')}
                         </Typography>
                     </Stack>

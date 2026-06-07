@@ -1,6 +1,6 @@
-import React, {useContext, useEffect, useRef, useState} from 'react';
-import {noTryAsync} from 'no-try';
-import {useSocket} from '../lib/hooks/useSocket';
+import React, { useContext, useEffect, useRef, useState } from 'react';
+import { noTryAsync } from 'no-try';
+import { useSocket } from '../lib/hooks/useSocket';
 
 export type ConnectionState = 'connected' | 'reconnecting' | 'disconnected';
 
@@ -29,7 +29,9 @@ const HEARTBEAT_TIMEOUT_MS = 3000;
 const RECONNECTING_THRESHOLD = 1;
 const DISCONNECTED_THRESHOLD = 3;
 
-export const ConnectionProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
+export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({
+    children,
+}) => {
     const socket = useSocket();
     const [state, setState] = useState<ConnectionState>('connected');
     const [lastSeen, setLastSeen] = useState<number | null>(null);
@@ -46,10 +48,15 @@ export const ConnectionProvider: React.FC<{children: React.ReactNode}> = ({child
             // request still leaves an entry in REPClient's internal requests
             // map — that's a small bounded leak we accept for the heartbeat.
             const timeoutPromise = new Promise<never>((_, reject) => {
-                const t = setTimeout(() => reject(new Error('timeout')), HEARTBEAT_TIMEOUT_MS);
+                const t = setTimeout(
+                    () => reject(new Error('timeout')),
+                    HEARTBEAT_TIMEOUT_MS,
+                );
                 if (cancelled) clearTimeout(t);
             });
-            const [err] = await noTryAsync(() => Promise.race([socket.getApiVersion(), timeoutPromise]));
+            const [err] = await noTryAsync(() =>
+                Promise.race([socket.getApiVersion(), timeoutPromise]),
+            );
             return !err;
         };
 
@@ -61,7 +68,7 @@ export const ConnectionProvider: React.FC<{children: React.ReactNode}> = ({child
             if (ok) {
                 failsRef.current = 0;
                 setLastSeen(Date.now());
-                setState((prev) => (prev === 'connected' ? prev : 'connected'));
+                setState(prev => (prev === 'connected' ? prev : 'connected'));
                 timer = setTimeout(tick, HEARTBEAT_INTERVAL_OK_MS);
             } else {
                 failsRef.current += 1;
@@ -83,7 +90,7 @@ export const ConnectionProvider: React.FC<{children: React.ReactNode}> = ({child
     }, [socket]);
 
     return (
-        <ConnectionContext.Provider value={{state, lastSeen}}>
+        <ConnectionContext.Provider value={{ state, lastSeen }}>
             {children}
         </ConnectionContext.Provider>
     );

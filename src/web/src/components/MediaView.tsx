@@ -1,18 +1,28 @@
-import {Box, Button, Card, Grid, IconButton, Modal, Stack, Tooltip, Typography, alpha} from '@mui/material';
+import {
+    Box,
+    Button,
+    Card,
+    Grid,
+    IconButton,
+    Modal,
+    Stack,
+    Tooltip,
+    Typography,
+    alpha,
+} from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
-import React, {useEffect, useMemo, useState} from 'react';
-import {useTranslation} from 'next-i18next';
-import {useSocket} from '../lib/hooks/useSocket';
-import {type MediaDoc} from '../lib/api/caspar';
-import {MediaCard} from '../components/MediaCard';
-import {MediaFolder} from '../components/MediaFolder';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'next-i18next';
+import { useSocket } from '../lib/hooks/useSocket';
+import { type MediaDoc } from '../lib/api/caspar';
+import { MediaCard } from '../components/MediaCard';
+import { MediaFolder } from '../components/MediaFolder';
 
 // Re-export so callers that imported from MediaView before the split keep
 // working.
-export {MediaFolder} from '../components/MediaFolder';
-export type {MediaFolderProps} from '../components/MediaFolder';
-
+export { MediaFolder } from '../components/MediaFolder';
+export type { MediaFolderProps } from '../components/MediaFolder';
 
 interface MediaViewProps {
     columns?: number;
@@ -50,7 +60,7 @@ export const MediaView: React.FC<MediaViewProps> = ({
     onFolderRename,
     onClipMoveToFolder,
 }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const socket = useSocket();
     const [media, setMedia] = useState<MediaDoc[]>([]);
     // Folders are tracked separately from the media listing because the
@@ -72,45 +82,57 @@ export const MediaView: React.FC<MediaViewProps> = ({
         serverFolders
             .filter(f => f.startsWith(p) && f.length > p.length)
             .map(f => f.substring(p.length).split('/').filter(Boolean))
-            .forEach(parts => { if (parts.length > 0) set.add(parts[0]); });
+            .forEach(parts => {
+                if (parts.length > 0) set.add(parts[0]);
+            });
 
         return [...set.values()];
     }, [media, serverFolders, prefix]);
 
-    const data = useMemo(() =>
-        media
-            .filter(media => media.id.startsWith(prefix ?? ''))
-            .map(media => {
-                const background = media._attachments['thumb.png'];
-                const url = background ? `data:${background.content_type};base64,${Buffer.from(background.data).toString('base64')}` : 'https://via.placeholder.com/1920x1080';
+    const data = useMemo(
+        () =>
+            media
+                .filter(media => media.id.startsWith(prefix ?? ''))
+                .map(media => {
+                    const background = media._attachments['thumb.png'];
+                    const url = background
+                        ? `data:${background.content_type};base64,${Buffer.from(background.data).toString('base64')}`
+                        : 'https://via.placeholder.com/1920x1080';
 
-                return {
-                    name: media.id.substring(prefix?.length ?? 0),
-                    duration: media.mediainfo.format.duration,
-                    backgroundUrl: url,
-                };
-            })
-            .filter(media => !showAsDirectories || media.name.indexOf('/') < 0),
-    [media, prefix],
+                    return {
+                        name: media.id.substring(prefix?.length ?? 0),
+                        duration: media.mediainfo.format.duration,
+                        backgroundUrl: url,
+                    };
+                })
+                .filter(
+                    media => !showAsDirectories || media.name.indexOf('/') < 0,
+                ),
+        [media, prefix],
     );
 
     useEffect(() => {
-        const loadMedia = () => socket.caspar
-            .getMedia()
-            .then(media => setMedia([...media.values()]))
-            .catch(console.error);
+        const loadMedia = () =>
+            socket.caspar
+                .getMedia()
+                .then(media => setMedia([...media.values()]))
+                .catch(console.error);
 
-        const loadFolders = () => socket.caspar
-            .getFolders()
-            .then(setServerFolders)
-            .catch(console.error);
+        const loadFolders = () =>
+            socket.caspar
+                .getFolders()
+                .then(setServerFolders)
+                .catch(console.error);
 
         loadMedia();
         loadFolders();
 
         // Media updates also probably implies new folders (uploads create
         // directories implicitly); refresh both on the broadcast.
-        const onMedia = () => { loadMedia(); loadFolders(); };
+        const onMedia = () => {
+            loadMedia();
+            loadFolders();
+        };
         const onFolders = () => loadFolders();
         socket.caspar.on('media', onMedia);
         socket.caspar.on('folders', onFolders);
@@ -123,56 +145,79 @@ export const MediaView: React.FC<MediaViewProps> = ({
 
     return (
         <Stack>
-            {
-                (data.length || folders.length) ? (
-                    <Grid container spacing={2}>
-                        {
-                            data.map((clip, index) => (
-                                <MediaCard
-                                    key={clip.name}
-                                    {...clip}
-                                    columns={columns}
-                                    onClick={onClipSelect ? () => onClipSelect(media[index]) : undefined}
-                                    onDelete={onClipDelete ? () => onClipDelete(media[index]) : undefined}
-                                    onRename={onClipRename ? () => onClipRename(media[index]) : undefined}
-                                    dragId={onClipMoveToFolder ? media[index].id : undefined}
-                                />
-                            ))
-                        }
+            {data.length || folders.length ? (
+                <Grid container spacing={2}>
+                    {data.map((clip, index) => (
+                        <MediaCard
+                            key={clip.name}
+                            {...clip}
+                            columns={columns}
+                            onClick={
+                                onClipSelect
+                                    ? () => onClipSelect(media[index])
+                                    : undefined
+                            }
+                            onDelete={
+                                onClipDelete
+                                    ? () => onClipDelete(media[index])
+                                    : undefined
+                            }
+                            onRename={
+                                onClipRename
+                                    ? () => onClipRename(media[index])
+                                    : undefined
+                            }
+                            dragId={
+                                onClipMoveToFolder ? media[index].id : undefined
+                            }
+                        />
+                    ))}
 
-                        {
-                            showAsDirectories && folders.map(folder => (
-                                <MediaFolder
-                                    key={folder}
-                                    name={folder}
-                                    columns={columns}
-                                    onClick={() => onNavigate?.(folder)}
-                                    onDelete={onFolderDelete ? () => onFolderDelete(folder) : undefined}
-                                    onRename={onFolderRename ? () => onFolderRename(folder) : undefined}
-                                    onMediaDrop={onClipMoveToFolder
-                                        ? (clipId) => onClipMoveToFolder(clipId, `${prefix ?? ''}${folder}`)
-                                        : undefined}
-                                />
-                            ))
-                        }
-                    </Grid>
-                ) : (
-                    <Stack
-                        direction="column"
-                        alignItems="center"
-                        justifyContent="center"
-                        sx={{ py: 6 }}
-                        spacing={0.5}
-                    >
-                        <Typography variant="h3" sx={{ color: 'text.secondary' }}>
-                            {t('media.empty.title')}
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-                            {t('media.empty.detail')}
-                        </Typography>
-                    </Stack>
-                )
-            }
+                    {showAsDirectories &&
+                        folders.map(folder => (
+                            <MediaFolder
+                                key={folder}
+                                name={folder}
+                                columns={columns}
+                                onClick={() => onNavigate?.(folder)}
+                                onDelete={
+                                    onFolderDelete
+                                        ? () => onFolderDelete(folder)
+                                        : undefined
+                                }
+                                onRename={
+                                    onFolderRename
+                                        ? () => onFolderRename(folder)
+                                        : undefined
+                                }
+                                onMediaDrop={
+                                    onClipMoveToFolder
+                                        ? clipId =>
+                                              onClipMoveToFolder(
+                                                  clipId,
+                                                  `${prefix ?? ''}${folder}`,
+                                              )
+                                        : undefined
+                                }
+                            />
+                        ))}
+                </Grid>
+            ) : (
+                <Stack
+                    direction="column"
+                    alignItems="center"
+                    justifyContent="center"
+                    sx={{ py: 6 }}
+                    spacing={0.5}
+                >
+                    <Typography variant="h3" sx={{ color: 'text.secondary' }}>
+                        {t('media.empty.title')}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.disabled' }}>
+                        {t('media.empty.detail')}
+                    </Typography>
+                </Stack>
+            )}
         </Stack>
     );
 };
@@ -190,14 +235,16 @@ const MediaSelectCrumb: React.FC<{
     <Box
         component="button"
         onClick={onClick}
-        sx={(theme) => ({
+        sx={theme => ({
             appearance: 'none',
             background: 'transparent',
             border: 'none',
             padding: '4px 8px',
             borderRadius: 1,
             cursor: 'pointer',
-            color: active ? theme.palette.text.primary : theme.palette.text.secondary,
+            color: active
+                ? theme.palette.text.primary
+                : theme.palette.text.secondary,
             fontWeight: active ? 600 : 400,
             fontSize: '0.8125rem',
             lineHeight: 1.4,
@@ -218,21 +265,38 @@ interface MediaSelectBreadcrumbProps {
     onNavigate: (next: string) => void;
 }
 
-const MediaSelectBreadcrumb: React.FC<MediaSelectBreadcrumbProps> = ({ path, onNavigate }) => {
+const MediaSelectBreadcrumb: React.FC<MediaSelectBreadcrumbProps> = ({
+    path,
+    onNavigate,
+}) => {
     const segments = path.split('/').filter(Boolean);
     return (
         <Stack direction="row" alignItems="center" gap={0.25} flexWrap="wrap">
             <MediaSelectCrumb
-                label={<HomeRoundedIcon fontSize="small" sx={{ display: 'block' }} />}
+                label={
+                    <HomeRoundedIcon
+                        fontSize="small"
+                        sx={{ display: 'block' }}
+                    />
+                }
                 onClick={() => onNavigate('')}
                 active={segments.length === 0}
             />
             {segments.map((segment, index) => (
                 <React.Fragment key={index}>
-                    <Typography variant="caption" sx={{ color: 'text.disabled' }}>/</Typography>
+                    <Typography
+                        variant="caption"
+                        sx={{ color: 'text.disabled' }}
+                    >
+                        /
+                    </Typography>
                     <MediaSelectCrumb
                         label={segment}
-                        onClick={() => onNavigate(`${segments.slice(0, index + 1).join('/')}/`)}
+                        onClick={() =>
+                            onNavigate(
+                                `${segments.slice(0, index + 1).join('/')}/`,
+                            )
+                        }
                         active={index === segments.length - 1}
                     />
                 </React.Fragment>
@@ -241,8 +305,11 @@ const MediaSelectBreadcrumb: React.FC<MediaSelectBreadcrumbProps> = ({ path, onN
     );
 };
 
-export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) => {
-    const {t} = useTranslation('common');
+export const MediaSelect: React.FC<MediaSelectProps> = ({
+    clip,
+    onClipSelect,
+}) => {
+    const { t } = useTranslation('common');
     const [open, setOpen] = useState<boolean>(false);
     const [path, setPath] = useState<string>('');
 
@@ -279,7 +346,7 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                 ) : (
                     <Box
                         onClick={() => setOpen(true)}
-                        sx={(theme) => ({
+                        sx={theme => ({
                             aspectRatio: '16/9',
                             border: `1px dashed ${theme.palette.divider}`,
                             borderRadius: 1,
@@ -287,14 +354,25 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                             alignItems: 'center',
                             justifyContent: 'center',
                             cursor: 'pointer',
-                            transition: theme.transitions.create(['border-color', 'background-color'], { duration: 120 }),
+                            transition: theme.transitions.create(
+                                ['border-color', 'background-color'],
+                                {
+                                    duration: 120,
+                                },
+                            ),
                             '&:hover': {
-                                borderColor: alpha(theme.palette.primary.main, 0.45),
+                                borderColor: alpha(
+                                    theme.palette.primary.main,
+                                    0.45,
+                                ),
                                 bgcolor: theme.palette.surface.elevated,
                             },
                         })}
                     >
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                        <Typography
+                            variant="body2"
+                            sx={{ color: 'text.secondary' }}
+                        >
                             {t('media.select.empty')}
                         </Typography>
                     </Box>
@@ -311,7 +389,7 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
 
             <Modal open={open} onClose={() => setOpen(false)}>
                 <Card
-                    sx={(theme) => ({
+                    sx={theme => ({
                         position: 'absolute',
                         top: '50%',
                         left: '50%',
@@ -331,7 +409,7 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                         alignItems="center"
                         justifyContent="space-between"
                         gap={2}
-                        sx={(theme) => ({
+                        sx={theme => ({
                             px: 3,
                             py: 2,
                             borderBottom: `1px solid ${theme.palette.divider}`,
@@ -339,27 +417,38 @@ export const MediaSelect: React.FC<MediaSelectProps> = ({clip, onClipSelect}) =>
                         })}
                     >
                         <Stack spacing={0.25} sx={{ minWidth: 0 }}>
-                            <Typography variant="h3">{t('media.select.modalTitle')}</Typography>
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            <Typography variant="h3">
+                                {t('media.select.modalTitle')}
+                            </Typography>
+                            <Typography
+                                variant="body2"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {t('media.select.modalSubtitle')}
                             </Typography>
                         </Stack>
                         <Tooltip title={t('actions.close')}>
-                            <IconButton onClick={() => setOpen(false)} sx={{ color: 'text.secondary' }}>
+                            <IconButton
+                                onClick={() => setOpen(false)}
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 <CloseRoundedIcon />
                             </IconButton>
                         </Tooltip>
                     </Stack>
 
                     <Box
-                        sx={(theme) => ({
+                        sx={theme => ({
                             px: 3,
                             py: 1,
                             borderBottom: `1px solid ${theme.palette.divider}`,
                             flexShrink: 0,
                         })}
                     >
-                        <MediaSelectBreadcrumb path={path} onNavigate={setPath} />
+                        <MediaSelectBreadcrumb
+                            path={path}
+                            onNavigate={setPath}
+                        />
                     </Box>
 
                     <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 3 }}>

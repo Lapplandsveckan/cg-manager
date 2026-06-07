@@ -1,7 +1,7 @@
-import React, {useLayoutEffect, useRef, useState} from 'react';
-import {Box, Stack, Typography} from '@mui/material';
-import {useTranslation} from 'next-i18next';
-import {ChannelPreview} from '../ChannelPreview';
+import React, { useLayoutEffect, useRef, useState } from 'react';
+import { Box, Stack, Typography } from '@mui/material';
+import { useTranslation } from 'next-i18next';
+import { ChannelPreview } from '../ChannelPreview';
 
 interface GeometryStageProps {
     canvasWidth: number;
@@ -9,7 +9,11 @@ interface GeometryStageProps {
     /** Render-prop for the overlay layer. `scale` converts normalized 0..1 to
      *  on-screen pixels. Stage size in pixels is also passed so handle layers
      *  can place absolute-positioned children directly. */
-    children: (ctx: {scale: number; width: number; height: number}) => React.ReactNode;
+    children: (ctx: {
+        scale: number;
+        width: number;
+        height: number;
+    }) => React.ReactNode;
     /** When set, stream this 1-based CG channel as the stage backdrop in
      *  place of the dark gradient. The handles overlay on top. */
     previewChannel?: number | null;
@@ -20,9 +24,12 @@ interface GeometryStageProps {
  *  / edge-blend handles on a backdrop matched to the destination channel's
  *  output resolution. */
 export const GeometryStage: React.FC<GeometryStageProps> = ({
-    canvasWidth, canvasHeight, children, previewChannel,
+    canvasWidth,
+    canvasHeight,
+    children,
+    previewChannel,
 }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const wrapperRef = useRef<HTMLDivElement | null>(null);
     const [scale, setScale] = useState(1);
 
@@ -44,22 +51,25 @@ export const GeometryStage: React.FC<GeometryStageProps> = ({
     const height = canvasHeight * scale;
 
     return (
-        <Stack spacing={1} ref={wrapperRef} sx={{minWidth: 0, flex: 1}}>
+        <Stack spacing={1} ref={wrapperRef} sx={{ minWidth: 0, flex: 1 }}>
             <Stack
                 direction="row"
                 justifyContent="space-between"
                 alignItems="baseline"
-                sx={{color: 'text.secondary'}}
+                sx={{ color: 'text.secondary' }}
             >
-                <Typography variant="caption" sx={{fontFamily: 'monospace'}}>
-                    {t('videoRoutes.stage.label', {width: canvasWidth, height: canvasHeight})}
+                <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                    {t('videoRoutes.stage.label', {
+                        width: canvasWidth,
+                        height: canvasHeight,
+                    })}
                 </Typography>
-                <Typography variant="caption" sx={{fontFamily: 'monospace'}}>
+                <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
                     {Math.round(scale * 100)}%
                 </Typography>
             </Stack>
             <Box
-                sx={(theme) => ({
+                sx={theme => ({
                     position: 'relative',
                     width,
                     height,
@@ -72,35 +82,52 @@ export const GeometryStage: React.FC<GeometryStageProps> = ({
                     flexShrink: 0,
                 })}
             >
-                {previewChannel != null && <ChannelPreview channel={previewChannel} objectFit="cover" />}
+                {previewChannel != null && (
+                    <ChannelPreview
+                        channel={previewChannel}
+                        objectFit="cover"
+                    />
+                )}
                 {/* Subtle quarter/half guides so the user has something to
                     align against without competing with the handles. */}
                 <Box
                     component="svg"
                     viewBox="0 0 100 100"
                     preserveAspectRatio="none"
-                    sx={{position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none'}}
+                    sx={{
+                        position: 'absolute',
+                        inset: 0,
+                        width: '100%',
+                        height: '100%',
+                        pointerEvents: 'none',
+                    }}
                 >
-                    {[25, 50, 75].map((p) => (
+                    {[25, 50, 75].map(p => (
                         <line
                             key={`v${p}`}
-                            x1={p} x2={p} y1={0} y2={100}
+                            x1={p}
+                            x2={p}
+                            y1={0}
+                            y2={100}
                             stroke="rgba(255,255,255,0.05)"
                             strokeWidth={1}
                             vectorEffect="non-scaling-stroke"
                         />
                     ))}
-                    {[25, 50, 75].map((p) => (
+                    {[25, 50, 75].map(p => (
                         <line
                             key={`h${p}`}
-                            x1={0} x2={100} y1={p} y2={p}
+                            x1={0}
+                            x2={100}
+                            y1={p}
+                            y2={p}
                             stroke="rgba(255,255,255,0.05)"
                             strokeWidth={1}
                             vectorEffect="non-scaling-stroke"
                         />
                     ))}
                 </Box>
-                {children({scale, width, height})}
+                {children({ scale, width, height })}
             </Box>
         </Stack>
     );

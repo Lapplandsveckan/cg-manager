@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, { useState } from 'react';
 import {
     Accordion,
     AccordionDetails,
@@ -19,10 +19,16 @@ import {
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import {Trans, useTranslation} from 'next-i18next';
-import {useStoredBoolean} from '../../lib/hooks/useStoredBoolean';
-import {ArtnetCanvas, type Fixture} from './ArtnetCanvas';
-import {ARTNET_SCALAR_FIELDS, Fields, type FieldDef, type RecordData, ScalarField} from './fields';
+import { Trans, useTranslation } from 'next-i18next';
+import { useStoredBoolean } from '../../lib/hooks/useStoredBoolean';
+import { ArtnetCanvas, type Fixture } from './ArtnetCanvas';
+import {
+    ARTNET_SCALAR_FIELDS,
+    Fields,
+    type FieldDef,
+    type RecordData,
+    ScalarField,
+} from './fields';
 
 interface ArtnetData extends RecordData {
     universes?: number[];
@@ -45,7 +51,7 @@ const newFixture = (canvasWidth: number, canvasHeight: number): Fixture => ({
     startAddress: 1,
     fixtureCount: '1',
     fixtureChannels: 3,
-    flux: {r: 1, g: 1, b: 1, w: 1},
+    flux: { r: 1, g: 1, b: 1, w: 1 },
     left: Math.round(canvasWidth / 2 - 100),
     top: Math.round(canvasHeight / 2 - 50),
     width: 200,
@@ -60,31 +66,42 @@ const fixtureSummary = (fixture: Fixture, index: number): string => {
 };
 
 export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
-    data, canvasWidth, canvasHeight, previewChannel, onChange,
+    data,
+    canvasWidth,
+    canvasHeight,
+    previewChannel,
+    onChange,
 }) => {
-    const {t} = useTranslation('common');
+    const { t } = useTranslation('common');
     const fixtures = data.fixtures ?? [];
     const [selected, setSelected] = useState<number | null>(null);
-    const [showPreview, setShowPreview] = useStoredBoolean(PREVIEW_PREF_KEY, false);
+    const [showPreview, setShowPreview] = useStoredBoolean(
+        PREVIEW_PREF_KEY,
+        false,
+    );
 
-    const updateData = (key: string, value: any) => onChange({...data, [key]: value});
+    const updateData = (key: string, value: any) =>
+        onChange({ ...data, [key]: value });
 
     const updateFixture = (i: number, key: string, value: any) => {
-        const next = fixtures.map((f, idx) => idx === i ? {...f, [key]: value} : f);
-        onChange({...data, fixtures: next});
+        const next = fixtures.map((f, idx) =>
+            idx === i ? { ...f, [key]: value } : f,
+        );
+        onChange({ ...data, fixtures: next });
     };
 
-    const updateFixtures = (next: Fixture[]) => onChange({...data, fixtures: next});
+    const updateFixtures = (next: Fixture[]) =>
+        onChange({ ...data, fixtures: next });
 
     const addFixture = () => {
         const next = [...fixtures, newFixture(canvasWidth, canvasHeight)];
-        onChange({...data, fixtures: next});
+        onChange({ ...data, fixtures: next });
         setSelected(next.length - 1);
     };
 
     const removeFixture = (i: number) => {
         const next = fixtures.filter((_, idx) => idx !== i);
-        onChange({...data, fixtures: next});
+        onChange({ ...data, fixtures: next });
         if (selected === i) setSelected(null);
         else if (selected !== null && selected > i) setSelected(selected - 1);
     };
@@ -93,12 +110,22 @@ export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
 
     return (
         <Stack spacing={3}>
-            <Card variant="outlined" sx={(theme) => ({p: 2, bgcolor: theme.palette.surface.elevated})}>
+            <Card
+                variant="outlined"
+                sx={theme => ({
+                    p: 2,
+                    bgcolor: theme.palette.surface.elevated,
+                })}
+            >
                 <Stack spacing={2}>
-                    <Typography variant="h4">{t('config.artnet.output')}</Typography>
+                    <Typography variant="h4">
+                        {t('config.artnet.output')}
+                    </Typography>
                     <UniversesInput
                         universes={data.universes ?? []}
-                        onChange={(next) => onChange({...data, universes: next})}
+                        onChange={next =>
+                            onChange({ ...data, universes: next })
+                        }
                     />
                     <Fields
                         fields={ARTNET_SCALAR_FIELDS}
@@ -108,8 +135,12 @@ export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
                 </Stack>
             </Card>
 
-            <Stack direction={{xs: 'column', lg: 'row'}} gap={3} alignItems="flex-start">
-                <Stack spacing={1} sx={{minWidth: 0, flex: 1}}>
+            <Stack
+                direction={{ xs: 'column', lg: 'row' }}
+                gap={3}
+                alignItems="flex-start"
+            >
+                <Stack spacing={1} sx={{ minWidth: 0, flex: 1 }}>
                     {previewChannel != null && (
                         <Stack direction="row" justifyContent="flex-end">
                             <FormControlLabel
@@ -117,16 +148,25 @@ export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
                                     <Switch
                                         size="small"
                                         checked={showPreview}
-                                        onChange={(e) => setShowPreview(e.target.checked)}
+                                        onChange={e =>
+                                            setShowPreview(e.target.checked)
+                                        }
                                     />
                                 }
                                 label={
                                     <Typography variant="caption">
-                                        {t('config.artnet.livePreview', {channel: previewChannel})}
+                                        {t('config.artnet.livePreview', {
+                                            channel: previewChannel,
+                                        })}
                                     </Typography>
                                 }
                                 labelPlacement="start"
-                                sx={{m: 0, '& .MuiFormControlLabel-label': {color: 'text.secondary'}}}
+                                sx={{
+                                    m: 0,
+                                    '& .MuiFormControlLabel-label': {
+                                        color: 'text.secondary',
+                                    },
+                                }}
                             />
                         </Stack>
                     )}
@@ -141,20 +181,36 @@ export const ArtnetEditor: React.FC<ArtnetEditorProps> = ({
                     />
                 </Stack>
 
-                <Stack spacing={2} sx={{width: {xs: '100%', lg: 480}, flexShrink: 0}}>
-                    <Stack direction="row" justifyContent="space-between" alignItems="center">
-                        <Typography variant="h4">{t('config.artnet.fixtures')}</Typography>
-                        <Button size="small" startIcon={<AddRoundedIcon />} onClick={addFixture}>
+                <Stack
+                    spacing={2}
+                    sx={{ width: { xs: '100%', lg: 480 }, flexShrink: 0 }}
+                >
+                    <Stack
+                        direction="row"
+                        justifyContent="space-between"
+                        alignItems="center"
+                    >
+                        <Typography variant="h4">
+                            {t('config.artnet.fixtures')}
+                        </Typography>
+                        <Button
+                            size="small"
+                            startIcon={<AddRoundedIcon />}
+                            onClick={addFixture}
+                        >
                             {t('actions.add')}
                         </Button>
                     </Stack>
 
                     {fixtures.length === 0 ? (
-                        <Typography variant="body2" sx={{color: 'text.secondary'}}>
+                        <Typography
+                            variant="body2"
+                            sx={{ color: 'text.secondary' }}
+                        >
                             <Trans
                                 i18nKey="config.artnet.fixturesEmpty"
                                 ns="common"
-                                components={{em: <em />}}
+                                components={{ em: <em /> }}
                             />
                         </Typography>
                     ) : (
@@ -195,20 +251,40 @@ const buildFixtureFields = (t: TFn) => ({
         options: ['DIMMER', 'RGB', 'RGBW'],
     } as FieldDef,
     START_ADDRESS_FIELD: {
-        key: 'startAddress', label: t('config.fields.startAddress'), type: 'integer',
+        key: 'startAddress',
+        label: t('config.fields.startAddress'),
+        type: 'integer',
     } as FieldDef,
     CHANNELS_FIELD: {
-        key: 'fixtureChannels', label: t('config.fields.channelsPerFixture'), type: 'integer',
+        key: 'fixtureChannels',
+        label: t('config.fields.channelsPerFixture'),
+        type: 'integer',
     } as FieldDef,
-    LEFT_FIELD: {key: 'left', label: t('config.fields.left'), type: 'integer'} as FieldDef,
-    TOP_FIELD: {key: 'top', label: t('config.fields.top'), type: 'integer'} as FieldDef,
-    WIDTH_FIELD: {key: 'width', label: t('config.fields.width'), type: 'integer'} as FieldDef,
-    HEIGHT_FIELD: {key: 'height', label: t('config.fields.height'), type: 'integer'} as FieldDef,
+    LEFT_FIELD: {
+        key: 'left',
+        label: t('config.fields.left'),
+        type: 'integer',
+    } as FieldDef,
+    TOP_FIELD: {
+        key: 'top',
+        label: t('config.fields.top'),
+        type: 'integer',
+    } as FieldDef,
+    WIDTH_FIELD: {
+        key: 'width',
+        label: t('config.fields.width'),
+        type: 'integer',
+    } as FieldDef,
+    HEIGHT_FIELD: {
+        key: 'height',
+        label: t('config.fields.height'),
+        type: 'integer',
+    } as FieldDef,
     FLUX_FIELDS: [
-        {key: 'r', label: 'R', type: 'number'},
-        {key: 'g', label: 'G', type: 'number'},
-        {key: 'b', label: 'B', type: 'number'},
-        {key: 'w', label: 'W', type: 'number'},
+        { key: 'r', label: 'R', type: 'number' },
+        { key: 'g', label: 'G', type: 'number' },
+        { key: 'b', label: 'B', type: 'number' },
+        { key: 'w', label: 'W', type: 'number' },
     ] as FieldDef[],
 });
 
@@ -219,22 +295,36 @@ interface FixtureDetailsProps {
     onDelete: () => void;
 }
 
-const FixtureDetails: React.FC<FixtureDetailsProps> = ({index, fixture, onChange, onDelete}) => {
-    const {t} = useTranslation('common');
+const FixtureDetails: React.FC<FixtureDetailsProps> = ({
+    index,
+    fixture,
+    onChange,
+    onDelete,
+}) => {
+    const { t } = useTranslation('common');
     const F = buildFixtureFields(t);
     const flux = (fixture.flux ?? {}) as Record<string, number | undefined>;
     const updateFlux = (k: string, v: any) => {
-        const next = {...flux, [k]: v};
-        const isEmpty = Object.values(next).every((x) => x === undefined || x === '');
+        const next = { ...flux, [k]: v };
+        const isEmpty = Object.values(next).every(
+            x => x === undefined || x === '',
+        );
         onChange('flux', isEmpty ? undefined : next);
     };
 
     return (
-        <Card variant="outlined" sx={(theme) => ({p: 2, bgcolor: theme.palette.surface.elevated})}>
+        <Card
+            variant="outlined"
+            sx={theme => ({ p: 2, bgcolor: theme.palette.surface.elevated })}
+        >
             <Stack spacing={1.5}>
-                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    alignItems="center"
+                >
                     <Typography variant="body1">
-                        {t('config.artnet.fixtureN', {n: index + 1})}
+                        {t('config.artnet.fixtureN', { n: index + 1 })}
                     </Typography>
                     <Tooltip title={t('actions.delete')}>
                         <IconButton size="small" onClick={onDelete}>
@@ -243,79 +333,91 @@ const FixtureDetails: React.FC<FixtureDetailsProps> = ({index, fixture, onChange
                     </Tooltip>
                 </Stack>
 
-                <ScalarField def={F.TYPE_FIELD as any} value={fixture.type} onChange={(v) => onChange('type', v)} />
+                <ScalarField
+                    def={F.TYPE_FIELD as any}
+                    value={fixture.type}
+                    onChange={v => onChange('type', v)}
+                />
 
                 <Stack direction="row" gap={1.5}>
                     <ScalarField
                         def={F.START_ADDRESS_FIELD as any}
                         value={fixture.startAddress}
-                        onChange={(v) => onChange('startAddress', v)}
+                        onChange={v => onChange('startAddress', v)}
                     />
                     <ScalarField
                         def={F.CHANNELS_FIELD as any}
                         value={fixture.fixtureChannels}
-                        onChange={(v) => onChange('fixtureChannels', v)}
+                        onChange={v => onChange('fixtureChannels', v)}
                     />
                 </Stack>
 
                 <FixtureCountInput
                     value={fixture.fixtureCount}
-                    onChange={(v) => onChange('fixtureCount', v)}
+                    onChange={v => onChange('fixtureCount', v)}
                 />
 
                 <Stack direction="row" gap={1.5}>
                     <ScalarField
                         def={F.LEFT_FIELD as any}
                         value={fixture.left}
-                        onChange={(v) => onChange('left', v)}
+                        onChange={v => onChange('left', v)}
                     />
                     <ScalarField
                         def={F.TOP_FIELD as any}
                         value={fixture.top}
-                        onChange={(v) => onChange('top', v)}
+                        onChange={v => onChange('top', v)}
                     />
                 </Stack>
                 <Stack direction="row" gap={1.5}>
                     <ScalarField
                         def={F.WIDTH_FIELD as any}
                         value={fixture.width}
-                        onChange={(v) => onChange('width', v)}
+                        onChange={v => onChange('width', v)}
                     />
                     <ScalarField
                         def={F.HEIGHT_FIELD as any}
                         value={fixture.height}
-                        onChange={(v) => onChange('height', v)}
+                        onChange={v => onChange('height', v)}
                     />
                 </Stack>
 
                 <Accordion
                     disableGutters
                     elevation={0}
-                    sx={(theme) => ({
+                    sx={theme => ({
                         bgcolor: 'transparent',
                         border: `1px solid ${theme.palette.divider}`,
                         borderRadius: 1,
-                        '&::before': {display: 'none'},
+                        '&::before': { display: 'none' },
                     })}
                 >
                     <AccordionSummary
                         expandIcon={<ExpandMoreRoundedIcon fontSize="small" />}
-                        sx={{minHeight: 36, '& .MuiAccordionSummary-content': {my: 0.5}}}
+                        sx={{
+                            minHeight: 36,
+                            '& .MuiAccordionSummary-content': { my: 0.5 },
+                        }}
                     >
-                        <Typography variant="body2">{t('config.advanced')}</Typography>
+                        <Typography variant="body2">
+                            {t('config.advanced')}
+                        </Typography>
                     </AccordionSummary>
                     <AccordionDetails>
                         <Stack spacing={1}>
-                            <Typography variant="caption" sx={{color: 'text.secondary'}}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {t('config.artnet.fluxHelp')}
                             </Typography>
                             <Stack direction="row" gap={1.5}>
-                                {F.FLUX_FIELDS.map((def) => (
+                                {F.FLUX_FIELDS.map(def => (
                                     <ScalarField
                                         key={def.key}
                                         def={def as any}
                                         value={flux[def.key]}
-                                        onChange={(v) => updateFlux(def.key, v)}
+                                        onChange={v => updateFlux(def.key, v)}
                                     />
                                 ))}
                             </Stack>
@@ -327,11 +429,14 @@ const FixtureDetails: React.FC<FixtureDetailsProps> = ({index, fixture, onChange
     );
 };
 
-const parseCount = (str: string | undefined): {w: number; h: number} => {
-    if (!str) return {w: 1, h: 1};
+const parseCount = (str: string | undefined): { w: number; h: number } => {
+    if (!str) return { w: 1, h: 1 };
     const m = String(str).match(/^(\d+)(?:x(\d+))?$/i);
-    if (!m) return {w: 1, h: 1};
-    return {w: parseInt(m[1], 10) || 1, h: m[2] ? parseInt(m[2], 10) || 1 : 1};
+    if (!m) return { w: 1, h: 1 };
+    return {
+        w: parseInt(m[1], 10) || 1,
+        h: m[2] ? parseInt(m[2], 10) || 1 : 1,
+    };
 };
 
 // "10x1" round-trips back to "10" so we don't churn the user's existing
@@ -348,9 +453,12 @@ interface FixtureCountInputProps {
     onChange: (value: string) => void;
 }
 
-const FixtureCountInput: React.FC<FixtureCountInputProps> = ({value, onChange}) => {
-    const {t} = useTranslation('common');
-    const {w, h} = parseCount(value);
+const FixtureCountInput: React.FC<FixtureCountInputProps> = ({
+    value,
+    onChange,
+}) => {
+    const { t } = useTranslation('common');
+    const { w, h } = parseCount(value);
     return (
         <Stack direction="row" gap={1.5}>
             <TextField
@@ -359,8 +467,8 @@ const FixtureCountInput: React.FC<FixtureCountInputProps> = ({value, onChange}) 
                 type="number"
                 fullWidth
                 value={w}
-                inputProps={{step: 1, min: 1}}
-                onChange={(e) => {
+                inputProps={{ step: 1, min: 1 }}
+                onChange={e => {
                     const n = parseInt(e.target.value, 10);
                     onChange(formatCount(Number.isFinite(n) ? n : 1, h));
                 }}
@@ -371,8 +479,8 @@ const FixtureCountInput: React.FC<FixtureCountInputProps> = ({value, onChange}) 
                 type="number"
                 fullWidth
                 value={h}
-                inputProps={{step: 1, min: 1}}
-                onChange={(e) => {
+                inputProps={{ step: 1, min: 1 }}
+                onChange={e => {
                     const n = parseInt(e.target.value, 10);
                     onChange(formatCount(w, Number.isFinite(n) ? n : 1));
                 }}
@@ -388,32 +496,52 @@ interface FixtureRowProps {
     onDelete: () => void;
 }
 
-const FixtureRow: React.FC<FixtureRowProps> = ({label, selected, onSelect, onDelete}) => {
-    const {t} = useTranslation('common');
+const FixtureRow: React.FC<FixtureRowProps> = ({
+    label,
+    selected,
+    onSelect,
+    onDelete,
+}) => {
+    const { t } = useTranslation('common');
     return (
         <Card
             variant="outlined"
             onClick={onSelect}
-            sx={(theme) => ({
+            sx={theme => ({
                 p: 1,
                 cursor: 'pointer',
                 bgcolor: selected
                     ? alpha(theme.palette.primary.main, 0.15)
                     : theme.palette.surface.elevated,
-                borderColor: selected ? theme.palette.primary.main : theme.palette.divider,
+                borderColor: selected
+                    ? theme.palette.primary.main
+                    : theme.palette.divider,
             })}
         >
-            <Stack direction="row" justifyContent="space-between" alignItems="center" gap={1}>
+            <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="center"
+                gap={1}
+            >
                 <Typography
                     variant="body2"
-                    sx={{fontFamily: 'monospace', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis'}}
+                    sx={{
+                        fontFamily: 'monospace',
+                        minWidth: 0,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                    }}
                 >
                     {label}
                 </Typography>
                 <Tooltip title={t('actions.delete')}>
                     <IconButton
                         size="small"
-                        onClick={(e) => { e.stopPropagation(); onDelete(); }}
+                        onClick={e => {
+                            e.stopPropagation();
+                            onDelete();
+                        }}
                     >
                         <DeleteOutlineRoundedIcon fontSize="small" />
                     </IconButton>
@@ -455,13 +583,19 @@ const dedupeOrdered = (nums: number[]): number[] => {
     const seen = new Set<number>();
     const out: number[] = [];
     for (const n of nums)
-        if (!seen.has(n)) { seen.add(n); out.push(n); }
+        if (!seen.has(n)) {
+            seen.add(n);
+            out.push(n);
+        }
 
     return out;
 };
 
-const UniversesInput: React.FC<UniversesInputProps> = ({universes, onChange}) => {
-    const {t} = useTranslation('common');
+const UniversesInput: React.FC<UniversesInputProps> = ({
+    universes,
+    onChange,
+}) => {
+    const { t } = useTranslation('common');
     return (
         <Autocomplete
             multiple
@@ -473,7 +607,7 @@ const UniversesInput: React.FC<UniversesInputProps> = ({universes, onChange}) =>
                 // Each entry might be a single number string OR something the user
                 // pasted ("0,1,2" / "0-3"). Flat-map through the parser, then
                 // dedupe while preserving the order the user laid them out in.
-                const parsed = raw.flatMap((v) => parseUniverseTokens(String(v)));
+                const parsed = raw.flatMap(v => parseUniverseTokens(String(v)));
                 onChange(dedupeOrdered(parsed));
             }}
             renderTags={(values, getTagProps) =>
@@ -482,16 +616,20 @@ const UniversesInput: React.FC<UniversesInputProps> = ({universes, onChange}) =>
                         key={index}
                         size="small"
                         label={value}
-                        {...getTagProps({index})}
+                        {...getTagProps({ index })}
                     />
                 ))
             }
-            renderInput={(params) => (
+            renderInput={params => (
                 <TextField
                     {...params}
                     size="small"
                     label={t('config.artnet.universes')}
-                    placeholder={universes.length === 0 ? t('config.artnet.universesPlaceholder') : ''}
+                    placeholder={
+                        universes.length === 0
+                            ? t('config.artnet.universesPlaceholder')
+                            : ''
+                    }
                     helperText={t('config.artnet.universesHelp')}
                 />
             )}

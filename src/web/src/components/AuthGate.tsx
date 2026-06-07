@@ -1,7 +1,7 @@
-import React, {useEffect, useState} from 'react';
-import {useRouter} from 'next/router';
-import {Box, CircularProgress} from '@mui/material';
-import {noTryAsync} from 'no-try';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/router';
+import { Box, CircularProgress } from '@mui/material';
+import { noTryAsync } from 'no-try';
 
 interface AuthStatus {
     enabled: boolean;
@@ -9,8 +9,8 @@ interface AuthStatus {
 }
 
 async function checkAuth(): Promise<AuthStatus | null> {
-    const [fetchErr, resp] = await noTryAsync(
-        () => fetch('/api/auth/check', {credentials: 'same-origin'}),
+    const [fetchErr, resp] = await noTryAsync(() =>
+        fetch('/api/auth/check', { credentials: 'same-origin' }),
     );
     if (fetchErr || !resp.ok) return null;
     const [jsonErr, json] = await noTryAsync(() => resp.json());
@@ -30,13 +30,15 @@ async function checkAuth(): Promise<AuthStatus | null> {
  * the same cookie, so we don't want it firing before we know we're allowed
  * in (it would briefly show ConnectionBanner as 'disconnected').
  */
-export const AuthGate: React.FC<{children: React.ReactNode}> = ({children}) => {
+export const AuthGate: React.FC<{ children: React.ReactNode }> = ({
+    children,
+}) => {
     const router = useRouter();
     const [status, setStatus] = useState<AuthStatus | null>(null);
 
     useEffect(() => {
         let cancelled = false;
-        checkAuth().then((s) => {
+        checkAuth().then(s => {
             if (!cancelled) setStatus(s);
         });
         return () => {

@@ -3,7 +3,7 @@
 
 import path from 'path';
 import fs from 'fs';
-import {type RouteExport} from './route';
+import { type RouteExport } from './route';
 
 function readDirRecursive(dir: string) {
     const results = fs.readdirSync(dir);
@@ -21,14 +21,13 @@ function readDirRecursive(dir: string) {
     return files;
 }
 
-const files = readDirRecursive(path.join(__dirname, 'routes'))
-    .map((file) => {
-        let fileName = file.substring(0, file.length - '.js'.length);
-        fileName = fileName.replace(/(\/|^)index$/, '');
+const files = readDirRecursive(path.join(__dirname, 'routes')).map(file => {
+    let fileName = file.substring(0, file.length - '.js'.length);
+    fileName = fileName.replace(/(\/|^)index$/, '');
 
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const routeExport = require(`./routes/${file}`).default;
-        return [`/${fileName}`, routeExport] as [string, RouteExport];
-    });
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const routeExport = require(`./routes/${file}`).default;
+    return [`/${fileName}`, routeExport] as [string, RouteExport];
+});
 
 export default files;

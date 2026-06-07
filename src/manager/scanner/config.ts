@@ -13,9 +13,15 @@ function casparRelative(dir: string): string {
 
 const Config = {
     paths: {
-        get template() { return casparRelative('template'); },
-        get media()    { return casparRelative('media'); },
-        get font()     { return casparRelative('font'); },
+        get template() {
+            return casparRelative('template');
+        },
+        get media() {
+            return casparRelative('media');
+        },
+        get font() {
+            return casparRelative('font');
+        },
     },
 };
 

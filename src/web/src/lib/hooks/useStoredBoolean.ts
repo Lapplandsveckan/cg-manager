@@ -1,5 +1,5 @@
-import {useEffect, useState} from 'react';
-import {getStorageItem, setStorageItem} from '../storage';
+import { useEffect, useState } from 'react';
+import { getStorageItem, setStorageItem } from '../storage';
 
 export function useStoredBoolean(
     key: string,

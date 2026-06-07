@@ -1,9 +1,9 @@
-import {WebError} from 'rest-exchange-protocol';
-import {type RouteExport} from '../../../route';
-import {CasparManager} from '../../../../manager';
+import { WebError } from 'rest-exchange-protocol';
+import { type RouteExport } from '../../../route';
+import { CasparManager } from '../../../../manager';
 
 export default {
-    'ACTION': async (request) => {
+    ACTION: async request => {
         if (!request.params.id) throw new WebError('Invalid request data', 400);
 
         const data = request.getData();
@@ -30,14 +30,12 @@ export default {
         rundown.items = reordered;
         await manager.rundowns.saveRundown(rundown);
 
-        manager
-            .server
-            .broadcast(
-                'rundown/order',
-                'ACTION',
-                { id: request.params.id, order: reordered.map(item => item.id) },
-                request.getClient(),
-            );
+        manager.server.broadcast(
+            'rundown/order',
+            'ACTION',
+            { id: request.params.id, order: reordered.map(item => item.id) },
+            request.getClient(),
+        );
 
         return rundown;
     },
