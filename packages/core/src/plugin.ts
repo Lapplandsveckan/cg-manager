@@ -1,11 +1,14 @@
 import {EventEmitter} from 'events';
 import {Effect, EffectConstructor} from './effect';
+import {Channel} from './layers';
 import {noTry} from 'no-try';
 import {Logger, CasparManager} from './types';
 import {Method, WebsocketOutboundMethod} from 'rest-exchange-protocol';
 import {Route} from 'rest-exchange-protocol/dist/route';
 import {UI_INJECTION_ZONE} from './types/ui';
-import {RundownActionMetadata, RundownItem} from './types/rundown';
+import {RundownActionMetadata, RundownItem, Rundown} from './types/rundown';
+import {VideoRoute, RouteChange} from './types/routes';
+import {CasparStatus} from './types/caspar/process';
 
 export class CasparPlugin {
     private _api: PluginAPI;
@@ -200,8 +203,93 @@ export class PluginAPI extends EventEmitter {
         this._manager.rundowns.executor.registerAction(name, handler, this._plugin.pluginName, metadata);
     }
 
+    // Video routes — read
+    public getVideoRoute(id: string): VideoRoute | null {
+        return this._manager.routes.getVideoRoute(id);
+    }
+
+    public getVideoRoutes(): VideoRoute[] {
+        return this._manager.routes.getVideoRoutes();
+    }
+
+    // Video routes — write
+    public createVideoRoute(data: Omit<VideoRoute, 'id'>): VideoRoute {
+        return this._manager.routes.createVideoRoute(data);
+    }
+
+    public updateVideoRoute(data: VideoRoute): Promise<void> {
+        return this._manager.routes.updateVideoRoute(data);
+    }
+
+    public deleteVideoRoute(id: string): Promise<void> {
+        return this._manager.routes.deleteVideoRoute(id);
+    }
+
     public setVideoRouteEnabled(id: string, enabled?: boolean) {
         const value = enabled ?? !this._manager.routes.getVideoRoute(id)?.enabled;
         this._manager.routes.setVideoRouteEnabled(id, value);
+    }
+
+    // Channel access
+    public getChannel(casparChannel: number): Channel {
+        return this._manager.executor.getChannel(casparChannel);
+    }
+
+    // Rundowns — read
+    public getRundown(id: string): Rundown | null {
+        return this._manager.rundowns.getRundown(id);
+    }
+
+    public getRundowns(): Rundown[] {
+        return this._manager.rundowns.getRundowns();
+    }
+
+    // Rundowns — write
+    public createRundown(name: string): Rundown {
+        return this._manager.rundowns.createRundown(name);
+    }
+
+    public deleteRundown(id: string): Promise<void> {
+        return this._manager.rundowns.deleteRundown(id);
+    }
+
+    // CasparCG process status
+    public getCasparStatus(): CasparStatus {
+        return this._manager.caspar.getStatus();
+    }
+
+    public onCasparStatus(handler: (status: CasparStatus) => void) {
+        this._manager.on('caspar-status', handler);
+    }
+
+    public offCasparStatus(handler: (status: CasparStatus) => void) {
+        this._manager.off('caspar-status', handler);
+    }
+
+    // AMCP connection state
+    public isConnected(): boolean {
+        return this._manager.executor.connected;
+    }
+
+    public awaitConnection(): Promise<void> {
+        return this._manager.executor.awaitConnection();
+    }
+
+    // Media library events
+    public onMediaChange(handler: (key: string, value: unknown) => void) {
+        this._manager.on('media', handler);
+    }
+
+    public offMediaChange(handler: (key: string, value: unknown) => void) {
+        this._manager.off('media', handler);
+    }
+
+    // Route change events
+    public onRouteChange(handler: (change: RouteChange) => void) {
+        this._manager.on('route-change', handler);
+    }
+
+    public offRouteChange(handler: (change: RouteChange) => void) {
+        this._manager.off('route-change', handler);
     }
 }

@@ -1,5 +1,5 @@
 import {CommandExecutor} from '../../executor';
-import {EffectGroup} from '../../layers';
+import {Channel, EffectGroup} from '../../layers';
 
 export declare class CasparExecutor extends CommandExecutor {
     public readonly ip: string;
@@ -11,7 +11,10 @@ export declare class CasparExecutor extends CommandExecutor {
 
     public connect(): void;
     public disconnect(): void;
+    public awaitConnection(): Promise<void>;
 
     public get connected(): boolean;
+    public getChannel(casparChannel: number): Channel;
+    public getChannels(): Channel[];
     public getEffectGroup(identifier: string, index?: number): EffectGroup;
 }

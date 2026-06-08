@@ -62,6 +62,7 @@ export declare class RundownManager {
 
     public createRundown(name: string): Rundown;
     public getRundown(id: string): Rundown | null;
+    public getRundowns(): Rundown[];
 
     public loadRundowns(): Promise<void>;
     public saveRundown(rundown: Rundown): Promise<void>;

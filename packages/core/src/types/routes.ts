@@ -37,12 +37,20 @@ export interface VideoRoute {
     name: string;
 
     transform?: number[];
+    edgeblend?: number[];
+    /** Eight numbers — quad corners in TL, TR, BR, BL order. */
+    perspective?: number[];
 
     source: Source;
     destination: Destination;
 
     enabled: boolean;
     metadata?: Record<string, any>;
+}
+
+export interface RouteChange {
+    method: 'CREATE' | 'UPDATE' | 'DELETE';
+    data: VideoRoute | string;
 }
 
 export declare class VideoRoutesManager {
@@ -57,5 +65,7 @@ export declare class VideoRoutesManager {
     public saveVideoRoute(route: VideoRoute): Promise<void>;
     public deleteVideoRoute(id: string): Promise<void>;
 
-    public setVideoRouteEnabled(id: string, enabled: boolean);
+    public enableVideoRoute(id: string): void;
+    public disableVideoRoute(id: string): void;
+    public setVideoRouteEnabled(id: string, enabled: boolean): void;
 }
