@@ -3,6 +3,7 @@ import os from 'os';
 import { noTry } from 'no-try';
 import config from '../util/config';
 import { Logger } from '../util/log';
+import { version } from '../util/version';
 
 /**
  * LAN discovery beacon. Periodically broadcasts a JSON announcement so
@@ -30,12 +31,6 @@ interface BeaconPayload {
     port: number;
     version: string;
     t: number;
-}
-
-function readVersion(): string {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const [, pkg] = noTry(() => require('../../package.json'));
-    return (pkg as { version?: string } | undefined)?.version ?? '0.0.0';
 }
 
 function broadcastAddress(ip: string, netmask: string): string | null {
@@ -77,7 +72,6 @@ export class Discovery {
     private socket: dgram.Socket | null = null;
     private timer: NodeJS.Timeout | null = null;
     private readonly id = Math.random().toString(36).substring(2, 10);
-    private readonly version = readVersion();
 
     async start(): Promise<void> {
         const socket = dgram.createSocket({ type: 'udp4', reuseAddr: true });
@@ -128,7 +122,7 @@ export class Discovery {
             id: this.id,
             name: os.hostname(),
             port: config.port,
-            version: this.version,
+            version,
             t: Date.now(),
         };
         const buf = Buffer.from(JSON.stringify(payload), 'utf8');

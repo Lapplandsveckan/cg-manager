@@ -1,5 +1,6 @@
 import { type RouteExport } from '../route';
+import { version } from '../../util/version';
 
 export default {
-    GET: async () => '0.0.1',
+    GET: async () => version,
 } satisfies RouteExport;
