@@ -235,6 +235,15 @@ export class PreviewManager {
                 '+nobuffer',
                 '-flags',
                 'low_delay',
+                // Don't spend the default 5s probing the input for stream info.
+                // The source is forced h264 and copied straight through, so the
+                // first SPS/PPS+keyframe is all ffmpeg needs — without these it
+                // buffers ~analyzeduration of stream-time (5s) before emitting
+                // its first RTP packet, which dominated preview activation time.
+                '-probesize',
+                '32',
+                '-analyzeduration',
+                '0',
                 '-f',
                 'h264',
                 '-i',
