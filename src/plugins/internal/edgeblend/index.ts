@@ -90,7 +90,7 @@ export default class EdgeblendPlugin extends CasparPlugin {
 
         const promises = [];
         for (let i = 0; i < layout.outputChannels.length; i++) {
-            const channel = this.api['_manager'].executor.getChannel(
+            const channel = this.api.getChannel(
                 layout.outputChannels[i].getCasparChannel(),
             );
 

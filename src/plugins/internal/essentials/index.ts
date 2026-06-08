@@ -43,7 +43,7 @@ export default class EssentialsPlugin extends CasparPlugin {
             return;
         }
 
-        const route = this.api['_manager'].routes.getVideoRoute(routeId);
+        const route = this.api.getVideoRoute(routeId);
         if (!route) {
             this.logger.warn(`toggle-video-route: no route with id ${routeId}`);
             return;
