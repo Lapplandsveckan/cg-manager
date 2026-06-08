@@ -27,6 +27,7 @@ import TuneIcon from '@mui/icons-material/Tune';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import LanguageIcon from '@mui/icons-material/Language';
 import { noTryAsync } from 'no-try';
+import { checkAuth } from '../lib/auth';
 import { type CasparStatus } from '../lib/api/caspar';
 import { useConnection } from './ConnectionProvider';
 import { useSocket } from '../lib/hooks/useSocket';
@@ -243,14 +244,9 @@ export const Navbar = () => {
 
     useEffect(() => {
         let cancelled = false;
-        (async () => {
-            const [, resp] = await noTryAsync(() =>
-                fetch('/api/auth/check', { credentials: 'same-origin' }),
-            );
-            if (cancelled || !resp?.ok) return;
-            const [, json] = await noTryAsync(() => resp.json());
-            if (!cancelled && json?.enabled) setAuthEnabled(true);
-        })();
+        checkAuth().then(status => {
+            if (!cancelled && status?.enabled) setAuthEnabled(true);
+        });
         return () => {
             cancelled = true;
         };

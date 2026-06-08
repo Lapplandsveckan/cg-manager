@@ -1,22 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { Box, CircularProgress } from '@mui/material';
-import { noTryAsync } from 'no-try';
-
-interface AuthStatus {
-    enabled: boolean;
-    authenticated: boolean;
-}
-
-async function checkAuth(): Promise<AuthStatus | null> {
-    const [fetchErr, resp] = await noTryAsync(() =>
-        fetch('/api/auth/check', { credentials: 'same-origin' }),
-    );
-    if (fetchErr || !resp.ok) return null;
-    const [jsonErr, json] = await noTryAsync(() => resp.json());
-    if (jsonErr) return null;
-    return json as AuthStatus;
-}
+import { type AuthStatus, checkAuth } from '../lib/auth';
 
 /**
  * Gate the app behind the server's auth status. On mount, hits

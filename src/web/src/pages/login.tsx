@@ -12,6 +12,7 @@ import {
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import { useTranslation } from 'next-i18next';
 import { noTryAsync } from 'no-try';
+import { checkAuth } from '../lib/auth';
 
 const Page = () => {
     const { t } = useTranslation('common');
@@ -31,21 +32,16 @@ const Page = () => {
         if (!router.isReady) return;
 
         let cancelled = false;
-        (async () => {
-            const [, resp] = await noTryAsync(() =>
-                fetch('/api/auth/check', { credentials: 'same-origin' }),
-            );
-            if (cancelled || !resp?.ok) return;
-            const [, json] = await noTryAsync(() => resp.json());
-            const status = json as { enabled: boolean; authenticated: boolean };
-            if (!status?.enabled || status.authenticated) {
+        checkAuth().then(status => {
+            if (cancelled || !status) return;
+            if (!status.enabled || status.authenticated) {
                 const from =
                     typeof router.query.from === 'string'
                         ? router.query.from
                         : '/';
                 router.replace(from);
             }
-        })();
+        });
         return () => {
             cancelled = true;
         };
