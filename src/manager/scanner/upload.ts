@@ -30,6 +30,9 @@ interface UploadFile {
 
 export class Upload {
     private static readonly uploads = new Map<string, Upload>();
+    // Wired by MediaScanner — called when a media upload finishes for immediate scan.
+    static onComplete: ((path: string) => void) | undefined;
+
     public readonly id: string;
 
     private file: UploadFile;
@@ -151,7 +154,10 @@ export class Upload {
         Upload.uploads.delete(this.id);
         await this.closeFile();
 
-        await fs.rename(this.getTemporaryPath(), this.getPath());
+        const finalPath = this.getPath();
+        await fs.rename(this.getTemporaryPath(), finalPath);
+        if (this.data.destination.type === 'media')
+            Upload.onComplete?.(finalPath);
         this.logger.info(`Upload complete ${this.destinationLog}`);
     }
 

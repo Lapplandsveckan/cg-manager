@@ -1,6 +1,6 @@
 /* eslint-disable camelcase */
 
-import { promises as fs, existsSync } from 'fs';
+import { promises as fs, existsSync, type Stats } from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import ffmpeg from 'fluent-ffmpeg';
@@ -84,11 +84,25 @@ function configureBinaries() {
         );
 }
 
+// Replace the JSON-stringified id prefix in a cinf/tinf string after a rename.
+function patchId(
+    s: string | undefined,
+    oldId: string,
+    newId: string,
+): string | undefined {
+    if (!s) return s;
+    const prefix = JSON.stringify(oldId);
+    return s.startsWith(prefix)
+        ? JSON.stringify(newId) + s.slice(prefix.length)
+        : s;
+}
+
 async function scanFile(
     mediaPath: string,
     mediaId: string,
-    mediaStat: any,
+    mediaStat: Stats,
     db: FileDatabase,
+    opts: { renamedFrom?: string } = {},
 ) {
     if (!mediaId || mediaStat.isDirectory()) return;
     if (!MEDIA_EXTENSIONS.has(path.extname(mediaPath).toLowerCase())) return;
@@ -98,16 +112,40 @@ async function scanFile(
     const doc = db.retrieve(hash) || { id: mediaId };
     delete doc._invalidate;
 
+    const existingId = doc.id;
+    const idChanged = existingId !== mediaId;
+    const confirmedRename =
+        opts.renamedFrom !== undefined && existingId === opts.renamedFrom;
+
+    // Hash collided with a different, still-live file we are NOT renaming
+    // (e.g. `cp A.mp4 B.mp4`). Reusing the doc would steal A's identity.
+    if (idChanged && !confirmedRename && db.getHash(existingId) !== undefined)
+        return mediaLogger.debug('Duplicate of live media — not indexed');
+
+    if (idChanged) doc.id = mediaId;
     if (doc.mediaPath && doc.mediaPath !== mediaPath) doc.mediaPath = mediaPath;
-    if (
+
+    const metaUnchanged =
         doc.mediaSize === mediaStat.size &&
-        doc.mediaTime === mediaStat.mtime.getTime()
-    )
-        return mediaLogger.debug('Unchanged');
+        doc.mediaTime === mediaStat.mtime.getTime();
+
+    if (!idChanged && metaUnchanged) return mediaLogger.debug('Unchanged');
 
     doc.mediaPath = mediaPath;
     doc.mediaSize = mediaStat.size;
     doc.mediaTime = mediaStat.mtime.getTime();
+
+    // Rename fast-path: reuse existing metadata, just patch the id/path fields.
+    // Only valid when content (and thus size/mtime) is also unchanged — otherwise
+    // fall through and let generateInfo/generateThumb rebuild cinf correctly.
+    if (idChanged && metaUnchanged && doc.mediainfo) {
+        doc.mediainfo.name = mediaId;
+        doc.mediainfo.path = mediaPath;
+        doc.cinf = patchId(doc.cinf, existingId, mediaId);
+        doc.tinf = patchId(doc.tinf, existingId, mediaId);
+        db.put(hash, doc);
+        return mediaLogger.debug('Renamed (fast-path)');
+    }
 
     await Promise.all([
         generateInfo(doc).catch(err => {
@@ -292,7 +330,7 @@ function generateMediainfo(
 }
 
 function createWatcher(
-    callback: (_: [path: string, stat?: any]) => Promise<void> | void,
+    callback: (_: [path: string, stat?: Stats]) => Promise<void> | void,
 ) {
     const watcher = chokidar
         .watch(config.paths.media, {
@@ -373,19 +411,90 @@ export async function getTemplatesWithContent() {
 function Scanner(db: FileDatabase) {
     configureBinaries();
 
-    const stop = createWatcher(async ([mediaPath, mediaStat]) => {
-        const mediaId = getId(config.paths.media, mediaPath);
-        const [error] = await noTryAsync(async () => {
-            if (!mediaStat) db.remove(mediaId);
-            else await scanFile(mediaPath, mediaId, mediaStat, db);
-        });
+    const inodeMap = new Map<string, number>(); // mediaId → inode, for rename detection
+    const pendingRemovals = new Map<
+        number,
+        { mediaId: string; timer: ReturnType<typeof setTimeout> }
+    >();
 
+    // Must be > awaitWriteFinish.stabilityThreshold + pollInterval so the `add`
+    // event for a rename always arrives before we emit the deletion.
+    const RENAME_WINDOW_MS = 3500;
+
+    const processAdd = async (
+        mediaPath: string,
+        mediaId: string,
+        mediaStat: Stats,
+    ) => {
+        // Non-zero inode uniquely identifies a file; zero means unsupported FS
+        // (some Windows volumes) — fall back to normal behaviour in that case.
+        const inode: number = mediaStat.ino;
+        const pending = inode ? pendingRemovals.get(inode) : undefined;
+
+        if (pending) {
+            // Same inode → rename. Cancel the deferred deletion so the old entry
+            // stays visible in the UI until the new one is ready.
+            clearTimeout(pending.timer);
+            pendingRemovals.delete(inode);
+            inodeMap.delete(pending.mediaId);
+        }
+
+        // Register the inode before the async scan so any unlink arriving
+        // during scanFile can still match this file in pendingRemovals.
+        if (
+            MEDIA_EXTENSIONS.has(path.extname(mediaPath).toLowerCase()) &&
+            inode
+        )
+            inodeMap.set(mediaId, inode);
+
+        const [error] = await noTryAsync(() =>
+            scanFile(mediaPath, mediaId, mediaStat, db, {
+                renamedFrom: pending?.mediaId,
+            }),
+        );
         if (error) logger.error(error);
+
+        // Remove the old id only AFTER the new entry is in the DB, so the UI sees
+        // the item change name rather than disappear and reappear.
+        if (pending) db.removeStaleId(pending.mediaId);
+    };
+
+    const closeWatcher = createWatcher(async ([mediaPath, mediaStat]) => {
+        const mediaId = getId(config.paths.media, mediaPath);
+
+        if (!mediaStat) {
+            // unlink: defer removal so a paired rename `add` can cancel it
+            const inode = inodeMap.get(mediaId);
+            if (inode !== undefined) {
+                const timer = setTimeout(() => {
+                    pendingRemovals.delete(inode);
+                    inodeMap.delete(mediaId);
+                    db.remove(mediaId);
+                }, RENAME_WINDOW_MS);
+                pendingRemovals.set(inode, { mediaId, timer });
+            } else {
+                db.remove(mediaId);
+            }
+            return;
+        }
+
+        await processAdd(mediaPath, mediaId, mediaStat);
     });
 
-    return {
-        stop,
+    // Trigger an immediate scan, bypassing awaitWriteFinish — used by the upload
+    // handler so a finished upload appears in the UI without waiting for chokidar.
+    const scan = async (mediaPath: string) => {
+        const [err, stat] = await noTryAsync(() => fs.stat(mediaPath));
+        if (err || !stat) return;
+        await processAdd(mediaPath, getId(config.paths.media, mediaPath), stat);
     };
-}
 
+    const stop = async () => {
+        for (const { timer } of pendingRemovals.values()) clearTimeout(timer);
+        pendingRemovals.clear();
+        await closeWatcher();
+    };
+
+    return { stop, scan };
+}
 export default Scanner;

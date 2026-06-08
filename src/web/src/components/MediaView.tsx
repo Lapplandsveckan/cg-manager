@@ -106,7 +106,9 @@ export const MediaView: React.FC<MediaViewProps> = ({
                         backgroundUrl: url,
                     };
                 })
-                .filter(item => !showAsDirectories || item.name.indexOf('/') < 0),
+                .filter(
+                    item => !showAsDirectories || item.name.indexOf('/') < 0,
+                ),
         [media, prefix],
     );
 

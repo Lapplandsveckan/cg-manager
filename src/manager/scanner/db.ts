@@ -79,8 +79,11 @@ export interface MediaDoc {
 
 export class FileDatabase extends EventEmitter {
     private hash = new Map<string, MediaDoc>();
-
     private db = new Map<string, string>();
+    // Recently-removed docs kept briefly so rename fast-path can reuse metadata
+    private evicted = new Map<string, MediaDoc>();
+    private static EVICTED_MAX = 50;
+
     private static instance: FileDatabase;
 
     public static get db() {
@@ -98,14 +101,22 @@ export class FileDatabase extends EventEmitter {
     }
 
     retrieve(hash: string): MediaDoc {
-        return this.hash.get(hash);
+        return this.hash.get(hash) ?? this.evicted.get(hash);
     }
 
     getHash(id: string): string {
         return this.db.get(id);
     }
 
+    private evict(hash: string, doc: MediaDoc): void {
+        this.hash.delete(hash);
+        this.evicted.set(hash, doc);
+        if (this.evicted.size > FileDatabase.EVICTED_MAX)
+            this.evicted.delete(this.evicted.keys().next().value);
+    }
+
     put(hash: string, doc: MediaDoc): MediaDoc {
+        this.evicted.delete(hash);
         const id = doc.id;
 
         this.db.set(id, hash);
@@ -120,10 +131,27 @@ export class FileDatabase extends EventEmitter {
         const doc = hash ? this.hash.get(hash) : null;
         this.emit('change', id, null);
 
-        if (hash) this.hash.delete(hash);
+        if (hash) {
+            // Only evict if this id is still the current owner of the hash slot.
+            // After a rename, the slot is already claimed by the new id.
+            if (doc?.id === id) this.evict(hash, doc);
+        }
 
         this.db.delete(id);
         if (doc) return doc;
+    }
+
+    // Remove a stale id (e.g. the old name after a rename) without touching the
+    // hash entry, which is already claimed by the new id after db.put().
+    removeStaleId(id: string): void {
+        const hash = this.db.get(id);
+        if (hash) {
+            const doc = this.hash.get(hash);
+            // If content also changed, the old hash is orphaned — clean it up.
+            if (doc?.id === id) this.evict(hash, doc);
+        }
+        this.emit('change', id, null);
+        this.db.delete(id);
     }
 
     allDocs(): MediaDoc[] {

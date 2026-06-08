@@ -6,6 +6,7 @@ import App from './app';
 import { FileDatabase } from './db';
 import { DirectoryManager } from './dir';
 import { ensureFolderPlaceholders } from './folders';
+import { Upload } from './upload';
 
 export class MediaScanner {
     private db: FileDatabase;
@@ -26,6 +27,7 @@ export class MediaScanner {
 
         this.db.load(data);
         this.scanner = Scanner(this.db);
+        Upload.onComplete = path => void this.scanner.scan(path);
 
         const app = App(this.db);
         this.server = app.listen(8000);
@@ -46,6 +48,8 @@ export class MediaScanner {
 
         const data = this.db.save();
         await fs.writeFile(baseConfig['db-file'], data);
+
+        Upload.onComplete = undefined;
 
         this.server.close();
         this.db.close();
