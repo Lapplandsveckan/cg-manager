@@ -21,6 +21,10 @@ export interface Config {
     // instead of `password`. If set without a `password`, the web UI login
     // page will not be usable.
     'api-token'?: string | null;
+    // STUN server for WebRTC preview ICE gathering, e.g. "stun:stun.l.google.com:19302".
+    // Required when clients connect from outside the local network (port-forwarded setup).
+    // Leave unset for LAN-only use — skipping STUN makes preview sessions start instantly.
+    'preview-stun'?: string | null;
 }
 
 export default {

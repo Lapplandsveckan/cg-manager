@@ -5,9 +5,11 @@ import { spawn, type ChildProcess } from 'child_process';
 import { BasicCommand } from '@lappis/cg-manager';
 import {
     MediaStreamTrack,
+    RTCDtlsTransport,
     RTCPeerConnection,
     RTCRtpCodecParameters,
     RtpPacket,
+    type DtlsKeys,
 } from 'werift';
 import { noTry, noTryAsync } from 'no-try';
 import managerConfig from '../../util/config';
@@ -139,8 +141,18 @@ async function pickFreeTcpPort(): Promise<number> {
 
 export class PreviewManager {
     private webrtcSessions = new Set<InternalWebRTCSession>();
+    // Pre-generated once and reused across all sessions to avoid per-session
+    // crypto key generation cost inside createAnswer().
+    private dtlsKeysPromise: Promise<DtlsKeys> = RTCDtlsTransport.SetupCertificate().then(cert => ({
+        certPem: cert.certPem,
+        keyPem: cert.privateKey,
+        signatureHash: cert.signatureHash,
+    }));
 
-    public constructor(private executor: CasparExecutor) {}
+    public constructor(private executor: CasparExecutor) {
+        // Kick off key generation immediately so it's done before the first session.
+        this.dtlsKeysPromise.catch(() => { /* falls back to werift's per-session cert if this fails */ });
+    }
 
     /**
      * Spin up an in-process werift peer connection that receives raw H.264
@@ -175,6 +187,7 @@ export class PreviewManager {
             );
 
         const consumerIndex = nextConsumerIndex++;
+        const [, dtlsKeys] = await noTryAsync(() => this.dtlsKeysPromise);
 
         const udpSocket = dgram.createSocket('udp4');
         await new Promise<void>((resolve, reject) => {
@@ -188,12 +201,29 @@ export class PreviewManager {
 
         const tcpPort = await pickFreeTcpPort();
 
+        const stunServer = managerConfig['preview-stun'];
         const pc = new RTCPeerConnection({
             codecs: { video: [WEBRTC_VIDEO_CODEC] },
-            iceServers: [],
+            iceServers: stunServer ? [{ urls: stunServer }] : [],
+            ...(dtlsKeys ? { dtls: { keys: dtlsKeys } } : {}),
         });
         const track = new MediaStreamTrack({ kind: 'video' });
         pc.addTransceiver(track, { direction: 'sendonly' });
+
+        // werift defaults to stun.l.google.com even with iceServers:[], then
+        // fires a srflx query per local interface and blocks gathering on
+        // Promise.allSettled of all of them — each with a hard 5s timeout. Any
+        // interface that can't get a STUN binding response (secondary/virtual
+        // NIC with no route, firewall dropping UDP/3478, packet loss) pins the
+        // whole gather to 5s, so this fires on most machines regardless of
+        // internet. Clearing stunServer skips the srflx promises entirely;
+        // host candidates settle immediately and suffice for LAN use.
+        if (!stunServer) {
+            for (const dt of pc.dtlsTransports) {
+                const conn = dt?.iceTransport?.connection;
+                if (conn) conn.stunServer = undefined;
+            }
+        }
 
         const ffmpeg = spawn(
             ffmpegBinary(),
