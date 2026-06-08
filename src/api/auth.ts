@@ -26,7 +26,10 @@ class AuthManagerImpl {
      *  through — preserves the pre-auth open behavior. */
     get enabled(): boolean {
         return (
-            typeof config.password === 'string' && config.password.length > 0
+            (typeof config.password === 'string' &&
+                config.password.length > 0) ||
+            (typeof config['api-token'] === 'string' &&
+                config['api-token'].length > 0)
         );
     }
 
@@ -44,6 +47,19 @@ class AuthManagerImpl {
         const ok = a.length === b.length && crypto.timingSafeEqual(a, b);
         if (!ok) await this.delay(FAILED_LOGIN_DELAY_MS);
         return ok;
+    }
+
+    /** Check an `Authorization: Bearer <token>` header value against the
+     *  configured `api-token`. Returns false immediately when no token is
+     *  configured so the cookie path still works in that case. */
+    verifyApiToken(authHeader: string | undefined): boolean {
+        const token = config['api-token'];
+        if (typeof token !== 'string' || token.length === 0) return false;
+        if (!authHeader?.startsWith('Bearer ')) return false;
+        const candidate = authHeader.slice(7);
+        const a = Buffer.from(candidate);
+        const b = Buffer.from(token);
+        return a.length === b.length && crypto.timingSafeEqual(a, b);
     }
 
     createSession(): string {

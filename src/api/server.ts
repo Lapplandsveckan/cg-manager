@@ -194,6 +194,12 @@ export class CGServer {
                     data.request.headers.cookie,
                 );
                 if (AuthManager.touch(token)) return;
+                if (
+                    AuthManager.verifyApiToken(
+                        data.request.headers.authorization,
+                    )
+                )
+                    return;
 
                 data.response.statusCode = 401;
                 data.response.setHeader('Content-Type', 'application/json');
@@ -209,6 +215,12 @@ export class CGServer {
                     data.request.headers.cookie,
                 );
                 if (AuthManager.touch(token)) return;
+                if (
+                    AuthManager.verifyApiToken(
+                        data.request.headers.authorization,
+                    )
+                )
+                    return;
 
                 // No clean 401 path for WS upgrades — abort the socket.
                 noTry(() => data.socket.destroy());

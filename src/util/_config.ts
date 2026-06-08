@@ -15,6 +15,12 @@ export interface Config {
     // string to require that operators present it (via the login screen,
     // which then sets a session cookie).
     password?: string | null;
+    // Static API token for headless clients (e.g. Companion modules) that
+    // cannot do cookie-based auth. When set, requests bearing
+    // `Authorization: Bearer <token>` are accepted. Can be set alongside or
+    // instead of `password`. If set without a `password`, the web UI login
+    // page will not be usable.
+    'api-token'?: string | null;
 }
 
 export default {
