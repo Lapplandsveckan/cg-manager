@@ -25,6 +25,9 @@ if (!i18n.isInitialized)
         react: {
             useSuspense: false,
         },
+        // Synchronous init so translations are ready during SSR, preventing
+        // key-vs-value hydration mismatches (e.g. "brand.name" vs "CG Manager").
+        initImmediate: false,
     });
 
 export default i18n;
