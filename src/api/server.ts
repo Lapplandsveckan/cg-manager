@@ -110,21 +110,24 @@ export class CGServer {
         // Running-config snapshot: emitted whenever CasparCG starts or stops.
         // Lets UI consumers (previews, routes) react to live capability
         // changes without polling /api/caspar/config/running.
-        this.manager.on('caspar-running-config', (cfg: { _raw?: unknown } | null) => {
-            const clients = this.server.getClients();
-            // Strip _raw (raw XML string) before broadcasting — matches what
-            // the REST GET endpoint returns, so drift comparisons stay valid.
-            const payload = cfg ? (({ _raw, ...rest }) => rest)(cfg) : null;
-            clients.forEach(client => {
-                if (!(client instanceof WebsocketClient)) return;
-                client.send(
-                    'caspar/running-config',
-                    WebsocketOutboundMethod.ACTION,
-                    payload,
-                    false,
-                );
-            });
-        });
+        this.manager.on(
+            'caspar-running-config',
+            (cfg: { _raw?: unknown } | null) => {
+                const clients = this.server.getClients();
+                // Strip _raw (raw XML string) before broadcasting — matches what
+                // the REST GET endpoint returns, so drift comparisons stay valid.
+                const payload = cfg ? (({ _raw, ...rest }) => rest)(cfg) : null;
+                clients.forEach(client => {
+                    if (!(client instanceof WebsocketClient)) return;
+                    client.send(
+                        'caspar/running-config',
+                        WebsocketOutboundMethod.ACTION,
+                        payload,
+                        false,
+                    );
+                });
+            },
+        );
 
         // Video route mutations (create / update / delete) — forwarded so
         // clients can refresh without polling. UPDATE / CREATE carry the
