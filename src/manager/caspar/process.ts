@@ -51,7 +51,7 @@ export class CasparProcess extends EventEmitter {
 
         await noTryAsync(async () => {
             configuration.setPath(this.casparPath);
-            this.config = await configuration.get(); // ensure right config
+            this.config = await configuration.get(true); // force re-read so running-config matches what's on disk
 
             if (!this.supported) {
                 this.lastError = `CasparCG cannot be started on ${process.platform} — only Linux and Windows are supported.`;
