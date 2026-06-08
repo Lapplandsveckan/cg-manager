@@ -190,7 +190,11 @@ export class PreviewManager {
             );
 
         const consumerIndex = nextConsumerIndex++;
+        // TIMING (temporary) — locate the preview activation bottleneck.
+        const t0 = Date.now();
+        const ms = () => `+${Date.now() - t0}ms`;
         const [, dtlsKeys] = await noTryAsync(() => this.dtlsKeysPromise);
+        logger.info(`TIMING dtlsKeys ready ${ms()}`);
 
         const udpSocket = dgram.createSocket('udp4');
         await new Promise<void>((resolve, reject) => {
@@ -212,6 +216,10 @@ export class PreviewManager {
         });
         const track = new MediaStreamTrack({ kind: 'video' });
         pc.addTransceiver(track, { direction: 'sendonly' });
+        logger.info(
+            `TIMING pc built ${ms()} (stunServer=${stunServer ?? 'none'}, ` +
+                `transports=${pc.dtlsTransports.length})`,
+        );
 
         // werift defaults to stun.l.google.com even with iceServers:[], then
         // fires a srflx query per local interface and blocks gathering on
@@ -235,6 +243,15 @@ export class PreviewManager {
                 '+nobuffer',
                 '-flags',
                 'low_delay',
+                // Don't spend the default 5s probing the input for stream info.
+                // The source is forced h264 and copied straight through, so the
+                // first SPS/PPS+keyframe is all ffmpeg needs — without these it
+                // buffers ~analyzeduration of stream-time (5s) before emitting
+                // its first RTP packet, which dominated preview activation time.
+                '-probesize',
+                '32',
+                '-analyzeduration',
+                '0',
                 '-f',
                 'h264',
                 '-i',
@@ -262,12 +279,24 @@ export class PreviewManager {
         // Plain deSerialize + writeRtp (the canonical werift sendonly pattern).
         // ffmpeg sends one RTP packet per UDP datagram, so there's no
         // fragmentation/concurrency hazard like with hand-rolled packetizing.
+        let firstRtp = true;
         udpSocket.on('message', buf => {
+            if (firstRtp) {
+                firstRtp = false;
+                logger.info(`TIMING first RTP from ffmpeg ${ms()}`);
+            }
             const [err] = noTry(() =>
                 track.writeRtp(RtpPacket.deSerialize(buf)),
             );
             if (err) logger.warn(`writeRtp failed: ${err.message}`);
         });
+
+        pc.connectionStateChange.subscribe(s =>
+            logger.info(`TIMING pc.connectionState=${s} ${ms()}`),
+        );
+        pc.iceConnectionStateChange.subscribe(s =>
+            logger.info(`TIMING pc.iceConnectionState=${s} ${ms()}`),
+        );
 
         // SDP exchange and AMCP ADD have no data dependency on each other —
         // werift only needs `pc`, AMCP only needs `tcpPort` and a spawned
@@ -278,7 +307,11 @@ export class PreviewManager {
                 type: 'offer',
                 sdp: opts.sdpOffer,
             });
-            await pc.setLocalDescription(await pc.createAnswer());
+            logger.info(`TIMING setRemoteDescription done ${ms()}`);
+            const answer = await pc.createAnswer();
+            logger.info(`TIMING createAnswer done ${ms()}`);
+            await pc.setLocalDescription(answer);
+            logger.info(`TIMING setLocalDescription (incl. gather) done ${ms()}`);
             const sdp = pc.localDescription?.sdp;
             if (!sdp) throw new Error('werift failed to produce an SDP answer');
             return sdp;
@@ -296,7 +329,9 @@ export class PreviewManager {
         );
 
         const [sdpErr, sdpAnswer] = await sdpPromise;
+        logger.info(`TIMING sdpAnswer resolved ${ms()}`);
         const [addErr] = await addPromise;
+        logger.info(`TIMING AMCP ADD resolved ${ms()}`);
 
         if (sdpErr || addErr) {
             udpSocket.close();
