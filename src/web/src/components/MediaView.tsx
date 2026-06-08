@@ -92,22 +92,21 @@ export const MediaView: React.FC<MediaViewProps> = ({
     const data = useMemo(
         () =>
             media
-                .filter(media => media.id.startsWith(prefix ?? ''))
-                .map(media => {
-                    const background = media._attachments['thumb.png'];
+                .filter(m => m.id.startsWith(prefix ?? ''))
+                .map(m => {
+                    const background = m._attachments['thumb.png'];
                     const url = background
                         ? `data:${background.content_type};base64,${Buffer.from(background.data).toString('base64')}`
                         : 'https://via.placeholder.com/1920x1080';
 
                     return {
-                        name: media.id.substring(prefix?.length ?? 0),
-                        duration: media.mediainfo.format.duration,
+                        doc: m,
+                        name: m.id.substring(prefix?.length ?? 0),
+                        duration: m.mediainfo.format.duration,
                         backgroundUrl: url,
                     };
                 })
-                .filter(
-                    media => !showAsDirectories || media.name.indexOf('/') < 0,
-                ),
+                .filter(item => !showAsDirectories || item.name.indexOf('/') < 0),
         [media, prefix],
     );
 
@@ -147,28 +146,30 @@ export const MediaView: React.FC<MediaViewProps> = ({
         <Stack>
             {data.length || folders.length ? (
                 <Grid container spacing={2}>
-                    {data.map((clip, index) => (
+                    {data.map(clip => (
                         <MediaCard
                             key={clip.name}
-                            {...clip}
+                            name={clip.name}
+                            duration={clip.duration}
+                            backgroundUrl={clip.backgroundUrl}
                             columns={columns}
                             onClick={
                                 onClipSelect
-                                    ? () => onClipSelect(media[index])
+                                    ? () => onClipSelect(clip.doc)
                                     : undefined
                             }
                             onDelete={
                                 onClipDelete
-                                    ? () => onClipDelete(media[index])
+                                    ? () => onClipDelete(clip.doc)
                                     : undefined
                             }
                             onRename={
                                 onClipRename
-                                    ? () => onClipRename(media[index])
+                                    ? () => onClipRename(clip.doc)
                                     : undefined
                             }
                             dragId={
-                                onClipMoveToFolder ? media[index].id : undefined
+                                onClipMoveToFolder ? clip.doc.id : undefined
                             }
                         />
                     ))}
