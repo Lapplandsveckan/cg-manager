@@ -95,7 +95,6 @@ export class ConfigParser {
         config.channels = xml.configuration.channels[0].channel.map(
             this.parseChannel,
         );
-        config._raw = xml;
 
         return config as Config;
     }

@@ -51,6 +51,4 @@ export interface Config {
         remoteDebuggingPort?: number;
         enableGpu?: boolean;
     };
-
-    _raw?: string;
 }

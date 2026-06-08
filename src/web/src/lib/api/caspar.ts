@@ -1,9 +1,9 @@
 import EventEmitter from 'events';
 import { type REPClient } from 'rest-exchange-protocol-client';
 import { getChunkCount } from './upload';
-import type { Config } from '../../../../manager/caspar/config/types';
+import type { Config as CasparConfig } from '../../../../manager/caspar/config/types';
 
-export type CasparConfig = Omit<Config, '_raw'>;
+export type { CasparConfig };
 
 export interface CasparStatus {
     running: boolean;

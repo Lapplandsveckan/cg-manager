@@ -15,9 +15,6 @@ export default {
         const cfg = CasparManager.getManager()
             .getCasparProcess()
             .getRunningConfig();
-        if (!cfg) return null;
-        // `_raw` is the parsed XML — not useful to clients and not JSON-safe.
-        const { _raw, ...rest } = cfg;
-        return rest;
+        return cfg ?? null;
     },
 } satisfies RouteExport;

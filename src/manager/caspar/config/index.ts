@@ -81,12 +81,11 @@ export class ConfigManager {
     }
 
     public async set(config: Config) {
-        // Preserve _raw so subsequent reads stay consistent — clients never
-        // get _raw back over the wire, but ConfigManager itself uses it.
-        const raw = this.config?._raw;
-        this.config = { ...config, _raw: raw };
+        this.config = config;
         await this.save();
-        return this.config;
+        // Re-read from disk so callers get the canonical parsed representation
+        // (same path as get(true) after a restart), keeping drift comparison valid.
+        return this.get(true);
     }
 
     public async save() {

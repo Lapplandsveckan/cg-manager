@@ -16,21 +16,14 @@ function validate(data: any): data is Config {
 }
 
 export default {
-    GET: async () => {
-        // Force a re-read so the page reflects what's actually on disk,
-        // not a stale snapshot from CasparCG startup. `_raw` is the parsed
-        // XML and not useful to clients.
-        const config = await configuration.get(true);
-        const { _raw, ...rest } = config;
-        return rest;
-    },
+    // Force a re-read so the page reflects what's actually on disk, not a
+    // stale snapshot from CasparCG startup.
+    GET: async () => configuration.get(true),
     UPDATE: async request => {
         const payload = request.getData();
         if (!validate(payload))
             throw new WebError('Invalid config payload', 400);
 
-        const updated = await configuration.set(payload);
-        const { _raw, ...rest } = updated;
-        return rest;
+        return configuration.set(payload);
     },
 } satisfies RouteExport;
