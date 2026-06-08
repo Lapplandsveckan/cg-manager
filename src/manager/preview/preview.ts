@@ -143,15 +143,18 @@ export class PreviewManager {
     private webrtcSessions = new Set<InternalWebRTCSession>();
     // Pre-generated once and reused across all sessions to avoid per-session
     // crypto key generation cost inside createAnswer().
-    private dtlsKeysPromise: Promise<DtlsKeys> = RTCDtlsTransport.SetupCertificate().then(cert => ({
-        certPem: cert.certPem,
-        keyPem: cert.privateKey,
-        signatureHash: cert.signatureHash,
-    }));
+    private dtlsKeysPromise: Promise<DtlsKeys> =
+        RTCDtlsTransport.SetupCertificate().then(cert => ({
+            certPem: cert.certPem,
+            keyPem: cert.privateKey,
+            signatureHash: cert.signatureHash,
+        }));
 
     public constructor(private executor: CasparExecutor) {
         // Kick off key generation immediately so it's done before the first session.
-        this.dtlsKeysPromise.catch(() => { /* falls back to werift's per-session cert if this fails */ });
+        this.dtlsKeysPromise.catch(() => {
+            /* falls back to werift's per-session cert if this fails */
+        });
     }
 
     /**
