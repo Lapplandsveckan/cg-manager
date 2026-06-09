@@ -119,28 +119,29 @@ interface InternalWebRTCSession extends WebRTCSession {
     channel: number;
     consumerIndex: number;
     udpSocket: dgram.Socket;
+    tcpServer: net.Server;
     ffmpeg: ChildProcess;
     pc: RTCPeerConnection;
     closed: boolean;
 }
 
-/** Bind, read the OS-assigned port, immediately close — we only need a
- *  free port number to pass to ffmpeg, not the socket itself. There's a
- *  small race window where another process could grab the port between
- *  close and ffmpeg's bind, but on loopback that's essentially never an
- *  issue (and a failed bind surfaces as an ffmpeg error we'd see anyway). */
-async function pickFreeTcpPort(): Promise<number> {
-    const probe = net.createServer();
+/** Create a loopback TCP server and resolve once it's actually listening,
+ *  returning both the server and its OS-assigned port. The manager owns this
+ *  socket (rather than handing the port to a freshly-spawned ffmpeg with
+ *  `?listen=1`): it's listening *before* we send the AMCP ADD, so CasparCG's
+ *  consumer can never connect to a not-yet-bound port — the `Connection
+ *  refused` race that only ever lost on Linux, where the sidecar lost the
+ *  startup sprint against CasparCG's immediate connect. */
+async function listenTcp(): Promise<{ server: net.Server; port: number }> {
+    const server = net.createServer();
     await new Promise<void>((resolve, reject) => {
-        probe.once('error', reject);
-        probe.listen(0, '127.0.0.1', () => {
-            probe.removeListener('error', reject);
+        server.once('error', reject);
+        server.listen(0, '127.0.0.1', () => {
+            server.removeListener('error', reject);
             resolve();
         });
     });
-    const port = (probe.address() as net.AddressInfo).port;
-    await new Promise<void>(resolve => probe.close(() => resolve()));
-    return port;
+    return { server, port: (server.address() as net.AddressInfo).port };
 }
 
 export class PreviewManager {
@@ -173,7 +174,10 @@ export class PreviewManager {
      *   CasparCG ffmpeg consumer
      *     │ h264 Annex-B over TCP (no audio — `h264` muxer is video-only)
      *     ▼
-     *   sidecar ffmpeg child  (`-i tcp://...?listen=1 -c copy -an -f rtp ...`)
+     *   manager net.Server  →  pipe accepted socket into ffmpeg stdin
+     *     │
+     *     ▼
+     *   sidecar ffmpeg child  (`-i pipe:0 -c copy -an -f rtp ...`)
      *     │ packetized H.264/RTP over UDP
      *     ▼
      *   manager UDP listener  →  RtpPacket.deSerialize  →  track.writeRtp
@@ -206,7 +210,7 @@ export class PreviewManager {
         });
         const udpPort = udpSocket.address().port;
 
-        const tcpPort = await pickFreeTcpPort();
+        const { server: tcpServer, port: tcpPort } = await listenTcp();
 
         const stunServer = managerConfig['preview-stun'];
         const pc = new RTCPeerConnection({
@@ -251,7 +255,7 @@ export class PreviewManager {
                 '-f',
                 'h264',
                 '-i',
-                `tcp://127.0.0.1:${tcpPort}?listen=1&listen_timeout=0`,
+                'pipe:0',
                 '-an',
                 '-c:v',
                 'copy',
@@ -261,7 +265,7 @@ export class PreviewManager {
                 'rtp',
                 `rtp://127.0.0.1:${udpPort}`,
             ],
-            { stdio: ['ignore', 'ignore', 'pipe'] },
+            { stdio: ['pipe', 'ignore', 'pipe'] },
         );
         ffmpeg.on('error', e =>
             logger.warn(`sidecar ffmpeg spawn failed: ${e.message}`),
@@ -270,6 +274,29 @@ export class PreviewManager {
             const line = d.toString();
             if (/error|fatal|cannot/i.test(line))
                 logger.warn(`sidecar ffmpeg: ${line.trim()}`);
+        });
+
+        // CasparCG's consumer connects out to our listener; pipe the first
+        // (only) connection's h264 byte stream straight into ffmpeg's stdin.
+        // Stop accepting further connections once we have one. EPIPE on the
+        // socket (ffmpeg already gone) is swallowed — teardown handles it.
+        tcpServer.maxConnections = 1;
+        tcpServer.on('connection', socket => {
+            socket.on('error', () => {
+                /* caspar reset / ffmpeg gone — teardown handles cleanup */
+            });
+            if (ffmpeg.stdin) socket.pipe(ffmpeg.stdin);
+            // tcpServer.close() stops accepting new connections but leaves this
+            // one open. Tie its lifetime to ffmpeg's: teardown kills ffmpeg, so
+            // 'close' fires and we destroy the socket instead of leaking it when
+            // caspar doesn't disconnect on its own (e.g. REMOVE failed).
+            ffmpeg.once('close', () => socket.destroy());
+        });
+        tcpServer.on('error', e =>
+            logger.warn(`preview tcp server error: ${e.message}`),
+        );
+        ffmpeg.stdin?.on('error', () => {
+            /* socket closed before ffmpeg drained — expected on teardown */
         });
 
         // Plain deSerialize + writeRtp (the canonical werift sendonly pattern).
@@ -313,6 +340,7 @@ export class PreviewManager {
 
         if (sdpErr || addErr) {
             udpSocket.close();
+            noTry(() => tcpServer.close());
             ffmpeg.kill('SIGTERM');
             await noTryAsync(() => pc.close());
             // If ADD landed but SDP failed, undo the consumer so we don't
@@ -334,6 +362,7 @@ export class PreviewManager {
             channel: opts.channel,
             consumerIndex,
             udpSocket,
+            tcpServer,
             ffmpeg,
             pc,
             closed: false,
@@ -385,6 +414,7 @@ export class PreviewManager {
 
         await noTryAsync(() => session.pc.close());
         noTry(() => session.udpSocket.close());
+        noTry(() => session.tcpServer.close());
         noTry(() => session.ffmpeg.kill('SIGTERM'));
 
         logger.debug(
