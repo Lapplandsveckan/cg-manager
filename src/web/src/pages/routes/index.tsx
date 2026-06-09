@@ -195,7 +195,12 @@ const Page = () => {
             );
         } else {
             const created = await socket.videoRoutes.create(data);
-            setRoutes(prev => (prev ? [...prev, created] : [created]));
+            setRoutes(prev => {
+                if (!prev) return [created];
+                return prev.some(r => r.id === created.id)
+                    ? prev.map(r => (r.id === created.id ? created : r))
+                    : [...prev, created];
+            });
         }
         setEditing(null);
         setNewType(null);
