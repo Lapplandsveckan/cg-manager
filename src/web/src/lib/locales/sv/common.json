@@ -342,7 +342,9 @@
             "id": "ID",
             "timeScale": "Tidsskala",
             "duration": "Varaktighet",
-            "cadence": "Kadenz"
+            "cadence": "Kadens",
+            "custom": "Anpassade",
+            "builtin": "Inbyggda"
         },
         "artnet": {
             "output": "Utmatning",
@@ -387,6 +389,7 @@
             "keyOnly": "Endast nyckel",
             "bufferDepth": "Buffertdjup",
             "videoMode": "Videoläge",
+            "duplex": "Duplex",
             "waitForReference": "Vänta på ref",
             "waitForReferenceDuration": "Vänta på ref-varaktighet",
             "subregion": "Delregion",

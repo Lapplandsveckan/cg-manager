@@ -85,6 +85,12 @@ const DECKLINK_FIELDS: FieldDef[] = [
     { key: 'bufferDepth', label: `${F}.bufferDepth`, type: 'number' },
     { key: 'videoMode', label: `${F}.videoMode`, type: 'string' },
     {
+        key: 'duplex',
+        label: `${F}.duplex`,
+        type: 'enum',
+        options: ['full', 'half', 'default'],
+    },
+    {
         key: 'waitForReference',
         label: `${F}.waitForReference`,
         type: 'enum',

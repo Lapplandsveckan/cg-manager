@@ -6,6 +6,7 @@ import {
     FormControl,
     IconButton,
     InputLabel,
+    ListSubheader,
     MenuItem,
     Select,
     Stack,
@@ -17,6 +18,7 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { useTranslation } from 'next-i18next';
 import { type CasparConfig } from '../../lib/api/caspar';
+import { BUILTIN_VIDEO_MODES } from '../../lib/videoModes';
 import { formatConsumerType } from './fields';
 
 type Channel = CasparConfig['channels'][number];
@@ -116,6 +118,13 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({
     onDeleteConsumer,
 }) => {
     const { t } = useTranslation('common');
+    const customIds = new Set(videoModes.map(m => m.id));
+    const builtinModes = BUILTIN_VIDEO_MODES.filter(m => !customIds.has(m));
+    const current = channel.videoMode ?? '';
+    const isKnown =
+        current === '' ||
+        customIds.has(current) ||
+        builtinModes.includes(current);
     return (
         <Card sx={{ p: 3 }}>
             <Stack spacing={2}>
@@ -139,27 +148,29 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({
                     <InputLabel>{t('config.fields.videoMode')}</InputLabel>
                     <Select
                         label={t('config.fields.videoMode')}
-                        value={
-                            videoModes.some(m => m.id === channel.videoMode)
-                                ? channel.videoMode
-                                : ''
-                        }
+                        value={current}
                         onChange={e =>
                             onChange({
                                 ...channel,
                                 videoMode: e.target.value as string,
                             })
                         }
-                        displayEmpty
-                        renderValue={value =>
-                            value ? String(value) : channel.videoMode
-                        }
                     >
-                        {videoModes.map(m => (
-                            <MenuItem key={m.id} value={m.id}>
-                                {m.id}
-                            </MenuItem>
-                        ))}
+                        {!isKnown && (
+                            <MenuItem value={current}>{current}</MenuItem>
+                        )}
+                        {videoModes.length > 0 && [
+                            <ListSubheader key="__custom-header">{t('config.videoModes.custom')}</ListSubheader>,
+                            ...videoModes.map(m => (
+                                <MenuItem key={m.id} value={m.id}>{m.id}</MenuItem>
+                            )),
+                        ]}
+                        {builtinModes.length > 0 && [
+                            <ListSubheader key="__builtin-header">{t('config.videoModes.builtin')}</ListSubheader>,
+                            ...builtinModes.map(m => (
+                                <MenuItem key={m} value={m}>{m}</MenuItem>
+                            )),
+                        ]}
                     </Select>
                 </FormControl>
 

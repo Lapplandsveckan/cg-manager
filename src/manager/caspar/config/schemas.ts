@@ -40,6 +40,7 @@ export const schemas = {
             height: schema.number(),
         }),
 
+        duplex: schema.enum(['full', 'half', 'default'] as const),
         waitForReference: schema.enum(['auto', 'enable', 'disable'] as const),
         waitForReferenceDuration: schema.number(),
 

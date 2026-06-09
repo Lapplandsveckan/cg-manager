@@ -14,6 +14,7 @@ import { useSocket } from '../../lib/hooks/useSocket';
 import { type VideoRouteSource } from '../../lib/api/videoRoutes';
 import { type MediaDoc } from '../../lib/api/caspar';
 import { MediaSelect } from '../MediaView';
+import { BUILTIN_VIDEO_MODES } from '../../lib/videoModes';
 import type { SourceType } from './RouteSourceTypePicker';
 
 export type DraftSource =
@@ -85,19 +86,6 @@ function hex8ToCasparColor(input: string): string {
     }
     return input;
 }
-
-const FALLBACK_VIDEO_MODES = [
-    'PAL',
-    'NTSC',
-    '720p5000',
-    '720p5994',
-    '1080i5000',
-    '1080i5994',
-    '1080p2500',
-    '1080p5000',
-    '2160p2500',
-    '2160p5000',
-];
 
 interface SourceFieldsProps {
     draft: DraftSource;
@@ -173,7 +161,7 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({
         // empty on first run. freeSolo via Autocomplete also lets users type
         // a custom mode CasparCG supports but the host config doesn't know
         // about.
-        const modes = videoModes.length > 0 ? videoModes : FALLBACK_VIDEO_MODES;
+        const modes = videoModes.length > 0 ? videoModes : BUILTIN_VIDEO_MODES;
         return (
             <Stack direction="row" gap={1.5} flexWrap="wrap">
                 <TextField

@@ -342,7 +342,9 @@
             "id": "ID",
             "timeScale": "Time scale",
             "duration": "Duration",
-            "cadence": "Cadence"
+            "cadence": "Cadence",
+            "custom": "Custom",
+            "builtin": "Built-in"
         },
         "artnet": {
             "output": "Output",
@@ -387,6 +389,7 @@
             "keyOnly": "Key only",
             "bufferDepth": "Buffer depth",
             "videoMode": "Video mode",
+            "duplex": "Duplex",
             "waitForReference": "Wait for ref",
             "waitForReferenceDuration": "Wait for ref duration",
             "subregion": "Subregion",
