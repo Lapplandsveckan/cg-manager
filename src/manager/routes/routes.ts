@@ -162,8 +162,15 @@ export class VideoRoutesManager {
                 route,
                 enabled: route.enabled ?? true,
             });
-            this.checkState(route.id);
         });
+
+        // Loading just populates the map — activation is gated on the AMCP
+        // socket so we never fire commands that time out before CasparCG is
+        // ready. If the executor connected before routes finished loading
+        // (the common case — connect happens early in manager.start()),
+        // activate now; otherwise the manager's onConnect handler picks it up
+        // when the socket comes up.
+        if (this.executor.connected) this.refreshEffects();
     }
 
     public async saveVideoRoute(route: VideoRoute) {
@@ -235,18 +242,19 @@ export class VideoRoutesManager {
     }
 
     /**
-     * Called when CasparCG reconnects after a disconnect: existing Effect
-     * instances are now stale references against a CasparCG that has just
-     * been wiped. Tear them down and re-create from the persisted route
-     * data so enabled routes start playing again automatically.
+     * Build (or rebuild) every route's Effect against the live CasparCG.
+     * Called when the AMCP socket connects — on first boot there's nothing to
+     * dispose and enabled routes start playing; on reconnect the existing
+     * Effect instances are stale references against a CasparCG that has just
+     * been wiped, so they're torn down and re-created from persisted data.
      */
-    public refreshAfterReconnect() {
+    public refreshEffects() {
         if (this.routes.size === 0) return;
         Logger.info(
-            `Refreshing ${this.routes.size} video route${this.routes.size === 1 ? '' : 's'} after CasparCG reconnect`,
+            `Refreshing ${this.routes.size} video route${this.routes.size === 1 ? '' : 's'}`,
         );
         for (const id of this.routes.keys()) {
-            this.checkState(id, true); // dispose stale effect
+            this.checkState(id, true); // dispose stale effect (no-op on boot)
             this.checkState(id); // re-create + re-activate if enabled
         }
     }

@@ -57,7 +57,9 @@ export class CasparExecutor extends CommandExecutor {
     private _internalConnect() {
         if (this.client) this.client.destroy();
 
-        this.client = net.connect(this.port, this.ip, () => this.onConnect());
+        this.client = net.connect(this.port, this.ip, () =>
+            this.handleConnect(),
+        );
 
         this.client.on('end', () => this.onDisconnect());
         this.client.on('error', e => this.onDisconnect(e));
@@ -86,7 +88,8 @@ export class CasparExecutor extends CommandExecutor {
     }
 
     private connectListeners: (() => void)[] = [];
-    protected onConnect() {
+    private connectHandlers: Array<() => void> = [];
+    protected handleConnect() {
         clearTimeout(this.retryTimeout);
 
         const isReconnect = this.hasConnectedBefore;
@@ -103,15 +106,32 @@ export class CasparExecutor extends CommandExecutor {
             `Caspar CG executor ${isReconnect ? 'reconnected' : 'connected'}`,
         );
 
-        if (isReconnect) {
-            // Snapshot the listener list so a handler that subscribes/
-            // unsubscribes during dispatch doesn't disturb iteration.
-            const handlers = this.reconnectListeners.slice();
-            for (const handler of handlers) {
-                const [err] = noTry(() => handler());
-                if (err) Logger.error(err as Error);
-            }
+        // Snapshot before dispatch so a handler that subscribes/unsubscribes
+        // mid-iteration doesn't disturb the loop. connectHandlers fire on
+        // every connect (first boot included); reconnectListeners only after
+        // a prior connection was lost.
+        this.dispatch(this.connectHandlers);
+        if (isReconnect) this.dispatch(this.reconnectListeners);
+    }
+
+    private dispatch(handlers: Array<() => void>) {
+        for (const handler of handlers.slice()) {
+            const [err] = noTry(() => handler());
+            if (err) Logger.error(err as Error);
         }
+    }
+
+    /**
+     * Subscribe to AMCP connect events. Unlike onReconnect, the handler fires
+     * on every successful connection including the first boot connect. Returns
+     * an unsubscribe function.
+     */
+    public onConnect(handler: () => void): () => void {
+        this.connectHandlers.push(handler);
+        return () => {
+            const i = this.connectHandlers.indexOf(handler);
+            if (i >= 0) this.connectHandlers.splice(i, 1);
+        };
     }
 
     public awaitConnection() {

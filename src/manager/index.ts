@@ -70,19 +70,24 @@ export class CasparManager extends EventEmitter {
         this.caspar.on('log', this.onCasparLog);
         this.caspar.on('running-config', this.onCasparRunningConfig);
 
-        // Whenever the AMCP socket re-establishes after a disconnect (i.e.
-        // CasparCG was restarted) the host-side state — channel layer
-        // accounting, route effects, plugin state — no longer matches reality
-        // since CasparCG itself has been wiped. Refresh the routes manager's
-        // effects and broadcast a `caspar-reconnect` event so plugins can
-        // re-apply whatever they own.
+        // Route effects can only be built once the AMCP socket is up. Activate
+        // them on every connect — first boot (routes were loaded while the
+        // socket was still warming up) and reconnect (CasparCG was wiped, so
+        // the existing effects are stale refs and must be rebuilt).
+        this.unsubConnect = this.executor.onConnect(() => {
+            this.routes.refreshEffects();
+        });
+
+        // A reconnect also means plugin-owned state no longer matches reality.
+        // Broadcast a `caspar-reconnect` event so plugins can re-apply whatever
+        // they own. (Route effects are handled by onConnect above.)
         this.unsubReconnect = this.executor.onReconnect(() => {
             Logger.info('CasparCG reconnected — refreshing host state.');
-            this.routes.refreshAfterReconnect();
             this.emit('caspar-reconnect');
         });
     }
 
+    private unsubConnect: (() => void) | null = null;
     private unsubReconnect: (() => void) | null = null;
 
     public getServer() {
@@ -127,6 +132,8 @@ export class CasparManager extends EventEmitter {
         await this.scanner.stop();
         await this.caspar.stop();
 
+        this.unsubConnect?.();
+        this.unsubConnect = null;
         this.unsubReconnect?.();
         this.unsubReconnect = null;
 
