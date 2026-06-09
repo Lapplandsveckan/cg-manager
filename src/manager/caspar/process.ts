@@ -66,7 +66,13 @@ export class CasparProcess extends EventEmitter {
                     : path.join(this.casparPath, 'run.sh');
 
             this.lastError = null;
-            const proc = spawn(cmd, [], { cwd: this.casparPath });
+            // On Linux `run.sh` is a shell wrapper that spawns the real
+            // casparcg binary as a child. Killing the shell's pid leaves that
+            // child orphaned, so detach into a new process group and signal
+            // the whole group on stop (see stop()). Windows spawns the exe
+            // directly, so a plain kill suffices there.
+            const detached = process.platform !== 'win32';
+            const proc = spawn(cmd, [], { cwd: this.casparPath, detached });
             this.process = proc;
 
             // CasparCG read `this.config` from disk at startup — surface it as the
@@ -114,7 +120,16 @@ export class CasparProcess extends EventEmitter {
         const closed = new Promise<void>(resolve =>
             proc.once('close', () => resolve()),
         );
-        proc.kill();
+        // Kill the whole process group on Linux (negative pid) so the
+        // casparcg child spawned by run.sh dies with the shell. Fall back to
+        // killing just the pid if the group signal fails (e.g. the process
+        // already exited and the group is gone).
+        if (process.platform !== 'win32' && proc.pid) {
+            const [err] = await noTryAsync(async () => process.kill(-proc.pid));
+            if (err) proc.kill();
+        } else {
+            proc.kill();
+        }
         await closed;
     }
 
