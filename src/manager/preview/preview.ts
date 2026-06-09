@@ -1,5 +1,6 @@
 import net from 'net';
 import dgram from 'dgram';
+import fs from 'fs';
 import path from 'path';
 import { spawn, type ChildProcess } from 'child_process';
 import { BasicCommand } from '@lappis/cg-manager';
@@ -82,14 +83,17 @@ const H264_PREVIEW_ARGS = [
 
 const RTP_PAYLOAD_TYPE = 96;
 
-/** Locate the ffmpeg binary shipped next to caspar. Falls back to PATH
- *  lookup if `caspar-path` isn't configured (dev mode running from a
- *  directory that has ffmpeg on PATH). */
+/** Locate the ffmpeg binary shipped next to caspar. Windows bundles
+ *  `ffmpeg.exe` alongside the server; the Linux bundle links ffmpeg as
+ *  shared libs and ships no standalone executable. So we only use the
+ *  caspar-path binary when it actually exists on disk, and otherwise fall
+ *  back to a PATH `ffmpeg` (Linux hosts, or dev mode with no caspar-path). */
 function ffmpegBinary(): string {
     const folder = managerConfig['caspar-path'];
     if (!folder) return 'ffmpeg';
     const ext = process.platform === 'win32' ? '.exe' : '';
-    return path.join(folder, `ffmpeg${ext}`);
+    const bundled = path.join(folder, `ffmpeg${ext}`);
+    return fs.existsSync(bundled) ? bundled : 'ffmpeg';
 }
 
 // Consumer slot index for preview sessions starts well above the typical
