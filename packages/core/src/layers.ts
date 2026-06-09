@@ -184,11 +184,25 @@ export class Channel extends BasicChannel{
     public deallocateLayers(layers: Layer[]): void {
         for (const layer of layers) {
             const index = this.currentOrder.indexOf(layer.id);
+            if (index >= 0) this.currentOrder[index] = undefined;
 
-            this.currentOrder[index] = undefined;
             this.layers.delete(layer.id);
         }
 
+        this.needExecute = true;
+    }
+
+    /**
+     * Drops accumulated holes from the order so Caspar layer numbers stop creeping up over long sessions.
+     * Holes are normally kept on purpose to avoid shifting (and re-swapping) unrelated layers, so this is
+     * opt-in: call it periodically when churn has left gaps. The next executeAllocation emits the swaps
+     * needed to realize the compacted arrangement.
+     */
+    public compact(): void {
+        const compacted = this.currentOrder.filter(id => id !== undefined);
+        if (compacted.length === this.currentOrder.length) return;
+
+        this.currentOrder = compacted;
         this.needExecute = true;
     }
 
@@ -218,6 +232,7 @@ export class Channel extends BasicChannel{
             if (id === undefined) continue;
 
             const layer = this.layers.get(id);
+            if (!layer) continue;
             layer['setCasparLayer'](i + 1);
 
             const index = swap.indexOf(id);
@@ -234,16 +249,6 @@ export class Channel extends BasicChannel{
 
         this.lastOrder = this.currentOrder;
         this.currentOrder = this.currentOrder.slice();
-
-        for (let i = 0; i < this.currentOrder.length; i++) {
-            const id = this.currentOrder[i];
-            if (id === undefined) continue;
-
-            const layer = this.layers.get(id);
-            if (!layer) continue;
-
-            layer['setCasparLayer'](i + 1);
-        }
 
         for (const effect of this.executor.getEffects())
             commands.push(...effect.updatePositions());
