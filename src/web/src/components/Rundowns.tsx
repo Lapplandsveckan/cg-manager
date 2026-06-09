@@ -2,7 +2,9 @@
 import {
     Box,
     Button,
+    Card,
     IconButton,
+    Modal,
     Stack,
     Tooltip,
     Typography,
@@ -11,7 +13,9 @@ import {
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
-import React, { useEffect, useRef, useState } from 'react';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { noTryAsync } from 'no-try';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
@@ -229,17 +233,20 @@ export function useRundownEntries(rundown: string) {
 
 interface RundownEntryProps {
     title: string;
-    type: string;
+    type?: string;
 
     onEdit: () => void;
     onPlay: () => void;
+    /** Called when the user confirms deletion of an orphaned item. Only
+     *  relevant when `disabled` is true; the button is hidden otherwise. */
+    onDelete?: () => void;
 
     active: boolean;
     /** When true, clicking the card body does nothing; only the explicit play button fires onPlay. */
     locked?: boolean;
     /** Dimmed presentation — the item's action type isn't registered on the
-     *  server (typically because the owning plugin is disabled). Play still
-     *  attempts; the server no-ops with a warning. */
+     *  server (typically because the owning plugin is disabled). Edit/Play are
+     *  replaced by a delete button so the user can clean up the stale item. */
     disabled?: boolean;
     children: React.ReactNode;
 
@@ -259,6 +266,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     type: _type,
     onEdit,
     onPlay,
+    onDelete,
     active: _active,
     locked,
     disabled,
@@ -269,7 +277,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     isDragging,
 }) => {
     const { t } = useTranslation('common');
-    const cardClickable = !locked;
+    const cardClickable = !locked && !disabled;
     const supportsReorder = Boolean(onReorderDragStart);
     // Reorder is an editing affordance — only show/allow it when the rundown
     // is locked (edit mode). In show mode the slot is reserved but hidden so
@@ -386,30 +394,52 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                             sx={{ flexShrink: 0 }}
                             onClick={e => e.stopPropagation()}
                         >
-                            <Tooltip title={t('actions.edit')}>
-                                <IconButton
-                                    size="small"
-                                    onClick={onEdit}
-                                    sx={{ color: 'text.secondary' }}
-                                >
-                                    <EditOutlinedIcon fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                            <Tooltip
-                                title={
-                                    locked
-                                        ? t('rundown.entry.playLockedTooltip')
-                                        : t('actions.play')
-                                }
-                            >
-                                <IconButton
-                                    size="small"
-                                    onClick={onPlay}
-                                    sx={{ color: 'primary.main' }}
-                                >
-                                    <PlayArrowRoundedIcon fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
+                            {disabled ? (
+                                <Tooltip title={t('rundown.entry.orphanedTooltip')}>
+                                    <IconButton
+                                        size="small"
+                                        onClick={onDelete}
+                                        sx={theme => ({
+                                            color: theme.palette.error.main,
+                                            border: `1px solid ${theme.palette.divider}`,
+                                            borderRadius: 1,
+                                            '&:hover': {
+                                                bgcolor: alpha(theme.palette.error.main, 0.08),
+                                                borderColor: theme.palette.error.main,
+                                            },
+                                        })}
+                                    >
+                                        <DeleteOutlineRoundedIcon fontSize="small" />
+                                    </IconButton>
+                                </Tooltip>
+                            ) : (
+                                <>
+                                    <Tooltip title={t('actions.edit')}>
+                                        <IconButton
+                                            size="small"
+                                            onClick={onEdit}
+                                            sx={{ color: 'text.secondary' }}
+                                        >
+                                            <EditOutlinedIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                    <Tooltip
+                                        title={
+                                            locked
+                                                ? t('rundown.entry.playLockedTooltip')
+                                                : t('actions.play')
+                                        }
+                                    >
+                                        <IconButton
+                                            size="small"
+                                            onClick={onPlay}
+                                            sx={{ color: 'primary.main' }}
+                                        >
+                                            <PlayArrowRoundedIcon fontSize="small" />
+                                        </IconButton>
+                                    </Tooltip>
+                                </>
+                            )}
                         </Stack>
                     </Stack>
                     {children && (
@@ -449,6 +479,10 @@ interface RundownsProps {
     onEdit: (entry: RundownEntry) => void;
     onPlay: (entry: RundownEntry) => void;
     onAdd: () => void;
+    /** Called with the entry to delete after the user confirms the dialog.
+     *  Only surfaced for orphaned items (those whose action type is not
+     *  registered on the server). */
+    onDelete: (entry: RundownEntry) => void;
 
     /** Called when a drag payload is dropped onto the list. The handler should
      *  produce a new RundownEntry from the payload (e.g. open the editor modal
@@ -474,12 +508,14 @@ export const Rundowns: React.FC<RundownsProps> = ({
     onEdit,
     onPlay,
     onAdd,
+    onDelete,
     onDropItem,
     onReorder,
     locked,
 }) => {
     const { t } = useTranslation('common');
     const conn = useSocket();
+    const [pendingDelete, setPendingDelete] = useState<RundownEntry | null>(null);
     const [dragOver, setDragOver] = useState(false);
     const [reorderDraggingId, setReorderDraggingId] = useState<string | null>(
         null,
@@ -489,17 +525,29 @@ export const Rundowns: React.FC<RundownsProps> = ({
         position: 'before' | 'after';
     } | null>(null);
 
-    // Fetched once on mount; not refreshed on live action registration changes.
     const [activeTypes, setActiveTypes] = useState<Set<string> | null>(null);
-    useEffect(() => {
-        let mounted = true;
+    const refetchTypes = useCallback(() => {
         conn.rawRequest('/api/rundown/types', 'GET', {})
-            .then(res => mounted && setActiveTypes(new Set(res.data ?? [])))
-            .catch(() => mounted && setActiveTypes(new Set()));
-        return () => {
-            mounted = false;
-        };
+            .then(res => setActiveTypes(new Set(res.data ?? [])))
+            .catch(() => { /* keep previous on error */ });
     }, [conn]);
+
+    // Fetch on mount and re-fetch whenever CasparCG restarts (plugins
+    // re-register their actions after each restart, so the type list can
+    // change without a page reload).
+    useEffect(() => {
+        refetchTypes();
+    }, [refetchTypes]);
+
+    useEffect(() => {
+        const listener = {
+            path: 'caspar/status',
+            method: 'ACTION',
+            handler: () => refetchTypes(),
+        };
+        conn.routes.register(listener);
+        return () => conn.routes.unregister(listener);
+    }, [conn, refetchTypes]);
 
     const acceptsDrop = Boolean(onDropItem);
     const acceptsReorder = Boolean(onReorder);
@@ -762,7 +810,12 @@ export const Rundowns: React.FC<RundownsProps> = ({
                     </Typography>
                 )}
 
-                {entries.map(entry => (
+                {entries.map(entry => {
+                    const isOrphaned =
+                        activeTypes !== null &&
+                        Boolean(entry.type) &&
+                        !activeTypes.has(entry.type!);
+                    return (
                     <Box
                         key={entry.id}
                         onDragOver={e => onItemDragOver(e, entry.id)}
@@ -772,12 +825,20 @@ export const Rundowns: React.FC<RundownsProps> = ({
                             type={entry.type}
                             active={false}
                             locked={locked}
-                            disabled={
-                                activeTypes !== null &&
-                                !activeTypes.has(entry.type)
-                            }
+                            disabled={isOrphaned}
                             onEdit={() => onEdit(entry)}
                             onPlay={() => onPlay(entry)}
+                            onDelete={isOrphaned ? () => {
+                                conn.rawRequest('/api/rundown/types', 'GET', {})
+                                    .then(res => {
+                                        const fresh = new Set<string>(res.data ?? []);
+                                        setActiveTypes(fresh);
+                                        if (entry.type && !fresh.has(entry.type)) {
+                                            setPendingDelete(entry);
+                                        }
+                                    })
+                                    .catch(() => { /* fail closed — don't open dialog */ });
+                            } : undefined}
                             onReorderDragStart={
                                 acceptsReorder
                                     ? e => {
@@ -807,7 +868,8 @@ export const Rundowns: React.FC<RundownsProps> = ({
                             />
                         </RundownEntry>
                     </Box>
-                ))}
+                    );
+                })}
 
                 <Button
                     variant="contained"
@@ -841,6 +903,60 @@ export const Rundowns: React.FC<RundownsProps> = ({
                 onCancel={uploadCtrl.cancel}
                 onConfirm={uploadCtrl.confirm}
             />
+
+            <Modal open={pendingDelete !== null} onClose={() => setPendingDelete(null)}>
+                <Stack
+                    justifyContent="center"
+                    alignItems="center"
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                    }}
+                >
+                    <Card
+                        sx={theme => ({
+                            p: 3,
+                            width: 460,
+                            bgcolor: theme.palette.surface.elevated,
+                            border: `1px solid ${theme.palette.divider}`,
+                        })}
+                    >
+                        <Stack spacing={2}>
+                            <Stack direction="row" alignItems="center" gap={1.5}>
+                                <WarningAmberRoundedIcon sx={theme => ({ color: theme.palette.error.light })} />
+                                <Typography variant="h3">
+                                    {t('rundown.deleteEntryDialog.title')}
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                                {t('rundown.deleteEntryDialog.body', {
+                                    title: pendingDelete?.title ?? '',
+                                    type: pendingDelete?.type ?? '',
+                                })}
+                            </Typography>
+                            <Stack direction="row" justifyContent="flex-end" gap={1}>
+                                <Button color="inherit" onClick={() => setPendingDelete(null)}>
+                                    {t('actions.cancel')}
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    color="error"
+                                    onClick={() => {
+                                        if (pendingDelete) {
+                                            onDelete(pendingDelete);
+                                            setPendingDelete(null);
+                                        }
+                                    }}
+                                >
+                                    {t('actions.delete')}
+                                </Button>
+                            </Stack>
+                        </Stack>
+                    </Card>
+                </Stack>
+            </Modal>
         </>
     );
 };

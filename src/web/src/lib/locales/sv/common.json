@@ -94,7 +94,12 @@
         },
         "entry": {
             "dragToReorder": "Dra för att ordna om",
-            "playLockedTooltip": "Spela (rundown är låst — objekt startar bara från denna knapp)"
+            "playLockedTooltip": "Spela (rundown är låst — objekt startar bara från denna knapp)",
+            "orphanedTooltip": "Det här objektets plugin är inte längre tillgängligt — ta bort det för att städa upp"
+        },
+        "deleteEntryDialog": {
+            "title": "Ta bort objekt",
+            "body": "\"{{title}}\" (typ: {{type}}) kommer att tas bort permanent från rundown."
         },
         "indicator": {
             "live": "LIVE",

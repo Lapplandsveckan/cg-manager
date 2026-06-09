@@ -284,6 +284,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                             })
                         }
                         onAdd={() => setAdding(true)}
+                        onDelete={deleteEntry}
                         onDropItem={openEditorForDrop}
                         onReorder={reorderEntries}
                     />

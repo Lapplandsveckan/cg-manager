@@ -94,7 +94,12 @@
         },
         "entry": {
             "dragToReorder": "Drag to reorder",
-            "playLockedTooltip": "Play (rundown is locked — items only fire from this button)"
+            "playLockedTooltip": "Play (rundown is locked — items only fire from this button)",
+            "orphanedTooltip": "This item's plugin is no longer available — delete it to clean up"
+        },
+        "deleteEntryDialog": {
+            "title": "Delete item",
+            "body": "\"{{title}}\" (type: {{type}}) will be permanently removed from the rundown."
         },
         "indicator": {
             "live": "LIVE",

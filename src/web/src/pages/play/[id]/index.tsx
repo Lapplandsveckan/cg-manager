@@ -321,6 +321,7 @@ const Page = () => {
                                 )
                             }
                             onAdd={() => setAdding(true)}
+                            onDelete={deleteEntry}
                             onDropItem={openEditorForDrop}
                             onReorder={reorderEntries}
                         />
