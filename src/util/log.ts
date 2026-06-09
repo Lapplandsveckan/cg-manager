@@ -24,8 +24,6 @@ const Console = {
 };
 
 export class Logger {
-    private static logs: string = '';
-
     // Generous cap on intercepted console.* output. Without it, accidental
     // dumps (webpack errors quoting a minified bundle, stray buffer prints)
     // can balloon a single line to megabytes. Only applies to the console
@@ -150,7 +148,6 @@ export class Logger {
 
     public static log(level: LogLevel, message: string) {
         const messageString = Logger.formatMessage(level, message);
-        Logger.logs += `${messageString}\n`;
         this.logToFile(level, message);
 
         if (level === LogLevel.DEBUG && config['hide-debug']) return;
