@@ -594,6 +594,18 @@
             "noUiTitle": "Inget konfigurationsgränssnitt",
             "noUiBody": "Detta plugin tillhandahåller ingen konfigurationspanel. Det styrs direkt genom plugin-koden, CasparCG-konfigurationen eller en fil i projektets plugin-mapp.",
             "noUiHint": "Du kan fortfarande aktivera eller inaktivera det med växeln ovan."
+        },
+        "upload": {
+            "button": "Installera plugin",
+            "fileType": "CG Manager-plugin",
+            "dropOverlay": "Släpp .cgplugin för att installera"
+        },
+        "uninstall": {
+            "button": "Avinstallera",
+            "title": "Avinstallera plugin?",
+            "body": "\"{{name}}\" tas bort och dess mapp raderas. Det går inte att ångra.",
+            "confirm": "Avinstallera",
+            "error": "Misslyckades att avinstallera plugin"
         }
     },
     "playPage": {

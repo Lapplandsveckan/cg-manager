@@ -9,6 +9,7 @@ export interface Config {
     'db-file': string; // Path to the database file
     'rundown-dir'?: string; // Directory to store rundowns in
     'routes-dir': string; // Directory to store routes in
+    'plugins-dir': string; // Directory to load external plugins from
     'plugin-state-file': string; // Path to the persisted plugin-enabled-state file
     // Shared password for the web UI / API. `null` disables auth entirely —
     // anyone reachable on the network can poke at the manager. Set to a
@@ -38,6 +39,7 @@ export default {
     'db-file': './media-cache.json',
     'rundown-dir': './rundowns',
     'routes-dir': './routes',
+    'plugins-dir': './plugins',
     'plugin-state-file': './plugin-state.json',
     password: null,
 } as Config;

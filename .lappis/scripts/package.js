@@ -70,7 +70,7 @@ async function packageInternalPlugins() {
 
     const files = _files
         .filter((file) => !file.includes('.'))
-        .map((file) => `    require('./internal/${file}').default,\n`);
+        .map((file) => `    { plugin: require('./internal/${file}').default, dir: __dirname + '/internal/${file}' },\n`);
 
     const content = `[\n${files.join('')}]`;
     await fs.writeFile(out, `module.exports = ${content};`);

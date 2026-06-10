@@ -1,21 +1,41 @@
 import path from 'path';
+import { promises as fs } from 'fs';
+import { noTryAsync } from 'no-try';
 import { Logger } from '../util/log';
+import config from '../util/config';
 import files from './_plugins';
 import { loadPluginFolder } from './util';
+import { extractCgPlugin, loadSinglePlugin } from './install';
 import { CasparManager } from '../manager';
+import { Upload } from '../manager/scanner/upload';
 
 export async function loadPlugins() {
     const logger = Logger.scope('Plugin Loader');
     logger.info('Loading plugins...');
 
-    const externalPlugins = loadPluginFolder(
-        path.join(process.cwd(), 'plugins'),
-    );
-    const plugins = files.concat(externalPlugins);
+    const pluginsDir = path.resolve(process.cwd(), config['plugins-dir']);
+    const externalPlugins = loadPluginFolder(pluginsDir);
+
+    // Wire the plugin-upload completion hook so uploaded .cgplugin zips are
+    // extracted and hot-loaded without a restart.
+    Upload.onPluginComplete = async (zipPath: string) => {
+        try {
+            const result = await extractCgPlugin(zipPath, pluginsDir);
+            const manager = CasparManager.getManager();
+            const pluginClass = loadSinglePlugin(result.dir);
+            manager.getPlugins().installFromDir(result.dir, pluginClass);
+            manager.emit('plugin-list-changed');
+            logger.info(`Plugin "${result.name}" installed and enabled`);
+        } finally {
+            await noTryAsync(() => fs.rm(zipPath, { force: true }));
+        }
+    };
 
     await CasparManager.getManager().plugins.loadState();
-    for (const plugin of plugins)
-        CasparManager.getManager().plugins.register(plugin);
+    for (const { plugin, dir } of files)
+        CasparManager.getManager().plugins.register(plugin, dir, true);
+    for (const { plugin, dir } of externalPlugins)
+        CasparManager.getManager().plugins.register(plugin, dir);
 
     logger.info('Enabling plugins...');
     CasparManager.getManager().plugins.enableAll();

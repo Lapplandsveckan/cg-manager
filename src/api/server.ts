@@ -139,6 +139,11 @@ export class CGServer {
                 this.broadcast('routes', WebsocketOutboundMethod[method], data);
             },
         );
+
+        // Plugin list changes — push updated list so clients refresh their cache.
+        this.manager.on('plugin-list-changed', () =>
+            this.broadcast('plugins', WebsocketOutboundMethod.ACTION,
+                this.manager.getPlugins().list()));
     }
 
     public broadcast<T>(
@@ -408,8 +413,10 @@ export class CGServer {
 
             const buffer: Uint8Array[] = [];
             data.request.on('data', chunk => buffer.push(chunk));
-            data.request.on('end', () => {
-                upload.bufferChunk(chunk, Buffer.concat(buffer));
+            data.request.on('end', async () => {
+                const [err] = await noTryAsync(() =>
+                    upload.bufferChunk(chunk, Buffer.concat(buffer)));
+                if (err) return answer(500, err.message || 'Upload failed', false);
                 answer(200, 'OK', false);
             });
 

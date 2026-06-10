@@ -16,6 +16,21 @@ export default {
         return {
             name: plugin.pluginName,
             enabled: plugin['_enabled'],
+            builtin: CasparManager.getManager()
+                .getPlugins()
+                .isBuiltin(plugin.pluginName),
         };
+    },
+    DELETE: async request => {
+        if (!request.params.id)
+            throw new WebError('No plugin id provided', 400);
+
+        const manager = CasparManager.getManager();
+        if (manager.getPlugins().isBuiltin(request.params.id))
+            throw new WebError('Built-in plugins cannot be uninstalled', 403);
+
+        await manager.getPlugins().uninstall(request.params.id);
+        manager.emit('plugin-list-changed');
+        return null;
     },
 } satisfies RouteExport;

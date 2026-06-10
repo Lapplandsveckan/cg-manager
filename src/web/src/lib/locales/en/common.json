@@ -590,10 +590,22 @@
         },
         "detail": {
             "notFoundTitle": "Plugin not found",
-            "notFoundBody": "No plugin called “{{id}}” is registered.",
+            "notFoundBody": "No plugin called \"{{id}}\" is registered.",
             "noUiTitle": "No configuration UI",
             "noUiBody": "This plugin doesn't provide a configuration panel. It's controlled directly through the plugin's code, the CasparCG config, or a file in the project's plugin folder.",
             "noUiHint": "You can still enable or disable it with the switch above."
+        },
+        "upload": {
+            "button": "Install plugin",
+            "fileType": "CG Manager plugin",
+            "dropOverlay": "Drop .cgplugin to install"
+        },
+        "uninstall": {
+            "button": "Uninstall",
+            "title": "Uninstall plugin?",
+            "body": "\"{{name}}\" will be removed and its folder deleted. This cannot be undone.",
+            "confirm": "Uninstall",
+            "error": "Failed to uninstall plugin"
         }
     },
     "playPage": {

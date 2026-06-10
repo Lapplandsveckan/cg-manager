@@ -1,3 +1,4 @@
+import EventEmitter from 'events';
 import { type REPClient } from 'rest-exchange-protocol-client';
 import React, {
     type ComponentType,
@@ -29,9 +30,11 @@ export const UI_INJECTION_ZONE = {
     RUNDOWN_SIDE: 'rundown-side',
     RUNDOWN_BOTTOM_PANEL: 'rundown-bottom-panel',
 
-    // Rendered inside the media upload modal while a file is being
+    // Rendered inside the **media** upload modal while a file is being
     // uploaded; injections receive `targetPaths: string[]` (server-side
     // absolute paths) via props so they can act on the in-flight files.
+    // The plugin-install modal deliberately passes `optionsZone={null}`
+    // to suppress this zone — media-specific options make no sense there.
     UPLOAD_OPTIONS: 'upload-options',
 } as const;
 
@@ -48,7 +51,7 @@ export interface Injection {
     id: string;
 }
 
-export class PluginInjectionAPI {
+export class PluginInjectionAPI extends EventEmitter {
     private _loaded = new Map<
         string,
         React.ComponentType | Promise<React.ComponentType>
@@ -58,12 +61,23 @@ export class PluginInjectionAPI {
     private socket: REPClient;
 
     constructor(socket: REPClient) {
+        super();
         this.socket = socket;
 
         this._pluginPromise = this.requestPlugins();
         this._pluginPromise
             .then(() => (this._pluginPromise = null))
             .catch(e => console.error('Failed to get plugins', e));
+    }
+
+    public refresh() {
+        this._pluginPromise = this.requestPlugins();
+        this._pluginPromise
+            .then(() => {
+                this._pluginPromise = null;
+                this.emit('change');
+            })
+            .catch(e => console.error('Failed to refresh plugin injections', e));
     }
 
     private async requestPlugins() {
@@ -154,11 +168,20 @@ export const Injections: React.FC<InjectionsProps> = ({
 
     useEffect(() => {
         let mounted = true;
-        socket.injects
-            .inject(zone, plugin)
-            .then(components => mounted && setComponents(components));
 
-        return () => void (mounted = false);
+        const resolve = () => {
+            socket.injects
+                .inject(zone, plugin)
+                .then(components => mounted && setComponents(components));
+        };
+
+        resolve();
+        socket.injects.on('change', resolve);
+
+        return () => {
+            mounted = false;
+            socket.injects.off('change', resolve);
+        };
     }, [zone, plugin]);
 
     return createElement(

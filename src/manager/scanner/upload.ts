@@ -7,7 +7,7 @@ import { resolveSafePath, sanitizeMediaPath } from './util';
 
 interface UploadDestination {
     uri: string;
-    type: 'template' | 'media';
+    type: 'template' | 'media' | 'plugin';
 }
 
 interface UploadBuffer {
@@ -32,6 +32,8 @@ export class Upload {
     private static readonly uploads = new Map<string, Upload>();
     // Wired by MediaScanner — called when a media upload finishes for immediate scan.
     static onComplete: ((path: string) => void) | undefined;
+    // Wired by the plugin loader — called when a plugin upload finishes for extraction.
+    static onPluginComplete: ((path: string) => Promise<void>) | undefined;
 
     public readonly id: string;
 
@@ -62,9 +64,9 @@ export class Upload {
     }
 
     private get destinationLog() {
-        const type =
-            this.data.destination.type === 'template' ? 'Template' : 'Media';
-        return `${type} ${this.data.destination.uri}`;
+        const { type, uri } = this.data.destination;
+        const labels = { template: 'Template', media: 'Media', plugin: 'Plugin' };
+        return `${labels[type]} ${uri}`;
     }
 
     private get basePath() {
@@ -72,6 +74,8 @@ export class Upload {
             return DirectoryManager.getManager()['templatePath'];
         if (this.data.destination.type === 'media')
             return DirectoryManager.getManager()['mediaPath'];
+        if (this.data.destination.type === 'plugin')
+            return os.tmpdir();
 
         throw new Error('Invalid destination type');
     }
@@ -158,6 +162,8 @@ export class Upload {
         await fs.rename(this.getTemporaryPath(), finalPath);
         if (this.data.destination.type === 'media')
             Upload.onComplete?.(finalPath);
+        else if (this.data.destination.type === 'plugin')
+            await Upload.onPluginComplete?.(finalPath);
         this.logger.info(`Upload complete ${this.destinationLog}`);
     }
 

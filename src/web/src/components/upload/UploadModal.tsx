@@ -19,6 +19,9 @@ interface UploadModalProps {
     onCancel?: () => void;
     onConfirm?: () => void;
     targetPathFor?: (file: File) => string;
+    /** Zone to render plugin-injected options in the review phase.
+     *  Pass `null` to suppress injected options entirely (e.g. plugin install). */
+    optionsZone?: UI_INJECTION_ZONE | null;
 }
 
 export const UploadModal: React.FC<UploadModalProps> = ({
@@ -27,6 +30,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
     onCancel,
     onConfirm,
     targetPathFor,
+    optionsZone = UI_INJECTION_ZONE.UPLOAD_OPTIONS,
 }) => {
     const open = state.phase !== 'idle';
     const handleClose = () => {
@@ -54,6 +58,7 @@ export const UploadModal: React.FC<UploadModalProps> = ({
                     onClose={handleClose}
                     onConfirm={onConfirm}
                     targetPathFor={targetPathFor}
+                    optionsZone={optionsZone}
                 />
             </Card>
         </Modal>
@@ -65,6 +70,7 @@ interface UploadModalContentProps {
     onClose: () => void;
     onConfirm?: () => void;
     targetPathFor?: (file: File) => string;
+    optionsZone?: UI_INJECTION_ZONE | null;
 }
 
 const UploadModalContent: React.FC<UploadModalContentProps> = ({
@@ -72,6 +78,7 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({
     onClose,
     onConfirm,
     targetPathFor,
+    optionsZone,
 }) => {
     const { t } = useTranslation('common');
     const {
@@ -91,7 +98,7 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({
         () => (targetPathFor ? queue.map(targetPathFor) : []),
         [queue, targetPathFor],
     );
-    const showOptions = phase === 'review' && targetPaths.length > 0;
+    const showOptions = phase === 'review' && targetPaths.length > 0 && optionsZone != null;
 
     let title: string;
     if (phase === 'review')
@@ -178,7 +185,7 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({
             {showOptions && (
                 <Box>
                     <Injections
-                        zone={UI_INJECTION_ZONE.UPLOAD_OPTIONS}
+                        zone={optionsZone}
                         props={{ targetPaths }}
                     />
                 </Box>

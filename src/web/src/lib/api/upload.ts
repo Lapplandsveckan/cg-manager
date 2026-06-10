@@ -12,7 +12,9 @@ async function sendChunk(chunk: Blob, chunkIndex: number, uploadId: string) {
         body: chunk,
     });
 
-    if ((await res.text()) !== 'OK') throw new Error('Failed to send chunk');
+    const text = await res.text();
+    if (!res.ok) throw new Error(text || 'Failed to send chunk');
+    if (text !== 'OK') throw new Error('Failed to send chunk');
 }
 
 export function getChunkSize() {

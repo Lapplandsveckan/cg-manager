@@ -6,5 +6,6 @@
   "caspar-path": null,
   "db-file": "./media-cache.json",
   "rundown-dir": "./rundowns",
-  "routes-dir": "./routes"
+  "routes-dir": "./routes",
+  "plugins-dir": "./plugins"
 }

@@ -17,7 +17,7 @@ export function loadPluginFolder(dir: string) {
         return [];
     }
 
-    const plugins: (typeof CasparPlugin)[] = [];
+    const plugins: { plugin: typeof CasparPlugin; dir: string }[] = [];
     for (const entry of entries) {
         if (entry.includes('.')) continue; // TODO: better way to check if folder
 
@@ -39,7 +39,7 @@ export function loadPluginFolder(dir: string) {
             continue;
         }
 
-        plugins.push(plugin);
+        plugins.push({ plugin, dir: pluginPath });
     }
 
     return plugins;
