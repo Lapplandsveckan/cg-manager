@@ -41,6 +41,7 @@ async function packageSource(ctx) {
     console.log('Compiling plugin source...');
     await node(root, path.join('webpack-cli', 'bin', 'cli'));
     await fs.rm(path.join(root, 'dist', 'index.js.LICENSE.txt')).catch(() => null);
+    await fs.cp(path.join(root, 'package.json'), path.join(root, 'dist', 'package.json'));
     // Full node_modules copy — externals need their deps at runtime.
     // TODO: prune to transitive closure of pkg.dependencies once a safe walk is validated.
     await fs.cp(path.join(root, 'node_modules'), path.join(root, 'dist', 'node_modules'), { recursive: true });
@@ -117,6 +118,12 @@ async function movePlugin(ctx) {
     console.log(`Plugin installed to ${target}`);
 }
 
+// Leave only the archive at root; the assembled dir lives at dest (if any).
+async function cleanup(ctx) {
+    const { root, out } = ctx;
+    await fs.rm(path.join(root, out), { recursive: true }).catch(() => null);
+}
+
 async function build(options = {}) {
     const root = options.root || process.cwd();
     const pkg = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
@@ -130,7 +137,7 @@ async function build(options = {}) {
 
     const ctx = { root, name, out, ui, steps, dest };
 
-    const pipeline = [packageSource, packageUI, runSteps, assemble, archive, movePlugin];
+    const pipeline = [packageSource, packageUI, runSteps, assemble, archive, movePlugin, cleanup];
     for (const step of pipeline) {
         const failed = await step(ctx).then(() => false).catch(e => (console.error(e), true));
         if (failed) {
@@ -143,4 +150,4 @@ async function build(options = {}) {
     return true;
 }
 
-module.exports = { build, packageSource, packageUI, runSteps, assemble, archive, movePlugin };
+module.exports = { build, packageSource, packageUI, runSteps, assemble, archive, movePlugin, cleanup };
