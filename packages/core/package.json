@@ -3,7 +3,7 @@
   "repository": "https://github.com/Lapplandsveckan/cg-manager-plugin",
   "author": "firecraftgaming <eliyah@sundstroem.com>",
   "license": "MIT",
-  "version": "0.0.36",
+  "version": "0.0.37",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "devDependencies": {
@@ -25,8 +25,13 @@
     "webpack": "^5.69.0",
     "webpack-cli": "^4.9.2"
   },
+  "bin": {
+    "cg-manager": "bin/cli.js"
+  },
   "files": [
     "dist",
+    "builder",
+    "bin",
     "LICENSE",
     "package.json"
   ],
@@ -40,6 +45,7 @@
     "lint:fix": "eslint src test --ext .ts --fix"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "babel-loader": "^8.2.5",
     "no-try": "^3.1.0",
     "rest-exchange-protocol": "^0.0.16",
