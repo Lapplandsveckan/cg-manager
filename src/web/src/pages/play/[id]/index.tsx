@@ -21,6 +21,7 @@ import { QuickActions } from '../../../components/QuickActions';
 import { BottomPanel } from '../../../components/BottomPanel';
 import { RundownPreview } from '../../../components/RundownPreview';
 import { type RundownItemDragPayload } from '../../../lib/dragPayload';
+import { RundownLiveProvider } from '../../../hooks/useRundownLive';
 
 // Default sizes target ~80% of the previous defaults (560/560/480) so the
 // three columns fit comfortably side-by-side on a standard 1440px viewport
@@ -217,6 +218,7 @@ const Page = () => {
         createEntry(entry, pendingDropIndex);
 
     return (
+        <RundownLiveProvider live={!locked}>
         <DefaultContentLayout>
             <Stack sx={{ height: '100%', minHeight: 0 }}>
                 <Stack
@@ -411,6 +413,7 @@ const Page = () => {
                 deleteEntry={deleteEntry}
             />
         </DefaultContentLayout>
+        </RundownLiveProvider>
     );
 };
 
