@@ -35,7 +35,9 @@ const MediaPlayModal: React.FC<Props> = ({ entry, onClose, onError }) => {
                                         '/api/rundown/execute',
                                         'ACTION',
                                         { entry: built },
-                                    ).catch(() => onError?.()).finally(onClose);
+                                    )
+                                        .catch(() => onError?.())
+                                        .finally(onClose);
                                 },
                                 deleteEntry: () => onClose(),
                             }}

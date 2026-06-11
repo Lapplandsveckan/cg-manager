@@ -77,7 +77,9 @@ export class PluginInjectionAPI extends EventEmitter {
                 this._pluginPromise = null;
                 this.emit('change');
             })
-            .catch(e => console.error('Failed to refresh plugin injections', e));
+            .catch(e =>
+                console.error('Failed to refresh plugin injections', e),
+            );
     }
 
     private async requestPlugins() {

@@ -348,9 +348,7 @@ const Page = () => {
                             key={plugin.name}
                             plugin={plugin}
                             hasUi={pluginsWithUi.has(plugin.name)}
-                            onToggle={next =>
-                                togglePlugin(plugin.name, next)
-                            }
+                            onToggle={next => togglePlugin(plugin.name, next)}
                             onOpen={() =>
                                 router.push(`/plugins/${plugin.name}`)
                             }

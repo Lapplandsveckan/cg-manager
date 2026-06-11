@@ -1,7 +1,10 @@
 export { useSocket } from './hooks/useSocket';
 export { MediaSelect, MediaView } from '../components/MediaView';
 export { MediaCard } from '../components/MediaCard';
-export { RundownEditorActionBar, InstantPlayoutContext } from '../components/RundownEditor';
+export {
+    RundownEditorActionBar,
+    InstantPlayoutContext,
+} from '../components/RundownEditor';
 export {
     Dropzone,
     UploadButton,

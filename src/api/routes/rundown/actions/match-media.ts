@@ -17,8 +17,7 @@ export default {
             throw new WebError('Invalid mediaId', 400);
         if (typeof name !== 'string' || !name)
             throw new WebError('Invalid name', 400);
-        if (typeof type !== 'string')
-            throw new WebError('Invalid type', 400);
+        if (typeof type !== 'string') throw new WebError('Invalid type', 400);
 
         return await CasparManager.getManager().rundowns.executor.matchMedia({
             mediaId,

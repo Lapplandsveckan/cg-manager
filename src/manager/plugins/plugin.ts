@@ -63,7 +63,11 @@ export class PluginManager {
             );
     }
 
-    public register(plugin: typeof CasparPlugin, dir?: string, builtin = false) {
+    public register(
+        plugin: typeof CasparPlugin,
+        dir?: string,
+        builtin = false,
+    ) {
         const loaderLogger = Logger.scope('Plugin Loader');
         const pluginLabel =
             (plugin as any).pluginName ?? plugin.name ?? 'unknown';
@@ -200,13 +204,16 @@ export class PluginManager {
      *  first (update path). The new plugin is registered; enabling is conditional
      *  on `_enabled` and not being in the disabled set. */
     public installFromDir(dir: string, pluginClass: typeof CasparPlugin) {
-        const label = (pluginClass as any).pluginName ?? pluginClass.name ?? 'unknown';
+        const label =
+            (pluginClass as any).pluginName ?? pluginClass.name ?? 'unknown';
 
         const existing = this._plugins.find(p => p.pluginName === label);
         if (existing) this.unregister(existing);
 
         this.register(pluginClass, dir);
-        Logger.scope('Plugin Loader').info(`Installed plugin "${label}" from ${dir}`);
+        Logger.scope('Plugin Loader').info(
+            `Installed plugin "${label}" from ${dir}`,
+        );
     }
 
     /** Disable, unregister, and delete the plugin folder from disk. */
@@ -214,16 +221,20 @@ export class PluginManager {
         const plugin = this._plugins.find(p => p.pluginName === name);
         if (!plugin) throw new Error(`Plugin "${name}" not found`);
         if (this._builtin.has(name))
-            throw new Error(`Plugin "${name}" is built-in and cannot be uninstalled`);
+            throw new Error(
+                `Plugin "${name}" is built-in and cannot be uninstalled`,
+            );
 
         // Capture dir before unregister clears the map.
         const trackedDir = this._pluginDirs.get(name);
         this.unregister(plugin);
 
-        const dir = trackedDir ?? path.join(
-            path.resolve(process.cwd(), config['plugins-dir']),
-            sanitizeName(name),
-        );
+        const dir =
+            trackedDir ??
+            path.join(
+                path.resolve(process.cwd(), config['plugins-dir']),
+                sanitizeName(name),
+            );
         const [err] = await noTryAsync(() =>
             fs.rm(dir, { recursive: true, force: true }),
         );

@@ -36,8 +36,10 @@ function findPackageJsonPrefix(zip: AdmZip): string | null {
 /** Guard against zip-slip: every extracted path must resolve inside destDir. */
 function isSafe(destDir: string, entryPath: string): boolean {
     const resolved = path.resolve(destDir, entryPath);
-    return resolved.startsWith(path.resolve(destDir) + path.sep) ||
-        resolved === path.resolve(destDir);
+    return (
+        resolved.startsWith(path.resolve(destDir) + path.sep) ||
+        resolved === path.resolve(destDir)
+    );
 }
 
 export interface ExtractResult {
@@ -58,7 +60,9 @@ export async function extractCgPlugin(
 
     const prefix = findPackageJsonPrefix(zip);
     if (prefix === null)
-        throw new Error('Archive has no package.json at root or in a single top-level folder');
+        throw new Error(
+            'Archive has no package.json at root or in a single top-level folder',
+        );
 
     const pkgEntry = zip.getEntry(`${prefix}package.json`);
     const [parseErr, pkg] = noTry(() =>
@@ -91,8 +95,14 @@ export async function extractCgPlugin(
         await fs.writeFile(targetPath, entry.getData());
     }
 
-    logger.info(`Extracted "${pkg.name as string}" v${pkg.version ?? '?'} → ${destDir}`);
-    return { name: folderName, version: (pkg.version as string) ?? 'unknown', dir: destDir };
+    logger.info(
+        `Extracted "${pkg.name as string}" v${pkg.version ?? '?'} → ${destDir}`,
+    );
+    return {
+        name: folderName,
+        version: (pkg.version as string) ?? 'unknown',
+        dir: destDir,
+    };
 }
 
 /** Clear require cache for a plugin dir and re-require it, returning the
@@ -109,8 +119,7 @@ export function loadSinglePlugin(dir: string): typeof CasparPlugin {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require(resolvedDir);
     const plugin = mod?.default as typeof CasparPlugin | undefined;
-    if (!plugin)
-        throw new Error(`Plugin at "${dir}" has no default export`);
+    if (!plugin) throw new Error(`Plugin at "${dir}" has no default export`);
 
     return plugin;
 }

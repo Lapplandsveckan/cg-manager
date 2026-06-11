@@ -59,11 +59,10 @@ export class PluginApi extends EventEmitter {
      *  Pass the file directly; chunk count is computed here. */
     public async uploadPlugin(file: File): Promise<string> {
         const chunks = getChunkCount(file);
-        const res = await this.socket.request(
-            'api/plugins/upload',
-            'ACTION',
-            { filename: file.name, chunks },
-        );
+        const res = await this.socket.request('api/plugins/upload', 'ACTION', {
+            filename: file.name,
+            chunks,
+        });
         return (res.data as { id: string }).id;
     }
 

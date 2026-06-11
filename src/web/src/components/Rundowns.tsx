@@ -395,7 +395,9 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                             onClick={e => e.stopPropagation()}
                         >
                             {disabled ? (
-                                <Tooltip title={t('rundown.entry.orphanedTooltip')}>
+                                <Tooltip
+                                    title={t('rundown.entry.orphanedTooltip')}
+                                >
                                     <IconButton
                                         size="small"
                                         onClick={onDelete}
@@ -404,8 +406,12 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                                             border: `1px solid ${theme.palette.divider}`,
                                             borderRadius: 1,
                                             '&:hover': {
-                                                bgcolor: alpha(theme.palette.error.main, 0.08),
-                                                borderColor: theme.palette.error.main,
+                                                bgcolor: alpha(
+                                                    theme.palette.error.main,
+                                                    0.08,
+                                                ),
+                                                borderColor:
+                                                    theme.palette.error.main,
                                             },
                                         })}
                                     >
@@ -426,7 +432,9 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                                     <Tooltip
                                         title={
                                             locked
-                                                ? t('rundown.entry.playLockedTooltip')
+                                                ? t(
+                                                      'rundown.entry.playLockedTooltip',
+                                                  )
                                                 : t('actions.play')
                                         }
                                     >
@@ -515,7 +523,9 @@ export const Rundowns: React.FC<RundownsProps> = ({
 }) => {
     const { t } = useTranslation('common');
     const conn = useSocket();
-    const [pendingDelete, setPendingDelete] = useState<RundownEntry | null>(null);
+    const [pendingDelete, setPendingDelete] = useState<RundownEntry | null>(
+        null,
+    );
     const [dragOver, setDragOver] = useState(false);
     const [reorderDraggingId, setReorderDraggingId] = useState<string | null>(
         null,
@@ -529,7 +539,9 @@ export const Rundowns: React.FC<RundownsProps> = ({
     const refetchTypes = useCallback(() => {
         conn.rawRequest('/api/rundown/types', 'GET', {})
             .then(res => setActiveTypes(new Set(res.data ?? [])))
-            .catch(() => { /* keep previous on error */ });
+            .catch(() => {
+                /* keep previous on error */
+            });
     }, [conn]);
 
     // Fetch on mount and re-fetch whenever CasparCG restarts (plugins
@@ -816,58 +828,77 @@ export const Rundowns: React.FC<RundownsProps> = ({
                         Boolean(entry.type) &&
                         !activeTypes.has(entry.type!);
                     return (
-                    <Box
-                        key={entry.id}
-                        onDragOver={e => onItemDragOver(e, entry.id)}
-                    >
-                        <RundownEntry
-                            title={entry.title}
-                            type={entry.type}
-                            active={false}
-                            locked={locked}
-                            disabled={isOrphaned}
-                            onEdit={() => onEdit(entry)}
-                            onPlay={() => onPlay(entry)}
-                            onDelete={isOrphaned ? () => {
-                                conn.rawRequest('/api/rundown/types', 'GET', {})
-                                    .then(res => {
-                                        const fresh = new Set<string>(res.data ?? []);
-                                        setActiveTypes(fresh);
-                                        if (entry.type && !fresh.has(entry.type)) {
-                                            setPendingDelete(entry);
-                                        }
-                                    })
-                                    .catch(() => { /* fail closed — don't open dialog */ });
-                            } : undefined}
-                            onReorderDragStart={
-                                acceptsReorder
-                                    ? e => {
-                                          e.dataTransfer.setData(
-                                              RUNDOWN_REORDER_MIME,
-                                              entry.id,
-                                          );
-                                          e.dataTransfer.effectAllowed = 'move';
-                                          setReorderDraggingId(entry.id);
-                                      }
-                                    : undefined
-                            }
-                            onReorderDragEnd={() => {
-                                setReorderDraggingId(null);
-                                setInsertion(null);
-                            }}
-                            dropIndicator={
-                                insertion?.id === entry.id
-                                    ? insertion.position
-                                    : null
-                            }
-                            isDragging={reorderDraggingId === entry.id}
+                        <Box
+                            key={entry.id}
+                            onDragOver={e => onItemDragOver(e, entry.id)}
                         >
-                            <Injections
-                                zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`}
-                                props={{ entry }}
-                            />
-                        </RundownEntry>
-                    </Box>
+                            <RundownEntry
+                                title={entry.title}
+                                type={entry.type}
+                                active={false}
+                                locked={locked}
+                                disabled={isOrphaned}
+                                onEdit={() => onEdit(entry)}
+                                onPlay={() => onPlay(entry)}
+                                onDelete={
+                                    isOrphaned
+                                        ? () => {
+                                              conn.rawRequest(
+                                                  '/api/rundown/types',
+                                                  'GET',
+                                                  {},
+                                              )
+                                                  .then(res => {
+                                                      const fresh =
+                                                          new Set<string>(
+                                                              res.data ?? [],
+                                                          );
+                                                      setActiveTypes(fresh);
+                                                      if (
+                                                          entry.type &&
+                                                          !fresh.has(entry.type)
+                                                      ) {
+                                                          setPendingDelete(
+                                                              entry,
+                                                          );
+                                                      }
+                                                  })
+                                                  .catch(() => {
+                                                      /* fail closed — don't open dialog */
+                                                  });
+                                          }
+                                        : undefined
+                                }
+                                onReorderDragStart={
+                                    acceptsReorder
+                                        ? e => {
+                                              e.dataTransfer.setData(
+                                                  RUNDOWN_REORDER_MIME,
+                                                  entry.id,
+                                              );
+                                              e.dataTransfer.effectAllowed =
+                                                  'move';
+                                              setReorderDraggingId(entry.id);
+                                          }
+                                        : undefined
+                                }
+                                onReorderDragEnd={() => {
+                                    setReorderDraggingId(null);
+                                    setInsertion(null);
+                                }}
+                                dropIndicator={
+                                    insertion?.id === entry.id
+                                        ? insertion.position
+                                        : null
+                                }
+                                isDragging={reorderDraggingId === entry.id}
+                            >
+                                <Injections
+                                    zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`}
+                                    props={{ entry }}
+                                />
+                            </RundownEntry>
+                        </Box>
                     );
                 })}
 
@@ -904,7 +935,10 @@ export const Rundowns: React.FC<RundownsProps> = ({
                 onConfirm={uploadCtrl.confirm}
             />
 
-            <Modal open={pendingDelete !== null} onClose={() => setPendingDelete(null)}>
+            <Modal
+                open={pendingDelete !== null}
+                onClose={() => setPendingDelete(null)}
+            >
                 <Stack
                     justifyContent="center"
                     alignItems="center"
@@ -924,20 +958,38 @@ export const Rundowns: React.FC<RundownsProps> = ({
                         })}
                     >
                         <Stack spacing={2}>
-                            <Stack direction="row" alignItems="center" gap={1.5}>
-                                <WarningAmberRoundedIcon sx={theme => ({ color: theme.palette.error.light })} />
+                            <Stack
+                                direction="row"
+                                alignItems="center"
+                                gap={1.5}
+                            >
+                                <WarningAmberRoundedIcon
+                                    sx={theme => ({
+                                        color: theme.palette.error.light,
+                                    })}
+                                />
                                 <Typography variant="h3">
                                     {t('rundown.deleteEntryDialog.title')}
                                 </Typography>
                             </Stack>
-                            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                            <Typography
+                                variant="body1"
+                                sx={{ color: 'text.secondary' }}
+                            >
                                 {t('rundown.deleteEntryDialog.body', {
                                     title: pendingDelete?.title ?? '',
                                     type: pendingDelete?.type ?? '',
                                 })}
                             </Typography>
-                            <Stack direction="row" justifyContent="flex-end" gap={1}>
-                                <Button color="inherit" onClick={() => setPendingDelete(null)}>
+                            <Stack
+                                direction="row"
+                                justifyContent="flex-end"
+                                gap={1}
+                            >
+                                <Button
+                                    color="inherit"
+                                    onClick={() => setPendingDelete(null)}
+                                >
                                     {t('actions.cancel')}
                                 </Button>
                                 <Button

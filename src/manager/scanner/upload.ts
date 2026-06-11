@@ -65,7 +65,11 @@ export class Upload {
 
     private get destinationLog() {
         const { type, uri } = this.data.destination;
-        const labels = { template: 'Template', media: 'Media', plugin: 'Plugin' };
+        const labels = {
+            template: 'Template',
+            media: 'Media',
+            plugin: 'Plugin',
+        };
         return `${labels[type]} ${uri}`;
     }
 
@@ -74,8 +78,7 @@ export class Upload {
             return DirectoryManager.getManager()['templatePath'];
         if (this.data.destination.type === 'media')
             return DirectoryManager.getManager()['mediaPath'];
-        if (this.data.destination.type === 'plugin')
-            return os.tmpdir();
+        if (this.data.destination.type === 'plugin') return os.tmpdir();
 
         throw new Error('Invalid destination type');
     }

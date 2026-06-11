@@ -43,9 +43,9 @@ export const RundownEditorActionBar: React.FC<RundownEditorActionBarProps> = ({
     const { t } = useTranslation('common');
     const instant = useContext(InstantPlayoutContext);
     const legacyMode = exists !== undefined;
-    const showDelete = !instant && (legacyMode
-        ? exists === true && Boolean(onDelete)
-        : Boolean(onDelete));
+    const showDelete =
+        !instant &&
+        (legacyMode ? exists === true && Boolean(onDelete) : Boolean(onDelete));
     const cancelHandler =
         onCancel ?? (legacyMode && exists === false ? onDelete : undefined);
 

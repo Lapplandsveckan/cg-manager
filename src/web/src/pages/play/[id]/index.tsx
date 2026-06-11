@@ -219,200 +219,208 @@ const Page = () => {
 
     return (
         <RundownLiveProvider live={!locked}>
-        <DefaultContentLayout>
-            <Stack sx={{ height: '100%', minHeight: 0 }}>
-                <Stack
-                    direction="row"
-                    alignItems="center"
-                    justifyContent="space-between"
-                    gap={2}
-                    mb={2}
-                    sx={{
-                        flexShrink: 0,
-                        // Match the column row's `px: 1` so the title's left
-                        // edge aligns with the column-title text below it.
-                        px: 1,
-                    }}
-                >
+            <DefaultContentLayout>
+                <Stack sx={{ height: '100%', minHeight: 0 }}>
                     <Stack
                         direction="row"
                         alignItems="center"
-                        gap={1.5}
-                        flexWrap="wrap"
-                        sx={{ minWidth: 0 }}
+                        justifyContent="space-between"
+                        gap={2}
+                        mb={2}
+                        sx={{
+                            flexShrink: 0,
+                            // Match the column row's `px: 1` so the title's left
+                            // edge aligns with the column-title text below it.
+                            px: 1,
+                        }}
                     >
                         <Stack
                             direction="row"
-                            alignItems="stretch"
+                            alignItems="center"
                             gap={1.5}
+                            flexWrap="wrap"
                             sx={{ minWidth: 0 }}
                         >
-                            <Box
-                                sx={theme => ({
-                                    width: 3,
-                                    borderRadius: 2,
-                                    bgcolor: theme.palette.primary.main,
-                                    // The bar anchors the title even when the
-                                    // text is short; stretching to the line
-                                    // box keeps it tied to the text height.
-                                    alignSelf: 'stretch',
-                                })}
-                            />
-                            <Typography
-                                variant="h2"
-                                sx={{
-                                    fontSize: '1.75rem',
-                                    lineHeight: 1.2,
-                                    wordBreak: 'break-word',
-                                    color: name
-                                        ? 'text.primary'
-                                        : 'text.disabled',
-                                }}
+                            <Stack
+                                direction="row"
+                                alignItems="stretch"
+                                gap={1.5}
+                                sx={{ minWidth: 0 }}
                             >
-                                {name ?? t('playPage.detail.untitled')}
-                            </Typography>
+                                <Box
+                                    sx={theme => ({
+                                        width: 3,
+                                        borderRadius: 2,
+                                        bgcolor: theme.palette.primary.main,
+                                        // The bar anchors the title even when the
+                                        // text is short; stretching to the line
+                                        // box keeps it tied to the text height.
+                                        alignSelf: 'stretch',
+                                    })}
+                                />
+                                <Typography
+                                    variant="h2"
+                                    sx={{
+                                        fontSize: '1.75rem',
+                                        lineHeight: 1.2,
+                                        wordBreak: 'break-word',
+                                        color: name
+                                            ? 'text.primary'
+                                            : 'text.disabled',
+                                    }}
+                                >
+                                    {name ?? t('playPage.detail.untitled')}
+                                </Typography>
+                            </Stack>
+                            {locked ? <EditIndicator /> : <LiveIndicator />}
                         </Stack>
-                        {locked ? <EditIndicator /> : <LiveIndicator />}
-                    </Stack>
-                    <LockToggle
-                        locked={locked}
-                        onToggle={() => setLocked(l => !l)}
-                        label={t('playPage.detail.itemsLabel')}
-                    />
-                </Stack>
-
-                <Stack
-                    direction="row"
-                    alignItems="stretch"
-                    sx={{
-                        flex: 1,
-                        minHeight: 0,
-                        // Horizontal scroll for narrow viewports; vertical
-                        // scrolling lives inside each column so they don't
-                        // share a single scroll state.
-                        overflowX: 'auto',
-                        overflowY: 'hidden',
-                        // Small left/right insets so the drop-zone outline
-                        // (outlineOffset: 4) on the edge columns isn't clipped
-                        // by the row's overflow.
-                        px: 1,
-                    }}
-                >
-                    <Box
-                        sx={{
-                            width: widths[0],
-                            flexShrink: 0,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            minHeight: 0,
-                            gap: 2,
-                        }}
-                    >
-                        <Typography variant="h2">
-                            {t('playPage.detail.rundownHeading')}
-                        </Typography>
-                        <Rundowns
-                            entries={entries}
+                        <LockToggle
                             locked={locked}
-                            onEdit={entry => setEditing(entry)}
-                            onPlay={entry =>
-                                conn.rawRequest(
-                                    '/api/rundown/execute',
-                                    'ACTION',
-                                    { entry },
-                                )
-                            }
-                            onAdd={() => setAdding(true)}
-                            onDelete={deleteEntry}
-                            onDropItem={openEditorForDrop}
-                            onReorder={reorderEntries}
+                            onToggle={() => setLocked(l => !l)}
+                            label={t('playPage.detail.itemsLabel')}
                         />
-                    </Box>
+                    </Stack>
 
-                    <ResizeHandle
-                        startWidth={widths[0]}
-                        minWidth={MIN_COLUMN_WIDTH}
-                        maxWidth={MAX_COLUMN_WIDTH}
-                        onResize={w => setWidth(0, w)}
-                        onReset={() => setWidth(0, COLUMN_DEFAULTS[0])}
-                    />
-
-                    <Box
+                    <Stack
+                        direction="row"
+                        alignItems="stretch"
                         sx={{
-                            width: widths[1],
-                            flexShrink: 0,
-                            display: 'flex',
-                            flexDirection: 'column',
+                            flex: 1,
                             minHeight: 0,
-                            gap: 2,
-                        }}
-                    >
-                        <Stack spacing={0.5}>
-                            <Typography variant="h2">
-                                {t('playPage.detail.quickActionsHeading')}
-                            </Typography>
-                            <Typography
-                                variant="body2"
-                                sx={{ color: 'text.secondary' }}
-                            >
-                                {t('playPage.detail.quickActionsDescription')}
-                            </Typography>
-                        </Stack>
-                        <QuickActions locked={locked} />
-                    </Box>
-
-                    <ResizeHandle
-                        startWidth={widths[1]}
-                        minWidth={MIN_COLUMN_WIDTH}
-                        maxWidth={MAX_COLUMN_WIDTH}
-                        onResize={w => setWidth(1, w)}
-                        onReset={() => setWidth(1, COLUMN_DEFAULTS[1])}
-                    />
-
-                    <Box
-                        sx={{
-                            width: widths[2],
-                            flexShrink: 0,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            minHeight: 0,
+                            // Horizontal scroll for narrow viewports; vertical
+                            // scrolling lives inside each column so they don't
+                            // share a single scroll state.
+                            overflowX: 'auto',
+                            overflowY: 'hidden',
+                            // Small left/right insets so the drop-zone outline
+                            // (outlineOffset: 4) on the edge columns isn't clipped
+                            // by the row's overflow.
+                            px: 1,
                         }}
                     >
                         <Box
-                            ref={sideColumnRef}
-                            className="no-scrollbar"
-                            sx={{ flex: 1, minHeight: 0, overflowY: 'auto' }}
+                            sx={{
+                                width: widths[0],
+                                flexShrink: 0,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                minHeight: 0,
+                                gap: 2,
+                            }}
                         >
-                            <Injections zone={UI_INJECTION_ZONE.RUNDOWN_SIDE} />
-                            <Box
-                                aria-hidden
-                                sx={{
-                                    height: 'calc(100% - 200px)',
-                                    minHeight: 120,
-                                }}
+                            <Typography variant="h2">
+                                {t('playPage.detail.rundownHeading')}
+                            </Typography>
+                            <Rundowns
+                                entries={entries}
+                                locked={locked}
+                                onEdit={entry => setEditing(entry)}
+                                onPlay={entry =>
+                                    conn.rawRequest(
+                                        '/api/rundown/execute',
+                                        'ACTION',
+                                        { entry },
+                                    )
+                                }
+                                onAdd={() => setAdding(true)}
+                                onDelete={deleteEntry}
+                                onDropItem={openEditorForDrop}
+                                onReorder={reorderEntries}
                             />
                         </Box>
-                        {/* Pinned to the bottom of the column — sits below
+
+                        <ResizeHandle
+                            startWidth={widths[0]}
+                            minWidth={MIN_COLUMN_WIDTH}
+                            maxWidth={MAX_COLUMN_WIDTH}
+                            onResize={w => setWidth(0, w)}
+                            onReset={() => setWidth(0, COLUMN_DEFAULTS[0])}
+                        />
+
+                        <Box
+                            sx={{
+                                width: widths[1],
+                                flexShrink: 0,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                minHeight: 0,
+                                gap: 2,
+                            }}
+                        >
+                            <Stack spacing={0.5}>
+                                <Typography variant="h2">
+                                    {t('playPage.detail.quickActionsHeading')}
+                                </Typography>
+                                <Typography
+                                    variant="body2"
+                                    sx={{ color: 'text.secondary' }}
+                                >
+                                    {t(
+                                        'playPage.detail.quickActionsDescription',
+                                    )}
+                                </Typography>
+                            </Stack>
+                            <QuickActions locked={locked} />
+                        </Box>
+
+                        <ResizeHandle
+                            startWidth={widths[1]}
+                            minWidth={MIN_COLUMN_WIDTH}
+                            maxWidth={MAX_COLUMN_WIDTH}
+                            onResize={w => setWidth(1, w)}
+                            onReset={() => setWidth(1, COLUMN_DEFAULTS[1])}
+                        />
+
+                        <Box
+                            sx={{
+                                width: widths[2],
+                                flexShrink: 0,
+                                display: 'flex',
+                                flexDirection: 'column',
+                                minHeight: 0,
+                            }}
+                        >
+                            <Box
+                                ref={sideColumnRef}
+                                className="no-scrollbar"
+                                sx={{
+                                    flex: 1,
+                                    minHeight: 0,
+                                    overflowY: 'auto',
+                                }}
+                            >
+                                <Injections
+                                    zone={UI_INJECTION_ZONE.RUNDOWN_SIDE}
+                                />
+                                <Box
+                                    aria-hidden
+                                    sx={{
+                                        height: 'calc(100% - 200px)',
+                                        minHeight: 120,
+                                    }}
+                                />
+                            </Box>
+                            {/* Pinned to the bottom of the column — sits below
                             the scrollable injection area so it's always in
                             view while plugins above scroll. */}
-                        <RundownPreview />
-                    </Box>
+                            <RundownPreview />
+                        </Box>
+                    </Stack>
+
+                    <BottomPanel />
                 </Stack>
 
-                <BottomPanel />
-            </Stack>
-
-            <RundownModals
-                editing={editing}
-                setEditing={handleSetEditing}
-                adding={adding}
-                setAdding={setAdding}
-                entries={entries}
-                updateEntry={updateEntry}
-                createEntry={createEntryAtPending}
-                deleteEntry={deleteEntry}
-            />
-        </DefaultContentLayout>
+                <RundownModals
+                    editing={editing}
+                    setEditing={handleSetEditing}
+                    adding={adding}
+                    setAdding={setAdding}
+                    entries={entries}
+                    updateEntry={updateEntry}
+                    createEntry={createEntryAtPending}
+                    deleteEntry={deleteEntry}
+                />
+            </DefaultContentLayout>
         </RundownLiveProvider>
     );
 };

@@ -8,7 +8,10 @@ export default {
         if (!data || typeof data !== 'object')
             throw new WebError('Invalid request data', 400);
 
-        const { filename, chunks } = data as { filename: string; chunks: number };
+        const { filename, chunks } = data as {
+            filename: string;
+            chunks: number;
+        };
         if (typeof filename !== 'string')
             throw new WebError('Invalid filename', 400);
         if (!Number.isInteger(chunks) || chunks < 1)

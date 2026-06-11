@@ -98,7 +98,8 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({
         () => (targetPathFor ? queue.map(targetPathFor) : []),
         [queue, targetPathFor],
     );
-    const showOptions = phase === 'review' && targetPaths.length > 0 && optionsZone != null;
+    const showOptions =
+        phase === 'review' && targetPaths.length > 0 && optionsZone != null;
 
     let title: string;
     if (phase === 'review')
@@ -184,10 +185,7 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({
 
             {showOptions && (
                 <Box>
-                    <Injections
-                        zone={optionsZone}
-                        props={{ targetPaths }}
-                    />
+                    <Injections zone={optionsZone} props={{ targetPaths }} />
                 </Box>
             )}
 

@@ -131,10 +131,10 @@ const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({
     );
 };
 
-export const ModalShell: React.FC<{ children: React.ReactNode; width?: number }> = ({
-    children,
-    width = 500,
-}) => (
+export const ModalShell: React.FC<{
+    children: React.ReactNode;
+    width?: number;
+}> = ({ children, width = 500 }) => (
     <Stack
         justifyContent="center"
         alignItems="center"

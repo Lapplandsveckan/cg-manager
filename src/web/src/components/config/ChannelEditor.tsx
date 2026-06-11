@@ -160,15 +160,23 @@ export const ChannelEditor: React.FC<ChannelEditorProps> = ({
                             <MenuItem value={current}>{current}</MenuItem>
                         )}
                         {videoModes.length > 0 && [
-                            <ListSubheader key="__custom-header">{t('config.videoModes.custom')}</ListSubheader>,
+                            <ListSubheader key="__custom-header">
+                                {t('config.videoModes.custom')}
+                            </ListSubheader>,
                             ...videoModes.map(m => (
-                                <MenuItem key={m.id} value={m.id}>{m.id}</MenuItem>
+                                <MenuItem key={m.id} value={m.id}>
+                                    {m.id}
+                                </MenuItem>
                             )),
                         ]}
                         {builtinModes.length > 0 && [
-                            <ListSubheader key="__builtin-header">{t('config.videoModes.builtin')}</ListSubheader>,
+                            <ListSubheader key="__builtin-header">
+                                {t('config.videoModes.builtin')}
+                            </ListSubheader>,
                             ...builtinModes.map(m => (
-                                <MenuItem key={m} value={m}>{m}</MenuItem>
+                                <MenuItem key={m} value={m}>
+                                    {m}
+                                </MenuItem>
                             )),
                         ]}
                     </Select>

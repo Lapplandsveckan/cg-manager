@@ -68,7 +68,8 @@ const Page = () => {
     });
 
     useEffect(() => {
-        socket.rawRequest('/api/rundown/actions', 'GET', {})
+        socket
+            .rawRequest('/api/rundown/actions', 'GET', {})
             .then(res => {
                 const descriptors: RundownActionDescriptor[] = res.data ?? [];
                 setCanPlay(descriptors.some(d => d.acceptsFiles));
@@ -88,8 +89,8 @@ const Page = () => {
         const mimeType = hasVideo
             ? 'video/*'
             : hasAudio
-                ? 'audio/*'
-                : 'image/*';
+              ? 'audio/*'
+              : 'image/*';
 
         const [err, res] = await noTryAsync(() =>
             socket.rawRequest('/api/rundown/actions/match-media', 'ACTION', {
