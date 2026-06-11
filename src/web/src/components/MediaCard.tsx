@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { useTranslation } from 'next-i18next';
 import { MEDIA_MOVE_DRAG_MIME } from '../lib/dragPayload';
 
@@ -41,6 +42,7 @@ export interface MediaCardProps {
 
     columns?: number;
     onClick?: () => void;
+    onPlay?: () => void;
     onDelete?: () => void;
     onRename?: () => void;
     /** Full media id (slash-separated). When set, the card is draggable
@@ -56,6 +58,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     backgroundUrl,
     columns,
     onClick,
+    onPlay,
     onDelete,
     onRename,
     dragId,
@@ -67,7 +70,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     );
     const span = 60 / (columns ?? 5);
 
-    const hasActions = Boolean(onDelete || onRename);
+    const hasActions = Boolean(onPlay || onDelete || onRename);
 
     return (
         <Grid
@@ -126,6 +129,17 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                         }}
                         onClick={e => e.stopPropagation()}
                     >
+                        {onPlay && (
+                            <Tooltip title={t('actions.play')}>
+                                <IconButton
+                                    size="small"
+                                    onClick={onPlay}
+                                    sx={{ color: 'rgba(232, 234, 237, 0.85)' }}
+                                >
+                                    <PlayArrowRoundedIcon fontSize="small" />
+                                </IconButton>
+                            </Tooltip>
+                        )}
                         {onRename && (
                             <Tooltip title={t('actions.rename')}>
                                 <IconButton

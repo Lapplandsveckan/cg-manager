@@ -1,7 +1,18 @@
-import React from 'react';
+import React, { createContext, useContext } from 'react';
 import { Box, Button, IconButton, Stack, Tooltip } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { useTranslation } from 'next-i18next';
+
+/** When true, `RundownEditorActionBar` relabels Save → Play and hides the
+ *  delete button. Wrap the plugin editor injection in a Provider to activate
+ *  instant-playout mode without requiring plugin-side changes.
+ *
+ *  Note: this only affects plugins that render the shared
+ *  `RundownEditorActionBar`. A plugin shipping its own action bar still works
+ *  (the primary action runs `updateEntry`, which executes the item) but the
+ *  button stays labelled "Save". */
+export const InstantPlayoutContext = createContext<boolean>(false);
 
 interface RundownEditorActionBarProps {
     /** Primary action — saves the edit. Always present. */
@@ -30,10 +41,11 @@ export const RundownEditorActionBar: React.FC<RundownEditorActionBarProps> = ({
     exists,
 }) => {
     const { t } = useTranslation('common');
+    const instant = useContext(InstantPlayoutContext);
     const legacyMode = exists !== undefined;
-    const showDelete = legacyMode
+    const showDelete = !instant && (legacyMode
         ? exists === true && Boolean(onDelete)
-        : Boolean(onDelete);
+        : Boolean(onDelete));
     const cancelHandler =
         onCancel ?? (legacyMode && exists === false ? onDelete : undefined);
 
@@ -73,8 +85,12 @@ export const RundownEditorActionBar: React.FC<RundownEditorActionBarProps> = ({
                         {t('actions.cancel')}
                     </Button>
                 )}
-                <Button variant="contained" onClick={onSave}>
-                    {t('actions.save')}
+                <Button
+                    variant="contained"
+                    onClick={onSave}
+                    startIcon={instant ? <PlayArrowRoundedIcon /> : undefined}
+                >
+                    {instant ? t('actions.play') : t('actions.save')}
                 </Button>
             </Stack>
         </Stack>

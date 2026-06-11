@@ -32,6 +32,7 @@ interface MediaViewProps {
     showAsDirectories?: boolean;
     onNavigate?: (path: string) => void;
 
+    onClipPlay?: (clip: MediaDoc) => void;
     onClipDelete?: (clip: MediaDoc) => void;
     onClipRename?: (clip: MediaDoc) => void;
     /** Called with the folder name (single segment, no trailing slash)
@@ -54,6 +55,7 @@ export const MediaView: React.FC<MediaViewProps> = ({
     prefix,
     showAsDirectories,
     onNavigate,
+    onClipPlay,
     onClipDelete,
     onClipRename,
     onFolderDelete,
@@ -158,6 +160,11 @@ export const MediaView: React.FC<MediaViewProps> = ({
                             onClick={
                                 onClipSelect
                                     ? () => onClipSelect(clip.doc)
+                                    : undefined
+                            }
+                            onPlay={
+                                onClipPlay
+                                    ? () => onClipPlay(clip.doc)
                                     : undefined
                             }
                             onDelete={

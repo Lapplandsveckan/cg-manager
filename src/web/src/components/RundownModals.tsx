@@ -131,7 +131,7 @@ const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({
     );
 };
 
-const ModalShell: React.FC<{ children: React.ReactNode; width?: number }> = ({
+export const ModalShell: React.FC<{ children: React.ReactNode; width?: number }> = ({
     children,
     width = 500,
 }) => (

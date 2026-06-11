@@ -21,6 +21,20 @@ import CreateFolderModal from '../components/media/CreateFolderModal';
 import RenameMediaModal from '../components/media/RenameMediaModal';
 import RenameFolderModal from '../components/media/RenameFolderModal';
 import { createMediaHandlers } from '../lib/media/mediaHandlers';
+import MediaPlayModal from '../components/MediaPlayModal';
+import { type RundownEntry } from '../components/Rundowns';
+
+/** Mirrors RundownActionDescriptor on the server — keep in sync. */
+interface RundownActionDescriptor {
+    id: string;
+    acceptsFiles: boolean;
+}
+
+/** Mirrors RundownFileMatchResult on the server — keep in sync. */
+interface RundownFileMatchResult {
+    actionId: string;
+    payload: { type: string; data?: unknown; title?: string };
+}
 
 function clipShortName(clip: MediaDoc): string {
     return clip.id.split('/').pop() ?? clip.id;
@@ -32,6 +46,8 @@ const Page = () => {
     const router = useRouter();
 
     const [path, setPath] = useState<string>('');
+    const [canPlay, setCanPlay] = useState(false);
+    const [playEntry, setPlayEntry] = useState<RundownEntry | null>(null);
     const [deleting, setDeleting] = useState<MediaDoc | null>(null);
     const [renaming, setRenaming] = useState<MediaDoc | null>(null);
     const [renameValue, setRenameValue] = useState('');
@@ -50,6 +66,59 @@ const Page = () => {
         setBusy,
         setError,
     });
+
+    useEffect(() => {
+        socket.rawRequest('/api/rundown/actions', 'GET', {})
+            .then(res => {
+                const descriptors: RundownActionDescriptor[] = res.data ?? [];
+                setCanPlay(descriptors.some(d => d.acceptsFiles));
+            })
+            .catch(() => setCanPlay(false));
+    }, []);
+
+    const handlePlay = async (clip: MediaDoc) => {
+        setError(null);
+        const name = clip.id.split('/').pop() ?? clip.id;
+        const streams = clip.mediainfo?.streams ?? [];
+        const hasVideo = streams.some(s => s.codec?.type === 'video');
+        const hasAudio = streams.some(s => s.codec?.type === 'audio');
+        // Coarse MIME hint for action match predicates. When mediainfo hasn't
+        // been scanned yet (no streams) we can't know the kind — fall back to
+        // image/* as the least-surprising default rather than guessing video.
+        const mimeType = hasVideo
+            ? 'video/*'
+            : hasAudio
+                ? 'audio/*'
+                : 'image/*';
+
+        const [err, res] = await noTryAsync(() =>
+            socket.rawRequest('/api/rundown/actions/match-media', 'ACTION', {
+                mediaId: clip.id,
+                name,
+                type: mimeType,
+            }),
+        );
+        if (err) {
+            setError(t('media.play.failed'));
+            return;
+        }
+
+        const matches: RundownFileMatchResult[] = res?.data ?? [];
+        if (!matches.length) {
+            setError(t('media.play.noAction'));
+            return;
+        }
+
+        // If several actions accept this media we deliberately take the first;
+        // the Media view has no picker UI (unlike the rundown drop flow).
+        const { payload } = matches[0];
+        setPlayEntry({
+            id: Math.random().toString(36).substring(2, 11),
+            title: payload.title ?? t('rundown.newItemDefaultTitle'),
+            type: payload.type,
+            data: payload.data ?? {},
+        });
+    };
 
     /** Move a media file to the given destination folder. `clipId` is the
      *  full media id (e.g. `INTRO/CLIP`); `folderFullPath` is the full
@@ -178,6 +247,7 @@ const Page = () => {
                     prefix={path}
                     showAsDirectories
                     onNavigate={folder => navigate(`${path}${folder}/`)}
+                    onClipPlay={canPlay ? handlePlay : undefined}
                     onClipDelete={clip => {
                         setError(null);
                         setDeleting(clip);
@@ -205,6 +275,12 @@ const Page = () => {
                 onCancel={uploadCtrl.cancel}
                 onConfirm={uploadCtrl.confirm}
                 targetPathFor={file => `${path}${file.name}`}
+            />
+
+            <MediaPlayModal
+                entry={playEntry}
+                onClose={() => setPlayEntry(null)}
+                onError={() => setError(t('media.play.failed'))}
             />
 
             <DeleteMediaModal

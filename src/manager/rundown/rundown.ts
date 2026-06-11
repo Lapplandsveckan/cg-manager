@@ -250,6 +250,9 @@ export interface RundownActionDescriptor {
     id: string;
     fileTypes?: string[];
     destination?: string;
+    /** True when this action registered an accepts.match predicate and can
+     *  therefore participate in instant playout from the Media view. */
+    acceptsFiles: boolean;
 }
 
 export interface RundownFileMatchInput {
@@ -296,6 +299,7 @@ export class RundownExecutor {
                 id,
                 fileTypes: accepts?.fileTypes,
                 destination: accepts?.destination,
+                acceptsFiles: Boolean(accepts?.match),
             });
         }
         return out;
@@ -353,6 +357,55 @@ export class RundownExecutor {
                 path: filePath,
                 mediaId,
                 destination,
+            });
+        }
+        return matches;
+    }
+
+    /** Like matchFile, but for media that already exists in the library.
+     *  Skips upload-destination logic — the mediaId is used directly as
+     *  both path and mediaId so match predicates receive a consistent value.
+     *  Note: `size` is passed as 0 since it isn't tracked here; a predicate
+     *  that gates on file size would reject library media — none currently do
+     *  (they key on type/name), but keep this in mind if that changes. */
+    public async matchMedia(input: {
+        mediaId: string;
+        name: string;
+        type: string;
+    }): Promise<RundownFileMatchResult[]> {
+        const matches: RundownFileMatchResult[] = [];
+        for (const [id, entry] of this.actions) {
+            const accepts = entry.metadata?.accepts;
+            if (!accepts?.match) continue;
+
+            const matchFn = accepts.match as (file: {
+                name: string;
+                type: string;
+                size: number;
+                path: string;
+                mediaId: string;
+            }) => RundownItemDragPayload | null;
+            const [err, payload] = noTry(() =>
+                matchFn({
+                    name: input.name,
+                    type: input.type,
+                    size: 0,
+                    path: input.mediaId,
+                    mediaId: input.mediaId,
+                }),
+            );
+            if (err) {
+                Logger.warn(`Action ${id} accepts.match threw: ${err.message}`);
+                continue;
+            }
+            if (!payload) continue;
+
+            matches.push({
+                actionId: id,
+                payload,
+                path: input.mediaId,
+                mediaId: input.mediaId,
+                destination: '',
             });
         }
         return matches;

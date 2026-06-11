@@ -154,6 +154,10 @@
         "folder": {
             "deleteTooltip": "Delete (only if empty)"
         },
+        "play": {
+            "failed": "Couldn't play this media",
+            "noAction": "No action can play this media"
+        },
         "select": {
             "empty": "No media selected — click to choose",
             "select": "Select media",

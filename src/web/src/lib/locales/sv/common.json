@@ -154,6 +154,10 @@
         "folder": {
             "deleteTooltip": "Ta bort (bara om den är tom)"
         },
+        "play": {
+            "failed": "Kunde inte spela upp denna media",
+            "noAction": "Ingen åtgärd kan spela upp denna media"
+        },
         "select": {
             "empty": "Ingen media vald — klicka för att välja",
             "select": "Välj media",
