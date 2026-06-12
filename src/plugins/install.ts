@@ -105,16 +105,23 @@ export async function extractCgPlugin(
     };
 }
 
+/** Purge all require.cache entries for a plugin directory so Node releases
+ *  its file handles. On Windows this is required before deleting the folder. */
+export function purgePluginCache(dir: string) {
+    const resolvedDir = path.resolve(dir);
+    for (const key of Object.keys(require.cache)) {
+        if (key === resolvedDir || key.startsWith(resolvedDir + path.sep))
+            delete require.cache[key];
+    }
+}
+
 /** Clear require cache for a plugin dir and re-require it, returning the
  *  default-exported CasparPlugin class. Throws on any validation failure. */
 export function loadSinglePlugin(dir: string): typeof CasparPlugin {
     // Purge the module and all its children from require cache so hot-reload
     // picks up the new version on update.
     const resolvedDir = path.resolve(dir);
-    for (const key of Object.keys(require.cache)) {
-        if (key === resolvedDir || key.startsWith(resolvedDir + path.sep))
-            delete require.cache[key];
-    }
+    purgePluginCache(resolvedDir);
 
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const mod = require(resolvedDir);

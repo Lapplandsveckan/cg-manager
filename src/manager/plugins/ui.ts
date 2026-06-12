@@ -159,12 +159,23 @@ function bundleFile(file: string) {
 
     return new Promise<string>((resolve, reject) => {
         compiler.run((err, stats) => {
-            if (err || stats.hasErrors())
-                return reject(
-                    stats.hasErrors() ? stats.compilation.errors : err,
-                );
+            // Capture result before closing so we don't read memfs after
+            // the compiler potentially clears its internal state.
+            const result =
+                err || stats.hasErrors()
+                    ? {
+                          err: stats.hasErrors()
+                              ? stats.compilation.errors
+                              : err,
+                      }
+                    : { bundle: memfs.readFileSync('/bundle.js').toString() };
 
-            resolve(memfs.readFileSync('/bundle.js').toString());
+            // Always close the compiler so webpack releases its input-fs
+            // file handles — on Windows these can lock plugin source files.
+            compiler.close(() => {
+                if ('err' in result) reject(result.err);
+                else resolve(result.bundle);
+            });
         });
     });
 }

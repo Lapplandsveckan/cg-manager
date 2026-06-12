@@ -4,7 +4,7 @@ import { type CasparPlugin, PluginAPI } from '@lappis/cg-manager';
 import { noTry, noTryAsync } from 'no-try';
 import { Logger } from '../../util/log';
 import config from '../../util/config';
-import { sanitizeName } from '../../plugins/install';
+import { sanitizeName, purgePluginCache } from '../../plugins/install';
 import { CasparManager } from '../index';
 
 export class PluginManager {
@@ -228,6 +228,9 @@ export class PluginManager {
         // Capture dir before unregister clears the map.
         const trackedDir = this._pluginDirs.get(name);
         this.unregister(plugin);
+        // Broadcast immediately — the plugin is already gone from the running
+        // process. This fires even if the folder deletion below fails.
+        CasparManager.getManager().emit('plugin-list-changed');
 
         const dir =
             trackedDir ??
@@ -235,13 +238,32 @@ export class PluginManager {
                 path.resolve(process.cwd(), config['plugins-dir']),
                 sanitizeName(name),
             );
-        const [err] = await noTryAsync(() =>
-            fs.rm(dir, { recursive: true, force: true }),
-        );
-        if (err)
-            Logger.scope('Plugin Loader').warn(
-                `Failed to delete plugin folder "${dir}": ${Logger.formatError(err)}`,
+
+        // Drop require.cache entries so Node releases its file handles.
+        // On Windows a cached module keeps an OS lock that prevents deletion.
+        purgePluginCache(dir);
+
+        // Retry with short backoff — Windows sometimes holds locks briefly
+        // even after the cache is cleared (e.g. due to webpack's input fs).
+        const delays = [100, 300];
+        let lastErr: Error | null = null;
+        for (let attempt = 0; attempt <= delays.length; attempt++) {
+            const [rmErr] = await noTryAsync(() =>
+                fs.rm(dir, { recursive: true, force: true }),
             );
+            if (!rmErr) {
+                lastErr = null;
+                break;
+            }
+            lastErr = rmErr;
+            if (attempt < delays.length)
+                await new Promise<void>(r => setTimeout(r, delays[attempt]));
+        }
+        if (lastErr)
+            throw new Error(
+                `Failed to delete plugin folder "${dir}": ${Logger.formatError(lastErr)}`,
+            );
+
         Logger.scope('Plugin Loader').info(`Uninstalled plugin "${name}"`);
     }
 
