@@ -5,6 +5,7 @@ import { noTry, noTryAsync } from 'no-try';
 import { Logger } from '../../util/log';
 import config from '../../util/config';
 import { sanitizeName, purgePluginCache } from '../../plugins/install';
+import { readDisabled, writeDisabled } from '../../plugins/state';
 import { CasparManager } from '../index';
 
 export class PluginManager {
@@ -14,49 +15,11 @@ export class PluginManager {
     private _builtin = new Set<string>();
 
     public async loadState() {
-        const file = config['plugin-state-file'];
-        if (!file) return;
-
-        const logger = Logger.scope('Plugin Loader');
-        const [readErr, raw] = await noTryAsync(() =>
-            fs.readFile(file, 'utf8'),
-        );
-        if (readErr) {
-            if ((readErr as NodeJS.ErrnoException).code !== 'ENOENT')
-                logger.error(
-                    `Failed to read plugin state: ${Logger.formatError(readErr)}`,
-                );
-            return;
-        }
-
-        const [parseErr, parsed] = noTry(() => JSON.parse(raw));
-        if (parseErr) {
-            logger.error(
-                `Failed to parse plugin state: ${Logger.formatError(parseErr)}`,
-            );
-            return;
-        }
-
-        const disabled = Array.isArray(parsed?.disabled)
-            ? parsed.disabled.filter(
-                  (n: unknown): n is string => typeof n === 'string',
-              )
-            : [];
-        this._disabled = new Set(disabled);
+        this._disabled = await readDisabled();
     }
 
     private async saveState() {
-        const file = config['plugin-state-file'];
-        if (!file) return;
-
-        const content = JSON.stringify(
-            { disabled: [...this._disabled].sort() },
-            null,
-            2,
-        );
-        const [err] = await noTryAsync(() =>
-            fs.writeFile(file, content, 'utf8'),
-        );
+        const [err] = await noTryAsync(() => writeDisabled(this._disabled));
         if (err)
             Logger.scope('Plugin Loader').error(
                 `Failed to save plugin state: ${Logger.formatError(err)}`,

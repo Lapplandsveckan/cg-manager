@@ -126,4 +126,16 @@ async function main() {
     }
 }
 
-if (require.main === module) main();
+if (require.main === module) {
+    const argv = process.argv.slice(2);
+    if (argv[0] === 'plugins') {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { runPluginCli } = require('./cli/plugins');
+        (runPluginCli(argv.slice(1)) as Promise<void>).catch((e: unknown) => {
+            console.error(e instanceof Error ? e.message : String(e));
+            process.exit(1);
+        });
+    } else {
+        main();
+    }
+}
