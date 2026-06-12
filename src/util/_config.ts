@@ -26,6 +26,14 @@ export interface Config {
     // Required when clients connect from outside the local network (port-forwarded setup).
     // Leave unset for LAN-only use — skipping STUN makes preview sessions start instantly.
     'preview-stun'?: string | null;
+    // Interface/IP to bind the API+web server to. null/unset = all interfaces
+    // (0.0.0.0/::), the historical behaviour. Set "127.0.0.1" for loopback-only,
+    // or a specific LAN IP to bind one interface.
+    host?: string | null;
+    // Unix socket path (or Windows named pipe, e.g. \\.\pipe\cg) to listen on
+    // instead of a TCP port. When set it takes precedence over host/port — useful
+    // behind a reverse proxy with no TCP port exposed.
+    'socket-path'?: string | null;
 }
 
 export default {
@@ -42,4 +50,6 @@ export default {
     'plugins-dir': './plugins',
     'plugin-state-file': './plugin-state.json',
     password: null,
+    host: null,
+    'socket-path': null,
 } as Config;

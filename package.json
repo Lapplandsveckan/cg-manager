@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "2.6.2",
+  "version": "2.6.3",
   "name": "manager",
   "engines": {
     "node": ">=22"
@@ -48,7 +48,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-i18next": "^14",
-    "rest-exchange-protocol": "^0.0.16",
+    "rest-exchange-protocol": "^0.0.17",
     "rest-exchange-protocol-client": "^0.0.12",
     "uuid": "^9.0.1",
     "webpack": "^5.90.3",
