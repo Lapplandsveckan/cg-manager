@@ -5,6 +5,7 @@ import { CGServer } from './api/server';
 import { Discovery } from './manager/discovery';
 import { CasparManager } from './manager';
 import { loadPlugins, unloadPlugins } from './plugins/plugins';
+import { startWeb } from './web';
 
 Logger.debug('Debug mode enabled!');
 
@@ -27,6 +28,7 @@ async function start() {
 
     Logger.info('Starting Caspar CG manager...');
     await loadConfig();
+    startWeb();
 
     const manager = CasparManager.getManager();
     await manager.start();

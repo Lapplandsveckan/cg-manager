@@ -4,6 +4,7 @@ export interface Config {
     port: number; // Port to listen on
     'log-dir'?: string | null; // Directory to store logs in
     dev: boolean; // Whether the server is in development mode
+    web: boolean; // Whether to serve the Next.js web interface
     'caspar-path'?: string | null; // Path to CasparCG
     temp?: true; // Whether this config is temporary from dev mode
     'db-file': string; // Path to the database file
@@ -30,6 +31,7 @@ export interface Config {
 
 export default {
     dev: process.env.NODE_ENV !== 'production',
+    web: true,
     'hide-debug': process.env.NODE_ENV === 'production',
     port: 5353,
     'log-dir': null,

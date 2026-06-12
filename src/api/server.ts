@@ -12,6 +12,7 @@ import { type Route } from 'rest-exchange-protocol/dist/route';
 import { noTry, noTryAsync } from 'no-try';
 import { loadRoutes } from './route';
 import { type CasparManager } from '../manager';
+import config from '../util/config';
 import { handleRequest, onUpgrade } from '../web';
 import { Logger } from '../util/log';
 import { Upload } from '../manager/scanner/upload';
@@ -428,12 +429,22 @@ export class CGServer {
                 data.type === 'websocket-upgrade' &&
                 data.request.url.startsWith('/_next/')
             ) {
+                if (!config.web) {
+                    noTry(() => data.socket.destroy());
+                    throw new MiddlewareProhibitFurtherExecution();
+                }
                 onUpgrade(data.request, data.socket, data.head);
                 throw new MiddlewareProhibitFurtherExecution();
             }
 
             if (data.type !== 'http') return;
             if (data.request.url.startsWith('/api')) return;
+
+            if (!config.web) {
+                data.response.statusCode = 404;
+                data.response.end();
+                throw new MiddlewareProhibitFurtherExecution();
+            }
 
             await handleRequest(data.request, data.response);
             throw new MiddlewareProhibitFurtherExecution();
