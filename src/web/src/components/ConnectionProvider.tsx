@@ -55,12 +55,14 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({
     const routerRef = useRef(router);
     routerRef.current = router;
 
+    const knownVersionRef = useRef<string | null>(null);
+
     useEffect(() => {
         if (!socket) return;
         let cancelled = false;
         let timer: ReturnType<typeof setTimeout> | null = null;
 
-        const ping = async (): Promise<boolean> => {
+        const ping = async (): Promise<string | null> => {
             // The REP client's request promise will sit forever if the
             // websocket is dead, so race it against a timeout. A failed
             // request still leaves an entry in REPClient's internal requests
@@ -72,21 +74,34 @@ export const ConnectionProvider: React.FC<{ children: React.ReactNode }> = ({
                 );
                 if (cancelled) clearTimeout(t);
             });
-            const [err] = await noTryAsync(() =>
+            const [err, res] = await noTryAsync(() =>
                 Promise.race([socket.getApiVersion(), timeoutPromise]),
             );
-            return !err;
+            return err ? null : (res as { data: string }).data;
         };
 
         const tick = async () => {
             if (cancelled) return;
-            const ok = await ping();
+            const version = await ping();
             if (cancelled) return;
 
-            if (ok) {
+            if (version !== null) {
+                const wasDisconnected =
+                    failsRef.current >= RECONNECTING_THRESHOLD;
                 failsRef.current = 0;
                 setLastSeen(Date.now());
                 setState(prev => (prev === 'connected' ? prev : 'connected'));
+
+                if (knownVersionRef.current === null) {
+                    knownVersionRef.current = version;
+                } else if (
+                    wasDisconnected &&
+                    version !== knownVersionRef.current
+                ) {
+                    window.location.reload();
+                    return;
+                }
+
                 timer = setTimeout(tick, HEARTBEAT_INTERVAL_OK_MS);
             } else {
                 failsRef.current += 1;
