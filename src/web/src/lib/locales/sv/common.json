@@ -71,7 +71,8 @@
         "start": "Starta",
         "restart": "Starta om",
         "enable": "Aktivera",
-        "disable": "Inaktivera"
+        "disable": "Inaktivera",
+        "inspect": "Inspektera"
     },
     "connection": {
         "banner": {
@@ -259,6 +260,23 @@
             "deleteFolderFailed": "Misslyckades att ta bort mapp",
             "createFolderFailed": "Misslyckades att skapa mapp",
             "renameFolderFailed": "Misslyckades att byta namn på mapp"
+        },
+        "inspector": {
+            "subtitle": "Inspektera mediafil",
+            "notPreviewable": "Det här filformatet kan inte förhandsgranskas i webbläsaren.",
+            "sectionFile": "Fil",
+            "sectionVideo": "Video",
+            "sectionAudio": "Ljud",
+            "fileSize": "Storlek",
+            "duration": "Längd",
+            "format": "Format",
+            "bitrate": "Bithastighet",
+            "resolution": "Upplösning",
+            "codec": "Kodek",
+            "fps": "Bildfrekvens",
+            "pixFmt": "Pixelformat",
+            "sampleRate": "Samplingsfrekvens",
+            "channels": "Kanaler"
         }
     },
     "config": {

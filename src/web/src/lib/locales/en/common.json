@@ -71,7 +71,8 @@
         "start": "Start",
         "restart": "Restart",
         "enable": "Enable",
-        "disable": "Disable"
+        "disable": "Disable",
+        "inspect": "Inspect"
     },
     "connection": {
         "banner": {
@@ -259,6 +260,23 @@
             "deleteFolderFailed": "Failed to delete folder",
             "createFolderFailed": "Failed to create folder",
             "renameFolderFailed": "Failed to rename folder"
+        },
+        "inspector": {
+            "subtitle": "Inspect media file",
+            "notPreviewable": "This file format cannot be previewed in the browser.",
+            "sectionFile": "File",
+            "sectionVideo": "Video",
+            "sectionAudio": "Audio",
+            "fileSize": "Size",
+            "duration": "Duration",
+            "format": "Format",
+            "bitrate": "Bitrate",
+            "resolution": "Resolution",
+            "codec": "Codec",
+            "fps": "Frame rate",
+            "pixFmt": "Pixel format",
+            "sampleRate": "Sample rate",
+            "channels": "Channels"
         }
     },
     "config": {

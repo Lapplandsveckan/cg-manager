@@ -17,6 +17,7 @@ import { Logger } from '../util/log';
 import { Upload } from '../manager/scanner/upload';
 import { AuthManager } from './auth';
 import { isInternalMediaId } from '../manager/scanner/folders';
+import { mediaStreamMiddleware } from './mediaStream';
 import { type Config } from '../manager/caspar/config/types';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -38,23 +39,14 @@ export class CGServer {
 
         // this.server.use(this.log());
 
-        // Ordering matters:
-        //   cors      — must run first so the OPTIONS preflight short-circuits
-        //               without needing a session cookie.
-        //   auth      — gates everything else (REST + WS upgrade) when
-        //               config.password is set. Login/logout/check are
-        //               whitelisted, as are non-/api paths (Next.js pages
-        //               like /login itself).
-        //   authApi   — handles POST/GET /api/auth/{login,logout,check}.
-        //               Must come after `auth` only because order is fine
-        //               either way (auth() whitelists these paths).
-        //   previewWhep — WHEP SDP exchange. Must run before web().
-        //   upload      — chunked upload sink.
-        //   web         — final fallback: hand everything non-/api to Next.js.
+        // Middleware order: cors → auth → authApi → previewWhep → mediaStream
+        //   → upload → web. Each stage short-circuits via
+        //   MiddlewareProhibitFurtherExecution when it handles a request.
         this.server.use(this.cors());
         this.server.use(this.auth());
         this.server.use(this.authApi());
         this.server.use(this.previewWhep());
+        this.server.use(mediaStreamMiddleware());
         this.server.use(this.upload());
         this.server.use(this.web());
 

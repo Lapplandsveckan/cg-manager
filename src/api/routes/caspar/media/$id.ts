@@ -13,24 +13,10 @@ import {
     normalizeFolderPath,
     PLACEHOLDER_NAME,
 } from '../../../../manager/scanner/folders';
+import { resolveMediaFile } from '../../../../manager/scanner/locate';
 
 function resolveDoc(id: string) {
-    const decoded = decodeURIComponent(id);
-    const doc = CasparManager.getManager()
-        .getMediaScanner()
-        .getDatabase()
-        .get(decoded);
-
-    if (!doc) throw new WebError('Media not found', 404);
-    if (!doc.mediaPath) throw new WebError('Media has no file on disk', 409);
-
-    // Defensive: re-validate that the doc's mediaPath is still inside the
-    // configured media root before any fs operation.
-    const safe = resolveSafePath(
-        scannerConfig.paths.media,
-        path.relative(scannerConfig.paths.media, doc.mediaPath),
-    );
-    return { doc, mediaPath: safe };
+    return resolveMediaFile(decodeURIComponent(id));
 }
 
 export default {

@@ -22,6 +22,7 @@ import RenameMediaModal from '../components/media/RenameMediaModal';
 import RenameFolderModal from '../components/media/RenameFolderModal';
 import { createMediaHandlers } from '../lib/media/mediaHandlers';
 import MediaPlayModal from '../components/MediaPlayModal';
+import MediaInspectorModal from '../components/media/MediaInspectorModal';
 import { type RundownEntry } from '../components/Rundowns';
 
 /** Mirrors RundownActionDescriptor on the server — keep in sync. */
@@ -56,6 +57,7 @@ const Page = () => {
     const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
     const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
     const [folderRenameValue, setFolderRenameValue] = useState('');
+    const [inspecting, setInspecting] = useState<MediaDoc | null>(null);
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -249,6 +251,7 @@ const Page = () => {
                     showAsDirectories
                     onNavigate={folder => navigate(`${path}${folder}/`)}
                     onClipPlay={canPlay ? handlePlay : undefined}
+                    onClipInspect={clip => setInspecting(clip)}
                     onClipDelete={clip => {
                         setError(null);
                         setDeleting(clip);
@@ -282,6 +285,11 @@ const Page = () => {
                 entry={playEntry}
                 onClose={() => setPlayEntry(null)}
                 onError={() => setError(t('media.play.failed'))}
+            />
+
+            <MediaInspectorModal
+                doc={inspecting}
+                onClose={() => setInspecting(null)}
             />
 
             <DeleteMediaModal
