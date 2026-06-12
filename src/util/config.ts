@@ -34,6 +34,12 @@ async function readConfigFile(configPath: string): Promise<LoadOutcome> {
     return 'loaded';
 }
 
+/** Overlay config.json onto defaults without any logging, directory creation,
+ *  or log-file side effects. For CLI commands that run outside the server. */
+export async function loadConfigQuiet(): Promise<void> {
+    await readConfigFile(path.join(process.cwd(), 'config.json'));
+}
+
 export async function loadConfig() {
     const configPath = path.join(process.cwd(), 'config.json');
 
