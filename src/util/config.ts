@@ -58,7 +58,7 @@ export async function loadConfig() {
 
     // Only seed defaults when the file is genuinely missing. Never overwrite a file
     // we couldn't read or parse — that's almost always a transient error.
-    if (!temp && outcome === 'missing') {
+    if (outcome === 'missing') {
         const configString = JSON.stringify(config, null, 2);
         await fs
             .writeFile(configPath, configString, 'utf8')
