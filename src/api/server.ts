@@ -20,6 +20,7 @@ import { AuthManager } from './auth';
 import { isInternalMediaId } from '../manager/scanner/folders';
 import { mediaStreamMiddleware } from './mediaStream';
 import { type Config } from '../manager/caspar/config/types';
+import appConfig from '../util/config';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type CGClient = TypedClient<{}>;
@@ -33,6 +34,8 @@ export class CGServer {
 
         this.server = new REPServer({
             port,
+            host: appConfig.host ?? undefined,
+            path: appConfig['socket-path'] ?? undefined,
         });
 
         const routes = loadRoutes();
