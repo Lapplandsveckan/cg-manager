@@ -108,35 +108,44 @@ async function packageWeb() {
 // ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING unless the option is set.
 // USE_MAIN_CONTEXT_DEFAULT_LOADER works without --experimental-vm-modules
 // on Node ≥20.12 / 22.
+// Apply a string patch to a file. Idempotent: if `from` is not found but `to`
+// is already present, the patch is considered already applied (skip).
+// Throws if neither is found (upstream source changed unexpectedly).
+async function applyPatch(filePath, from, to, label) {
+    const src = await fs.readFile(filePath, 'utf-8');
+    if (!src.includes(from)) {
+        if (src.includes(to)) return; // already applied from a prior run
+        throw new Error(`${label} patch did not apply — upstream source changed`);
+    }
+    await fs.writeFile(filePath, src.replace(from, to));
+}
+
 async function patchVmCallSites() {
     console.log('Patching vm call sites...');
     const loader = "require('vm').constants.USE_MAIN_CONTEXT_DEFAULT_LOADER";
+    const webpackFile = path.join(root, 'node_modules', 'webpack', 'lib', 'javascript', 'JavascriptModulesPlugin.js');
 
     // webpack's JavascriptModulesPlugin uses vm.runInThisContext for executeModule.
-    const webpackFile = path.join(root, 'node_modules', 'webpack', 'lib', 'javascript', 'JavascriptModulesPlugin.js');
-    let src = await fs.readFile(webpackFile, 'utf-8');
-
-    const src1 = src.replace(
+    await applyPatch(
+        webpackFile,
         '\t\t\t\t\t\t\tfilename: module.identifier(),\n\t\t\t\t\t\t\tlineOffset: -1\n\t\t\t\t\t\t}',
         `\t\t\t\t\t\t\tfilename: module.identifier(),\n\t\t\t\t\t\t\tlineOffset: -1,\n\t\t\t\t\t\t\timportModuleDynamically: ${loader}\n\t\t\t\t\t\t}`,
+        'webpack vm patch 1',
     );
-    if (src1 === src) throw new Error('webpack vm patch 1 did not apply — upstream source changed');
-    const src2 = src1.replace(
+    await applyPatch(
+        webpackFile,
         '\t\t\t\t\t\t\tfilename: options.module.identifier(),\n\t\t\t\t\t\t\tlineOffset: -1\n\t\t\t\t\t\t}',
         `\t\t\t\t\t\t\tfilename: options.module.identifier(),\n\t\t\t\t\t\t\tlineOffset: -1,\n\t\t\t\t\t\t\timportModuleDynamically: ${loader}\n\t\t\t\t\t\t}`,
+        'webpack vm patch 2',
     );
-    if (src2 === src1) throw new Error('webpack vm patch 2 did not apply — upstream source changed');
-    await fs.writeFile(webpackFile, src2);
 
     // Next.js's load-manifest uses vm.runInNewContext for app-router manifests.
-    const nextManifestFile = path.join(root, 'node_modules', 'next', 'dist', 'server', 'load-manifest.external.js');
-    let nextSrc = await fs.readFile(nextManifestFile, 'utf-8');
-    const nextSrc1 = nextSrc.replace(
+    await applyPatch(
+        path.join(root, 'node_modules', 'next', 'dist', 'server', 'load-manifest.external.js'),
         '(0, _vm.runInNewContext)(content, contextObject);',
-        `(0, _vm.runInNewContext)(content, contextObject, { importModuleDynamically: _vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER });`,
+        '(0, _vm.runInNewContext)(content, contextObject, { importModuleDynamically: _vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER });',
+        'next.js vm patch',
     );
-    if (nextSrc1 === nextSrc) throw new Error('next.js vm patch did not apply — upstream source changed');
-    await fs.writeFile(nextManifestFile, nextSrc1);
 
     // babel-loader/lib/cache.js has a top-level `import("find-cache-dir")` (an
     // ESM-only package). pkg's bootstrap Module._compile has no
@@ -144,14 +153,12 @@ async function patchVmCallSites() {
     // our vm-patch can intercept it. Replace it with a Promise that returns null
     // so the cache falls back to os.tmpdir() — harmless since cacheDirectory is
     // not set in our webpack config and the cache function is never actually called.
-    const babelCacheFile = path.join(root, 'node_modules', 'babel-loader', 'lib', 'cache.js');
-    let babelSrc = await fs.readFile(babelCacheFile, 'utf-8');
-    const babelSrc1 = babelSrc.replace(
+    await applyPatch(
+        path.join(root, 'node_modules', 'babel-loader', 'lib', 'cache.js'),
         'const findCacheDirP = import("find-cache-dir");',
         'const findCacheDirP = Promise.resolve({ default: () => null }); // find-cache-dir is ESM-only; fall back to os.tmpdir()',
+        'babel-loader cache.js',
     );
-    if (babelSrc1 === babelSrc) throw new Error('babel-loader cache.js patch did not apply — upstream source changed');
-    await fs.writeFile(babelCacheFile, babelSrc1);
 }
 
 async function package() {

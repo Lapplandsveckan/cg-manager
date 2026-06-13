@@ -28,7 +28,7 @@ export class Logger {
     // dumps (webpack errors quoting a minified bundle, stray buffer prints)
     // can balloon a single line to megabytes. Only applies to the console
     // interception — Logger.* calls are unaffected.
-    private static readonly consoleMessageLimit = 1024;
+    private static readonly consoleMessageLimit = 4096;
 
     private static enableConsole() {
         const logger = Logger.scope('Console');
@@ -37,7 +37,11 @@ export class Logger {
             const log = logger[method].bind(logger);
             return (...args) => {
                 const joined = args
-                    .map(arg => arg?.toString() ?? 'undefined')
+                    .map(arg =>
+                        arg instanceof Error
+                            ? `${arg.toString()}\n${arg.stack}`
+                            : (arg?.toString() ?? 'undefined'),
+                    )
                     .join(' ');
                 const truncated =
                     joined.length > Logger.consoleMessageLimit
