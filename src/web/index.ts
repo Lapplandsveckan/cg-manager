@@ -1,3 +1,4 @@
+import '../util/vm-patch';
 import * as http from 'http';
 import next from 'next';
 import { noTry } from 'no-try';

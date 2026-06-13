@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "2.8.4",
+  "version": "2.8.5",
   "name": "manager",
   "engines": {
     "node": ">=22"
@@ -90,6 +90,7 @@
     "assets": [
       "dist/web/.next/**/*",
       "dist/web/public/**/*",
+      "dist/plugins/internal/**/ui/*.jsx",
       "node_modules/**/*"
     ],
     "targets": [

@@ -26,11 +26,14 @@ export default class EssentialsPlugin extends CasparPlugin {
         const itemZone =
             `${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${TOGGLE_VIDEO_ROUTE}` as UI_INJECTION_ZONE;
 
+        // tsc (jsx: "preserve") emits .jsx with JSX intact; babel-loader handles
+        // it fine. Using .jsx avoids shipping duplicate raw .tsx source in the
+        // snapshot and matches what's actually in dist/.
         this.api.registerUI(
             editorZone,
-            path.join(__dirname, 'ui', 'editor.tsx'),
+            path.join(__dirname, 'ui', 'editor.jsx'),
         );
-        this.api.registerUI(itemZone, path.join(__dirname, 'ui', 'item.tsx'));
+        this.api.registerUI(itemZone, path.join(__dirname, 'ui', 'item.jsx'));
     }
 
     private toggleVideoRoute(item: RundownItem) {
