@@ -13,9 +13,36 @@ export class PluginManager {
     private _disabled: Set<string> = new Set();
     private _pluginDirs = new Map<string, string>();
     private _builtin = new Set<string>();
+    private _minChannels = new Map<string, number>();
+    /** Plugins skipped at enable time solely because of insufficient channels. */
+    private _channelBlocked = new Set<string>();
+    private _channelCount = 0;
 
     public async loadState() {
         this._disabled = await readDisabled();
+    }
+
+    public setChannelCount(n: number) {
+        this._channelCount = n;
+    }
+
+    private _meetsChannels(name: string) {
+        return this._channelCount >= (this._minChannels.get(name) ?? 0);
+    }
+
+    private _maybeAutoEnable(plugin: CasparPlugin, logger: Logger) {
+        const name = plugin.pluginName;
+        if (!this._enabled || this._disabled.has(name)) return;
+        if (!this._meetsChannels(name)) {
+            this._channelBlocked.add(name);
+            const need = this._minChannels.get(name) ?? 0;
+            logger.debug(
+                `Blocked: needs ${need} channel${need === 1 ? '' : 's'}, have ${this._channelCount}`,
+            );
+            return;
+        }
+        this._channelBlocked.delete(name);
+        this._applyEnable(plugin, logger);
     }
 
     private async saveState() {
@@ -58,10 +85,11 @@ export class PluginManager {
         this._plugins.push(_plugin);
         if (dir) this._pluginDirs.set(_plugin.pluginName, dir);
         if (builtin) this._builtin.add(_plugin.pluginName);
+        const minCh = (plugin as any).minChannels ?? 0;
+        this._minChannels.set(_plugin.pluginName, minCh);
         pluginLogger.debug('Loaded');
 
-        if (this._enabled && !this._disabled.has(_plugin.pluginName))
-            this._applyEnable(_plugin, pluginLogger);
+        this._maybeAutoEnable(_plugin, pluginLogger);
     }
 
     public unregister(plugin: CasparPlugin) {
@@ -71,6 +99,8 @@ export class PluginManager {
         this._plugins.splice(index, 1);
         this._pluginDirs.delete(plugin.pluginName);
         this._builtin.delete(plugin.pluginName);
+        this._minChannels.delete(plugin.pluginName);
+        this._channelBlocked.delete(plugin.pluginName);
         const pluginLogger = Logger.scope('Plugin Loader').scope(
             plugin.pluginName,
         );
@@ -91,6 +121,7 @@ export class PluginManager {
             name: p.pluginName,
             enabled: p['_enabled'] as boolean,
             builtin: this._builtin.has(p.pluginName),
+            minChannels: this._minChannels.get(p.pluginName) ?? 0,
         }));
     }
 
@@ -100,11 +131,10 @@ export class PluginManager {
         this._enabled = true;
 
         for (const plugin of this._plugins) {
-            if (this._disabled.has(plugin.pluginName)) continue;
             const pluginLogger = Logger.scope('Plugin Loader').scope(
                 plugin.pluginName,
             );
-            this._applyEnable(plugin, pluginLogger);
+            this._maybeAutoEnable(plugin, pluginLogger);
         }
     }
 
@@ -121,18 +151,39 @@ export class PluginManager {
     }
 
     public enablePlugin(plugin: CasparPlugin, logger: Logger) {
+        this._channelBlocked.delete(plugin.pluginName);
         this._applyEnable(plugin, logger);
         if (this._disabled.delete(plugin.pluginName)) this.saveState();
         CasparManager.getManager().emit('plugin-list-changed');
     }
 
     public disablePlugin(plugin: CasparPlugin, logger: Logger) {
+        this._channelBlocked.delete(plugin.pluginName);
         this._applyDisable(plugin, logger);
         if (!this._disabled.has(plugin.pluginName)) {
             this._disabled.add(plugin.pluginName);
             this.saveState();
         }
         CasparManager.getManager().emit('plugin-list-changed');
+    }
+
+    /** Update the running channel count and auto-enable any blocked plugins now satisfied. */
+    public updateChannelCount(n: number) {
+        this._channelCount = n;
+        let changed = false;
+        for (const name of [...this._channelBlocked]) {
+            if (!this._meetsChannels(name)) continue;
+            const plugin = this._plugins.find(p => p.pluginName === name);
+            if (!plugin) {
+                this._channelBlocked.delete(name);
+                continue;
+            }
+            const logger = Logger.scope('Plugin Loader').scope(name);
+            this._channelBlocked.delete(name);
+            this._applyEnable(plugin, logger);
+            changed = true;
+        }
+        if (changed) CasparManager.getManager().emit('plugin-list-changed');
     }
 
     private _applyEnable(plugin: CasparPlugin, logger: Logger) {

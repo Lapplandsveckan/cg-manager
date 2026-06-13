@@ -2,6 +2,7 @@ import {
     Box,
     Button,
     Card,
+    Chip,
     Modal,
     Stack,
     Switch,
@@ -11,7 +12,7 @@ import {
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { noTryAsync } from 'no-try';
 import { useTranslation } from 'next-i18next';
@@ -29,6 +30,7 @@ import {
 interface PluginCardProps {
     plugin: Plugin;
     hasUi: boolean;
+    channelCount: number;
     onToggle: (next: boolean) => void;
     onOpen: () => void;
     onUninstall: () => void;
@@ -75,11 +77,13 @@ const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
 const PluginCard: React.FC<PluginCardProps> = ({
     plugin,
     hasUi,
+    channelCount,
     onToggle,
     onOpen,
     onUninstall,
 }) => {
     const { t } = useTranslation('common');
+    const insufficient = plugin.minChannels > 0 && channelCount < plugin.minChannels;
     return (
         <Card
             onClick={onOpen}
@@ -111,6 +115,22 @@ const PluginCard: React.FC<PluginCardProps> = ({
                             {plugin.name}
                         </Typography>
                         <StatusPill enabled={plugin.enabled} />
+                        {insufficient && (
+                            <Chip
+                                size="small"
+                                icon={<WarningAmberRoundedIcon sx={{ fontSize: '0.9rem !important' }} />}
+                                label={t('pluginsPage.channels.insufficient', {
+                                    need: plugin.minChannels,
+                                    have: channelCount,
+                                })}
+                                sx={theme => ({
+                                    bgcolor: alpha(theme.palette.warning.main, 0.1),
+                                    color: theme.palette.warning.main,
+                                    border: `1px solid ${alpha(theme.palette.warning.main, 0.3)}`,
+                                    '& .MuiChip-icon': { color: 'inherit' },
+                                })}
+                            />
+                        )}
                     </Stack>
                     <Typography
                         variant="body2"
@@ -170,8 +190,15 @@ const Page = () => {
 
     const [plugins, setPlugins] = useState<Plugin[] | null>(null);
     const [pluginsWithUi, setPluginsWithUi] = useState<Set<string>>(new Set());
+    const [channelCount, setChannelCount] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [uninstalling, setUninstalling] = useState<string | null>(null);
+    const [enableWarning, setEnableWarning] = useState<{ name: string; need: number; have: number } | null>(null);
+    const [channelPrompt, setChannelPrompt] = useState<{ name: string; need: number; have: number } | null>(null);
+    const [showRestartPrompt, setShowRestartPrompt] = useState(false);
+    const [addingChannels, setAddingChannels] = useState(false);
+    const [restarting, setRestarting] = useState(false);
+    const prevPluginNamesRef = useRef<Set<string>>(new Set());
 
     const uploadCtrl = useFileUpload({
         createUpload: file => socket.plugin.uploadPlugin(file),
@@ -184,11 +211,14 @@ const Page = () => {
         Promise.all([
             socket.plugin.getPlugins(),
             socket.injects.getInjects(UI_INJECTION_ZONE.PLUGIN_PAGE),
+            socket.caspar.getConfig(),
         ])
-            .then(([list, injects]) => {
+            .then(([list, injects, cfg]) => {
                 if (!mounted) return;
                 setPlugins(list);
                 setPluginsWithUi(new Set(injects.map(i => i.plugin)));
+                setChannelCount(cfg.channels.length);
+                prevPluginNamesRef.current = new Set(list.map(p => p.name));
             })
             .catch(
                 e =>
@@ -201,6 +231,23 @@ const Page = () => {
         // installed plugin gets its config affordance without a reload.
         const onPluginChange = (list: Plugin[]) => {
             if (!mounted) return;
+            // Detect newly installed plugins that need more channels than available.
+            socket.caspar
+                .getConfig()
+                .then(cfg => {
+                    if (!mounted) return;
+                    const currentCount = cfg.channels.length;
+                    setChannelCount(currentCount);
+                    const prev = prevPluginNamesRef.current;
+                    for (const p of list) {
+                        if (!prev.has(p.name) && p.minChannels > 0 && p.minChannels > currentCount) {
+                            setChannelPrompt({ name: p.name, need: p.minChannels, have: currentCount });
+                            break;
+                        }
+                    }
+                    prevPluginNamesRef.current = new Set(list.map(p => p.name));
+                })
+                .catch(() => {});
             setPlugins(list);
             socket.injects
                 .getInjects(UI_INJECTION_ZONE.PLUGIN_PAGE)
@@ -218,7 +265,7 @@ const Page = () => {
         };
     }, [socket]);
 
-    const togglePlugin = useCallback(
+    const applyToggle = useCallback(
         async (name: string, next: boolean) => {
             if (!socket) return;
             setPlugins(
@@ -250,6 +297,44 @@ const Page = () => {
         },
         [socket],
     );
+
+    const togglePlugin = useCallback(
+        (name: string, next: boolean) => {
+            if (!next) { applyToggle(name, next); return; }
+            const plugin = plugins?.find(p => p.name === name);
+            if (plugin && plugin.minChannels > channelCount) {
+                setEnableWarning({ name, need: plugin.minChannels, have: channelCount });
+                return;
+            }
+            applyToggle(name, next);
+        },
+        [plugins, channelCount, applyToggle],
+    );
+
+    const addChannels = async (need: number) => {
+        if (!socket) return;
+        setAddingChannels(true);
+        const [err, cfg] = await noTryAsync(() => socket.caspar.getConfig());
+        if (err || !cfg) { setAddingChannels(false); return; }
+        const defaultMode = cfg.videoModes[0]?.id ?? '1920x1080p5000';
+        const toAdd = need - cfg.channels.length;
+        if (toAdd > 0) {
+            const updated = {
+                ...cfg,
+                channels: [
+                    ...cfg.channels,
+                    ...Array.from({ length: toAdd }, () => ({
+                        videoMode: defaultMode,
+                        consumers: [] as typeof cfg.channels[number]['consumers'],
+                    })),
+                ],
+            };
+            await noTryAsync(() => socket.caspar.updateConfig(updated));
+        }
+        setAddingChannels(false);
+        setChannelPrompt(null);
+        setShowRestartPrompt(true);
+    };
 
     const confirmUninstall = async () => {
         if (!uninstalling || !socket) return;
@@ -348,6 +433,7 @@ const Page = () => {
                             key={plugin.name}
                             plugin={plugin}
                             hasUi={pluginsWithUi.has(plugin.name)}
+                            channelCount={channelCount}
                             onToggle={next => togglePlugin(plugin.name, next)}
                             onOpen={() =>
                                 router.push(`/plugins/${plugin.name}`)
@@ -366,6 +452,151 @@ const Page = () => {
                 targetPathFor={file => file.name}
                 optionsZone={null}
             />
+
+            {/* Force-enable warning (insufficient channels) */}
+            <Modal open={Boolean(enableWarning)} onClose={() => setEnableWarning(null)}>
+                <Stack
+                    justifyContent="center"
+                    alignItems="center"
+                    sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                >
+                    <Card
+                        sx={theme => ({
+                            p: 3,
+                            width: 480,
+                            bgcolor: theme.palette.surface.elevated,
+                            border: `1px solid ${theme.palette.divider}`,
+                        })}
+                    >
+                        <Stack spacing={2}>
+                            <Stack direction="row" alignItems="center" gap={1.5}>
+                                <WarningAmberRoundedIcon sx={{ color: 'warning.main' }} />
+                                <Typography variant="h3">
+                                    {t('pluginsPage.channels.enableWarning.title')}
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                                {t('pluginsPage.channels.enableWarning.body', {
+                                    name: enableWarning?.name,
+                                    need: enableWarning?.need,
+                                    have: enableWarning?.have,
+                                })}
+                            </Typography>
+                            <Stack direction="row" justifyContent="flex-end" gap={1}>
+                                <Button color="inherit" onClick={() => setEnableWarning(null)}>
+                                    {t('actions.cancel')}
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    color="warning"
+                                    onClick={() => {
+                                        const name = enableWarning!.name;
+                                        setEnableWarning(null);
+                                        applyToggle(name, true);
+                                    }}
+                                >
+                                    {t('pluginsPage.channels.enableWarning.confirm')}
+                                </Button>
+                            </Stack>
+                        </Stack>
+                    </Card>
+                </Stack>
+            </Modal>
+
+            {/* Install-time channel-add prompt */}
+            <Modal open={Boolean(channelPrompt)} onClose={() => setChannelPrompt(null)}>
+                <Stack
+                    justifyContent="center"
+                    alignItems="center"
+                    sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                >
+                    <Card
+                        sx={theme => ({
+                            p: 3,
+                            width: 480,
+                            bgcolor: theme.palette.surface.elevated,
+                            border: `1px solid ${theme.palette.divider}`,
+                        })}
+                    >
+                        <Stack spacing={2}>
+                            <Stack direction="row" alignItems="center" gap={1.5}>
+                                <WarningAmberRoundedIcon sx={{ color: 'warning.main' }} />
+                                <Typography variant="h3">
+                                    {t('pluginsPage.channels.addPrompt.title')}
+                                </Typography>
+                            </Stack>
+                            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                                {t('pluginsPage.channels.addPrompt.body', {
+                                    name: channelPrompt?.name,
+                                    need: channelPrompt?.need,
+                                    have: channelPrompt?.have,
+                                    add: (channelPrompt?.need ?? 0) - (channelPrompt?.have ?? 0),
+                                })}
+                            </Typography>
+                            <Stack direction="row" justifyContent="flex-end" gap={1}>
+                                <Button color="inherit" onClick={() => setChannelPrompt(null)}>
+                                    {t('pluginsPage.channels.addPrompt.cancel')}
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    disabled={addingChannels}
+                                    onClick={() => addChannels(channelPrompt!.need)}
+                                >
+                                    {t('pluginsPage.channels.addPrompt.add', {
+                                        add: (channelPrompt?.need ?? 0) - (channelPrompt?.have ?? 0),
+                                    })}
+                                </Button>
+                            </Stack>
+                        </Stack>
+                    </Card>
+                </Stack>
+            </Modal>
+
+            {/* Restart prompt after channel add */}
+            <Modal open={showRestartPrompt} onClose={() => setShowRestartPrompt(false)}>
+                <Stack
+                    justifyContent="center"
+                    alignItems="center"
+                    sx={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}
+                >
+                    <Card
+                        sx={theme => ({
+                            p: 3,
+                            width: 460,
+                            bgcolor: theme.palette.surface.elevated,
+                            border: `1px solid ${theme.palette.divider}`,
+                        })}
+                    >
+                        <Stack spacing={2}>
+                            <Typography variant="h3">
+                                {t('pluginsPage.channels.restartPrompt.title')}
+                            </Typography>
+                            <Typography variant="body1" sx={{ color: 'text.secondary' }}>
+                                {t('pluginsPage.channels.restartPrompt.body')}
+                            </Typography>
+                            <Stack direction="row" justifyContent="flex-end" gap={1}>
+                                <Button color="inherit" onClick={() => setShowRestartPrompt(false)}>
+                                    {t('pluginsPage.channels.restartPrompt.later')}
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    disabled={restarting}
+                                    onClick={async () => {
+                                        setRestarting(true);
+                                        await noTryAsync(() => socket!.caspar.restart());
+                                        setRestarting(false);
+                                        setShowRestartPrompt(false);
+                                    }}
+                                >
+                                    {restarting
+                                        ? t('config.restarting')
+                                        : t('pluginsPage.channels.restartPrompt.restartNow')}
+                                </Button>
+                            </Stack>
+                        </Stack>
+                    </Card>
+                </Stack>
+            </Modal>
 
             {/* Uninstall confirm dialog */}
             <Modal

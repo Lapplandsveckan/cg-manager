@@ -628,6 +628,26 @@
             "body": "\"{{name}}\" will be removed and its folder deleted. This cannot be undone.",
             "confirm": "Uninstall",
             "error": "Failed to uninstall plugin"
+        },
+        "channels": {
+            "insufficient": "Needs {{need}} ch · have {{have}}",
+            "enableWarning": {
+                "title": "Not enough channels",
+                "body": "\"{{name}}\" requires at least {{need}} channel{{need, plural, one{} other{s}}}, but only {{have}} {{have, plural, one{is} other{are}}} configured. You can still enable it, but it may not work correctly.",
+                "confirm": "Enable anyway"
+            },
+            "addPrompt": {
+                "title": "Add channels for plugin",
+                "body": "\"{{name}}\" requires {{need}} channel{{need, plural, one{} other{s}}} but only {{have}} {{have, plural, one{is} other{are}}} configured. Add {{add}} more?",
+                "add": "Add {{add}} channel{{add, plural, one{} other{s}}}",
+                "cancel": "Not now"
+            },
+            "restartPrompt": {
+                "title": "Restart CasparCG?",
+                "body": "Channels were added and saved. Restart CasparCG for them to take effect.",
+                "restartNow": "Restart now",
+                "later": "Later"
+            }
         }
     },
     "playPage": {

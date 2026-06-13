@@ -6,6 +6,7 @@ export interface Plugin {
     name: string;
     enabled: boolean;
     builtin?: boolean;
+    minChannels: number;
 }
 
 export class PluginApi extends EventEmitter {
