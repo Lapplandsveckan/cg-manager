@@ -1,11 +1,13 @@
 {
   "dev": false,
   "hide-debug": true,
+  "web": true,
   "port": 5353,
   "log-dir": "./manager-logs",
   "caspar-path": null,
   "db-file": "./media-cache.json",
   "rundown-dir": "./rundowns",
   "routes-dir": "./routes",
-  "plugins-dir": "./plugins"
+  "plugins-dir": "./plugins",
+  "plugin-state-file": "./plugin-state.json"
 }
