@@ -1,57 +1,61 @@
 export interface Config {
-    'hide-debug': boolean; // Hide debug messages
-    'pipe-caspar': boolean; // Pipe CasparCG output to console
-    port: number; // Port to listen on
-    'log-dir'?: string | null; // Directory to store logs in
-    dev: boolean; // Whether the server is in development mode
-    web: boolean; // Whether to serve the Next.js web interface
-    'caspar-path'?: string | null; // Path to CasparCG
-    temp?: true; // Whether this config is temporary from dev mode
-    'db-file': string; // Path to the database file
-    'rundown-dir'?: string; // Directory to store rundowns in
-    'routes-dir': string; // Directory to store routes in
-    'plugins-dir': string; // Directory to load external plugins from
-    'plugin-state-file': string; // Path to the persisted plugin-enabled-state file
-    // Shared password for the web UI / API. `null` disables auth entirely —
-    // anyone reachable on the network can poke at the manager. Set to a
-    // string to require that operators present it (via the login screen,
-    // which then sets a session cookie).
+    'hide-debug': boolean;
+    'pipe-caspar': boolean;
+    port: number;
+    'log-dir'?: string | null;
+    dev: boolean;
+    web: boolean;
+    'caspar-path'?: string | null;
+    temp?: true;
+    'db-file': string;
+    'rundown-dir'?: string;
+    'routes-dir': string;
+    'plugins-dir': string;
+    'plugin-state-file': string;
     password?: string | null;
-    // Static API token for headless clients (e.g. Companion modules) that
-    // cannot do cookie-based auth. When set, requests bearing
-    // `Authorization: Bearer <token>` are accepted. Can be set alongside or
-    // instead of `password`. If set without a `password`, the web UI login
-    // page will not be usable.
     'api-token'?: string | null;
-    // STUN server for WebRTC preview ICE gathering, e.g. "stun:stun.l.google.com:19302".
-    // Required when clients connect from outside the local network (port-forwarded setup).
-    // Leave unset for LAN-only use — skipping STUN makes preview sessions start instantly.
     'preview-stun'?: string | null;
-    // Interface/IP to bind the API+web server to. null/unset = all interfaces
-    // (0.0.0.0/::), the historical behaviour. Set "127.0.0.1" for loopback-only,
-    // or a specific LAN IP to bind one interface.
     host?: string | null;
-    // Unix socket path (or Windows named pipe, e.g. \\.\pipe\cg) to listen on
-    // instead of a TCP port. When set it takes precedence over host/port — useful
-    // behind a reverse proxy with no TCP port exposed.
     'socket-path'?: string | null;
 }
 
+const isDev = process.env.NODE_ENV !== 'production';
+
+export interface FieldMeta {
+    type: 'string' | 'number' | 'boolean';
+    default: string | number | boolean | null;
+    desc: string;
+    /** false = documented but not written into a freshly-seeded config.json */
+    seeded?: boolean;
+    /** value is redacted in `manager config show` */
+    secret?: boolean;
+}
+
+export const schema: Record<keyof Omit<Config, 'temp'>, FieldMeta> = {
+    port:                { type: 'number',  default: 5353,   desc: 'TCP port for the API + web UI.' },
+    host:                { type: 'string',  default: null,   desc: 'Interface/IP to bind to. null = all interfaces; "127.0.0.1" = loopback only.' },
+    'socket-path':       { type: 'string',  default: null,   desc: 'Unix socket / Windows named pipe to listen on instead of TCP. Takes precedence over host/port.' },
+    web:                 { type: 'boolean', default: true,   desc: 'Serve the Next.js web UI. false = API-only (web routes 404).' },
+    dev:                 { type: 'boolean', default: isDev,  desc: 'Development mode (affects crash handling).' },
+    'hide-debug':        { type: 'boolean', default: !isDev, desc: 'Hide debug log messages.' },
+    'pipe-caspar':       { type: 'boolean', default: false,  desc: 'Pipe CasparCG stdout into the manager console as debug logs.' },
+    'caspar-path':       { type: 'string',  default: null,   desc: 'Path to the CasparCG binary.' },
+    'log-dir':           { type: 'string',  default: null,   desc: 'Directory for log files. null = no file logging.' },
+    'db-file':           { type: 'string',  default: './media-cache.json',  desc: 'Path to the media-cache database file.' },
+    'rundown-dir':       { type: 'string',  default: './rundowns',          desc: 'Directory for rundown files.' },
+    'routes-dir':        { type: 'string',  default: './routes',            desc: 'Directory for video route files.' },
+    'plugins-dir':       { type: 'string',  default: './plugins',           desc: 'Directory external plugins load from.' },
+    'plugin-state-file': { type: 'string',  default: './plugin-state.json', desc: 'Path to the persisted plugin enabled/disabled state.' },
+    password:            { type: 'string',  default: null,   secret: true,            desc: 'Shared web UI / API password. null disables auth entirely.' },
+    'api-token':         { type: 'string',  default: null,   secret: true, seeded: false, desc: 'Static bearer token for headless clients. Coexists with or replaces password.' },
+    'preview-stun':      { type: 'string',  default: null,   seeded: false, desc: 'STUN server URL for WebRTC preview ICE. Leave unset for LAN-only use.' },
+};
+
 export default {
-    dev: process.env.NODE_ENV !== 'production',
-    web: true,
-    'hide-debug': process.env.NODE_ENV === 'production',
-    port: 5353,
-    'log-dir': null,
-    'pipe-caspar': false,
-    'caspar-path': null,
+    ...Object.fromEntries(
+        Object.entries(schema)
+            .filter(([, m]) => m.seeded !== false)
+            .map(([k, m]) => [k, m.default]),
+    ),
     temp: true,
-    'db-file': './media-cache.json',
-    'rundown-dir': './rundowns',
-    'routes-dir': './routes',
-    'plugins-dir': './plugins',
-    'plugin-state-file': './plugin-state.json',
-    password: null,
-    host: null,
-    'socket-path': null,
 } as Config;
