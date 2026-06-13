@@ -137,6 +137,21 @@ async function patchVmCallSites() {
     );
     if (nextSrc1 === nextSrc) throw new Error('next.js vm patch did not apply — upstream source changed');
     await fs.writeFile(nextManifestFile, nextSrc1);
+
+    // babel-loader/lib/cache.js has a top-level `import("find-cache-dir")` (an
+    // ESM-only package). pkg's bootstrap Module._compile has no
+    // importModuleDynamically callback, so this throws at module load time before
+    // our vm-patch can intercept it. Replace it with a Promise that returns null
+    // so the cache falls back to os.tmpdir() — harmless since cacheDirectory is
+    // not set in our webpack config and the cache function is never actually called.
+    const babelCacheFile = path.join(root, 'node_modules', 'babel-loader', 'lib', 'cache.js');
+    let babelSrc = await fs.readFile(babelCacheFile, 'utf-8');
+    const babelSrc1 = babelSrc.replace(
+        'const findCacheDirP = import("find-cache-dir");',
+        'const findCacheDirP = Promise.resolve({ default: () => null }); // find-cache-dir is ESM-only; fall back to os.tmpdir()',
+    );
+    if (babelSrc1 === babelSrc) throw new Error('babel-loader cache.js patch did not apply — upstream source changed');
+    await fs.writeFile(babelCacheFile, babelSrc1);
 }
 
 async function package() {
