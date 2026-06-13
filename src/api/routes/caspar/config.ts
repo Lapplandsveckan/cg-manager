@@ -2,6 +2,7 @@ import { WebError } from 'rest-exchange-protocol';
 import { type RouteExport } from '../../route';
 import { configuration } from '../../../manager/config';
 import { type Config } from '../../../manager/caspar/config/types';
+import { CasparManager } from '../../../manager';
 
 function validate(data: any): data is Config {
     if (!data || typeof data !== 'object') return false;
@@ -24,6 +25,10 @@ export default {
         if (!validate(payload))
             throw new WebError('Invalid config payload', 400);
 
-        return configuration.set(payload);
+        const saved = await configuration.set(payload);
+        CasparManager.getManager()
+            .getPlugins()
+            .updateChannelCount(saved.channels.length);
+        return saved;
     },
 } satisfies RouteExport;

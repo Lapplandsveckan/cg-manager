@@ -15,6 +15,8 @@ export interface Layout {
 }
 
 export default class EdgeblendPlugin extends CasparPlugin {
+    public static get minChannels() { return 2; }
+
     private layouts: Layout[] = [];
     private effects: WeakMap<Layout, EdgeblendEffect[]> = new WeakMap();
 

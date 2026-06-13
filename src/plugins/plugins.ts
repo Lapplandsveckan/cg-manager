@@ -7,6 +7,7 @@ import files from './_plugins';
 import { loadPluginFolder } from './util';
 import { extractCgPlugin, loadSinglePlugin } from './install';
 import { CasparManager } from '../manager';
+import { configuration } from '../manager/config';
 import { Upload } from '../manager/scanner/upload';
 
 export async function loadPlugins() {
@@ -32,6 +33,10 @@ export async function loadPlugins() {
     };
 
     await CasparManager.getManager().plugins.loadState();
+
+    const cfg = await configuration.get();
+    CasparManager.getManager().plugins.setChannelCount(cfg.channels?.length ?? 0);
+
     for (const { plugin, dir } of files)
         CasparManager.getManager().plugins.register(plugin, dir, true);
     for (const { plugin, dir } of externalPlugins)

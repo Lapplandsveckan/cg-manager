@@ -628,6 +628,26 @@
             "body": "\"{{name}}\" tas bort och dess mapp raderas. Det går inte att ångra.",
             "confirm": "Avinstallera",
             "error": "Misslyckades att avinstallera plugin"
+        },
+        "channels": {
+            "insufficient": "Kräver {{need}} kan · har {{have}}",
+            "enableWarning": {
+                "title": "Inte tillräckligt med kanaler",
+                "body": "\"{{name}}\" kräver minst {{need}} kanal(er), men bara {{have}} är konfigurerade. Du kan fortfarande aktivera det, men det kanske inte fungerar korrekt.",
+                "confirm": "Aktivera ändå"
+            },
+            "addPrompt": {
+                "title": "Lägg till kanaler för plugin",
+                "body": "\"{{name}}\" kräver {{need}} kanal(er) men bara {{have}} är konfigurerade. Lägg till {{add}} till?",
+                "add": "Lägg till {{add}} kanal(er)",
+                "cancel": "Inte nu"
+            },
+            "restartPrompt": {
+                "title": "Starta om CasparCG?",
+                "body": "Kanaler lades till och sparades. Starta om CasparCG för att de ska börja gälla.",
+                "restartNow": "Starta om nu",
+                "later": "Senare"
+            }
         }
     },
     "playPage": {
