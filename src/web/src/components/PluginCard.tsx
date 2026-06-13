@@ -12,7 +12,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import { useTranslation } from 'next-i18next';
-import { type Plugin } from '../../lib/api/plugin';
+import { type Plugin } from '../lib/api/plugin';
 
 export interface PluginCardProps {
     plugin: Plugin;

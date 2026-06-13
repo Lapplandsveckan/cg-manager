@@ -13,8 +13,8 @@ import {
     UploadModal,
     useFileUpload,
 } from '../../components/Upload';
-import { PluginCard } from './PluginCard';
-import { PluginModals } from './PluginModals';
+import { PluginCard } from '../../components/PluginCard';
+import { PluginModals } from '../../components/PluginModals';
 
 interface ChannelInfo {
     name: string;
