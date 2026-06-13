@@ -82,7 +82,11 @@ async function main() {
 
         process.on('unhandledRejection', e => {
             Logger.error(
-                typeof e === 'object' ? JSON.stringify(e) : (e as Error),
+                e instanceof Error
+                    ? e
+                    : typeof e === 'object'
+                      ? JSON.stringify(e)
+                      : String(e),
             );
 
             // AMCP errors (timeout, channel-out-of-range, 4xx/5xx response)

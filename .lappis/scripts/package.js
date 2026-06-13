@@ -103,6 +103,42 @@ async function packageWeb() {
     await fs.copyFile(path.join(web, 'next-i18next.config.js'), path.join(distWeb, 'next-i18next.config.js'));
 }
 
+// Patch vm call sites in node_modules that omit importModuleDynamically.
+// Inside a pkg snapshot, vm code that calls import() throws
+// ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING unless the option is set.
+// USE_MAIN_CONTEXT_DEFAULT_LOADER works without --experimental-vm-modules
+// on Node ≥20.12 / 22.
+async function patchVmCallSites() {
+    console.log('Patching vm call sites...');
+    const loader = "require('vm').constants.USE_MAIN_CONTEXT_DEFAULT_LOADER";
+
+    // webpack's JavascriptModulesPlugin uses vm.runInThisContext for executeModule.
+    const webpackFile = path.join(root, 'node_modules', 'webpack', 'lib', 'javascript', 'JavascriptModulesPlugin.js');
+    let src = await fs.readFile(webpackFile, 'utf-8');
+
+    const src1 = src.replace(
+        '\t\t\t\t\t\t\tfilename: module.identifier(),\n\t\t\t\t\t\t\tlineOffset: -1\n\t\t\t\t\t\t}',
+        `\t\t\t\t\t\t\tfilename: module.identifier(),\n\t\t\t\t\t\t\tlineOffset: -1,\n\t\t\t\t\t\t\timportModuleDynamically: ${loader}\n\t\t\t\t\t\t}`,
+    );
+    if (src1 === src) throw new Error('webpack vm patch 1 did not apply — upstream source changed');
+    const src2 = src1.replace(
+        '\t\t\t\t\t\t\tfilename: options.module.identifier(),\n\t\t\t\t\t\t\tlineOffset: -1\n\t\t\t\t\t\t}',
+        `\t\t\t\t\t\t\tfilename: options.module.identifier(),\n\t\t\t\t\t\t\tlineOffset: -1,\n\t\t\t\t\t\t\timportModuleDynamically: ${loader}\n\t\t\t\t\t\t}`,
+    );
+    if (src2 === src1) throw new Error('webpack vm patch 2 did not apply — upstream source changed');
+    await fs.writeFile(webpackFile, src2);
+
+    // Next.js's load-manifest uses vm.runInNewContext for app-router manifests.
+    const nextManifestFile = path.join(root, 'node_modules', 'next', 'dist', 'server', 'load-manifest.external.js');
+    let nextSrc = await fs.readFile(nextManifestFile, 'utf-8');
+    const nextSrc1 = nextSrc.replace(
+        '(0, _vm.runInNewContext)(content, contextObject);',
+        `(0, _vm.runInNewContext)(content, contextObject, { importModuleDynamically: _vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER });`,
+    );
+    if (nextSrc1 === nextSrc) throw new Error('next.js vm patch did not apply — upstream source changed');
+    await fs.writeFile(nextManifestFile, nextSrc1);
+}
+
 async function package() {
     console.log('Compiling TypeScript...');
     await cmd(path.join('typescript', 'bin', 'tsc'));
@@ -111,6 +147,7 @@ async function package() {
     await packageInternalPlugins();
     await packageConfig();
     await packageWeb();
+    await patchVmCallSites();
 
     console.log('Packaging executable...');
     await cmd(path.join('@yao-pkg', 'pkg', 'lib-es5', 'bin.js'), JSON.stringify(path.join(root, 'package.json')));
