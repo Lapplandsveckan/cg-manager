@@ -1,5 +1,5 @@
 // Re-export all types and components from geometry modules
-export {
+export type {
     NormRect,
     NormPoint,
     Perspective,

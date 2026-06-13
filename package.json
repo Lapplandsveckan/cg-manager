@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "2.8.0",
+  "version": "2.8.1",
   "name": "manager",
   "engines": {
     "node": ">=22"
@@ -85,7 +85,7 @@
       "node_modules/**/*"
     ],
     "targets": [
-      "node22"
+      "node22-linux-x64"
     ],
     "outputPath": "out"
   },

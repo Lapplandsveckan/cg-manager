@@ -146,6 +146,8 @@ async function main() {
 
     if (state) console.log('Build complete!');
     else console.error('Build failed!');
+    
+    if (!state) process.exit(1);
 }
 
 main().catch(console.error);
