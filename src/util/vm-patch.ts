@@ -3,10 +3,15 @@
  * `vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER` on all vm entry points
  * (runInNewContext, runInThisContext, runInContext, compileFunction, Script).
  *
- * Without this, Next.js's `load-manifest.external.js` calls
- * `vm.runInNewContext()` with no `importModuleDynamically` option, which
- * causes Node ≥20.12/22 to throw ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING
- * whenever a manifest chunk calls `import()` inside the vm context.
+ * Without this, Next.js calls `vm.runInNewContext()` with no
+ * `importModuleDynamically` option; if the evaluated code calls `import()`,
+ * Node throws ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING.
+ *
+ * USE_MAIN_CONTEXT_DEFAULT_LOADER only works when the binary is launched with
+ * --experimental-vm-modules, which is baked into the packaged binary via
+ * `"pkg": { "options": "experimental-vm-modules" }` in package.json. In dev
+ * (ts-node without the flag) the constant is defined but the callback is a
+ * no-op; the error would only surface if vm code actually calls import().
  *
  * Must be imported before `next` is required. Emits a one-time Node
  * ExperimentalWarning (expected/benign). No-ops on runtimes that don't have

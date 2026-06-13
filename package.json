@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "2.8.5",
+  "version": "2.8.6",
   "name": "manager",
   "engines": {
     "node": ">=22"
@@ -79,6 +79,7 @@
     "strip-ansi": "^6.0.1"
   },
   "pkg": {
+    "options": "experimental-vm-modules",
     "scripts": [
       "dist/web/.next/**/*.js",
       "node_modules/react-i18next/**/*.js",
