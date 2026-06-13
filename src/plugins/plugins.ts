@@ -35,7 +35,9 @@ export async function loadPlugins() {
     await CasparManager.getManager().plugins.loadState();
 
     const cfg = await configuration.get();
-    CasparManager.getManager().plugins.setChannelCount(cfg.channels?.length ?? 0);
+    CasparManager.getManager().plugins.setChannelCount(
+        cfg.channels?.length ?? 0,
+    );
 
     for (const { plugin, dir } of files)
         CasparManager.getManager().plugins.register(plugin, dir, true);

@@ -6,7 +6,6 @@ import config, { loadConfigQuiet } from '../util/config';
 import { readDisabled, writeDisabled } from '../plugins/state';
 import {
     extractCgPlugin,
-    sanitizeName,
     purgePluginCache,
     loadSinglePlugin,
 } from '../plugins/install';
@@ -32,7 +31,9 @@ async function scanExternal(pluginsDir: string): Promise<PluginEntry[]> {
         const [, pluginClass] = noTry(() => loadSinglePlugin(dir));
         let id = folder;
         if (pluginClass) {
-            const [, inst] = noTry(() => new (pluginClass as typeof CasparPlugin)());
+            const [, inst] = noTry(
+                () => new (pluginClass as typeof CasparPlugin)(),
+            );
             if (inst) id = inst.pluginName;
         }
         result.push({ id, folder, dir, builtin: false });
@@ -101,7 +102,9 @@ export async function runPluginCli(args: string[]): Promise<void> {
             process.exit(1);
         }
         if (!file.endsWith('.cgplugin')) {
-            console.error(`Error: "${file}" does not look like a .cgplugin file.`);
+            console.error(
+                `Error: "${file}" does not look like a .cgplugin file.`,
+            );
             process.exit(1);
         }
 
@@ -114,7 +117,9 @@ export async function runPluginCli(args: string[]): Promise<void> {
 
         await fs.mkdir(pluginsDir, { recursive: true });
         const result = await extractCgPlugin(absFile, pluginsDir);
-        console.log(`Installed "${result.name}" v${result.version} → ${result.dir}`);
+        console.log(
+            `Installed "${result.name}" v${result.version} → ${result.dir}`,
+        );
         return;
     }
 
@@ -135,7 +140,9 @@ export async function runPluginCli(args: string[]): Promise<void> {
 
         const builtins = builtinEntries();
         if (builtins.some(b => b.id === entry.id)) {
-            console.error(`Error: "${entry.id}" is a built-in plugin and cannot be uninstalled.`);
+            console.error(
+                `Error: "${entry.id}" is a built-in plugin and cannot be uninstalled.`,
+            );
             process.exit(1);
         }
 
@@ -147,13 +154,18 @@ export async function runPluginCli(args: string[]): Promise<void> {
             const [rmErr] = await noTryAsync(() =>
                 fs.rm(entry.dir, { recursive: true, force: true }),
             );
-            if (!rmErr) { lastErr = null; break; }
+            if (!rmErr) {
+                lastErr = null;
+                break;
+            }
             lastErr = rmErr;
             if (attempt < delays.length)
                 await new Promise<void>(r => setTimeout(r, delays[attempt]));
         }
         if (lastErr) {
-            console.error(`Error: failed to delete "${entry.dir}": ${lastErr.message}`);
+            console.error(
+                `Error: failed to delete "${entry.dir}": ${lastErr.message}`,
+            );
             process.exit(1);
         }
 
@@ -176,8 +188,13 @@ export async function runPluginCli(args: string[]): Promise<void> {
         // PluginManager checks against _disabled at load time.
         const external = await scanExternal(pluginsDir);
         const builtins = builtinEntries();
-        const entry = [...builtins, ...external].find(p => p.id === name || p.folder === name);
-        if (!entry) console.warn(`Warning: no plugin named "${name}" found on disk; persisting anyway.`);
+        const entry = [...builtins, ...external].find(
+            p => p.id === name || p.folder === name,
+        );
+        if (!entry)
+            console.warn(
+                `Warning: no plugin named "${name}" found on disk; persisting anyway.`,
+            );
         const id = entry?.id ?? name;
 
         const disabled = await readDisabled();
@@ -187,7 +204,9 @@ export async function runPluginCli(args: string[]): Promise<void> {
             disabled.delete(id);
         }
         await writeDisabled(disabled);
-        console.log(`Plugin "${id}" ${cmd === 'disable' ? 'disabled' : 'enabled'}.`);
+        console.log(
+            `Plugin "${id}" ${cmd === 'disable' ? 'disabled' : 'enabled'}.`,
+        );
         return;
     }
 

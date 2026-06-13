@@ -15,7 +15,9 @@ export async function readDisabled(): Promise<Set<string>> {
     if (parseErr) return new Set();
 
     const disabled = Array.isArray(parsed?.disabled)
-        ? parsed.disabled.filter((n: unknown): n is string => typeof n === 'string')
+        ? parsed.disabled.filter(
+              (n: unknown): n is string => typeof n === 'string',
+          )
         : [];
     return new Set(disabled);
 }

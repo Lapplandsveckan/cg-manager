@@ -1,8 +1,8 @@
 import * as http from 'http';
 import next from 'next';
+import { noTry } from 'no-try';
 import { Logger } from '../util/log';
 import config from '../util/config';
-import { noTry } from 'no-try';
 
 const logger = Logger.scope('Web');
 

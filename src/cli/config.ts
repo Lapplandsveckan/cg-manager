@@ -46,7 +46,9 @@ export async function runConfigCli(args: string[]): Promise<void> {
         }
         const meta = schema[key];
         if (!meta) {
-            console.error(`Error: unknown key "${key}". Run "manager config keys" to see valid keys.`);
+            console.error(
+                `Error: unknown key "${key}". Run "manager config keys" to see valid keys.`,
+            );
             process.exit(1);
         }
         const cfg = config as unknown as Record<string, unknown>;
@@ -64,7 +66,9 @@ export async function runConfigCli(args: string[]): Promise<void> {
         }
         const meta = schema[key];
         if (!meta) {
-            console.error(`Error: unknown key "${key}". Run "manager config keys" to see valid keys.`);
+            console.error(
+                `Error: unknown key "${key}". Run "manager config keys" to see valid keys.`,
+            );
             process.exit(1);
         }
 
@@ -82,7 +86,9 @@ export async function runConfigCli(args: string[]): Promise<void> {
             if (raw === 'true') coerced = true;
             else if (raw === 'false') coerced = false;
             else {
-                console.error(`Error: "${raw}" is not a valid boolean. Use true or false.`);
+                console.error(
+                    `Error: "${raw}" is not a valid boolean. Use true or false.`,
+                );
                 process.exit(1);
             }
         } else {
@@ -90,12 +96,18 @@ export async function runConfigCli(args: string[]): Promise<void> {
         }
 
         // Read the raw file (not merged defaults) so we only persist explicit overrides.
-        const [readErr, rawContent] = await noTryAsync(() => fs.readFile(configPath, 'utf8'));
+        const [readErr, rawContent] = await noTryAsync(() =>
+            fs.readFile(configPath, 'utf8'),
+        );
         let existing: Record<string, unknown> = {};
         if (!readErr) {
-            const [parseErr, parsed] = noTry<Record<string, unknown>>(() => JSON.parse(rawContent ?? '{}'));
+            const [parseErr, parsed] = noTry<Record<string, unknown>>(() =>
+                JSON.parse(rawContent ?? '{}'),
+            );
             if (parseErr) {
-                console.error(`Error: failed to parse existing config.json: ${parseErr.message}`);
+                console.error(
+                    `Error: failed to parse existing config.json: ${parseErr.message}`,
+                );
                 process.exit(1);
             }
             existing = parsed ?? {};
@@ -106,7 +118,9 @@ export async function runConfigCli(args: string[]): Promise<void> {
             fs.writeFile(configPath, JSON.stringify(existing, null, 2), 'utf8'),
         );
         if (writeErr) {
-            console.error(`Error: failed to write config.json: ${(writeErr as Error).message}`);
+            console.error(
+                `Error: failed to write config.json: ${(writeErr as Error).message}`,
+            );
             process.exit(1);
         }
         console.log(`Set ${key} = ${JSON.stringify(coerced)}`);
@@ -115,9 +129,11 @@ export async function runConfigCli(args: string[]): Promise<void> {
 
     if (cmd === 'keys') {
         const entries = Object.entries(schema);
-        const maxKey     = Math.max(...entries.map(([k])    => k.length));
-        const maxType    = Math.max(...entries.map(([, m])  => m.type.length));
-        const maxDefault = Math.max(...entries.map(([, m])  => JSON.stringify(m.default).length));
+        const maxKey = Math.max(...entries.map(([k]) => k.length));
+        const maxType = Math.max(...entries.map(([, m]) => m.type.length));
+        const maxDefault = Math.max(
+            ...entries.map(([, m]) => JSON.stringify(m.default).length),
+        );
 
         for (const [key, meta] of entries) {
             const def = JSON.stringify(meta.default);
