@@ -5,6 +5,17 @@ import { noTry } from 'no-try';
 import { Logger } from '../util/log';
 import config from '../util/config';
 
+// Load the Next config statically rather than letting Next find it on disk.
+// Inside the pkg snapshot, Next's loadConfig() uses findUp() +
+// `import(pathToFileURL(...))`, neither of which sees the snapshot fs — so the
+// i18n config (and the `/` → `/play` redirect) silently vanish and unprefixed
+// routes like `/play` 404 while `/en/play` works. A literal require() is picked
+// up by pkg's static analysis (bundling next.config.js + next-i18next.config.js
+// into the snapshot) and the resolved object is handed to next({ conf }), which
+// bypasses the disk lookup entirely.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const nextConfig = require('./next.config');
+
 const logger = Logger.scope('Web');
 
 let prepared: Promise<void> | null = null;
@@ -33,6 +44,7 @@ export function startWeb() {
         dir: __dirname,
         httpServer,
         turbopack: config.dev,
+        conf: nextConfig,
     });
     handle = app.getRequestHandler();
 

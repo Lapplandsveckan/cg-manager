@@ -147,6 +147,19 @@ async function patchVmCallSites() {
         'next.js vm patch',
     );
 
+    // Next's loadConfig() loads next.config.js via `await import(pathToFileURL)`.
+    // In custom-server mode the router-server worker re-runs loadConfig from disk
+    // (ignoring the `conf` we pass), and that ESM import() of a snapshot path
+    // throws ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING. Our config is CJS and is
+    // embedded as a pkg script, so fall back to require() — the same fix Next
+    // already applies for jest (see the comment just above the patched line).
+    await applyPatch(
+        path.join(root, 'node_modules', 'next', 'dist', 'server', 'config.js'),
+        'userConfigModule = await import((0, _url.pathToFileURL)(path).href);',
+        'userConfigModule = require(path); // pkg: ESM import() of snapshot path fails; config is CJS',
+        'next.js config.js loadConfig',
+    );
+
     // babel-loader/lib/cache.js has a top-level `import("find-cache-dir")` (an
     // ESM-only package). pkg's bootstrap Module._compile has no
     // importModuleDynamically callback, so this throws at module load time before
