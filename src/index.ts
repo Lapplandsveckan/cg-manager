@@ -137,6 +137,13 @@ if (require.main === module) {
             console.error(e instanceof Error ? e.message : String(e));
             process.exit(1);
         });
+    } else if (argv[0] === 'config') {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { runConfigCli } = require('./cli/config');
+        (runConfigCli(argv.slice(1)) as Promise<void>).catch((e: unknown) => {
+            console.error(e instanceof Error ? e.message : String(e));
+            process.exit(1);
+        });
     } else {
         main();
     }
