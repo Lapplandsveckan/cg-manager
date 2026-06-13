@@ -70,7 +70,7 @@ export const schema: Record<keyof Omit<Config, 'temp'>, FieldMeta> = {
     'caspar-path': {
         type: 'string',
         default: null,
-        desc: 'Path to the CasparCG binary.',
+        desc: 'Path to the CasparCG installation directory.',
     },
     'log-dir': {
         type: 'string',

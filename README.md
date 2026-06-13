@@ -40,7 +40,7 @@ Use `manager config show` to print the effective configuration and `manager conf
 | `dev` | boolean | `true` in dev | Development mode (affects crash handling). |
 | `hide-debug` | boolean | `false` in dev | Hide debug log messages. |
 | `pipe-caspar` | boolean | `false` | Pipe CasparCG stdout into the manager console as debug logs. |
-| `caspar-path` | string | `null` | Path to the CasparCG binary. |
+| `caspar-path` | string | `null` | Path to the CasparCG installation directory. |
 | `log-dir` | string | `null` | Directory for log files. `null` = no file logging. |
 | `db-file` | string | `./media-cache.json` | Path to the media-cache database file. |
 | `rundown-dir` | string | `./rundowns` | Directory for rundown files. |

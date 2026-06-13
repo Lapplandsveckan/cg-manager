@@ -101,6 +101,11 @@ export class UIInjector {
 function getConfig(entry: string) {
     return {
         mode: 'production',
+        // Anchor webpack's resolution context to the snapshot/install root
+        // (dist/manager/plugins/ -> ../../.. = /snapshot/manager) so that
+        // babel-loader and module resolution work regardless of process.cwd(),
+        // which the entrypoint chdirs to CASPAR_DIR at startup.
+        context: path.resolve(__dirname, '../../../'),
         entry,
         output: {
             libraryTarget: 'module',

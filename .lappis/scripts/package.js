@@ -94,6 +94,13 @@ async function packageWeb() {
 
     await cmd(path.join('next', 'dist', 'bin', 'next'), 'build', JSON.stringify(web));
     await fs.rename(path.join(web, '.next'), out);
+
+    // Co-locate Next config files alongside the built app so that
+    // next({ dir: __dirname }) resolves them correctly inside the pkg snapshot
+    // (where __dirname = /snapshot/manager/dist/web).
+    const distWeb = path.join(root, 'dist', 'web');
+    await fs.copyFile(path.join(web, 'next.config.js'), path.join(distWeb, 'next.config.js'));
+    await fs.copyFile(path.join(web, 'next-i18next.config.js'), path.join(distWeb, 'next-i18next.config.js'));
 }
 
 async function package() {
