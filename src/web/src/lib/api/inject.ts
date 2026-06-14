@@ -45,7 +45,7 @@ export type UI_INJECTION_ZONE_KEY =
     | `${UI_INJECTION_ZONE}.${string}`;
 
 export interface Injection {
-    zone: UI_INJECTION_ZONE;
+    zone: UI_INJECTION_ZONE_KEY;
     file: string;
     plugin: string;
     id: string;
@@ -139,6 +139,18 @@ export class PluginInjectionAPI extends EventEmitter {
         );
     }
 
+    // Returns all injections whose zone exactly equals baseZone OR whose zone
+    // starts with `${baseZone}.` (the per-tab dotted-subzone convention).
+    public async getInjectsByZone(
+        baseZone: UI_INJECTION_ZONE_KEY,
+    ): Promise<Injection[]> {
+        await this._pluginPromise;
+        const prefix = `${baseZone}.`;
+        return Array.from(this._plugins.values()).filter(
+            p => p.zone === baseZone || p.zone.startsWith(prefix),
+        );
+    }
+
     public async inject(
         zone: UI_INJECTION_ZONE_KEY,
         plugin: string | null = null,
@@ -151,6 +163,35 @@ export class PluginInjectionAPI extends EventEmitter {
         );
     }
 }
+
+interface InjectionProps {
+    id: string;
+    props?: any;
+}
+
+// Renders a single injection by id. Use this when you need one specific
+// injection rather than all injections in a zone.
+export const Injection: React.FC<InjectionProps> = ({ id, props }) => {
+    const [Component, setComponent] = useState<ComponentType | null>(null);
+    const socket = useSocket();
+
+    useEffect(() => {
+        if (!socket) return;
+        let mounted = true;
+        const resolve = () =>
+            socket.injects
+                .import(id)
+                .then(c => mounted && setComponent(() => c));
+        resolve();
+        socket.injects.on('change', resolve);
+        return () => {
+            mounted = false;
+            socket.injects.off('change', resolve);
+        };
+    }, [id, socket]);
+
+    return Component ? createElement(Component, props ?? null) : null;
+};
 
 interface InjectionsProps {
     zone: UI_INJECTION_ZONE_KEY;

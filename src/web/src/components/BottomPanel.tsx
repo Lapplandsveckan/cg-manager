@@ -16,7 +16,7 @@ import { useStoredBoolean } from '../lib/hooks/useStoredBoolean';
 import { useStoredNumber } from '../lib/hooks/useStoredNumber';
 import {
     type Injection,
-    Injections,
+    Injection as InjectionView,
     UI_INJECTION_ZONE,
 } from '../lib/api/inject';
 
@@ -121,13 +121,13 @@ export const BottomPanel: React.FC = () => {
     );
     const [collapsed, setCollapsed] = useStoredBoolean(COLLAPSED_KEY, false);
 
-    const [activePlugin, setActivePlugin] = useState<string | null>(null);
+    const [activeId, setActiveId] = useState<string | null>(null);
 
     useEffect(() => {
         if (!socket) return;
         let mounted = true;
         socket.injects
-            .getInjects(UI_INJECTION_ZONE.RUNDOWN_BOTTOM_PANEL)
+            .getInjectsByZone(UI_INJECTION_ZONE.RUNDOWN_BOTTOM_PANEL)
             .then(list => {
                 if (mounted) setInjections(list);
             })
@@ -139,33 +139,41 @@ export const BottomPanel: React.FC = () => {
         };
     }, [socket]);
 
-    // Group injections by plugin so each plugin contributes one tab. A plugin
-    // with several injections gets them stacked inside its tab.
-    const pluginNames = useMemo(() => {
+    // One tab per injection. The label is either the zone suffix after the first
+    // dot (the per-tab convention), or the plugin name for legacy bare-zone registrations.
+    const tabs = useMemo(() => {
         if (!injections) return [];
-        const seen = new Set<string>();
-        const ordered: string[] = [];
-        for (const inj of injections)
-            if (!seen.has(inj.plugin)) {
-                seen.add(inj.plugin);
-                ordered.push(inj.plugin);
-            }
-
-        return ordered;
+        return injections.map(inj => {
+            const dot = inj.zone.indexOf('.');
+            const label = dot === -1 ? inj.plugin : inj.zone.slice(dot + 1);
+            return { id: inj.id, label };
+        });
     }, [injections]);
 
     useEffect(() => {
-        if (pluginNames.length === 0) {
-            if (activePlugin !== null) setActivePlugin(null);
+        if (tabs.length === 0) {
+            if (activeId !== null) setActiveId(null);
             return;
         }
-        if (!activePlugin || !pluginNames.includes(activePlugin))
-            setActivePlugin(pluginNames[0]);
-    }, [pluginNames, activePlugin]);
+        if (!activeId || !tabs.some(tab => tab.id === activeId))
+            setActiveId(tabs[0].id);
+    }, [tabs, activeId]);
+
+    const [bundlesReady, setBundlesReady] = useState(false);
+
+    // Eager-preload all tab bundles so namespaced-key labels register their
+    // addResourceBundle side-effects. Wait for all to settle before rendering
+    // labels to avoid flashing raw i18n keys.
+    useEffect(() => {
+        if (!socket || tabs.length === 0) return;
+        setBundlesReady(false);
+        Promise.all(tabs.map(tab => socket.injects.import(tab.id).catch(() => {})))
+            .then(() => setBundlesReady(true));
+    }, [tabs, socket]);
 
     // While injections are still loading, render nothing. Once we know there
     // are zero contributions, also render nothing — no plugins = no panel.
-    if (!injections || injections.length === 0) return null;
+    if (!injections || tabs.length === 0) return null;
 
     return (
         <Stack
@@ -229,24 +237,23 @@ export const BottomPanel: React.FC = () => {
                     },
                 })}
             >
-                {pluginNames.length > 1 ? (
-                    // Tabs swallow their own clicks so switching tabs doesn't
-                    // toggle the panel. The Tabs container fills the bar's
-                    // available width naturally; click-through on empty bar
-                    // gutters still bubbles to the Stack handler.
+                {tabs.length > 1 ? (
                     <Tabs
-                        value={activePlugin ?? false}
-                        onChange={(_, v) => setActivePlugin(v)}
-                        onClick={e => e.stopPropagation()}
+                        value={activeId ?? false}
+                        onChange={(_, v) => setActiveId(v)}
+                        onClick={e => {
+                            e.stopPropagation();
+                            if (collapsed) setCollapsed(false);
+                        }}
                         variant="scrollable"
                         scrollButtons="auto"
                         sx={{ minHeight: 36 }}
                     >
-                        {pluginNames.map(name => (
+                        {tabs.map(tab => (
                             <Tab
-                                key={name}
-                                value={name}
-                                label={name}
+                                key={tab.id}
+                                value={tab.id}
+                                label={bundlesReady ? t(tab.label) : ''}
                                 sx={{
                                     minHeight: 36,
                                     textTransform: 'none',
@@ -257,7 +264,7 @@ export const BottomPanel: React.FC = () => {
                     </Tabs>
                 ) : (
                     <Typography variant="h6" sx={{ pl: 1 }}>
-                        {pluginNames[0] ?? ''}
+                        {bundlesReady ? t(tabs[0]?.label ?? '') : ''}
                     </Typography>
                 )}
 
@@ -287,7 +294,7 @@ export const BottomPanel: React.FC = () => {
                 </Tooltip>
             </Stack>
 
-            {!collapsed && activePlugin && (
+            {!collapsed && activeId && (
                 <Box
                     sx={{
                         height,
@@ -296,10 +303,7 @@ export const BottomPanel: React.FC = () => {
                         py: 1.5,
                     }}
                 >
-                    <Injections
-                        zone={UI_INJECTION_ZONE.RUNDOWN_BOTTOM_PANEL}
-                        plugin={activePlugin}
-                    />
+                    <InjectionView id={activeId} />
                 </Box>
             )}
         </Stack>
