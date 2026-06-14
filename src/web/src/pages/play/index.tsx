@@ -52,20 +52,20 @@ const Page = () => {
                 </Button>
             </Stack>
 
-            {rundowns.length === 0 ? (
-                <Card sx={{ p: 3, textAlign: 'center', maxWidth: 720 }}>
-                    <Typography
-                        variant="body1"
-                        sx={{ color: 'text.secondary' }}
-                    >
-                        {t('playPage.emptyBefore')}
-                        <strong>{t('playPage.newRundown')}</strong>
-                        {t('playPage.emptyAfter')}
-                    </Typography>
-                </Card>
-            ) : (
-                <Stack spacing={1.5} sx={{ maxWidth: 820 }}>
-                    {rundowns.map(rundown => (
+            <Stack spacing={1.5} sx={{ maxWidth: 820 }}>
+                {rundowns.length === 0 ? (
+                    <Card sx={{ p: 3, textAlign: 'center', maxWidth: 720 }}>
+                        <Typography
+                            variant="body1"
+                            sx={{ color: 'text.secondary' }}
+                        >
+                            {t('playPage.emptyBefore')}
+                            <strong>{t('playPage.newRundown')}</strong>
+                            {t('playPage.emptyAfter')}
+                        </Typography>
+                    </Card>
+                ) : (
+                    rundowns.map(rundown => (
                         <RundownCard
                             key={rundown.id}
                             rundown={rundown}
@@ -73,9 +73,9 @@ const Page = () => {
                             onEdit={() => setEditing(rundown)}
                             onDelete={() => setDeleting(rundown)}
                         />
-                    ))}
-                </Stack>
-            )}
+                    ))
+                )}
+            </Stack>
 
             <ModalShell
                 open={editing !== null}
@@ -94,13 +94,15 @@ const Page = () => {
             </ModalShell>
 
             <ModalShell open={adding} onClose={() => setAdding(false)}>
-                <AddRundownModal
-                    onCreate={name => {
-                        setAdding(false);
-                        createRundown(name);
-                    }}
-                    onCancel={() => setAdding(false)}
-                />
+                {adding && (
+                    <AddRundownModal
+                        onCreate={name => {
+                            setAdding(false);
+                            createRundown(name);
+                        }}
+                        onCancel={() => setAdding(false)}
+                    />
+                )}
             </ModalShell>
 
             <DeleteRundownModal

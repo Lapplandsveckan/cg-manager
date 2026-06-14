@@ -12,7 +12,7 @@ export const ModalShell: React.FC<ModalShellProps> = ({
     onClose,
     children,
 }) => (
-    <Modal open={open} onClose={onClose}>
+    <Modal open={open} onClose={onClose} disableRestoreFocus>
         <Stack
             justifyContent="center"
             alignItems="center"
