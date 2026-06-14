@@ -633,13 +633,13 @@
             "insufficient": "Needs {{need}} ch · have {{have}}",
             "enableWarning": {
                 "title": "Not enough channels",
-                "body": "\"{{name}}\" requires at least {{need}} channel{{need, plural, one{} other{s}}}, but only {{have}} {{have, plural, one{is} other{are}}} configured. You can still enable it, but it may not work correctly.",
+                "body": "\"{{name}}\" requires at least {{need}} channel(s), but only {{have}} are configured. You can still enable it, but it may not work correctly.",
                 "confirm": "Enable anyway"
             },
             "addPrompt": {
                 "title": "Add channels for plugin",
-                "body": "\"{{name}}\" requires {{need}} channel{{need, plural, one{} other{s}}} but only {{have}} {{have, plural, one{is} other{are}}} configured. Add {{add}} more?",
-                "add": "Add {{add}} channel{{add, plural, one{} other{s}}}",
+                "body": "\"{{name}}\" requires {{need}} channel(s) but only {{have}} are configured. Add {{add}} more?",
+                "add": "Add {{add}} channel(s)",
                 "cancel": "Not now"
             },
             "restartPrompt": {
