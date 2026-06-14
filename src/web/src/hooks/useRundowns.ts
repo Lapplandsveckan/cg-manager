@@ -79,9 +79,10 @@ export function useRundowns() {
     };
 
     const createRundown = (name: string) => {
-        conn.rawRequest('/api/rundown', 'CREATE', name).then(({ data }) =>
-            setRundowns(prev => [...prev, data]),
-        );
+        return conn.rawRequest('/api/rundown', 'CREATE', name).then(({ data }) => {
+            setRundowns(prev => [...prev, data]);
+            return data as Rundown;
+        });
     };
 
     return { rundowns, updateRundown, deleteRundown, createRundown };

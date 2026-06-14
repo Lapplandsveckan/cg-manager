@@ -98,7 +98,7 @@ const Page = () => {
                     <AddRundownModal
                         onCreate={name => {
                             setAdding(false);
-                            createRundown(name);
+                            createRundown(name).then(data => router.push(`/play/${data.id}`));
                         }}
                         onCancel={() => setAdding(false)}
                     />
