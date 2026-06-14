@@ -20,8 +20,11 @@
 import vm from 'vm';
 
 // Node types define this as `number`, but the actual runtime value is a symbol.
-const loader = (vm.constants as unknown as { USE_MAIN_CONTEXT_DEFAULT_LOADER?: symbol | number })
-    ?.USE_MAIN_CONTEXT_DEFAULT_LOADER;
+const loader = (
+    vm.constants as unknown as {
+        USE_MAIN_CONTEXT_DEFAULT_LOADER?: symbol | number;
+    }
+)?.USE_MAIN_CONTEXT_DEFAULT_LOADER;
 
 if (loader !== undefined) {
     const withLoader = (opts: unknown) => {

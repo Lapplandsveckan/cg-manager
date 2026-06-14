@@ -1,3 +1,4 @@
+import fs from 'fs';
 import path from 'path';
 import { CasparPlugin, UI_INJECTION_ZONE } from '@lappis/cg-manager';
 import { type RundownItem } from '@lappis/cg-manager/dist/types/rundown';
@@ -26,14 +27,15 @@ export default class EssentialsPlugin extends CasparPlugin {
         const itemZone =
             `${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${TOGGLE_VIDEO_ROUTE}` as UI_INJECTION_ZONE;
 
-        // tsc (jsx: "preserve") emits .jsx with JSX intact; babel-loader handles
-        // it fine. Using .jsx avoids shipping duplicate raw .tsx source in the
-        // snapshot and matches what's actually in dist/.
-        this.api.registerUI(
-            editorZone,
-            path.join(__dirname, 'ui', 'editor.jsx'),
-        );
-        this.api.registerUI(itemZone, path.join(__dirname, 'ui', 'item.jsx'));
+        // In dev (ts-node) __dirname is src/…/essentials and only .tsx exists.
+        // In the packaged snapshot tsc emits .jsx (jsx:"preserve") so only .jsx exists.
+        this.api.registerUI(editorZone, this.uiFile('editor'));
+        this.api.registerUI(itemZone, this.uiFile('item'));
+    }
+
+    private uiFile(name: string) {
+        const base = path.join(__dirname, 'ui', name);
+        return fs.existsSync(`${base}.tsx`) ? `${base}.tsx` : `${base}.jsx`;
     }
 
     private toggleVideoRoute(item: RundownItem) {
