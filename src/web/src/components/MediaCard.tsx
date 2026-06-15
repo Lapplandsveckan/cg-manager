@@ -9,7 +9,6 @@ import {
 } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
-import PageviewRoundedIcon from '@mui/icons-material/PageviewRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { useTranslation } from 'next-i18next';
 import { MEDIA_MOVE_DRAG_MIME } from '../lib/dragPayload';
@@ -44,7 +43,6 @@ export interface MediaCardProps {
     columns?: number;
     onClick?: () => void;
     onPlay?: () => void;
-    onInspect?: () => void;
     onDelete?: () => void;
     onRename?: () => void;
     /** Full media id (slash-separated). When set, the card is draggable
@@ -61,7 +59,6 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     columns,
     onClick,
     onPlay,
-    onInspect,
     onDelete,
     onRename,
     dragId,
@@ -73,7 +70,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     );
     const span = 60 / (columns ?? 5);
 
-    const hasActions = Boolean(onPlay || onInspect || onDelete || onRename);
+    const hasActions = Boolean(onPlay || onDelete || onRename);
 
     return (
         <Grid
@@ -140,17 +137,6 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                                     sx={{ color: 'rgba(232, 234, 237, 0.85)' }}
                                 >
                                     <PlayArrowRoundedIcon fontSize="small" />
-                                </IconButton>
-                            </Tooltip>
-                        )}
-                        {onInspect && (
-                            <Tooltip title={t('actions.inspect')}>
-                                <IconButton
-                                    size="small"
-                                    onClick={onInspect}
-                                    sx={{ color: 'rgba(232, 234, 237, 0.85)' }}
-                                >
-                                    <PageviewRoundedIcon fontSize="small" />
                                 </IconButton>
                             </Tooltip>
                         )}

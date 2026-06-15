@@ -250,8 +250,8 @@ const Page = () => {
                     prefix={path}
                     showAsDirectories
                     onNavigate={folder => navigate(`${path}${folder}/`)}
+                    onClipSelect={clip => setInspecting(clip)}
                     onClipPlay={canPlay ? handlePlay : undefined}
-                    onClipInspect={clip => setInspecting(clip)}
                     onClipDelete={clip => {
                         setError(null);
                         setDeleting(clip);
