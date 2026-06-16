@@ -1,10 +1,13 @@
-import fs from 'fs/promises';
 import path from 'path';
 import { type CasparPlugin, PluginAPI } from '@lappis/cg-manager';
 import { noTry, noTryAsync } from 'no-try';
 import { Logger } from '../../util/log';
 import config from '../../util/config';
-import { sanitizeName, purgePluginCache } from '../../plugins/install';
+import {
+    sanitizeName,
+    purgePluginCache,
+    removeOrTombstone,
+} from '../../plugins/install';
 import { readDisabled, writeDisabled } from '../../plugins/state';
 import { CasparManager } from '../index';
 
@@ -253,30 +256,10 @@ export class PluginManager {
                 sanitizeName(name),
             );
 
-        // Drop require.cache entries so Node releases its file handles.
-        // On Windows a cached module keeps an OS lock that prevents deletion.
+        // Purge JS module cache, then remove the folder. removeOrTombstone
+        // handles Windows native-addon locks by renaming aside for next-restart cleanup.
         purgePluginCache(dir);
-
-        // Retry with short backoff — Windows sometimes holds locks briefly
-        // even after the cache is cleared (e.g. due to webpack's input fs).
-        const delays = [100, 300];
-        let lastErr: Error | null = null;
-        for (let attempt = 0; attempt <= delays.length; attempt++) {
-            const [rmErr] = await noTryAsync(() =>
-                fs.rm(dir, { recursive: true, force: true }),
-            );
-            if (!rmErr) {
-                lastErr = null;
-                break;
-            }
-            lastErr = rmErr;
-            if (attempt < delays.length)
-                await new Promise<void>(r => setTimeout(r, delays[attempt]));
-        }
-        if (lastErr)
-            throw new Error(
-                `Failed to delete plugin folder "${dir}": ${Logger.formatError(lastErr)}`,
-            );
+        await removeOrTombstone(dir);
 
         Logger.scope('Plugin Loader').info(`Uninstalled plugin "${name}"`);
     }

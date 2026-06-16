@@ -1,9 +1,57 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
 import AdmZip from 'adm-zip';
-import { noTry } from 'no-try';
+import { noTry, noTryAsync } from 'no-try';
 import { type CasparPlugin } from '@lappis/cg-manager';
 import { Logger } from '../util/log';
+
+const TOMBSTONE_PREFIX = '.trash-';
+
+/**
+ * Remove a plugin directory, falling back to a tombstone rename when native
+ * .node addons hold OS-level locks (Windows). Tombstones are swept at next
+ * startup by sweepTombstones(). Throws only if both rm and rename fail.
+ */
+export async function removeOrTombstone(dir: string): Promise<void> {
+    const [rmErr] = await noTryAsync(() =>
+        fs.rm(dir, { recursive: true, force: true }),
+    );
+    if (!rmErr) return;
+
+    // rm failed — try to rename aside so the folder is invisible to
+    // loadPluginFolder (dotted entries are skipped) and swept next restart.
+    const tombstone = path.join(
+        path.dirname(dir),
+        `${TOMBSTONE_PREFIX}${path.basename(dir)}-${Date.now()}`,
+    );
+    const [renameErr] = await noTryAsync(() => fs.rename(dir, tombstone));
+    if (renameErr) throw rmErr;
+
+    Logger.scope('Plugin Installer').warn(
+        `Could not delete "${dir}" (locked native module) — deferred to next restart`,
+    );
+}
+
+/** Remove any tombstone folders left from previous sessions. Called once at
+ *  startup before plugins are loaded, when native addons are not yet locked. */
+export async function sweepTombstones(pluginsDir: string): Promise<void> {
+    const logger = Logger.scope('Plugin Installer');
+    const [readErr, entries] = await noTryAsync(() =>
+        fs.readdir(pluginsDir, { withFileTypes: true }),
+    );
+    if (readErr) return; // dir may not exist yet on first run
+
+    for (const entry of entries) {
+        if (!entry.name.startsWith(TOMBSTONE_PREFIX)) continue;
+        const full = path.join(pluginsDir, entry.name);
+        const [err] = await noTryAsync(() =>
+            fs.rm(full, { recursive: true, force: true }),
+        );
+        if (err)
+            logger.warn(`Failed to sweep tombstone "${full}": ${err.message}`);
+        else logger.info(`Swept tombstone "${entry.name}"`);
+    }
+}
 
 /** Strips characters that would break the folder loader (dotted names are
  *  skipped by loadPluginFolder) and sanitize npm scopes / slashes. */
@@ -75,7 +123,8 @@ export async function extractCgPlugin(
     const destDir = path.join(pluginsDir, folderName);
 
     // Clear any previous version (update path) then recreate the folder.
-    await fs.rm(destDir, { recursive: true, force: true });
+    // removeOrTombstone handles the Windows native-addon lock case gracefully.
+    await removeOrTombstone(destDir);
     await fs.mkdir(destDir, { recursive: true });
 
     // Extract only the entries under the prefix, guarding against zip-slip

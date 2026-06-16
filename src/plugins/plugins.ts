@@ -5,7 +5,7 @@ import { Logger } from '../util/log';
 import config from '../util/config';
 import files from './_plugins';
 import { loadPluginFolder } from './util';
-import { extractCgPlugin, loadSinglePlugin } from './install';
+import { extractCgPlugin, loadSinglePlugin, sweepTombstones } from './install';
 import { CasparManager } from '../manager';
 import { configuration } from '../manager/config';
 import { Upload } from '../manager/scanner/upload';
@@ -15,6 +15,7 @@ export async function loadPlugins() {
     logger.info('Loading plugins...');
 
     const pluginsDir = path.resolve(process.cwd(), config['plugins-dir']);
+    await sweepTombstones(pluginsDir);
     const externalPlugins = loadPluginFolder(pluginsDir);
 
     // Wire the plugin-upload completion hook so uploaded .cgplugin zips are
