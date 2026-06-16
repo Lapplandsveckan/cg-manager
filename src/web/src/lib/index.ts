@@ -20,3 +20,4 @@ export type {
 export { MediaDropZone } from '../components/MediaDropZone';
 export type { MediaDropZoneProps } from '../components/MediaDropZone';
 export { useRundownLive, RundownLiveProvider } from '../hooks/useRundownLive';
+export { ChannelPreview } from '../components/ChannelPreview';

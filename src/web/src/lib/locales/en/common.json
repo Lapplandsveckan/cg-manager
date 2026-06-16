@@ -698,6 +698,35 @@
                 "on": "On",
                 "off": "Off"
             }
+        },
+        "edgeblend": {
+            "layouts": "Layouts",
+            "addLayout": "+ Add",
+            "noLayouts": "No layouts configured.",
+            "selectOrAdd": "Select a layout or add a new one.",
+            "newLayout": "New layout",
+            "editLayout": "Edit layout",
+            "name": "Name",
+            "canvasSize": "Canvas size",
+            "projectorSize": "Projector size",
+            "width": "Width",
+            "height": "Height",
+            "grid": "Grid",
+            "cols": "Columns",
+            "rows": "Rows",
+            "projectors": "projectors",
+            "inputChannel": "Input channel",
+            "outputChannels": "Output channels (left→right, top→bottom)",
+            "channel": "Channel",
+            "channelN": "Channel {{n}}",
+            "projectorPos": "Col {{col}}, Row {{row}}",
+            "enable": "Enable",
+            "disable": "Disable",
+            "enabledInEdit": "Enabled",
+            "outputCountError": "Must have exactly {{count}} output channel(s) for this grid.",
+            "saving": "Saving…",
+            "showPreview": "Live preview",
+            "overlapZone": "Overlap / blend zone"
         }
     }
 }

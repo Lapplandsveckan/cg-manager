@@ -698,6 +698,35 @@
                 "on": "På",
                 "off": "Av"
             }
+        },
+        "edgeblend": {
+            "layouts": "Layouter",
+            "addLayout": "+ Lägg till",
+            "noLayouts": "Inga layouter konfigurerade.",
+            "selectOrAdd": "Välj en layout eller lägg till en ny.",
+            "newLayout": "Ny layout",
+            "editLayout": "Redigera layout",
+            "name": "Namn",
+            "canvasSize": "Canvasstorlek",
+            "projectorSize": "Projektorstorlek",
+            "width": "Bredd",
+            "height": "Höjd",
+            "grid": "Rutnät",
+            "cols": "Kolumner",
+            "rows": "Rader",
+            "projectors": "projektorer",
+            "inputChannel": "Inkanal",
+            "outputChannels": "Utkanaler (vänster→höger, uppifrån→ned)",
+            "channel": "Kanal",
+            "channelN": "Kanal {{n}}",
+            "projectorPos": "Kol {{col}}, Rad {{row}}",
+            "enable": "Aktivera",
+            "disable": "Inaktivera",
+            "enabledInEdit": "Aktiverad",
+            "outputCountError": "Måste ha exakt {{count}} utkanal(er) för detta rutnät.",
+            "saving": "Sparar…",
+            "showPreview": "Live-förhandsgranskning",
+            "overlapZone": "Överlappnings- / blandningszon"
         }
     }
 }

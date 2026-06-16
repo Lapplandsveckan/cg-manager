@@ -167,8 +167,9 @@ export const BottomPanel: React.FC = () => {
     useEffect(() => {
         if (!socket || tabs.length === 0) return;
         setBundlesReady(false);
-        Promise.all(tabs.map(tab => socket.injects.import(tab.id).catch(() => {})))
-            .then(() => setBundlesReady(true));
+        Promise.all(
+            tabs.map(tab => socket.injects.import(tab.id).catch(() => {})),
+        ).then(() => setBundlesReady(true));
     }, [tabs, socket]);
 
     // While injections are still loading, render nothing. Once we know there

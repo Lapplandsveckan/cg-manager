@@ -1,143 +1,224 @@
-import { type BasicChannel, CasparPlugin, Transform } from '@lappis/cg-manager';
+import fs from 'fs';
+import path from 'path';
+import { CasparPlugin, Transform, UI_INJECTION_ZONE } from '@lappis/cg-manager';
+import { WebsocketOutboundMethod } from 'rest-exchange-protocol';
 import {
     EdgeblendEffect,
     type EdgeBlendEffectOptions,
 } from './effects/edgeblend';
-
-export interface Layout {
-    canvasSize: [number, number];
-    projectorSize: [number, number];
-
-    size: [number, number]; // eg 2x2
-
-    inputChannel: BasicChannel;
-    outputChannels: BasicChannel[];
-}
+import {
+    LayoutStore,
+    validateInput,
+    validatePatch,
+    type StoredLayout,
+} from './layouts';
+import { overlapFractions, projectorRects } from './geometry';
 
 export default class EdgeblendPlugin extends CasparPlugin {
     public static get minChannels() {
-        return 2;
+        return 0;
     }
-
-    private layouts: Layout[] = [];
-    private effects: WeakMap<Layout, EdgeblendEffect[]> = new WeakMap();
-
-    // Tear down + rebuild edgeblend effects whenever CasparCG comes back from
-    // a restart — its layer state was just wiped, so the EdgeblendEffect
-    // instances we hold point at nothing.
-    private readonly handleReconnect = () => {
-        this.disableLayouts();
-        void this.enableLayouts();
-    };
 
     public static get pluginName() {
         return 'edgeblend';
     }
 
-    protected onEnable() {
+    private store!: LayoutStore;
+    private effects: Map<string, EdgeblendEffect[]> = new Map();
+    private routes: ReturnType<typeof this.api.registerRoute>[] = [];
+
+    private readonly handleReconnect = () => {
+        this.disableAll();
+        void this.enableAllActive();
+    };
+
+    protected async onEnable() {
+        const dataDir = path.join(process.cwd(), 'plugin-data', 'edgeblend');
+        this.store = new LayoutStore(dataDir);
+        await this.store.ready;
+
         this.api.registerEffect(
             'edgeblend',
             (group, options) =>
                 new EdgeblendEffect(group, options as EdgeBlendEffectOptions),
         );
 
+        this.registerRoutes();
+        this.api.registerUI(
+            UI_INJECTION_ZONE.PLUGIN_PAGE,
+            this.uiFile('index'),
+        );
         this.api.onReconnect(this.handleReconnect);
+
+        void this.api
+            .awaitConnection()
+            .then(() => this.enableAllActive())
+            .catch(() => {
+                /* executor unavailable — effects will not activate */
+            });
     }
 
     protected onDisable() {
         this.api.offReconnect(this.handleReconnect);
+        for (const route of this.routes) this.api.unregisterRoute(route);
+        this.routes = [];
+        this.disableAll();
     }
 
-    public enableLayouts() {
+    private uiFile(name: string) {
+        const base = path.join(__dirname, 'ui', name);
+        return fs.existsSync(`${base}.tsx`) ? `${base}.tsx` : `${base}.jsx`;
+    }
+
+    private broadcast() {
+        this.api.broadcast(
+            'layouts',
+            WebsocketOutboundMethod.UPDATE,
+            this.store.list(),
+        );
+    }
+
+    private registerRoutes() {
+        this.routes.push(
+            this.api.registerRoute(
+                'layouts',
+                async () => {
+                    await this.store.ready;
+                    return this.store.list();
+                },
+                'GET',
+            ),
+            this.api.registerRoute(
+                'layouts',
+                async req => {
+                    const input = validateInput(req.getData());
+                    if (!input) return null;
+                    await this.store.ready;
+                    const layout = await this.store.create(input);
+                    if (layout.enabled) void this.enableLayout(layout);
+                    this.broadcast();
+                    return layout;
+                },
+                'ACTION',
+            ),
+            this.api.registerRoute(
+                'layouts/:id',
+                async req => {
+                    const { id } = req.getParams();
+                    const patch = validatePatch(req.getData());
+                    if (!patch) return null;
+                    await this.store.ready;
+                    const prev = this.store.get(id);
+                    const layout = await this.store.update(id, patch);
+                    if (!layout) return null;
+
+                    // Geometry or enable state changed — re-apply live
+                    const geomChanged =
+                        patch.canvasSize !== undefined ||
+                        patch.projectorSize !== undefined ||
+                        patch.size !== undefined ||
+                        patch.inputChannel !== undefined ||
+                        patch.outputChannels !== undefined;
+                    const wasEnabled = prev?.enabled ?? false;
+
+                    if (wasEnabled || layout.enabled || geomChanged) {
+                        this.disableLayout(id);
+                        if (layout.enabled) void this.enableLayout(layout);
+                    }
+
+                    this.broadcast();
+                    return layout;
+                },
+                'UPDATE',
+            ),
+            this.api.registerRoute(
+                'layouts/:id',
+                async req => {
+                    const { id } = req.getParams();
+                    await this.store.ready;
+                    this.disableLayout(id);
+                    await this.store.remove(id);
+                    this.broadcast();
+                    return { ok: true };
+                },
+                'DELETE',
+            ),
+        );
+    }
+
+    // --- Effect lifecycle ---
+
+    private enableAllActive() {
         return Promise.all(
-            this.layouts.map(layout => this.enableLayout(layout)),
+            this.store
+                .list()
+                .filter(l => l.enabled)
+                .map(l => this.enableLayout(l)),
         );
     }
 
-    public disableLayouts() {
-        this.layouts.forEach(layout => this.disableLayout(layout));
+    private disableAll() {
+        for (const [id] of this.effects) this.disableLayout(id);
     }
 
-    public addLayout(layout: Layout) {
-        this.layouts.push(layout);
+    private disableLayout(id: string) {
+        const effects = this.effects.get(id) ?? [];
+        effects.forEach(e => e.deactivate());
+        this.effects.delete(id);
     }
 
-    public removeLayout(layout: Layout) {
-        const index = this.layouts.indexOf(layout);
-        if (index < 0) return;
+    private enableLayout(layout: StoredLayout) {
+        this.disableLayout(layout.id);
 
-        this.layouts.splice(index, 1);
-        this.disableLayout(layout);
-    }
-
-    private disableLayout(layout: Layout) {
-        const effects = this.effects.get(layout) || [];
-        effects.forEach(effect => effect.deactivate());
-        effects.length = 0;
-    }
-
-    private enableLayout(layout: Layout) {
-        const effects = this.effects.get(layout) || [];
-        this.effects.set(layout, effects);
-
-        effects.forEach(effect => effect.deactivate());
-        effects.length = 0;
-
-        const totalProjectorSize = layout.size.map(
-            (v, i) => v * layout.projectorSize[i],
+        const { canvasSize } = layout;
+        const [overlapX, overlapY] = overlapFractions(
+            canvasSize,
+            layout.projectorSize,
+            layout.size,
         );
-        const canvasSize = layout.canvasSize;
-
-        const overlap = totalProjectorSize.map(
-            (v, i) => (v - canvasSize[i]) / (v - layout.projectorSize[i]),
+        const rects = projectorRects(
+            canvasSize,
+            layout.projectorSize,
+            layout.size,
         );
+
+        const effects: EdgeblendEffect[] = [];
+        this.effects.set(layout.id, effects);
 
         const promises = [];
         for (let i = 0; i < layout.outputChannels.length; i++) {
-            const channel = this.api.getChannel(
-                layout.outputChannels[i].getCasparChannel(),
-            );
+            const rect = rects[i];
+            const outputCh = layout.outputChannels[i];
+            const channel = this.api.getChannel(outputCh);
 
-            const x = i % layout.size[0];
-            const y = Math.floor(i / layout.size[0]);
-
-            const edgeblend = {
-                edgeblend: [overlap[0], overlap[0], overlap[1], overlap[1]] as [
-                    number,
-                    number,
-                    number,
-                    number,
-                ],
-                g: 1.8,
-                p: 3,
-                a: 0.5,
-            };
-
-            if (x === 0) edgeblend.edgeblend[0] = 0;
-            if (x === layout.size[0] - 1) edgeblend.edgeblend[1] = 0;
-
-            if (y === 0) edgeblend.edgeblend[2] = 0;
-            if (y === layout.size[1] - 1) edgeblend.edgeblend[3] = 0;
-
-            const offset = [x, y].map(
-                (v, i) => v * (layout.projectorSize[i] - overlap[i]),
-            );
+            const blendEdges: [number, number, number, number] = [
+                overlapX,
+                overlapX,
+                overlapY,
+                overlapY,
+            ];
+            if (rect.col === 0) blendEdges[0] = 0;
+            if (rect.col === layout.size[0] - 1) blendEdges[1] = 0;
+            if (rect.row === 0) blendEdges[2] = 0;
+            if (rect.row === layout.size[1] - 1) blendEdges[3] = 0;
 
             const sourceTransform = [
-                offset[0] / canvasSize[0],
-                offset[1] / canvasSize[1],
-                (offset[0] + layout.projectorSize[0]) / canvasSize[0],
-                (offset[1] + layout.projectorSize[1]) / canvasSize[1],
+                rect.x / canvasSize[0],
+                rect.y / canvasSize[1],
+                (rect.x + layout.projectorSize[0]) / canvasSize[0],
+                (rect.y + layout.projectorSize[1]) / canvasSize[1],
             ] as const;
 
             const transform = new Transform(
                 Transform.getRect(...sourceTransform),
                 Transform.normalRect(),
             );
+
+            const inputChannel = this.api.getChannel(layout.inputChannel);
             const effect = new EdgeblendEffect(channel.getGroup('edgeblend'), {
-                source: layout.inputChannel,
+                source: inputChannel,
                 transform,
-                edgeblend,
+                edgeblend: { edgeblend: blendEdges, g: 1.8, p: 3, a: 0.5 },
             });
 
             effects.push(effect);
