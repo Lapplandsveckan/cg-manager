@@ -16,6 +16,7 @@ import { type Plugin } from '../../../../lib/api/plugin';
 import { Injections, UI_INJECTION_ZONE } from '../../../../lib/api/inject';
 import { useSocket } from '../../../../lib';
 import { DefaultContentLayout } from '../../../../components/DefaultContentLayout';
+import { useToast } from '../../../../components/ToastProvider';
 
 const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
     const { t } = useTranslation('common');
@@ -59,6 +60,7 @@ const Page = () => {
     const { t } = useTranslation('common');
     const router = useRouter();
     const socket = useSocket();
+    const notify = useToast();
     const { id, slug } = router.query;
     const pluginId = typeof id === 'string' ? id : undefined;
 
@@ -78,11 +80,10 @@ const Page = () => {
                 setPlugin(plugins.find(p => p.name === pluginId) ?? null);
                 setHasUi(injects.length > 0);
             })
-            .catch(
-                e =>
-                    mounted &&
-                    console.error(`Failed to load plugin "${pluginId}"`, e),
-            );
+            .catch(e => {
+                if (mounted)
+                    notify(e?.message ?? t('pluginsPage.loadError'), 'error');
+            });
 
         return () => {
             mounted = false;
@@ -98,7 +99,7 @@ const Page = () => {
             );
             if (err) {
                 setPlugin(prev => (prev ? { ...prev, enabled: !next } : prev));
-                console.error(`Failed to toggle plugin "${pluginId}"`, err);
+                notify(t('pluginsPage.toggle.error'), 'error');
                 return;
             }
 

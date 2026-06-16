@@ -18,6 +18,7 @@ import { useSocket } from '../lib/hooks/useSocket';
 import { type MediaDoc } from '../lib/api/caspar';
 import { MediaCard } from '../components/MediaCard';
 import { MediaFolder } from '../components/MediaFolder';
+import { useToast } from '../components/ToastProvider';
 
 // Re-export so callers that imported from MediaView before the split keep
 // working.
@@ -64,6 +65,7 @@ export const MediaView: React.FC<MediaViewProps> = ({
 }) => {
     const { t } = useTranslation('common');
     const socket = useSocket();
+    const notify = useToast();
     const [media, setMedia] = useState<MediaDoc[]>([]);
     // Folders are tracked separately from the media listing because the
     // scanner only indexes files — an empty folder created by the user
@@ -119,13 +121,13 @@ export const MediaView: React.FC<MediaViewProps> = ({
             socket.caspar
                 .getMedia()
                 .then(media => setMedia([...media.values()]))
-                .catch(console.error);
+                .catch(() => notify(t('media.errors.loadFailed'), 'error'));
 
         const loadFolders = () =>
             socket.caspar
                 .getFolders()
                 .then(setServerFolders)
-                .catch(console.error);
+                .catch(() => notify(t('media.errors.loadFailed'), 'error'));
 
         loadMedia();
         loadFolders();

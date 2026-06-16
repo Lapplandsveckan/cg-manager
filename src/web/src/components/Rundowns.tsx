@@ -27,6 +27,7 @@ import {
 } from '../lib/dragPayload';
 import { useDragAutoScroll } from '../lib/hooks/useDragAutoScroll';
 import { UploadModal, useFileUpload } from './Upload';
+import { useToast } from './ToastProvider';
 
 /** Mirrors the server's RundownFileMatchResult — keep them in sync. */
 interface RundownFileMatchResult {
@@ -523,6 +524,7 @@ export const Rundowns: React.FC<RundownsProps> = ({
 }) => {
     const { t } = useTranslation('common');
     const conn = useSocket();
+    const notify = useToast();
     const [pendingDelete, setPendingDelete] = useState<RundownEntry | null>(
         null,
     );
@@ -643,8 +645,10 @@ export const Rundowns: React.FC<RundownsProps> = ({
         }
 
         if (unmatched.length)
-            // eslint-disable-next-line no-console
-            console.warn('No rundown action accepted:', unmatched.join(', '));
+            notify(
+                t('rundown.drop.noAction', { count: unmatched.length }),
+                'warning',
+            );
 
         if (!accepted.length) return;
 

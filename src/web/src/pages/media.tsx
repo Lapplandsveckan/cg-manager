@@ -24,6 +24,7 @@ import { createMediaHandlers } from '../lib/media/mediaHandlers';
 import MediaPlayModal from '../components/MediaPlayModal';
 import MediaInspectorModal from '../components/media/MediaInspectorModal';
 import { type RundownEntry } from '../components/Rundowns';
+import { useToast } from '../components/ToastProvider';
 
 /** Mirrors RundownActionDescriptor on the server — keep in sync. */
 interface RundownActionDescriptor {
@@ -45,6 +46,7 @@ const Page = () => {
     const { t } = useTranslation('common');
     const socket = useSocket();
     const router = useRouter();
+    const notify = useToast();
 
     const [path, setPath] = useState<string>('');
     const [canPlay, setCanPlay] = useState(false);
@@ -67,6 +69,7 @@ const Page = () => {
         t,
         setBusy,
         setError,
+        notify,
     });
 
     useEffect(() => {
@@ -80,7 +83,6 @@ const Page = () => {
     }, []);
 
     const handlePlay = async (clip: MediaDoc) => {
-        setError(null);
         const name = clip.id.split('/').pop() ?? clip.id;
         const streams = clip.mediainfo?.streams ?? [];
         const hasVideo = streams.some(s => s.codec?.type === 'video');
@@ -102,13 +104,13 @@ const Page = () => {
             }),
         );
         if (err) {
-            setError(t('media.play.failed'));
+            notify(t('media.play.failed'), 'error');
             return;
         }
 
         const matches: RundownFileMatchResult[] = res?.data ?? [];
         if (!matches.length) {
-            setError(t('media.play.noAction'));
+            notify(t('media.play.noAction'), 'warning');
             return;
         }
 
@@ -137,12 +139,15 @@ const Page = () => {
             : basename;
         // No-op if the clip is already in this folder.
         if (newPath === clipId) return;
-        setError(null);
         const [err] = await noTryAsync(() =>
             socket.caspar.moveMedia(clipId, newPath),
         );
         if (err)
-            setError((err as Error)?.message ?? t('media.errors.moveFailed'));
+            notify(
+                (err as Error)?.message ?? t('media.errors.moveFailed'),
+                'error',
+            );
+        else notify(t('media.success.moved'), 'success');
     };
 
     const navigate = (next: string) => {

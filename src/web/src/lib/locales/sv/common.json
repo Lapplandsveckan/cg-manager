@@ -89,6 +89,9 @@
     "rundown": {
         "addItem": "Lägg till objekt",
         "newItemDefaultTitle": "Nytt rundown-objekt",
+        "drop": {
+            "noAction": "{{count}} fil(er) lades inte till — ingen åtgärd kunde hantera dem"
+        },
         "empty": {
             "dropOrAdd": "Inga objekt än. Släpp något från nedre panelen, eller lägg till ett nedan.",
             "addOne": "Inga objekt än. Lägg till ett nedan för att komma igång."
@@ -263,7 +266,16 @@
             "moveFailed": "Misslyckades att flytta",
             "deleteFolderFailed": "Misslyckades att ta bort mapp",
             "createFolderFailed": "Misslyckades att skapa mapp",
-            "renameFolderFailed": "Misslyckades att byta namn på mapp"
+            "renameFolderFailed": "Misslyckades att byta namn på mapp",
+            "loadFailed": "Misslyckades att ladda media"
+        },
+        "success": {
+            "deleted": "Fil borttagen",
+            "renamed": "Fil omdöpt",
+            "moved": "Fil flyttad",
+            "folderDeleted": "Mapp borttagen",
+            "folderCreated": "Mapp skapad",
+            "folderRenamed": "Mapp omdöpt"
         },
         "inspector": {
             "subtitle": "Inspektera mediafil",
@@ -297,6 +309,9 @@
         "errors": {
             "loadFailed": "Misslyckades att ladda konfiguration",
             "saveFailed": "Misslyckades att spara konfiguration"
+        },
+        "success": {
+            "saved": "Konfiguration sparad"
         },
         "channels": {
             "title": "Kanaler",
@@ -555,7 +570,14 @@
             "destinationChannelRequired": "Destinationskanal krävs",
             "destinationGroupRequired": "Destinationsgrupp krävs",
             "destinationGroupColon": "Destinationsgrupp kan inte innehålla `:`",
-            "saveFailed": "Misslyckades att spara väg"
+            "saveFailed": "Misslyckades att spara väg",
+            "loadFailed": "Misslyckades att ladda rutter",
+            "toggleFailed": "Misslyckades att växla rutt",
+            "deleteFailed": "Misslyckades att ta bort rutt"
+        },
+        "success": {
+            "saved": "Rutt sparad",
+            "deleted": "Rutt borttagen"
         }
     },
     "notFound": {
@@ -598,6 +620,11 @@
             "start": "Misslyckades att starta",
             "stop": "Misslyckades att stoppa",
             "restart": "Misslyckades att starta om"
+        },
+        "success": {
+            "start": "CasparCG startad",
+            "stop": "CasparCG stoppad",
+            "restart": "CasparCG omstartad"
         }
     },
     "pluginsPage": {
@@ -631,7 +658,11 @@
             "title": "Avinstallera plugin?",
             "body": "\"{{name}}\" tas bort och dess mapp raderas. Det går inte att ångra.",
             "confirm": "Avinstallera",
-            "error": "Misslyckades att avinstallera plugin"
+            "error": "Misslyckades att avinstallera plugin",
+            "success": "Plugin avinstallerat"
+        },
+        "toggle": {
+            "error": "Misslyckades att växla plugin"
         },
         "channels": {
             "insufficient": "Kräver {{need}} kan · har {{have}}",

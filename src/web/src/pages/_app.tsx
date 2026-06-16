@@ -49,15 +49,15 @@ function App({ Component, pageProps }: AppProps) {
                         <SocketProvider>
                             <ConnectionProvider>
                                 <ToastProvider>
-                                <Stack
-                                    direction="column"
-                                    sx={{ height: '100vh', width: '100%' }}
-                                >
-                                    <ConnectionBanner />
-                                    <Stack sx={{ flex: 1, minHeight: 0 }}>
-                                        <Component {...pageProps} />
+                                    <Stack
+                                        direction="column"
+                                        sx={{ height: '100vh', width: '100%' }}
+                                    >
+                                        <ConnectionBanner />
+                                        <Stack sx={{ flex: 1, minHeight: 0 }}>
+                                            <Component {...pageProps} />
+                                        </Stack>
                                     </Stack>
-                                </Stack>
                                 </ToastProvider>
                             </ConnectionProvider>
                         </SocketProvider>

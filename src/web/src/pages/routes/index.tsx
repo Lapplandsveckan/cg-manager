@@ -13,10 +13,12 @@ import { useSocket } from '../../lib/hooks/useSocket';
 import { DefaultContentLayout } from '../../components/DefaultContentLayout';
 import { RouteCard } from '../../components/routes/RouteCard';
 import { DeleteRouteModal } from '../../components/routes/DeleteRouteModal';
+import { useToast } from '../../components/ToastProvider';
 
 const Page = () => {
     const { t } = useTranslation('common');
     const socket = useSocket();
+    const notify = useToast();
 
     const [routes, setRoutes] = useState<VideoRoute[] | null>(null);
     const [channels, setChannels] = useState<number[]>([]);
@@ -24,7 +26,6 @@ const Page = () => {
     const [channelSizes, setChannelSizes] = useState<
         Record<number, { width: number; height: number }>
     >({});
-    const [error, setError] = useState<string | null>(null);
     const [deleting, setDeleting] = useState<VideoRoute | null>(null);
     const [busy, setBusy] = useState(false);
 
@@ -38,7 +39,10 @@ const Page = () => {
             .list()
             .then(setRoutes)
             .catch(e =>
-                setError((e as Error)?.message ?? 'Failed to load routes'),
+                notify(
+                    (e as Error)?.message ?? t('videoRoutes.errors.loadFailed'),
+                    'error',
+                ),
             );
     }, [socket]);
 
@@ -156,7 +160,11 @@ const Page = () => {
                             r.id === id ? { ...r, enabled: !next } : r,
                         ) ?? prev,
                 );
-                setError((err as Error)?.message ?? 'Failed to toggle route');
+                notify(
+                    (err as Error)?.message ??
+                        t('videoRoutes.errors.toggleFailed'),
+                    'error',
+                );
                 return;
             }
 
@@ -170,16 +178,19 @@ const Page = () => {
     const confirmDelete = async () => {
         if (!socket || !deleting) return;
         setBusy(true);
-        setError(null);
 
         const [err] = await noTryAsync(async () =>
             socket.videoRoutes.delete(deleting.id),
         );
         if (err) {
-            setError((err as Error)?.message ?? 'Failed to delete route');
+            notify(
+                (err as Error)?.message ?? t('videoRoutes.errors.deleteFailed'),
+                'error',
+            );
         } else {
             setRoutes(prev => prev?.filter(r => r.id !== deleting.id) ?? prev);
             setDeleting(null);
+            notify(t('videoRoutes.success.deleted'), 'success');
         }
 
         setBusy(false);
@@ -187,21 +198,35 @@ const Page = () => {
 
     const saveRoute = async (data: Omit<VideoRoute, 'id'>) => {
         if (!socket) return;
-        if (editing) {
-            const updated = await socket.videoRoutes.update(editing.id, data);
-            setRoutes(
-                prev =>
-                    prev?.map(r => (r.id === updated.id ? updated : r)) ?? prev,
+        const [err] = await noTryAsync(async () => {
+            if (editing) {
+                const updated = await socket.videoRoutes.update(
+                    editing.id,
+                    data,
+                );
+                setRoutes(
+                    prev =>
+                        prev?.map(r => (r.id === updated.id ? updated : r)) ??
+                        prev,
+                );
+            } else {
+                const created = await socket.videoRoutes.create(data);
+                setRoutes(prev => {
+                    if (!prev) return [created];
+                    return prev.some(r => r.id === created.id)
+                        ? prev.map(r => (r.id === created.id ? created : r))
+                        : [...prev, created];
+                });
+            }
+        });
+        if (err) {
+            notify(
+                (err as Error)?.message ?? t('videoRoutes.errors.saveFailed'),
+                'error',
             );
-        } else {
-            const created = await socket.videoRoutes.create(data);
-            setRoutes(prev => {
-                if (!prev) return [created];
-                return prev.some(r => r.id === created.id)
-                    ? prev.map(r => (r.id === created.id ? created : r))
-                    : [...prev, created];
-            });
+            return;
         }
+        notify(t('videoRoutes.success.saved'), 'success');
         setEditing(null);
         setNewType(null);
     };
@@ -233,30 +258,13 @@ const Page = () => {
                 <Button
                     variant="contained"
                     startIcon={<AddRoundedIcon />}
-                    onClick={() => {
-                        setError(null);
-                        setPicking(true);
-                    }}
+                    onClick={() => setPicking(true)}
                 >
                     {t('videoRoutes.newRoute')}
                 </Button>
             </Stack>
 
-            {error && (
-                <Card
-                    sx={theme => ({
-                        p: 2,
-                        mb: 2,
-                        borderColor: theme.palette.error.main,
-                    })}
-                >
-                    <Typography variant="body2" color="error">
-                        {error}
-                    </Typography>
-                </Card>
-            )}
-
-            {routes === null && !error && (
+            {routes === null && (
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {t('actions.loading')}
                 </Typography>
@@ -280,13 +288,9 @@ const Page = () => {
                     <RouteCard
                         key={route.id}
                         route={route}
-                        onEdit={() => {
-                            setError(null);
-                            setEditing(route);
-                        }}
+                        onEdit={() => setEditing(route)}
                         onToggle={next => toggle(route.id, next)}
                         onDelete={() => {
-                            setError(null);
                             setDeleting(route);
                         }}
                     />
@@ -322,7 +326,6 @@ const Page = () => {
 
             <DeleteRouteModal
                 deleting={deleting}
-                error={error}
                 busy={busy}
                 onClose={() => setDeleting(null)}
                 onConfirm={confirmDelete}

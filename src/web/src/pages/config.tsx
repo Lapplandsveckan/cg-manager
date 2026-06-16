@@ -20,6 +20,7 @@ import { ChannelEditor } from '../components/config/ChannelEditor';
 import { ConsumerModal } from '../components/config/ConsumerModal';
 import { ConsumerTypePicker } from '../components/config/ConsumerTypePicker';
 import { type ConsumerType } from '../components/config/fields';
+import { useToast } from '../components/ToastProvider';
 
 type Channel = CasparConfig['channels'][number];
 type Consumer = Channel['consumers'][number];
@@ -38,6 +39,7 @@ interface EditingConsumer {
 const Page = () => {
     const { t } = useTranslation('common');
     const socket = useSocket();
+    const notify = useToast();
     const [original, setOriginal] = useState<CasparConfig | null>(null);
     const [draft, setDraft] = useState<CasparConfig | null>(null);
     const [running, setRunning] = useState<CasparConfig | null>(null);
@@ -123,8 +125,12 @@ const Page = () => {
         if (!err && saved) {
             setOriginal(saved);
             setDraft(saved);
+            notify(t('config.success.saved'), 'success');
         } else if (err) {
-            setError((err as any)?.message ?? t('config.errors.saveFailed'));
+            notify(
+                (err as any)?.message ?? t('config.errors.saveFailed'),
+                'error',
+            );
         }
         setSaving(false);
     };

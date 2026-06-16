@@ -2,16 +2,19 @@ import { noTryAsync } from 'no-try';
 import { type ManagerApi } from '../api/api';
 import { type MediaDoc } from '../api/caspar';
 
+type Severity = 'info' | 'warning' | 'error' | 'success';
+
 interface MediaHandlersConfig {
     socket: ManagerApi | null;
     path: string;
     t: (key: string) => string;
     setBusy: (busy: boolean) => void;
     setError: (error: string | null) => void;
+    notify: (text: string, severity?: Severity) => void;
 }
 
 export const createMediaHandlers = (config: MediaHandlersConfig) => {
-    const { socket, path, t, setBusy, setError } = config;
+    const { socket, path, t, setBusy, setError, notify } = config;
 
     const confirmDelete = async (
         deleting: MediaDoc | null,
@@ -25,7 +28,10 @@ export const createMediaHandlers = (config: MediaHandlersConfig) => {
         );
         if (err)
             setError((err as Error)?.message ?? t('media.errors.deleteFailed'));
-        else onSuccess();
+        else {
+            notify(t('media.success.deleted'), 'success');
+            onSuccess();
+        }
 
         setBusy(false);
     };
@@ -49,7 +55,10 @@ export const createMediaHandlers = (config: MediaHandlersConfig) => {
         );
         if (err)
             setError((err as Error)?.message ?? t('media.errors.renameFailed'));
-        else onSuccess();
+        else {
+            notify(t('media.success.renamed'), 'success');
+            onSuccess();
+        }
 
         setBusy(false);
     };
@@ -79,6 +88,7 @@ export const createMediaHandlers = (config: MediaHandlersConfig) => {
             );
             return;
         }
+        notify(t('media.success.folderRenamed'), 'success');
         onSuccess();
     };
 
@@ -98,6 +108,7 @@ export const createMediaHandlers = (config: MediaHandlersConfig) => {
             setError(err.message ?? t('media.errors.deleteFolderFailed'));
             return;
         }
+        notify(t('media.success.folderDeleted'), 'success');
         onSuccess();
     };
 
@@ -119,6 +130,7 @@ export const createMediaHandlers = (config: MediaHandlersConfig) => {
             setError(err?.message ?? t('media.errors.createFolderFailed'));
             return;
         }
+        notify(t('media.success.folderCreated'), 'success');
         onSuccess(res.path);
     };
 

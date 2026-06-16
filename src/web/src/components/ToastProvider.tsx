@@ -15,7 +15,9 @@ const ToastContext = createContext<NotifyFn>(() => undefined);
 
 export const useToast = (): NotifyFn => useContext(ToastContext);
 
-export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({
+    children,
+}) => {
     const [toast, setToast] = useState<ToastMessage | null>(null);
     const [open, setOpen] = useState(false);
 

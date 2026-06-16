@@ -89,6 +89,9 @@
     "rundown": {
         "addItem": "Add item",
         "newItemDefaultTitle": "New Rundown Item",
+        "drop": {
+            "noAction": "{{count}} file(s) weren't added — no action could handle them"
+        },
         "empty": {
             "dropOrAdd": "No items yet. Drop something from the bottom panel, or add one below.",
             "addOne": "No items yet. Add one below to get started."
@@ -263,7 +266,16 @@
             "moveFailed": "Failed to move",
             "deleteFolderFailed": "Failed to delete folder",
             "createFolderFailed": "Failed to create folder",
-            "renameFolderFailed": "Failed to rename folder"
+            "renameFolderFailed": "Failed to rename folder",
+            "loadFailed": "Failed to load media"
+        },
+        "success": {
+            "deleted": "File deleted",
+            "renamed": "File renamed",
+            "moved": "File moved",
+            "folderDeleted": "Folder deleted",
+            "folderCreated": "Folder created",
+            "folderRenamed": "Folder renamed"
         },
         "inspector": {
             "subtitle": "Inspect media file",
@@ -297,6 +309,9 @@
         "errors": {
             "loadFailed": "Failed to load config",
             "saveFailed": "Failed to save config"
+        },
+        "success": {
+            "saved": "Config saved"
         },
         "channels": {
             "title": "Channels",
@@ -555,7 +570,14 @@
             "destinationChannelRequired": "Destination channel is required",
             "destinationGroupRequired": "Destination group is required",
             "destinationGroupColon": "Destination group cannot contain `:`",
-            "saveFailed": "Failed to save route"
+            "saveFailed": "Failed to save route",
+            "loadFailed": "Failed to load routes",
+            "toggleFailed": "Failed to toggle route",
+            "deleteFailed": "Failed to delete route"
+        },
+        "success": {
+            "saved": "Route saved",
+            "deleted": "Route deleted"
         }
     },
     "notFound": {
@@ -598,6 +620,11 @@
             "start": "Failed to start",
             "stop": "Failed to stop",
             "restart": "Failed to restart"
+        },
+        "success": {
+            "start": "CasparCG started",
+            "stop": "CasparCG stopped",
+            "restart": "CasparCG restarted"
         }
     },
     "pluginsPage": {
@@ -631,7 +658,11 @@
             "title": "Uninstall plugin?",
             "body": "\"{{name}}\" will be removed and its folder deleted. This cannot be undone.",
             "confirm": "Uninstall",
-            "error": "Failed to uninstall plugin"
+            "error": "Failed to uninstall plugin",
+            "success": "Plugin uninstalled"
+        },
+        "toggle": {
+            "error": "Failed to toggle plugin"
         },
         "channels": {
             "insufficient": "Needs {{need}} ch · have {{have}}",

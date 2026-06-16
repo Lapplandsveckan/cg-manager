@@ -22,6 +22,7 @@ import { useSocket } from '../lib/hooks/useSocket';
 import { DefaultContentLayout } from '../components/DefaultContentLayout';
 import { type CasparStatus } from '../lib/api/caspar';
 import { PreviewPanel } from '../components/PreviewPanel';
+import { useToast } from '../components/ToastProvider';
 
 type Tone = 'success' | 'error' | 'warning' | 'neutral';
 
@@ -300,10 +301,10 @@ const LogViewer: React.FC<LogViewerProps> = ({ logs, onClear }) => {
 const Page = () => {
     const { t } = useTranslation('common');
     const socket = useSocket();
+    const notify = useToast();
     const [status, setStatus] = useState<CasparStatus | null>(null);
     const [logs, setLogs] = useState<string>('');
     const [busy, setBusy] = useState<string | null>(null);
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         if (!socket) return;
@@ -332,12 +333,13 @@ const Page = () => {
     const runAction = async (action: 'start' | 'stop' | 'restart') => {
         if (!socket) return;
         setBusy(action);
-        setError(null);
         const [err] = await noTryAsync(() => socket.caspar[action]());
         if (err)
-            setError(
+            notify(
                 (err as Error)?.message ?? t(`serverPage.errors.${action}`),
+                'error',
             );
+        else notify(t(`serverPage.success.${action}`), 'success');
         setBusy(null);
     };
 
@@ -378,19 +380,6 @@ const Page = () => {
 
                 {status && !status.supported && (
                     <UnsupportedBanner message={status.lastError ?? ''} />
-                )}
-
-                {error && (
-                    <Card
-                        sx={theme => ({
-                            p: 2,
-                            borderColor: theme.palette.error.main,
-                        })}
-                    >
-                        <Typography variant="body1" color="error">
-                            {error}
-                        </Typography>
-                    </Card>
                 )}
 
                 <PreviewPanel />

@@ -12,12 +12,16 @@ export function usePlayEntry(): (entry: RundownEntry) => void {
     const online = useCasparOnline();
     const notify = useToast();
 
-    return useCallback((entry: RundownEntry) => {
-        if (!online) {
-            notify(t('rundown.play.offline'), 'warning');
-            return;
-        }
-        conn?.rawRequest('/api/rundown/execute', 'ACTION', { entry })
-            .catch(() => notify(t('rundown.play.failed'), 'error'));
-    }, [t, conn, online, notify]);
+    return useCallback(
+        (entry: RundownEntry) => {
+            if (!online) {
+                notify(t('rundown.play.offline'), 'warning');
+                return;
+            }
+            conn?.rawRequest('/api/rundown/execute', 'ACTION', { entry }).catch(
+                () => notify(t('rundown.play.failed'), 'error'),
+            );
+        },
+        [t, conn, online, notify],
+    );
 }

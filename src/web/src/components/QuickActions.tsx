@@ -153,7 +153,6 @@ interface QuickActionsProps {
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     const { t } = useTranslation('common');
-    const conn = useSocket();
     const play = usePlayEntry();
 
     const {

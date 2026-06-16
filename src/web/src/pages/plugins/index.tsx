@@ -15,6 +15,7 @@ import {
 } from '../../components/Upload';
 import { PluginCard } from '../../components/PluginCard';
 import { PluginModals } from '../../components/PluginModals';
+import { useToast } from '../../components/ToastProvider';
 
 interface ChannelInfo {
     name: string;
@@ -26,6 +27,7 @@ const Page = () => {
     const { t } = useTranslation('common');
     const socket = useSocket();
     const router = useRouter();
+    const notify = useToast();
 
     const [plugins, setPlugins] = useState<Plugin[] | null>(null);
     const [pluginsWithUi, setPluginsWithUi] = useState<Set<string>>(new Set());
@@ -135,7 +137,7 @@ const Page = () => {
                             p.name === name ? { ...p, enabled: !next } : p,
                         ) ?? prev,
                 );
-                console.error(`Failed to toggle plugin "${name}"`, err);
+                notify(t('pluginsPage.toggle.error'), 'error');
                 return;
             }
             const settled = typeof confirmed === 'boolean' ? confirmed : next;
@@ -204,9 +206,10 @@ const Page = () => {
         setUninstalling(null);
         const [err] = await noTryAsync(() => socket.plugin.uninstall(name));
         if (err) {
-            setError(err.message ?? t('pluginsPage.uninstall.error'));
+            notify(err.message ?? t('pluginsPage.uninstall.error'), 'error');
         } else {
             setPlugins(prev => prev?.filter(p => p.name !== name) ?? prev);
+            notify(t('pluginsPage.uninstall.success'), 'success');
         }
     };
 

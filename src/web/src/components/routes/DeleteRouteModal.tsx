@@ -5,7 +5,6 @@ import type { VideoRoute } from '../../lib/api/videoRoutes';
 
 interface DeleteRouteModalProps {
     deleting: VideoRoute | null;
-    error: string | null;
     busy: boolean;
     onClose: () => void;
     onConfirm: () => void;
@@ -13,7 +12,6 @@ interface DeleteRouteModalProps {
 
 export const DeleteRouteModal: React.FC<DeleteRouteModalProps> = ({
     deleting,
-    error,
     busy,
     onClose,
     onConfirm,
@@ -58,11 +56,6 @@ export const DeleteRouteModal: React.FC<DeleteRouteModalProps> = ({
                             </strong>{' '}
                             {t('videoRoutes.deleteConfirm.body')}
                         </Typography>
-                        {error && (
-                            <Typography variant="body2" color="error">
-                                {error}
-                            </Typography>
-                        )}
                         <Stack
                             direction="row"
                             justifyContent="flex-end"
