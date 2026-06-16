@@ -6,7 +6,7 @@ import { noTry } from 'no-try';
 import { getStorageItem, setStorageItem } from '../../../lib/storage';
 import { useDragAutoScroll } from '../../../lib/hooks/useDragAutoScroll';
 import { DefaultContentLayout } from '../../../components/DefaultContentLayout';
-import { useSocket } from '../../../lib/hooks/useSocket';
+import { usePlayEntry } from '../../../lib/hooks/usePlayEntry';
 import { Injections, UI_INJECTION_ZONE } from '../../../lib/api/inject';
 import {
     EditIndicator,
@@ -168,7 +168,7 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({
 
 const Page = () => {
     const { t } = useTranslation('common');
-    const conn = useSocket();
+    const play = usePlayEntry();
     const router = useRouter();
     const {
         name,
@@ -315,13 +315,7 @@ const Page = () => {
                                 entries={entries}
                                 locked={locked}
                                 onEdit={entry => setEditing(entry)}
-                                onPlay={entry =>
-                                    conn.rawRequest(
-                                        '/api/rundown/execute',
-                                        'ACTION',
-                                        { entry },
-                                    )
-                                }
+                                onPlay={play}
                                 onAdd={() => setAdding(true)}
                                 onDelete={deleteEntry}
                                 onDropItem={openEditorForDrop}

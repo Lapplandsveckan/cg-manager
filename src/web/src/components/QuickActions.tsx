@@ -12,6 +12,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useSocket } from '../lib';
+import { usePlayEntry } from '../lib/hooks/usePlayEntry';
 import { EditRundown, type Rundown } from '../pages/play';
 import { RundownModals } from './RundownModals';
 import { type RundownEntry, Rundowns, useRundownEntries } from './Rundowns';
@@ -153,6 +154,7 @@ interface QuickActionsProps {
 export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     const { t } = useTranslation('common');
     const conn = useSocket();
+    const play = usePlayEntry();
 
     const {
         quickActions,
@@ -278,11 +280,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                         entries={entries}
                         locked={locked}
                         onEdit={entry => setEditing(entry)}
-                        onPlay={entry =>
-                            conn.rawRequest('/api/rundown/execute', 'ACTION', {
-                                entry,
-                            })
-                        }
+                        onPlay={play}
                         onAdd={() => setAdding(true)}
                         onDelete={deleteEntry}
                         onDropItem={openEditorForDrop}
