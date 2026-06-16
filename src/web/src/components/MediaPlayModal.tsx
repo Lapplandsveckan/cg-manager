@@ -1,23 +1,23 @@
 import { Modal } from '@mui/material';
 import React from 'react';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
-import { useSocket } from '../lib/hooks/useSocket';
 import { InstantPlayoutContext } from './RundownEditor';
 import { ModalShell } from './RundownModals';
 import { type RundownEntry } from './Rundowns';
+import { usePlayEntry } from '../lib/hooks/usePlayEntry';
 
 interface Props {
     entry: RundownEntry | null;
     onClose: () => void;
-    /** Called when the execute request rejects, so the page can surface it. */
+    /** @deprecated onError is no longer used; errors are surfaced via toast. */
     onError?: () => void;
 }
 
 /** Opens the plugin-owned rundown editor for an existing media item but in
  *  instant-playout mode: pressing the primary button runs the item via
  *  /api/rundown/execute instead of persisting it to a rundown. */
-const MediaPlayModal: React.FC<Props> = ({ entry, onClose, onError }) => {
-    const conn = useSocket();
+const MediaPlayModal: React.FC<Props> = ({ entry, onClose }) => {
+    const play = usePlayEntry();
 
     return (
         <Modal open={entry !== null} onClose={onClose}>
@@ -31,13 +31,8 @@ const MediaPlayModal: React.FC<Props> = ({ entry, onClose, onError }) => {
                                 creating: true,
                                 instant: true,
                                 updateEntry: (built: RundownEntry) => {
-                                    conn.rawRequest(
-                                        '/api/rundown/execute',
-                                        'ACTION',
-                                        { entry: built },
-                                    )
-                                        .catch(() => onError?.())
-                                        .finally(onClose);
+                                    play(built);
+                                    onClose();
                                 },
                                 deleteEntry: () => onClose(),
                             }}

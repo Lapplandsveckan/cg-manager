@@ -10,6 +10,7 @@ import { appWithTranslation } from 'next-i18next';
 import { SocketProvider } from '../components/SocketProvider';
 import { ConnectionProvider } from '../components/ConnectionProvider';
 import { ConnectionBanner } from '../components/ConnectionBanner';
+import { ToastProvider } from '../components/ToastProvider';
 import { AuthGate } from '../components/AuthGate';
 import { theme } from '../lib/theme';
 import i18n from '../lib/i18n';
@@ -47,6 +48,7 @@ function App({ Component, pageProps }: AppProps) {
                     <AuthGate>
                         <SocketProvider>
                             <ConnectionProvider>
+                                <ToastProvider>
                                 <Stack
                                     direction="column"
                                     sx={{ height: '100vh', width: '100%' }}
@@ -56,6 +58,7 @@ function App({ Component, pageProps }: AppProps) {
                                         <Component {...pageProps} />
                                     </Stack>
                                 </Stack>
+                                </ToastProvider>
                             </ConnectionProvider>
                         </SocketProvider>
                     </AuthGate>

@@ -284,7 +284,6 @@ const Page = () => {
             <MediaPlayModal
                 entry={playEntry}
                 onClose={() => setPlayEntry(null)}
-                onError={() => setError(t('media.play.failed'))}
             />
 
             <MediaInspectorModal

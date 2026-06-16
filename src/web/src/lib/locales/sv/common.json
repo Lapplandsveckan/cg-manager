@@ -135,6 +135,10 @@
                 "empty": "Inga objekttyper är registrerade."
             }
         },
+        "play": {
+            "offline": "CasparCG är offline — kan inte spela",
+            "failed": "Det gick inte att spela objektet"
+        },
         "preview": {
             "stop": "Stoppa förhandsgranska",
             "stopChannel": "Sluta förhandsgranska kanal {{channel}}",
