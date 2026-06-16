@@ -30,7 +30,11 @@ export class MediaScanner {
         Upload.onComplete = path => void this.scanner.scan(path);
 
         const app = App(this.db);
-        this.server = app.listen(8000);
+        // Bind to loopback only — this scanner API is unauthenticated and is
+        // consumed solely by the local CasparCG process. Exposing it on all
+        // interfaces would leak the media/template library to the LAN. Revisit
+        // if we ever support CasparCG on a separate host.
+        this.server = app.listen(8000, '127.0.0.1');
 
         await DirectoryManager.getManager().initialize(
             config.paths.media,
