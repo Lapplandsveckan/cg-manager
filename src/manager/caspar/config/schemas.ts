@@ -16,6 +16,67 @@ export const schema = {
     },
 };
 
+// Artnet consumer schemas vary by CasparCG build. The active variant is chosen
+// at runtime via the caspar-profile capability (see profiles.ts).
+export const artnetVariants = {
+    // Stock/upstream CasparCG artnet schema (as of the publicly available builds).
+    // Single universe (not an array), integer fixture-count, x/y geometry, rotation.
+    legacy: schema.schema({
+        universe: schema.number(),
+        host: schema.string(),
+        port: schema.number(),
+        refreshRate: schema.number(),
+
+        fixtures: schema.array(
+            schema.schema({
+                type: schema.enum(['DIMMER', 'RGB', 'RGBW'] as const),
+                startAddress: schema.number(),
+                fixtureCount: schema.number(),
+                fixtureChannels: schema.number(),
+                x: schema.number(),
+                y: schema.number(),
+                width: schema.number(),
+                height: schema.number(),
+                rotation: schema.number(),
+            }),
+            'fixture',
+        ),
+    }),
+
+    // Lappis custom build artnet schema (v2). Seed = current main schema;
+    // will be replaced when worktree-artnet-fixes is rebased onto this branch.
+    v2: schema.schema({
+        universes: schema.array(schema.number(), 'universe'),
+        host: schema.string(),
+        port: schema.number(),
+        refreshRate: schema.number(),
+
+        fixtures: schema.array(
+            schema.schema({
+                type: schema.enum(['DIMMER', 'RGB', 'RGBW'] as const),
+                startAddress: schema.number(),
+                // Format: "N" for a strip or "WxH" for a grid.
+                fixtureCount: schema.string(),
+                fixtureChannels: schema.number(),
+
+                flux: schema.schema({
+                    r: schema.number(),
+                    g: schema.number(),
+                    b: schema.number(),
+                    w: schema.number(),
+                }),
+
+                left: schema.number(),
+                top: schema.number(),
+
+                width: schema.number(),
+                height: schema.number(),
+            }),
+            'fixture',
+        ),
+    }),
+};
+
 export const schemas = {
     decklink: schema.schema({
         device: schema.number(),
@@ -110,34 +171,9 @@ export const schemas = {
         path: schema.string(),
         args: schema.string(),
     }),
-    artnet: schema.schema({
-        universes: schema.array(schema.number(), 'universe'),
-        host: schema.string(),
-        port: schema.number(),
-        refreshRate: schema.number(),
-
-        fixtures: schema.array(
-            schema.schema({
-                type: schema.enum(['DIMMER', 'RGB', 'RGBW'] as const),
-                startAddress: schema.number(),
-                // Format: "N" for a strip or "WxH" for a grid.
-                fixtureCount: schema.string(),
-                fixtureChannels: schema.number(),
-
-                flux: schema.schema({
-                    r: schema.number(),
-                    g: schema.number(),
-                    b: schema.number(),
-                    w: schema.number(),
-                }),
-
-                left: schema.number(),
-                top: schema.number(),
-
-                width: schema.number(),
-                height: schema.number(),
-            }),
-            'fixture',
-        ),
-    }),
 };
+
+// Honest union of all artnet schema variants. Use this in Consumers['artnet'] instead
+// of pinning to a specific variant. The runtime variant is resolved via getArtnetSchema().
+export type ArtnetVariant = keyof typeof artnetVariants;
+export type ArtnetData = (typeof artnetVariants)[ArtnetVariant];

@@ -1,27 +1,17 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Box, Stack, Typography, alpha } from '@mui/material';
 import { useTranslation } from 'next-i18next';
-import { ChannelPreview } from '../ChannelPreview';
-
-export interface Fixture {
-    type?: string;
-    startAddress?: number;
-    fixtureCount?: string;
-    fixtureChannels?: number;
-    flux?: { r?: number; g?: number; b?: number; w?: number };
-    left?: number;
-    top?: number;
-    width?: number;
-    height?: number;
-}
+import { ChannelPreview } from '../../../ChannelPreview';
+import { type V2Fixture } from '../types';
+import { parseCount } from './v2Fixture';
 
 interface ArtnetCanvasProps {
-    fixtures: Fixture[];
+    fixtures: V2Fixture[];
     canvasWidth: number;
     canvasHeight: number;
     selectedIndex: number | null;
     onSelect: (index: number | null) => void;
-    onChange: (fixtures: Fixture[]) => void;
+    onChange: (fixtures: V2Fixture[]) => void;
     /** When set, stream this 1-based CG channel as the stage backdrop in
      *  place of the dark gradient. Fixtures render on top. */
     previewChannel?: number | null;
@@ -33,27 +23,19 @@ interface DragState {
     fixtureIndex: number;
     handle: Handle;
     startMouseCanvas: { x: number; y: number }; // canvas-pixel space (matches fixture units)
-    startFixture: Fixture;
+    startFixture: V2Fixture;
 }
 
-type Normalized = Required<Pick<Fixture, 'left' | 'top' | 'width' | 'height'>>;
+type Normalized = Required<
+    Pick<V2Fixture, 'left' | 'top' | 'width' | 'height'>
+>;
 
-const normalize = (f: Fixture): Normalized => ({
+const normalize = (f: V2Fixture): Normalized => ({
     left: f.left ?? 0,
     top: f.top ?? 0,
     width: f.width ?? 100,
     height: f.height ?? 100,
 });
-
-const parseCount = (str: string | undefined): { w: number; h: number } => {
-    if (!str) return { w: 1, h: 1 };
-    const m = String(str).match(/^(\d+)(?:x(\d+))?$/i);
-    if (!m) return { w: 1, h: 1 };
-    return {
-        w: parseInt(m[1], 10) || 1,
-        h: m[2] ? parseInt(m[2], 10) || 1 : 1,
-    };
-};
 
 const clamp = (v: number, lo: number, hi: number) =>
     hi < lo ? lo : Math.max(lo, Math.min(hi, v));
@@ -64,12 +46,12 @@ interface Bounds {
 }
 
 function applyDrag(
-    fixture: Fixture,
+    fixture: V2Fixture,
     handle: Handle,
     dx: number,
     dy: number,
     bounds: Bounds,
-): Fixture {
+): V2Fixture {
     const start = normalize(fixture);
 
     // The drag delta arrives as canvas-pixel floats (scale division); round
@@ -128,7 +110,7 @@ const FIXTURE_COLOR = '#c98049';
 const HANDLE_SIZE = 14;
 
 interface FixtureViewProps {
-    fixture: Fixture;
+    fixture: V2Fixture;
     scale: number;
     selected: boolean;
     onPointerDownHandle: (e: React.PointerEvent, handle: Handle) => void;

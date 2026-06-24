@@ -2,8 +2,15 @@ import EventEmitter from 'events';
 import { type REPClient } from 'rest-exchange-protocol-client';
 import { getChunkCount } from './upload';
 import type { Config as CasparConfig } from '../../../../manager/caspar/config/types';
+import type { Capabilities } from '../../../../manager/caspar/config/profiles';
 
 export type { CasparConfig };
+export type { Capabilities };
+
+export interface CapabilitiesResponse {
+    profile: string;
+    capabilities: Capabilities;
+}
 
 export interface CasparStatus {
     running: boolean;
@@ -203,6 +210,15 @@ export class CasparServerApi extends EventEmitter {
         this.logs = clampLogs(raw ?? '');
 
         return this.logs;
+    }
+
+    public async getCapabilities(): Promise<CapabilitiesResponse> {
+        const res = await this.socket.request(
+            'api/caspar/capabilities',
+            'GET',
+            {},
+        );
+        return res.data as CapabilitiesResponse;
     }
 
     public async getConfig(): Promise<CasparConfig> {

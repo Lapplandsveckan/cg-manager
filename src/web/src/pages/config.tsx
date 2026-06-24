@@ -21,6 +21,7 @@ import { ConsumerModal } from '../components/config/ConsumerModal';
 import { ConsumerTypePicker } from '../components/config/ConsumerTypePicker';
 import { type ConsumerType } from '../components/config/fields';
 import { useToast } from '../components/ToastProvider';
+import { useCapabilities } from '../lib/hooks/useCapabilities';
 
 type Channel = CasparConfig['channels'][number];
 type Consumer = Channel['consumers'][number];
@@ -40,6 +41,7 @@ const Page = () => {
     const { t } = useTranslation('common');
     const socket = useSocket();
     const notify = useToast();
+    const { capabilities } = useCapabilities();
     const [original, setOriginal] = useState<CasparConfig | null>(null);
     const [draft, setDraft] = useState<CasparConfig | null>(null);
     const [running, setRunning] = useState<CasparConfig | null>(null);
@@ -409,6 +411,7 @@ const Page = () => {
                 open={editingConsumer !== null}
                 consumer={editingExistingConsumer}
                 newType={editingConsumer?.newType}
+                capabilities={capabilities}
                 canvasWidth={canvasSize.width}
                 canvasHeight={canvasSize.height}
                 previewChannel={

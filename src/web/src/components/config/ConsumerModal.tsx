@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Card, Modal, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'next-i18next';
-import { type CasparConfig } from '../../lib/api/caspar';
+import { type CasparConfig, type Capabilities } from '../../lib/api/caspar';
 import {
     CONSUMER_FIELDS,
     CONSUMER_TYPES,
@@ -10,7 +10,7 @@ import {
     type RecordData,
     formatConsumerType,
 } from './fields';
-import { ArtnetEditor } from './ArtnetEditor';
+import { ArtnetEditor } from './artnet/ArtnetEditor';
 
 type Consumer = CasparConfig['channels'][number]['consumers'][number];
 
@@ -20,6 +20,7 @@ interface ConsumerModalProps {
     consumer: Consumer | null;
     /** Type chosen in the picker, used when `consumer` is null. */
     newType?: ConsumerType;
+    capabilities: Capabilities;
     canvasWidth: number;
     canvasHeight: number;
     /** 1-based CG channel this consumer lives on; used by the Artnet editor's
@@ -37,6 +38,7 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
     open,
     consumer,
     newType,
+    capabilities,
     canvasWidth,
     canvasHeight,
     previewChannel,
@@ -129,6 +131,7 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
                         {type === 'artnet' ? (
                             <ArtnetEditor
                                 data={data}
+                                variant={capabilities.artnet}
                                 canvasWidth={canvasWidth}
                                 canvasHeight={canvasHeight}
                                 previewChannel={previewChannel}

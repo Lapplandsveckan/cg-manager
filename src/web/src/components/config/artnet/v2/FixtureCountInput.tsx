@@ -1,22 +1,7 @@
 import React from 'react';
 import { Stack, TextField } from '@mui/material';
 import { useTranslation } from 'next-i18next';
-
-const parseCount = (str: string | undefined): { w: number; h: number } => {
-    if (!str) return { w: 1, h: 1 };
-    const m = String(str).match(/^(\d+)(?:x(\d+))?$/i);
-    if (!m) return { w: 1, h: 1 };
-    return {
-        w: parseInt(m[1], 10) || 1,
-        h: m[2] ? parseInt(m[2], 10) || 1 : 1,
-    };
-};
-
-const formatCount = (w: number, h: number): string => {
-    const W = Math.max(1, Math.round(w));
-    const H = Math.max(1, Math.round(h));
-    return H === 1 ? String(W) : `${W}x${H}`;
-};
+import { parseCount, formatCount } from './v2Fixture';
 
 interface FixtureCountInputProps {
     value: string | undefined;

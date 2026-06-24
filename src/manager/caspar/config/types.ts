@@ -1,4 +1,4 @@
-import { type schemas } from './schemas';
+import { type schemas, type ArtnetData } from './schemas';
 
 export interface Transform<T> {
     parse: (value: any) => T;
@@ -12,7 +12,7 @@ export interface Consumers {
     screen: (typeof schemas)['screen'];
     ndi: (typeof schemas)['ndi'];
     ffmpeg: (typeof schemas)['ffmpeg'];
-    artnet: (typeof schemas)['artnet'];
+    artnet: ArtnetData;
 }
 
 type Consumer = {

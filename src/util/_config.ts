@@ -17,6 +17,7 @@ export interface Config {
     'preview-stun'?: string | null;
     host?: string | null;
     'socket-path'?: string | null;
+    'caspar-profile'?: string;
 }
 
 const isDev = process.env.NODE_ENV !== 'production';
@@ -120,6 +121,11 @@ export const schema: Record<keyof Omit<Config, 'temp'>, FieldMeta> = {
         default: null,
         seeded: false,
         desc: 'STUN server URL for WebRTC preview ICE. Leave unset for LAN-only use.',
+    },
+    'caspar-profile': {
+        type: 'string',
+        default: 'upstream',
+        desc: 'CasparCG build profile. Valid values: "upstream" (stock CasparCG) or "lappis" (Lappis custom builds). Controls which config schema variants and feature flags are active.',
     },
 };
 

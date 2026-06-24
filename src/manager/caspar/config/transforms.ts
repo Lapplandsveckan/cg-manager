@@ -1,5 +1,6 @@
 import { type Consumers, type Transform } from './types';
 import { schemas } from './schemas';
+import { getArtnetSchema } from './profiles';
 
 const utils = {
     filterDefined: (obj: Record<string, any>) =>
@@ -100,7 +101,8 @@ export const transforms = {
         serialize: value => utils.defaultSerialize(value, schemas.ffmpeg),
     } as Transform<Consumers['ffmpeg']>,
     artnet: {
-        parse: value => utils.defaultParse(value, schemas.artnet),
-        serialize: value => utils.defaultSerialize(value, schemas.artnet),
+        // Variant resolved live from caspar-profile on each call (see profiles.ts).
+        parse: value => utils.defaultParse(value, getArtnetSchema()),
+        serialize: value => utils.defaultSerialize(value, getArtnetSchema()),
     } as Transform<Consumers['artnet']>,
 } as Record<string, Transform<any>>;
