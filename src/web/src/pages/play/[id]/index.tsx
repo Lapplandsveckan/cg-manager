@@ -219,6 +219,20 @@ const Page = () => {
     const createEntryAtPending = (entry: RundownEntry) =>
         createEntry(entry, pendingDropIndex);
 
+    const newId = () => Math.random().toString(36).substring(2, 11);
+
+    const handleDuplicate = (entry: RundownEntry, index: number) =>
+        createEntry(
+            { ...entry, id: newId(), data: structuredClone(entry.data) },
+            index + 1,
+        );
+
+    const handlePaste = (entry: RundownEntry, index: number) =>
+        createEntry(
+            { ...entry, id: newId(), data: structuredClone(entry.data) },
+            index + 1,
+        );
+
     return (
         <RundownLiveProvider live={!locked}>
             <DefaultContentLayout>
@@ -323,6 +337,8 @@ const Page = () => {
                                 onDelete={deleteEntry}
                                 onDropItem={openEditorForDrop}
                                 onReorder={reorderEntries}
+                                onDuplicate={handleDuplicate}
+                                onPaste={handlePaste}
                             />
                         </Box>
 

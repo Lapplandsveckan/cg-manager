@@ -212,6 +212,20 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     const createEntryAtPending = (entry: RundownEntry) =>
         createEntry(entry, pendingDropIndex);
 
+    const newId = () => Math.random().toString(36).substring(2, 11);
+
+    const handleDuplicate = (entry: RundownEntry, index: number) =>
+        createEntry(
+            { ...entry, id: newId(), data: structuredClone(entry.data) },
+            index + 1,
+        );
+
+    const handlePaste = (entry: RundownEntry, index: number) =>
+        createEntry(
+            { ...entry, id: newId(), data: structuredClone(entry.data) },
+            index + 1,
+        );
+
     return (
         <>
             <Stack spacing={2} sx={{ flex: 1, minHeight: 0 }}>
@@ -287,6 +301,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                         onDelete={deleteEntry}
                         onDropItem={openEditorForDrop}
                         onReorder={reorderEntries}
+                        onDuplicate={handleDuplicate}
+                        onPaste={handlePaste}
                     />
                 )}
 

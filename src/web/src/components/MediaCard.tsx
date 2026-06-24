@@ -12,6 +12,7 @@ import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRena
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import { useTranslation } from 'next-i18next';
 import { MEDIA_MOVE_DRAG_MIME } from '../lib/dragPayload';
+import { useContextMenu } from './ContextMenuProvider';
 
 function getDurationString(duration: number) {
     const hours = Math.floor(duration / 3600);
@@ -64,6 +65,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     dragId,
 }) => {
     const { t } = useTranslation('common');
+    const { openMenu } = useContextMenu();
     const durationString = useMemo(
         () => getDurationString(duration),
         [duration],
@@ -83,6 +85,33 @@ export const MediaCard: React.FC<MediaCardProps> = ({
         >
             <Card
                 onClick={() => onClick?.()}
+                onContextMenu={e =>
+                    openMenu(e, [
+                        onClick && {
+                            label: t('actions.inspect'),
+                            onClick,
+                        },
+                        onPlay && {
+                            label: t('actions.play'),
+                            icon: <PlayArrowRoundedIcon fontSize="small" />,
+                            onClick: onPlay,
+                        },
+                        onRename && {
+                            label: t('actions.rename'),
+                            icon: (
+                                <DriveFileRenameOutlineRoundedIcon fontSize="small" />
+                            ),
+                            onClick: onRename,
+                        },
+                        onDelete && {
+                            label: t('actions.delete'),
+                            icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+                            danger: true,
+                            divider: true,
+                            onClick: onDelete,
+                        },
+                    ])
+                }
                 draggable={Boolean(dragId)}
                 onDragStart={
                     dragId
