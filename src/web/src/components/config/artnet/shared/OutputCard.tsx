@@ -1,17 +1,25 @@
 import React from 'react';
 import { Card, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'next-i18next';
-import { ARTNET_SCALAR_FIELDS, Fields, type RecordData } from '../../fields';
+import {
+    ARTNET_SCALAR_FIELDS,
+    Fields,
+    type FieldDef,
+    type RecordData,
+} from '../../fields';
 
 interface OutputCardProps {
     data: RecordData;
     onChange: (key: string, value: any) => void;
+    /** Override the default scalar fields (host/port/refreshRate). */
+    fields?: FieldDef[];
     children?: React.ReactNode;
 }
 
 export const OutputCard: React.FC<OutputCardProps> = ({
     data,
     onChange,
+    fields = ARTNET_SCALAR_FIELDS,
     children,
 }) => {
     const { t } = useTranslation('common');
@@ -28,11 +36,7 @@ export const OutputCard: React.FC<OutputCardProps> = ({
                     {t('config.artnet.output')}
                 </Typography>
                 {children}
-                <Fields
-                    fields={ARTNET_SCALAR_FIELDS}
-                    data={data}
-                    onChange={onChange}
-                />
+                <Fields fields={fields} data={data} onChange={onChange} />
             </Stack>
         </Card>
     );

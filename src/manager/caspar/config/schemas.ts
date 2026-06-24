@@ -43,16 +43,17 @@ export const artnetVariants = {
         ),
     }),
 
-    // Lappis custom build artnet schema (v2). Seed = current main schema;
-    // will be replaced when worktree-artnet-fixes is rebased onto this branch.
+    // Lappis custom build artnet schema (v2). Each fixture carries its own
+    // connection (host/port/universe), replacing the old top-level fields.
     v2: schema.schema({
-        universes: schema.array(schema.number(), 'universe'),
-        host: schema.string(),
-        port: schema.number(),
         refreshRate: schema.number(),
 
         fixtures: schema.array(
             schema.schema({
+                host: schema.string(),
+                port: schema.number(),
+                universe: schema.number(),
+
                 type: schema.enum(['DIMMER', 'RGB', 'RGBW'] as const),
                 startAddress: schema.number(),
                 // Format: "N" for a strip or "WxH" for a grid.
@@ -65,6 +66,11 @@ export const artnetVariants = {
                     b: schema.number(),
                     w: schema.number(),
                 }),
+
+                brightness: schema.number(),
+                rotation: schema.number(),
+                mirrorX: schema.boolean(),
+                mirrorY: schema.boolean(),
 
                 left: schema.number(),
                 top: schema.number(),

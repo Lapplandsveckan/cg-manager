@@ -23,7 +23,11 @@ const DECKLINK_PORT_FIELDS: FieldDef[] = [
     },
 ];
 
+// v2 (Lappis custom build) fixture fields — each fixture has its own connection.
 export const ARTNET_FIXTURE_FIELDS: FieldDef[] = [
+    { key: 'host', label: `${F}.host`, type: 'string' },
+    { key: 'port', label: `${F}.port`, type: 'integer' },
+    { key: 'universe', label: `${F}.universe`, type: 'integer' },
     {
         key: 'type',
         label: `${F}.type`,
@@ -52,11 +56,21 @@ export const ARTNET_FIXTURE_FIELDS: FieldDef[] = [
             { key: 'w', label: 'W', type: 'number' },
         ],
     },
+    { key: 'brightness', label: `${F}.brightness`, type: 'number' },
+    { key: 'rotation', label: `${F}.rotation`, type: 'number' },
+    { key: 'mirrorX', label: `${F}.mirrorX`, type: 'boolean' },
+    { key: 'mirrorY', label: `${F}.mirrorY`, type: 'boolean' },
 ];
 
+// Legacy (upstream CasparCG) output-level fields: host/port/refreshRate.
 export const ARTNET_SCALAR_FIELDS: FieldDef[] = [
     { key: 'host', label: `${F}.host`, type: 'string' },
     { key: 'port', label: `${F}.port`, type: 'number' },
+    { key: 'refreshRate', label: `${F}.refreshRate`, type: 'number' },
+];
+
+// v2 output-level fields: universe is per-fixture, so only refreshRate here.
+export const ARTNET_V2_SCALAR_FIELDS: FieldDef[] = [
     { key: 'refreshRate', label: `${F}.refreshRate`, type: 'number' },
 ];
 
@@ -193,8 +207,10 @@ const FFMPEG_FIELDS: FieldDef[] = [
     { key: 'args', label: `${F}.args`, type: 'string' },
 ];
 
+// Generic fallback shape for artnet (v2 profile). Not used for rendering since
+// ConsumerModal routes artnet to the custom ArtnetEditor, but kept coherent.
 const ARTNET_FIELDS: FieldDef[] = [
-    ...ARTNET_SCALAR_FIELDS,
+    ...ARTNET_V2_SCALAR_FIELDS,
     {
         key: 'fixtures',
         label: `${F}.fixtures`,

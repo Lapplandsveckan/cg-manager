@@ -47,7 +47,49 @@ export const V2FixtureDetails: React.FC<V2FixtureDetailsProps> = ({
             fixture={fixture}
             onChange={onChange}
             onDelete={onDelete}
+            noAddressRow
         >
+            <ScalarField
+                def={V.HOST_FIELD as any}
+                value={fixture.host}
+                onChange={v => onChange('host', v)}
+            />
+            <Stack direction="row" gap={1.5}>
+                <ScalarField
+                    def={V.PORT_FIELD as any}
+                    value={fixture.port}
+                    onChange={v => onChange('port', v)}
+                />
+                <ScalarField
+                    def={V.UNIVERSE_FIELD as any}
+                    value={fixture.universe}
+                    onChange={v => onChange('universe', v)}
+                />
+            </Stack>
+            <Stack direction="row" gap={1.5}>
+                <ScalarField
+                    def={S.START_ADDRESS_FIELD as any}
+                    value={fixture.startAddress}
+                    onChange={v => onChange('startAddress', v)}
+                />
+                <ScalarField
+                    def={V.ROTATION_FIELD as any}
+                    value={fixture.rotation}
+                    onChange={v => onChange('rotation', v)}
+                />
+            </Stack>
+            <Stack direction="row" gap={1.5}>
+                <ScalarField
+                    def={V.MIRROR_X_FIELD as any}
+                    value={fixture.mirrorX}
+                    onChange={v => onChange('mirrorX', v)}
+                />
+                <ScalarField
+                    def={V.MIRROR_Y_FIELD as any}
+                    value={fixture.mirrorY}
+                    onChange={v => onChange('mirrorY', v)}
+                />
+            </Stack>
             <FixtureCountInput
                 value={fixture.fixtureCount}
                 onChange={v => onChange('fixtureCount', v)}
@@ -98,23 +140,35 @@ export const V2FixtureDetails: React.FC<V2FixtureDetailsProps> = ({
                     </Typography>
                 </AccordionSummary>
                 <AccordionDetails>
-                    <Stack spacing={1}>
-                        <Typography
-                            variant="caption"
-                            sx={{ color: 'text.secondary' }}
-                        >
-                            {t('config.artnet.fluxHelp')}
-                        </Typography>
-                        <Stack direction="row" gap={1.5}>
-                            {V.FLUX_FIELDS.map(def => (
-                                <ScalarField
-                                    key={def.key}
-                                    def={def as any}
-                                    value={flux[def.key]}
-                                    onChange={v => updateFlux(def.key, v)}
-                                />
-                            ))}
+                    <Stack spacing={1.5}>
+                        <ScalarField
+                            def={S.CHANNELS_FIELD as any}
+                            value={fixture.fixtureChannels}
+                            onChange={v => onChange('fixtureChannels', v)}
+                        />
+                        <Stack spacing={1}>
+                            <Typography
+                                variant="caption"
+                                sx={{ color: 'text.secondary' }}
+                            >
+                                {t('config.artnet.fluxHelp')}
+                            </Typography>
+                            <Stack direction="row" gap={1.5}>
+                                {V.FLUX_FIELDS.map(def => (
+                                    <ScalarField
+                                        key={def.key}
+                                        def={def as any}
+                                        value={flux[def.key]}
+                                        onChange={v => updateFlux(def.key, v)}
+                                    />
+                                ))}
+                            </Stack>
                         </Stack>
+                        <ScalarField
+                            def={V.BRIGHTNESS_FIELD as any}
+                            value={fixture.brightness}
+                            onChange={v => onChange('brightness', v)}
+                        />
                     </Stack>
                 </AccordionDetails>
             </Accordion>

@@ -17,13 +17,14 @@ interface ArtnetCanvasProps {
     previewChannel?: number | null;
 }
 
-type Handle = 'move' | 'tl' | 'tr' | 'br' | 'bl';
+type Handle = 'move' | 'tl' | 'tr' | 'br' | 'bl' | 'rotate';
 
 interface DragState {
     fixtureIndex: number;
     handle: Handle;
     startMouseCanvas: { x: number; y: number }; // canvas-pixel space (matches fixture units)
     startFixture: V2Fixture;
+    fixtureCenterCanvas?: { x: number; y: number }; // canvas-pixel center, for 'rotate' only
 }
 
 type Normalized = Required<
@@ -66,41 +67,71 @@ function applyDrag(
         };
     }
 
-    // Axis-aligned resize — anchor the opposite corner by shifting left/top
-    // when the dragged corner pulls that edge.
+    const rotation = ((fixture as any).rotation ?? 0) as number;
+    const rad = (rotation * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+
+    // Project the canvas-space drag delta into the fixture's local axis space.
+    const localDx = dx * cos + dy * sin;
+    const localDy = -dx * sin + dy * cos;
+
     const signX = handle === 'tr' || handle === 'br' ? 1 : -1;
     const signY = handle === 'bl' || handle === 'br' ? 1 : -1;
 
     const minSize = 10;
-    let newW = Math.max(minSize, start.width + signX * dx);
-    let newH = Math.max(minSize, start.height + signY * dy);
-    let newLeft = signX === -1 ? start.left + (start.width - newW) : start.left;
-    let newTop = signY === -1 ? start.top + (start.height - newH) : start.top;
+    let newW = Math.max(minSize, start.width + signX * localDx);
+    let newH = Math.max(minSize, start.height + signY * localDy);
 
-    // Pull the dragged edges back inside the stage. For left/top corners we
-    // shrink width/height by however far past 0 they would have gone; for
-    // right/bottom corners we cap width/height to (bounds - left/top).
-    if (signX === -1 && newLeft < 0) {
-        newW += newLeft;
-        newLeft = 0;
-    } else if (signX === 1 && newLeft + newW > bounds.width) {
-        newW = bounds.width - newLeft;
+    if (rotation === 0) {
+        // Axis-aligned path: keep the original strict bounds-clamping behaviour.
+        let newLeft =
+            signX === -1 ? start.left + (start.width - newW) : start.left;
+        let newTop =
+            signY === -1 ? start.top + (start.height - newH) : start.top;
+
+        if (signX === -1 && newLeft < 0) {
+            newW += newLeft;
+            newLeft = 0;
+        } else if (signX === 1 && newLeft + newW > bounds.width) {
+            newW = bounds.width - newLeft;
+        }
+        if (signY === -1 && newTop < 0) {
+            newH += newTop;
+            newTop = 0;
+        } else if (signY === 1 && newTop + newH > bounds.height) {
+            newH = bounds.height - newTop;
+        }
+
+        newW = Math.max(minSize, newW);
+        newH = Math.max(minSize, newH);
+        return {
+            ...fixture,
+            left: Math.round(newLeft),
+            top: Math.round(newTop),
+            width: Math.round(newW),
+            height: Math.round(newH),
+        };
     }
 
-    if (signY === -1 && newTop < 0) {
-        newH += newTop;
-        newTop = 0;
-    } else if (signY === 1 && newTop + newH > bounds.height) {
-        newH = bounds.height - newTop;
-    }
+    // Rotated path: compute the anchor corner position in canvas space before
+    // the drag and back-solve left/top so it stays fixed after the resize.
+    const cx0 = start.left + start.width / 2;
+    const cy0 = start.top + start.height / 2;
+    const anchorLocalX = -signX * (start.width / 2);
+    const anchorLocalY = -signY * (start.height / 2);
+    const anchorCanvasX = cx0 + anchorLocalX * cos - anchorLocalY * sin;
+    const anchorCanvasY = cy0 + anchorLocalX * sin + anchorLocalY * cos;
 
-    newW = Math.max(minSize, newW);
-    newH = Math.max(minSize, newH);
+    const newAnchorLocalX = -signX * (newW / 2);
+    const newAnchorLocalY = -signY * (newH / 2);
+    const cx1 = anchorCanvasX - newAnchorLocalX * cos + newAnchorLocalY * sin;
+    const cy1 = anchorCanvasY - newAnchorLocalX * sin - newAnchorLocalY * cos;
 
     return {
         ...fixture,
-        left: Math.round(newLeft),
-        top: Math.round(newTop),
+        left: Math.round(cx1 - newW / 2),
+        top: Math.round(cy1 - newH / 2),
         width: Math.round(newW),
         height: Math.round(newH),
     };
@@ -108,6 +139,8 @@ function applyDrag(
 
 const FIXTURE_COLOR = '#c98049';
 const HANDLE_SIZE = 14;
+/** Gap (px, DOM) between the box top edge and the bottom of the rotate handle. */
+const ROTATE_HANDLE_GAP = 18;
 
 interface FixtureViewProps {
     fixture: V2Fixture;
@@ -174,6 +207,19 @@ const FixtureView: React.FC<FixtureViewProps> = ({
     const count = fixture.fixtureCount ? ` × ${fixture.fixtureCount}` : '';
     const label = `${fixture.type ?? '—'}${count}`;
 
+    const rotation = (fixture as any).rotation ?? 0;
+    const mirrorX = (fixture as any).mirrorX ?? false;
+    const mirrorY = (fixture as any).mirrorY ?? false;
+
+    // Mirror is applied to the inner grid layer only — it affects the pixel
+    // sampling direction, not the physical position of the fixture on stage.
+    const mirrorTransform = [
+        mirrorX ? 'scaleX(-1)' : '',
+        mirrorY ? 'scaleY(-1)' : '',
+    ]
+        .filter(Boolean)
+        .join(' ');
+
     const handleStyle = (corner: Handle): React.CSSProperties => {
         const isLeft = corner === 'tl' || corner === 'bl';
         const isTop = corner === 'tl' || corner === 'tr';
@@ -205,6 +251,9 @@ const FixtureView: React.FC<FixtureViewProps> = ({
                 top: f.top * scale,
                 width: f.width * scale,
                 height: f.height * scale,
+                // Rotation is on the outer box so the whole fixture visually
+                // rotates on the stage, including its handles and badges.
+                transform: rotation ? `rotate(${rotation}deg)` : undefined,
                 outline: selected
                     ? `2px solid ${FIXTURE_COLOR}`
                     : `1px solid ${alpha(FIXTURE_COLOR, 0.55)}`,
@@ -212,6 +261,10 @@ const FixtureView: React.FC<FixtureViewProps> = ({
                 cursor: 'move',
                 userSelect: 'none',
                 touchAction: 'none',
+                // overflow: visible so the rotate handle and badges can extend
+                // outside the box bounds (clipped by the stage instead).
+                overflow: 'visible',
+                zIndex: selected ? 10 : undefined,
             }}
             onPointerDown={e => {
                 e.stopPropagation();
@@ -219,7 +272,18 @@ const FixtureView: React.FC<FixtureViewProps> = ({
                 onPointerDownHandle(e, 'move');
             }}
         >
-            <FixtureGrid w={w} h={h} />
+            {/* Inner layer — mirror-only transform; grid stays inside the box */}
+            <Box
+                sx={{
+                    position: 'absolute',
+                    inset: 0,
+                    transform: mirrorTransform || undefined,
+                    pointerEvents: 'none',
+                    overflow: 'hidden',
+                }}
+            >
+                <FixtureGrid w={w} h={h} />
+            </Box>
 
             <Box
                 sx={{
@@ -242,6 +306,70 @@ const FixtureView: React.FC<FixtureViewProps> = ({
                 {label}
             </Box>
 
+            {/* Badges — sit above the top edge, rotate with the fixture */}
+            {(rotation !== 0 || mirrorX || mirrorY) && (
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        mb: '4px',
+                        display: 'flex',
+                        gap: 0.5,
+                        alignItems: 'center',
+                        pointerEvents: 'none',
+                        bgcolor: 'rgba(0,0,0,0.6)',
+                        borderRadius: 0.5,
+                        px: 0.75,
+                        py: 0.25,
+                        whiteSpace: 'nowrap',
+                        zIndex: 3,
+                    }}
+                >
+                    {rotation !== 0 && (
+                        <Box
+                            component="span"
+                            sx={{
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                                color: FIXTURE_COLOR,
+                                lineHeight: 1,
+                            }}
+                        >
+                            {rotation}°
+                        </Box>
+                    )}
+                    {mirrorX && (
+                        <Box
+                            component="span"
+                            sx={{
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                                color: FIXTURE_COLOR,
+                                lineHeight: 1,
+                            }}
+                        >
+                            ↔
+                        </Box>
+                    )}
+                    {mirrorY && (
+                        <Box
+                            component="span"
+                            sx={{
+                                fontFamily: 'monospace',
+                                fontSize: 12,
+                                color: FIXTURE_COLOR,
+                                lineHeight: 1,
+                            }}
+                        >
+                            ↕
+                        </Box>
+                    )}
+                </Box>
+            )}
+
+            {/* Corner resize handles */}
             {selected &&
                 (['tl', 'tr', 'br', 'bl'] as Handle[]).map(corner => (
                     <Box
@@ -253,6 +381,45 @@ const FixtureView: React.FC<FixtureViewProps> = ({
                         }}
                     />
                 ))}
+
+            {/* Rotate handle — circle above top-center, connected by a thin line */}
+            {selected && (
+                <>
+                    {/* Connector line */}
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: -ROTATE_HANDLE_GAP,
+                            width: '1px',
+                            height: ROTATE_HANDLE_GAP,
+                            bgcolor: alpha(FIXTURE_COLOR, 0.5),
+                            pointerEvents: 'none',
+                            zIndex: 2,
+                        }}
+                    />
+                    {/* Circle handle */}
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            left: `calc(50% - ${HANDLE_SIZE / 2}px)`,
+                            top: -(ROTATE_HANDLE_GAP + HANDLE_SIZE),
+                            width: HANDLE_SIZE,
+                            height: HANDLE_SIZE,
+                            borderRadius: '50%',
+                            background: '#fff',
+                            border: `1.5px solid ${FIXTURE_COLOR}`,
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.4)',
+                            cursor: 'crosshair',
+                            zIndex: 2,
+                        }}
+                        onPointerDown={e => {
+                            e.stopPropagation();
+                            onPointerDownHandle(e, 'rotate');
+                        }}
+                    />
+                </>
+            )}
         </Box>
     );
 };
@@ -303,11 +470,17 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
     ) => {
         const target = e.currentTarget as HTMLElement;
         target.setPointerCapture(e.pointerId);
+        const f = normalize(fixtures[index]);
+        const fixtureCenterCanvas =
+            handle === 'rotate'
+                ? { x: f.left + f.width / 2, y: f.top + f.height / 2 }
+                : undefined;
         dragRef.current = {
             fixtureIndex: index,
             handle,
             startMouseCanvas: toCanvas(e.clientX, e.clientY),
             startFixture: { ...fixtures[index] },
+            fixtureCenterCanvas,
         };
     };
 
@@ -316,6 +489,27 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
             const state = dragRef.current;
             if (!state) return;
             const mouse = toCanvas(e.clientX, e.clientY);
+
+            if (state.handle === 'rotate') {
+                const { x: cx, y: cy } = state.fixtureCenterCanvas!;
+                const startAngle = Math.atan2(
+                    state.startMouseCanvas.y - cy,
+                    state.startMouseCanvas.x - cx,
+                );
+                const curAngle = Math.atan2(mouse.y - cy, mouse.x - cx);
+                const deltaDeg = (curAngle - startAngle) * (180 / Math.PI);
+                const raw = (state.startFixture.rotation ?? 0) + deltaDeg;
+                const newRotation = ((Math.round(raw) % 360) + 360) % 360;
+                onChange(
+                    fixtures.map((f, i) =>
+                        i === state.fixtureIndex
+                            ? { ...f, rotation: newRotation }
+                            : f,
+                    ),
+                );
+                return;
+            }
+
             const dx = mouse.x - state.startMouseCanvas.x;
             const dy = mouse.y - state.startMouseCanvas.y;
             const updated = applyDrag(

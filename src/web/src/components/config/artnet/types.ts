@@ -20,8 +20,15 @@ export interface LegacyFixture extends BaseFixture {
 }
 
 export interface V2Fixture extends BaseFixture {
+    host?: string;
+    port?: number;
+    universe?: number;
     fixtureCount?: string;
     flux?: { r?: number; g?: number; b?: number; w?: number };
+    brightness?: number;
+    rotation?: number;
+    mirrorX?: boolean;
+    mirrorY?: boolean;
     left?: number;
     top?: number;
 }

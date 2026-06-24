@@ -12,6 +12,9 @@ interface FixtureDetailsShellProps {
     onChange: (key: string, value: any) => void;
     onDelete: () => void;
     children: React.ReactNode;
+    /** When true, the startAddress + channelsPerFixture row is not rendered.
+     *  Use in v2 where these fields are placed inline by the variant component. */
+    noAddressRow?: boolean;
 }
 
 export const FixtureDetailsShell: React.FC<FixtureDetailsShellProps> = ({
@@ -20,6 +23,7 @@ export const FixtureDetailsShell: React.FC<FixtureDetailsShellProps> = ({
     onChange,
     onDelete,
     children,
+    noAddressRow,
 }) => {
     const { t } = useTranslation('common');
     const F = buildSharedFixtureFields(t);
@@ -51,18 +55,20 @@ export const FixtureDetailsShell: React.FC<FixtureDetailsShellProps> = ({
                     onChange={v => onChange('type', v)}
                 />
 
-                <Stack direction="row" gap={1.5}>
-                    <ScalarField
-                        def={F.START_ADDRESS_FIELD as any}
-                        value={fixture.startAddress}
-                        onChange={v => onChange('startAddress', v)}
-                    />
-                    <ScalarField
-                        def={F.CHANNELS_FIELD as any}
-                        value={fixture.fixtureChannels}
-                        onChange={v => onChange('fixtureChannels', v)}
-                    />
-                </Stack>
+                {!noAddressRow && (
+                    <Stack direction="row" gap={1.5}>
+                        <ScalarField
+                            def={F.START_ADDRESS_FIELD as any}
+                            value={fixture.startAddress}
+                            onChange={v => onChange('startAddress', v)}
+                        />
+                        <ScalarField
+                            def={F.CHANNELS_FIELD as any}
+                            value={fixture.fixtureChannels}
+                            onChange={v => onChange('fixtureChannels', v)}
+                        />
+                    </Stack>
+                )}
 
                 {children}
             </Stack>

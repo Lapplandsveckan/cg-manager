@@ -25,11 +25,17 @@ export const newFixture = (
     canvasWidth: number,
     canvasHeight: number,
 ): V2Fixture => ({
+    port: 6454,
+    universe: 0,
     type: 'RGB',
     startAddress: 1,
     fixtureCount: '1',
     fixtureChannels: 3,
     flux: { r: 1, g: 1, b: 1, w: 1 },
+    brightness: 1,
+    rotation: 0,
+    mirrorX: false,
+    mirrorY: false,
     left: Math.round(canvasWidth / 2 - 100),
     top: Math.round(canvasHeight / 2 - 50),
     width: 200,
@@ -39,10 +45,32 @@ export const newFixture = (
 export const buildV2FixtureFields = (
     t: TFn,
 ): {
+    HOST_FIELD: FieldDef;
+    PORT_FIELD: FieldDef;
+    UNIVERSE_FIELD: FieldDef;
     LEFT_FIELD: FieldDef;
     TOP_FIELD: FieldDef;
     FLUX_FIELDS: FieldDef[];
+    BRIGHTNESS_FIELD: FieldDef;
+    ROTATION_FIELD: FieldDef;
+    MIRROR_X_FIELD: FieldDef;
+    MIRROR_Y_FIELD: FieldDef;
 } => ({
+    HOST_FIELD: {
+        key: 'host',
+        label: t('config.fields.host'),
+        type: 'string',
+    },
+    PORT_FIELD: {
+        key: 'port',
+        label: t('config.fields.port'),
+        type: 'integer',
+    },
+    UNIVERSE_FIELD: {
+        key: 'universe',
+        label: t('config.fields.universe'),
+        type: 'integer',
+    },
     LEFT_FIELD: {
         key: 'left',
         label: t('config.fields.left'),
@@ -59,4 +87,24 @@ export const buildV2FixtureFields = (
         { key: 'b', label: 'B', type: 'number' },
         { key: 'w', label: 'W', type: 'number' },
     ],
+    BRIGHTNESS_FIELD: {
+        key: 'brightness',
+        label: t('config.fields.brightness'),
+        type: 'number',
+    },
+    ROTATION_FIELD: {
+        key: 'rotation',
+        label: t('config.fields.rotation'),
+        type: 'number',
+    },
+    MIRROR_X_FIELD: {
+        key: 'mirrorX',
+        label: t('config.fields.mirrorX'),
+        type: 'boolean',
+    },
+    MIRROR_Y_FIELD: {
+        key: 'mirrorY',
+        label: t('config.fields.mirrorY'),
+        type: 'boolean',
+    },
 });
