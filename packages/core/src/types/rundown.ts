@@ -53,6 +53,7 @@ export interface RundownActionFileAccept {
 
 export interface RundownActionMetadata {
     accepts?: RundownActionFileAccept;
+    stop?: (item: RundownItem) => Promise<void> | void;
     // Future: displayName, description, category, iconKey (per CLAUDE.md plan).
 }
 
