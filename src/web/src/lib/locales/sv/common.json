@@ -110,12 +110,9 @@
             "live": "LIVE",
             "edit": "REDIGERA"
         },
-        "lockToggle": {
-            "defaultLabel": "Objekt",
-            "locked": "Låst",
-            "unlocked": "Olåst",
-            "lockedTooltip": "{{label}} är låsta — att klicka på ett kort startar det inte. Använd spelknappen.",
-            "unlockedTooltip": "{{label}} är olåsta — klicka var som helst på ett kort för att starta det."
+        "modeToggle": {
+            "editTooltip": "Redigeringsläge — klicka på ett kort för att öppna dess redigerare. Starta objekt med spelknappen.",
+            "liveTooltip": "Direktläge — klicka var som helst på ett kort för att starta det."
         },
         "bottomPanel": {
             "resizeHint": "Dra för att ändra storlek · Dubbelklicka för att återställa",

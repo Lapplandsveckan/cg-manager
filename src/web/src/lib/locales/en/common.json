@@ -110,12 +110,9 @@
             "live": "LIVE",
             "edit": "EDIT"
         },
-        "lockToggle": {
-            "defaultLabel": "Items",
-            "locked": "Locked",
-            "unlocked": "Unlocked",
-            "lockedTooltip": "{{label}} are locked — clicking a card won't fire it. Use the play button.",
-            "unlockedTooltip": "{{label}} are unlocked — click anywhere on a card to fire it."
+        "modeToggle": {
+            "editTooltip": "Edit mode — click a card to open its editor. Fire items with the play button.",
+            "liveTooltip": "Live mode — click anywhere on a card to fire it."
         },
         "bottomPanel": {
             "resizeHint": "Drag to resize · Double-click to reset",

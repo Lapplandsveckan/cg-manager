@@ -47,7 +47,7 @@ function isFileDrag(dt: DataTransfer | null): boolean {
     return Array.from(dt.types).includes('Files');
 }
 
-export { EditIndicator, LiveIndicator, LockToggle } from './RundownChrome';
+export { EditIndicator, LiveIndicator, ModeToggle } from './RundownChrome';
 export const RUNDOWN_REORDER_MIME = 'application/x-cg-rundown-reorder';
 
 export interface RundownEntry {
@@ -396,7 +396,11 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                     >
                         <Typography
                             variant="h4"
-                            sx={{ minWidth: 0, flexGrow: 1, wordBreak: 'break-word' }}
+                            sx={{
+                                minWidth: 0,
+                                flexGrow: 1,
+                                wordBreak: 'break-word',
+                            }}
                         >
                             {title}
                         </Typography>
@@ -559,7 +563,9 @@ export const Rundowns: React.FC<RundownsProps> = ({
     } | null>(null);
 
     const [activeTypes, setActiveTypes] = useState<Set<string> | null>(null);
-    const [stoppableTypes, setStoppableTypes] = useState<Set<string>>(new Set());
+    const [stoppableTypes, setStoppableTypes] = useState<Set<string>>(
+        new Set(),
+    );
     const refetchTypes = useCallback(() => {
         conn.rawRequest('/api/rundown/types', 'GET', {})
             .then(res => setActiveTypes(new Set(res.data ?? [])))
@@ -568,8 +574,13 @@ export const Rundowns: React.FC<RundownsProps> = ({
             });
         conn.rawRequest('/api/rundown/actions', 'GET', {})
             .then(res => {
-                const descriptors = (res.data ?? []) as { id: string; hasStop: boolean }[];
-                setStoppableTypes(new Set(descriptors.filter(d => d.hasStop).map(d => d.id)));
+                const descriptors = (res.data ?? []) as {
+                    id: string;
+                    hasStop: boolean;
+                }[];
+                setStoppableTypes(
+                    new Set(descriptors.filter(d => d.hasStop).map(d => d.id)),
+                );
             })
             .catch(() => {
                 /* keep previous on error */
@@ -938,7 +949,9 @@ export const Rundowns: React.FC<RundownsProps> = ({
                                 onEdit={() => onEdit(entry)}
                                 onPlay={() => onPlay(entry)}
                                 onStop={
-                                    onStop && entry.type && stoppableTypes.has(entry.type)
+                                    onStop &&
+                                    entry.type &&
+                                    stoppableTypes.has(entry.type)
                                         ? () => onStop(entry)
                                         : undefined
                                 }

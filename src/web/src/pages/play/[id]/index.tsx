@@ -10,9 +10,7 @@ import { usePlayEntry } from '../../../lib/hooks/usePlayEntry';
 import { useStopEntry } from '../../../lib/hooks/useStopEntry';
 import { Injections, UI_INJECTION_ZONE } from '../../../lib/api/inject';
 import {
-    EditIndicator,
-    LiveIndicator,
-    LockToggle,
+    ModeToggle,
     type RundownEntry,
     Rundowns,
     useRundownEntries,
@@ -288,13 +286,8 @@ const Page = () => {
                                     {name ?? t('playPage.detail.untitled')}
                                 </Typography>
                             </Stack>
-                            {locked ? <EditIndicator /> : <LiveIndicator />}
                         </Stack>
-                        <LockToggle
-                            locked={locked}
-                            onToggle={() => setLocked(l => !l)}
-                            label={t('playPage.detail.itemsLabel')}
-                        />
+                        <ModeToggle locked={locked} onChange={setLocked} />
                     </Stack>
 
                     <Stack

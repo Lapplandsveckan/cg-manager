@@ -1,15 +1,14 @@
 import React from 'react';
 import {
     Box,
-    IconButton,
     Stack,
+    ToggleButton,
+    ToggleButtonGroup,
     Tooltip,
     Typography,
     alpha,
 } from '@mui/material';
 import { keyframes } from '@mui/system';
-import LockRoundedIcon from '@mui/icons-material/LockRounded';
-import LockOpenRoundedIcon from '@mui/icons-material/LockOpenRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { useTranslation } from 'next-i18next';
 
@@ -92,60 +91,114 @@ export const EditIndicator: React.FC = () => {
     );
 };
 
-interface LockToggleProps {
+interface ModeToggleProps {
     locked: boolean;
-    onToggle: () => void;
-    label?: string;
+    onChange: (locked: boolean) => void;
 }
 
-export const LockToggle: React.FC<LockToggleProps> = ({
-    locked,
-    onToggle,
-    label,
-}) => {
+/** Segmented Edit | Live toggle — clearly shows both modes and which is active. */
+export const ModeToggle: React.FC<ModeToggleProps> = ({ locked, onChange }) => {
     const { t } = useTranslation('common');
-    const resolvedLabel = label ?? t('rundown.lockToggle.defaultLabel');
     return (
-        <Tooltip
-            title={
-                locked
-                    ? t('rundown.lockToggle.lockedTooltip', {
-                          label: resolvedLabel,
-                      })
-                    : t('rundown.lockToggle.unlockedTooltip', {
-                          label: resolvedLabel,
-                      })
-            }
-        >
-            <IconButton
-                size="small"
-                onClick={onToggle}
-                sx={theme => ({
-                    color: locked
-                        ? theme.palette.primary.main
-                        : 'text.secondary',
-                    border: `1px solid ${locked ? theme.palette.primary.main : theme.palette.divider}`,
-                    borderRadius: 1.5,
+        <ToggleButtonGroup
+            exclusive
+            value={locked ? 'edit' : 'live'}
+            onChange={(_, val: string | null) => {
+                if (val !== null) onChange(val === 'edit');
+            }}
+            size="small"
+            sx={theme => ({
+                '& .MuiToggleButton-root': {
                     px: 1.25,
                     py: 0.5,
                     gap: 0.75,
-                    '&:hover': {
-                        borderColor: theme.palette.primary.main,
+                    textTransform: 'none',
+                    color: 'text.secondary',
+                    borderColor: theme.palette.divider,
+                },
+            })}
+        >
+            <ToggleButton
+                value="edit"
+                sx={theme => ({
+                    '&.Mui-selected': {
                         color: theme.palette.primary.main,
+                        bgcolor: alpha(theme.palette.primary.main, 0.14),
+                        '&:hover': {
+                            bgcolor: alpha(theme.palette.primary.main, 0.22),
+                        },
+                    },
+                    '&:not(.Mui-selected):hover': {
+                        color: theme.palette.primary.main,
+                        bgcolor: alpha(theme.palette.primary.main, 0.08),
                     },
                 })}
             >
-                {locked ? (
-                    <LockRoundedIcon fontSize="small" />
-                ) : (
-                    <LockOpenRoundedIcon fontSize="small" />
-                )}
-                <Typography variant="caption" sx={{ fontWeight: 500 }}>
-                    {locked
-                        ? t('rundown.lockToggle.locked')
-                        : t('rundown.lockToggle.unlocked')}
-                </Typography>
-            </IconButton>
-        </Tooltip>
+                <Tooltip
+                    title={t('rundown.modeToggle.editTooltip')}
+                    placement="bottom"
+                >
+                    <Stack direction="row" alignItems="center" gap={0.75}>
+                        <EditOutlinedIcon sx={{ fontSize: 14 }} />
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                fontWeight: 700,
+                                letterSpacing: '0.12em',
+                                fontSize: '0.7rem',
+                            }}
+                        >
+                            {t('rundown.indicator.edit')}
+                        </Typography>
+                    </Stack>
+                </Tooltip>
+            </ToggleButton>
+            <ToggleButton
+                value="live"
+                sx={{
+                    '&.Mui-selected': {
+                        color: LIVE_RED,
+                        bgcolor: alpha(LIVE_RED, 0.14),
+                        '&:hover': {
+                            bgcolor: alpha(LIVE_RED, 0.22),
+                        },
+                    },
+                    '&:not(.Mui-selected):hover': {
+                        color: LIVE_RED,
+                        bgcolor: alpha(LIVE_RED, 0.08),
+                    },
+                }}
+            >
+                <Tooltip
+                    title={t('rundown.modeToggle.liveTooltip')}
+                    placement="bottom"
+                >
+                    <Stack direction="row" alignItems="center" gap={0.75}>
+                        <Box
+                            sx={{
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                bgcolor: 'currentColor',
+                                flexShrink: 0,
+                                animation: !locked
+                                    ? `${livePulse} 1.4s ease-in-out infinite`
+                                    : 'none',
+                            }}
+                        />
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                fontWeight: 700,
+                                letterSpacing: '0.12em',
+                                fontSize: '0.7rem',
+                            }}
+                        >
+                            {t('rundown.indicator.live')}
+                        </Typography>
+                    </Stack>
+                </Tooltip>
+            </ToggleButton>
+        </ToggleButtonGroup>
     );
 };
