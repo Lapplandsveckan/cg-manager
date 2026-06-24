@@ -24,9 +24,6 @@ const DECKLINK_PORT_FIELDS: FieldDef[] = [
 ];
 
 export const ARTNET_FIXTURE_FIELDS: FieldDef[] = [
-    { key: 'host', label: `${F}.host`, type: 'string' },
-    { key: 'port', label: `${F}.port`, type: 'number' },
-    { key: 'universe', label: `${F}.universe`, type: 'number' },
     {
         key: 'type',
         label: `${F}.type`,
@@ -40,6 +37,10 @@ export const ARTNET_FIXTURE_FIELDS: FieldDef[] = [
         label: `${F}.channelsPerFixture`,
         type: 'number',
     },
+    { key: 'left', label: `${F}.left`, type: 'number' },
+    { key: 'top', label: `${F}.top`, type: 'number' },
+    { key: 'width', label: `${F}.width`, type: 'number' },
+    { key: 'height', label: `${F}.height`, type: 'number' },
     {
         key: 'flux',
         label: `${F}.flux`,
@@ -51,21 +52,11 @@ export const ARTNET_FIXTURE_FIELDS: FieldDef[] = [
             { key: 'w', label: 'W', type: 'number' },
         ],
     },
-    { key: 'brightness', label: `${F}.brightness`, type: 'number' },
-    { key: 'rotation', label: `${F}.rotation`, type: 'number' },
-    { key: 'mirrorX', label: `${F}.mirrorX`, type: 'boolean' },
-    { key: 'mirrorY', label: `${F}.mirrorY`, type: 'boolean' },
-    { key: 'x', label: 'X', type: 'number' },
-    { key: 'y', label: 'Y', type: 'number' },
-    { key: 'left', label: `${F}.left`, type: 'number' },
-    { key: 'top', label: `${F}.top`, type: 'number' },
-    { key: 'right', label: `${F}.right`, type: 'number' },
-    { key: 'bottom', label: `${F}.bottom`, type: 'number' },
-    { key: 'width', label: `${F}.width`, type: 'number' },
-    { key: 'height', label: `${F}.height`, type: 'number' },
 ];
 
 export const ARTNET_SCALAR_FIELDS: FieldDef[] = [
+    { key: 'host', label: `${F}.host`, type: 'string' },
+    { key: 'port', label: `${F}.port`, type: 'number' },
     { key: 'refreshRate', label: `${F}.refreshRate`, type: 'number' },
 ];
 
