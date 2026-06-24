@@ -399,9 +399,6 @@
             "countW": "Count W",
             "countH": "Count H",
             "universe": "Universe",
-            "universes": "Universes",
-            "universesPlaceholder": "e.g. 0, 1, 2 or 0-3",
-            "universesHelp": "Type numbers, paste lists, or ranges like 0-3",
             "canvas": {
                 "stage": "Stage · {{width}}×{{height}} px"
             }
@@ -426,6 +423,10 @@
             "host": "Host",
             "port": "Port",
             "ports": "Ports",
+            "universe": "Universe",
+            "brightness": "Brightness (0-1)",
+            "mirrorX": "Mirror X",
+            "mirrorY": "Mirror Y",
             "refreshRate": "Refresh rate",
             "device": "Device",
             "keyDevice": "Key device",

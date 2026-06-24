@@ -399,9 +399,6 @@
             "countW": "Antal W",
             "countH": "Antal H",
             "universe": "Universum",
-            "universes": "Universum",
-            "universesPlaceholder": "t.ex. 0, 1, 2 eller 0-3",
-            "universesHelp": "Skriv nummer, klistra in listor eller intervall som 0-3",
             "canvas": {
                 "stage": "Scen · {{width}}×{{height}} px"
             }
@@ -426,6 +423,10 @@
             "host": "Värd",
             "port": "Port",
             "ports": "Portar",
+            "universe": "Universum",
+            "brightness": "Ljusstyrka (0-1)",
+            "mirrorX": "Spegla X",
+            "mirrorY": "Spegla Y",
             "refreshRate": "Uppdateringsfrekvens",
             "device": "Enhet",
             "keyDevice": "Nyckelenhet",

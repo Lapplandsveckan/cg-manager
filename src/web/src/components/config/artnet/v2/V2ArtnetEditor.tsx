@@ -8,8 +8,8 @@ import { useFixtureList } from '../shared/useFixtureList';
 import { fixtureSummary } from '../shared/fixtureSummary';
 import { newFixture } from './v2Fixture';
 import { ArtnetCanvas } from './ArtnetCanvas';
-import { UniversesInput } from './UniversesInput';
 import { V2FixtureDetails } from './V2FixtureDetails';
+import { ARTNET_V2_SCALAR_FIELDS } from '../../fields/consumerFields';
 import { type ArtnetVariantEditorProps, type V2Fixture } from '../types';
 
 const PREVIEW_PREF_KEY = 'artnet-editor-preview';
@@ -43,12 +43,8 @@ export const V2ArtnetEditor: React.FC<ArtnetVariantEditorProps> = ({
             <OutputCard
                 data={data}
                 onChange={(key, value) => onChange({ ...data, [key]: value })}
-            >
-                <UniversesInput
-                    universes={(data as any).universes ?? []}
-                    onChange={next => onChange({ ...data, universes: next })}
-                />
-            </OutputCard>
+                fields={ARTNET_V2_SCALAR_FIELDS}
+            />
 
             <Stack
                 direction={{ xs: 'column', lg: 'row' }}
