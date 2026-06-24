@@ -830,6 +830,19 @@ export const Rundowns: React.FC<RundownsProps> = ({
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}
                 onDrop={onDrop}
+                onContextMenu={e =>
+                    openMenu(e, [
+                        {
+                            label: t('actions.paste'),
+                            disabled: !hasEntry,
+                            onClick: () => {
+                                const copied = paste();
+                                if (copied)
+                                    onPaste?.(copied, entries.length - 1);
+                            },
+                        },
+                    ])
+                }
                 sx={theme => ({
                     position: 'relative',
                     flex: 1,
