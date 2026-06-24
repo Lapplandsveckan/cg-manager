@@ -62,6 +62,8 @@
         "upload": "Upload",
         "download": "Download",
         "copy": "Copy",
+        "duplicate": "Duplicate",
+        "paste": "Paste",
         "move": "Move",
         "select": "Select",
         "done": "Done",

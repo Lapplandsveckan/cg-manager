@@ -14,6 +14,7 @@ import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
@@ -28,6 +29,8 @@ import {
 import { useDragAutoScroll } from '../lib/hooks/useDragAutoScroll';
 import { UploadModal, useFileUpload } from './Upload';
 import { useToast } from './ToastProvider';
+import { useContextMenu } from './ContextMenuProvider';
+import { useEntryClipboard } from './EntryClipboardProvider';
 
 /** Mirrors the server's RundownFileMatchResult — keep them in sync. */
 interface RundownFileMatchResult {
@@ -504,6 +507,13 @@ interface RundownsProps {
      *  ordered list of item ids. */
     onReorder?: (orderedIds: string[]) => void;
 
+    /** Called when the user duplicates an entry via context menu. Receives
+     *  the source entry and the index it should be inserted after. */
+    onDuplicate?: (entry: RundownEntry, index: number) => void;
+    /** Called when the user pastes a copied entry via context menu. Receives
+     *  the copied entry and the index it should be inserted after. */
+    onPaste?: (entry: RundownEntry, index: number) => void;
+
     locked?: boolean;
 }
 
@@ -520,11 +530,15 @@ export const Rundowns: React.FC<RundownsProps> = ({
     onDelete,
     onDropItem,
     onReorder,
+    onDuplicate,
+    onPaste,
     locked,
 }) => {
     const { t } = useTranslation('common');
     const conn = useSocket();
     const notify = useToast();
+    const { openMenu } = useContextMenu();
+    const { copy, paste, hasEntry } = useEntryClipboard();
     const [pendingDelete, setPendingDelete] = useState<RundownEntry | null>(
         null,
     );
@@ -826,7 +840,7 @@ export const Rundowns: React.FC<RundownsProps> = ({
                     </Typography>
                 )}
 
-                {entries.map(entry => {
+                {entries.map((entry, index) => {
                     const isOrphaned =
                         activeTypes !== null &&
                         Boolean(entry.type) &&
@@ -835,6 +849,56 @@ export const Rundowns: React.FC<RundownsProps> = ({
                         <Box
                             key={entry.id}
                             onDragOver={e => onItemDragOver(e, entry.id)}
+                            onContextMenu={e =>
+                                openMenu(e, [
+                                    {
+                                        label: t('actions.edit'),
+                                        icon: (
+                                            <EditOutlinedIcon fontSize="small" />
+                                        ),
+                                        onClick: () => onEdit(entry),
+                                    },
+                                    {
+                                        label: t('actions.play'),
+                                        icon: (
+                                            <PlayArrowRoundedIcon fontSize="small" />
+                                        ),
+                                        disabled: isOrphaned,
+                                        onClick: () => onPlay(entry),
+                                    },
+                                    {
+                                        label: t('actions.duplicate'),
+                                        icon: (
+                                            <ContentCopyRoundedIcon fontSize="small" />
+                                        ),
+                                        divider: true,
+                                        onClick: () =>
+                                            onDuplicate?.(entry, index),
+                                    },
+                                    {
+                                        label: t('actions.copy'),
+                                        onClick: () => copy(entry),
+                                    },
+                                    {
+                                        label: t('actions.paste'),
+                                        disabled: !hasEntry,
+                                        onClick: () => {
+                                            const copied = paste();
+                                            if (copied)
+                                                onPaste?.(copied, index);
+                                        },
+                                    },
+                                    {
+                                        label: t('actions.delete'),
+                                        icon: (
+                                            <DeleteOutlineRoundedIcon fontSize="small" />
+                                        ),
+                                        danger: true,
+                                        divider: true,
+                                        onClick: () => setPendingDelete(entry),
+                                    },
+                                ])
+                            }
                         >
                             <RundownEntry
                                 title={entry.title}

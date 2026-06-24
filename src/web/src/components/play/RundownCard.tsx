@@ -10,15 +10,18 @@ import {
 } from '@mui/material';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'next-i18next';
 import type { Rundown, RundownItem } from '../../hooks/useRundowns';
+import { useContextMenu } from '../ContextMenuProvider';
 
 interface RundownCardProps {
     rundown: Rundown;
     onOpen: () => void;
     onEdit: () => void;
     onDelete: () => void;
+    onDuplicate?: () => void;
 }
 
 function formatItemType(type: string): string {
@@ -45,8 +48,10 @@ export const RundownCard: React.FC<RundownCardProps> = ({
     onOpen,
     onEdit,
     onDelete,
+    onDuplicate,
 }) => {
     const { t } = useTranslation('common');
+    const { openMenu } = useContextMenu();
     const stop = (e: React.MouseEvent | React.SyntheticEvent) =>
         e.stopPropagation();
     const itemCount = rundown.items?.length ?? 0;
@@ -56,7 +61,34 @@ export const RundownCard: React.FC<RundownCardProps> = ({
     );
 
     return (
-        <Card sx={{ p: 0 }}>
+        <Card
+            sx={{ p: 0 }}
+            onContextMenu={e =>
+                openMenu(e, [
+                    {
+                        label: t('actions.open'),
+                        onClick: onOpen,
+                    },
+                    {
+                        label: t('actions.rename'),
+                        icon: <EditRoundedIcon fontSize="small" />,
+                        onClick: onEdit,
+                    },
+                    onDuplicate && {
+                        label: t('actions.duplicate'),
+                        icon: <ContentCopyRoundedIcon fontSize="small" />,
+                        onClick: onDuplicate,
+                    },
+                    {
+                        label: t('actions.delete'),
+                        icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+                        danger: true,
+                        divider: true,
+                        onClick: onDelete,
+                    },
+                ])
+            }
+        >
             <CardActionArea
                 onClick={onOpen}
                 sx={{ p: 2.5, alignItems: 'stretch' }}

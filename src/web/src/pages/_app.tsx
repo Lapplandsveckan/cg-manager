@@ -11,6 +11,8 @@ import { SocketProvider } from '../components/SocketProvider';
 import { ConnectionProvider } from '../components/ConnectionProvider';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { ToastProvider } from '../components/ToastProvider';
+import { ContextMenuProvider } from '../components/ContextMenuProvider';
+import { EntryClipboardProvider } from '../components/EntryClipboardProvider';
 import { AuthGate } from '../components/AuthGate';
 import { theme } from '../lib/theme';
 import i18n from '../lib/i18n';
@@ -49,15 +51,27 @@ function App({ Component, pageProps }: AppProps) {
                         <SocketProvider>
                             <ConnectionProvider>
                                 <ToastProvider>
-                                    <Stack
-                                        direction="column"
-                                        sx={{ height: '100vh', width: '100%' }}
-                                    >
-                                        <ConnectionBanner />
-                                        <Stack sx={{ flex: 1, minHeight: 0 }}>
-                                            <Component {...pageProps} />
-                                        </Stack>
-                                    </Stack>
+                                    <ContextMenuProvider>
+                                        <EntryClipboardProvider>
+                                            <Stack
+                                                direction="column"
+                                                sx={{
+                                                    height: '100vh',
+                                                    width: '100%',
+                                                }}
+                                            >
+                                                <ConnectionBanner />
+                                                <Stack
+                                                    sx={{
+                                                        flex: 1,
+                                                        minHeight: 0,
+                                                    }}
+                                                >
+                                                    <Component {...pageProps} />
+                                                </Stack>
+                                            </Stack>
+                                        </EntryClipboardProvider>
+                                    </ContextMenuProvider>
                                 </ToastProvider>
                             </ConnectionProvider>
                         </SocketProvider>

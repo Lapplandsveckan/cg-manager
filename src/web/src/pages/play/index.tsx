@@ -72,6 +72,9 @@ const Page = () => {
                             onOpen={() => router.push(`/play/${rundown.id}`)}
                             onEdit={() => setEditing(rundown)}
                             onDelete={() => setDeleting(rundown)}
+                            onDuplicate={() =>
+                                createRundown(`${rundown.name} (copy)`)
+                            }
                         />
                     ))
                 )}
