@@ -77,10 +77,10 @@ export const PluginCard: React.FC<PluginCardProps> = ({
         plugin.minChannels > 0 && channelCount < plugin.minChannels;
     return (
         <Card
-            onClick={onOpen}
+            onClick={hasUi ? onOpen : undefined}
             onContextMenu={e =>
                 openMenu(e, [
-                    {
+                    hasUi && {
                         label: t('actions.open'),
                         icon: <OpenInNewRoundedIcon fontSize="small" />,
                         onClick: onOpen,
@@ -102,15 +102,17 @@ export const PluginCard: React.FC<PluginCardProps> = ({
             }
             sx={theme => ({
                 p: 2.5,
-                cursor: 'pointer',
+                ...(hasUi && { cursor: 'pointer' }),
                 transition: theme.transitions.create(
                     ['border-color', 'background-color'],
                     { duration: 120 },
                 ),
-                '&:hover': {
-                    borderColor: alpha(theme.palette.primary.main, 0.45),
-                    bgcolor: theme.palette.surface.elevated,
-                },
+                ...(hasUi && {
+                    '&:hover': {
+                        borderColor: alpha(theme.palette.primary.main, 0.45),
+                        bgcolor: theme.palette.surface.elevated,
+                    },
+                }),
             })}
         >
             <Stack
@@ -179,23 +181,22 @@ export const PluginCard: React.FC<PluginCardProps> = ({
                             }),
                         }}
                     />
-                    {!plugin.builtin && (
-                        <Button
-                            size="small"
-                            color="error"
-                            sx={{ minWidth: 0, px: 0.75, py: 0.5 }}
-                            title={t('pluginsPage.uninstall.button')}
-                            onClick={e => {
-                                e.stopPropagation();
-                                onUninstall();
-                            }}
-                        >
-                            <DeleteOutlineRoundedIcon fontSize="small" />
-                        </Button>
-                    )}
+                    <Button
+                        size="small"
+                        color="error"
+                        disabled={!!plugin.builtin}
+                        sx={{ minWidth: 0, px: 0.75, py: 0.5 }}
+                        title={t('pluginsPage.uninstall.button')}
+                        onClick={e => {
+                            e.stopPropagation();
+                            onUninstall();
+                        }}
+                    >
+                        <DeleteOutlineRoundedIcon fontSize="small" />
+                    </Button>
                     <ChevronRightIcon
                         fontSize="small"
-                        sx={{ color: 'text.disabled', pointerEvents: 'none' }}
+                        sx={{ color: 'text.disabled', pointerEvents: 'none', visibility: hasUi ? 'visible' : 'hidden' }}
                     />
                 </Stack>
             </Stack>
