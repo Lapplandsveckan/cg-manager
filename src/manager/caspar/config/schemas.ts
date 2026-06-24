@@ -111,13 +111,14 @@ export const schemas = {
         args: schema.string(),
     }),
     artnet: schema.schema({
-        universes: schema.array(schema.number(), 'universe'),
-        host: schema.string(),
-        port: schema.number(),
         refreshRate: schema.number(),
 
         fixtures: schema.array(
             schema.schema({
+                host: schema.string(),
+                port: schema.number(),
+                universe: schema.number(),
+
                 type: schema.enum(['DIMMER', 'RGB', 'RGBW'] as const),
                 startAddress: schema.number(),
                 // Format: "N" for a strip or "WxH" for a grid.
@@ -131,9 +132,17 @@ export const schemas = {
                     w: schema.number(),
                 }),
 
+                brightness: schema.number(),
+                rotation: schema.number(),
+                mirrorX: schema.boolean(),
+                mirrorY: schema.boolean(),
+
+                x: schema.number(),
+                y: schema.number(),
                 left: schema.number(),
                 top: schema.number(),
-
+                right: schema.number(),
+                bottom: schema.number(),
                 width: schema.number(),
                 height: schema.number(),
             }),
