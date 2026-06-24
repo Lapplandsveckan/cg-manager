@@ -7,6 +7,7 @@ import { getStorageItem, setStorageItem } from '../../../lib/storage';
 import { useDragAutoScroll } from '../../../lib/hooks/useDragAutoScroll';
 import { DefaultContentLayout } from '../../../components/DefaultContentLayout';
 import { usePlayEntry } from '../../../lib/hooks/usePlayEntry';
+import { useStopEntry } from '../../../lib/hooks/useStopEntry';
 import { Injections, UI_INJECTION_ZONE } from '../../../lib/api/inject';
 import {
     EditIndicator,
@@ -169,6 +170,7 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({
 const Page = () => {
     const { t } = useTranslation('common');
     const play = usePlayEntry();
+    const stop = useStopEntry();
     const router = useRouter();
     const {
         name,
@@ -316,6 +318,7 @@ const Page = () => {
                                 locked={locked}
                                 onEdit={entry => setEditing(entry)}
                                 onPlay={play}
+                                onStop={stop}
                                 onAdd={() => setAdding(true)}
                                 onDelete={deleteEntry}
                                 onDropItem={openEditorForDrop}

@@ -15,8 +15,10 @@ export default class EssentialsPlugin extends CasparPlugin {
     }
 
     protected onEnable() {
-        this.api.registerRundownAction(TOGGLE_VIDEO_ROUTE, item =>
-            this.toggleVideoRoute(item),
+        this.api.registerRundownAction(
+            TOGGLE_VIDEO_ROUTE,
+            item => this.toggleVideoRoute(item),
+            { stop: item => this.stopVideoRoute(item) },
         );
 
         // The PluginAPI signature narrows to UI_INJECTION_ZONE, but the host's
@@ -55,5 +57,26 @@ export default class EssentialsPlugin extends CasparPlugin {
         }
 
         this.api.setVideoRouteEnabled(routeId, !route.enabled);
+    }
+
+    private stopVideoRoute(item: RundownItem) {
+        const data = item.data as ToggleVideoRouteData | undefined;
+        const routeId = data?.routeId;
+        if (typeof routeId !== 'string' || !routeId) {
+            this.logger.warn(
+                `toggle-video-route stop: missing routeId on item ${item.id}`,
+            );
+            return;
+        }
+
+        const route = this.api.getVideoRoute(routeId);
+        if (!route) {
+            this.logger.warn(
+                `toggle-video-route stop: no route with id ${routeId}`,
+            );
+            return;
+        }
+
+        this.api.setVideoRouteEnabled(routeId, false);
     }
 }

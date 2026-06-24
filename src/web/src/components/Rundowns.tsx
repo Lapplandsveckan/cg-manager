@@ -11,7 +11,7 @@ import {
     alpha,
 } from '@mui/material';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
-import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import DragIndicatorRoundedIcon from '@mui/icons-material/DragIndicatorRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
@@ -238,12 +238,16 @@ interface RundownEntryProps {
 
     onEdit: () => void;
     onPlay: () => void;
+    /** When provided, renders a stop button next to play. Only shown when
+     *  the action type has a registered stop handler on the server. */
+    onStop?: () => void;
     /** Called when the user confirms deletion of an orphaned item. Only
      *  relevant when `disabled` is true; the button is hidden otherwise. */
     onDelete?: () => void;
 
     active: boolean;
-    /** When true, clicking the card body does nothing; only the explicit play button fires onPlay. */
+    /** When true (edit mode), clicking the card body opens the editor; in live
+     *  mode it fires onPlay. The play button always fires onPlay regardless. */
     locked?: boolean;
     /** Dimmed presentation — the item's action type isn't registered on the
      *  server (typically because the owning plugin is disabled). Edit/Play are
@@ -267,6 +271,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     type: _type,
     onEdit,
     onPlay,
+    onStop,
     onDelete,
     active: _active,
     locked,
@@ -278,7 +283,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     isDragging,
 }) => {
     const { t } = useTranslation('common');
-    const cardClickable = !locked && !disabled;
+    const cardClickable = !disabled;
     const supportsReorder = Boolean(onReorderDragStart);
     // Reorder is an editing affordance — only show/allow it when the rundown
     // is locked (edit mode). In show mode the slot is reserved but hidden so
@@ -316,7 +321,9 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                     '&:hover': cardClickable
                         ? {
                               bgcolor: theme.palette.surface.elevated,
-                              borderColor: 'primary.main',
+                              borderColor: locked
+                                  ? theme.palette.text.secondary
+                                  : 'primary.main',
                           }
                         : {
                               bgcolor: theme.palette.surface.elevated,
@@ -325,7 +332,8 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                 onClick={e => {
                     if (!cardClickable) return;
                     e.stopPropagation();
-                    onPlay();
+                    if (locked) onEdit();
+                    else onPlay();
                 }}
             >
                 {supportsReorder && (
@@ -380,11 +388,11 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                         direction="row"
                         alignItems="center"
                         justifyContent="space-between"
-                        gap={1}
+                        gap={2}
                     >
                         <Typography
                             variant="h4"
-                            sx={{ minWidth: 0, wordBreak: 'break-word' }}
+                            sx={{ minWidth: 0, flexGrow: 1, wordBreak: 'break-word' }}
                         >
                             {title}
                         </Typography>
@@ -421,24 +429,18 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                                 </Tooltip>
                             ) : (
                                 <>
-                                    <Tooltip title={t('actions.edit')}>
-                                        <IconButton
-                                            size="small"
-                                            onClick={onEdit}
-                                            sx={{ color: 'text.secondary' }}
-                                        >
-                                            <EditOutlinedIcon fontSize="small" />
-                                        </IconButton>
-                                    </Tooltip>
-                                    <Tooltip
-                                        title={
-                                            locked
-                                                ? t(
-                                                      'rundown.entry.playLockedTooltip',
-                                                  )
-                                                : t('actions.play')
-                                        }
-                                    >
+                                    {onStop && (
+                                        <Tooltip title={t('actions.stop')}>
+                                            <IconButton
+                                                size="small"
+                                                onClick={onStop}
+                                                sx={{ color: 'error.main' }}
+                                            >
+                                                <StopRoundedIcon fontSize="small" />
+                                            </IconButton>
+                                        </Tooltip>
+                                    )}
+                                    <Tooltip title={t('actions.play')}>
                                         <IconButton
                                             size="small"
                                             onClick={onPlay}
@@ -487,6 +489,9 @@ interface RundownsProps {
 
     onEdit: (entry: RundownEntry) => void;
     onPlay: (entry: RundownEntry) => void;
+    /** When provided, a stop button is shown for entries whose action type
+     *  has a registered stop handler on the server. */
+    onStop?: (entry: RundownEntry) => void;
     onAdd: () => void;
     /** Called with the entry to delete after the user confirms the dialog.
      *  Only surfaced for orphaned items (those whose action type is not
@@ -516,6 +521,7 @@ export const Rundowns: React.FC<RundownsProps> = ({
     entries,
     onEdit,
     onPlay,
+    onStop,
     onAdd,
     onDelete,
     onDropItem,
@@ -538,9 +544,18 @@ export const Rundowns: React.FC<RundownsProps> = ({
     } | null>(null);
 
     const [activeTypes, setActiveTypes] = useState<Set<string> | null>(null);
+    const [stoppableTypes, setStoppableTypes] = useState<Set<string>>(new Set());
     const refetchTypes = useCallback(() => {
         conn.rawRequest('/api/rundown/types', 'GET', {})
             .then(res => setActiveTypes(new Set(res.data ?? [])))
+            .catch(() => {
+                /* keep previous on error */
+            });
+        conn.rawRequest('/api/rundown/actions', 'GET', {})
+            .then(res => {
+                const descriptors = (res.data ?? []) as { id: string; hasStop: boolean }[];
+                setStoppableTypes(new Set(descriptors.filter(d => d.hasStop).map(d => d.id)));
+            })
             .catch(() => {
                 /* keep previous on error */
             });
@@ -844,6 +859,11 @@ export const Rundowns: React.FC<RundownsProps> = ({
                                 disabled={isOrphaned}
                                 onEdit={() => onEdit(entry)}
                                 onPlay={() => onPlay(entry)}
+                                onStop={
+                                    onStop && entry.type && stoppableTypes.has(entry.type)
+                                        ? () => onStop(entry)
+                                        : undefined
+                                }
                                 onDelete={
                                     isOrphaned
                                         ? () => {

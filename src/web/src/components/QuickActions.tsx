@@ -13,6 +13,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useSocket } from '../lib';
 import { usePlayEntry } from '../lib/hooks/usePlayEntry';
+import { useStopEntry } from '../lib/hooks/useStopEntry';
 import { EditRundown, type Rundown } from '../pages/play';
 import { RundownModals } from './RundownModals';
 import { type RundownEntry, Rundowns, useRundownEntries } from './Rundowns';
@@ -154,6 +155,7 @@ interface QuickActionsProps {
 export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     const { t } = useTranslation('common');
     const play = usePlayEntry();
+    const stop = useStopEntry();
 
     const {
         quickActions,
@@ -280,6 +282,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                         locked={locked}
                         onEdit={entry => setEditing(entry)}
                         onPlay={play}
+                        onStop={stop}
                         onAdd={() => setAdding(true)}
                         onDelete={deleteEntry}
                         onDropItem={openEditorForDrop}

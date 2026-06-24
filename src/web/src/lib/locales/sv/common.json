@@ -98,7 +98,6 @@
         },
         "entry": {
             "dragToReorder": "Dra för att ordna om",
-            "playLockedTooltip": "Spela (rundown är låst — objekt startar bara från denna knapp)",
             "orphanedTooltip": "Det här objektets plugin är inte längre tillgängligt — ta bort det för att städa upp"
         },
         "deleteEntryDialog": {
@@ -141,6 +140,10 @@
         "play": {
             "offline": "CasparCG är offline — kan inte spela",
             "failed": "Det gick inte att spela objektet"
+        },
+        "stop": {
+            "offline": "CasparCG är offline — kan inte stoppa",
+            "failed": "Det gick inte att stoppa objektet"
         },
         "preview": {
             "stop": "Stoppa förhandsgranska",

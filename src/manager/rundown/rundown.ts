@@ -253,6 +253,9 @@ export interface RundownActionDescriptor {
     /** True when this action registered an accepts.match predicate and can
      *  therefore participate in instant playout from the Media view. */
     acceptsFiles: boolean;
+    /** True when this action registered a stop handler. The browser uses this
+     *  to decide whether to show the per-entry stop button. */
+    hasStop: boolean;
 }
 
 export interface RundownFileMatchInput {
@@ -300,6 +303,7 @@ export class RundownExecutor {
                 fileTypes: accepts?.fileTypes,
                 destination: accepts?.destination,
                 acceptsFiles: Boolean(accepts?.match),
+                hasStop: Boolean(entry.metadata?.stop),
             });
         }
         return out;
@@ -434,13 +438,28 @@ export class RundownExecutor {
             if (entry.owner === name) this.actions.delete(type);
     }
 
+    private getEntry(type: string): ActionEntry | null {
+        const entry = this.actions.get(type);
+        if (!entry) Logger.warn(`Unknown action type: ${type}`);
+        return entry ?? null;
+    }
+
     public async executeItem(item: RundownItem) {
-        const entry = this.actions.get(item.type);
-        if (!entry) {
-            Logger.warn(`Unknown action type: ${item.type}`);
+        const entry = this.getEntry(item.type);
+        if (!entry) return;
+        await entry.handler(item);
+    }
+
+    public async stopItem(item: RundownItem) {
+        const entry = this.getEntry(item.type);
+        if (!entry) return;
+
+        const stop = entry.metadata?.stop;
+        if (!stop) {
+            Logger.warn(`Action type ${item.type} has no stop handler`);
             return;
         }
 
-        await entry.handler(item);
+        await stop(item);
     }
 }

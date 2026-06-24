@@ -98,7 +98,6 @@
         },
         "entry": {
             "dragToReorder": "Drag to reorder",
-            "playLockedTooltip": "Play (rundown is locked — items only fire from this button)",
             "orphanedTooltip": "This item's plugin is no longer available — delete it to clean up"
         },
         "deleteEntryDialog": {
@@ -141,6 +140,10 @@
         "play": {
             "offline": "CasparCG is offline — can't play",
             "failed": "Failed to play item"
+        },
+        "stop": {
+            "offline": "CasparCG is offline — can't stop",
+            "failed": "Failed to stop item"
         },
         "preview": {
             "stop": "Stop preview",
