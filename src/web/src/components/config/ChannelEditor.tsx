@@ -20,6 +20,7 @@ import { useTranslation } from 'next-i18next';
 import { type CasparConfig } from '../../lib/api/caspar';
 import { BUILTIN_VIDEO_MODES } from '../../lib/videoModes';
 import { formatConsumerType } from './fields';
+import { useContextMenu } from '../ContextMenuProvider';
 
 type Channel = CasparConfig['channels'][number];
 type Consumer = Channel['consumers'][number];
@@ -37,6 +38,7 @@ const ConsumerRow: React.FC<ConsumerRowProps> = ({
     onDelete,
 }) => {
     const { t } = useTranslation('common');
+    const { openMenu } = useContextMenu();
     const data = consumer.data as Record<string, unknown> | undefined;
     const summary = data
         ? Object.entries(data)
@@ -57,6 +59,22 @@ const ConsumerRow: React.FC<ConsumerRowProps> = ({
         <Card
             variant="outlined"
             sx={theme => ({ p: 1.5, bgcolor: theme.palette.surface.elevated })}
+            onContextMenu={e =>
+                openMenu(e, [
+                    {
+                        label: t('actions.edit'),
+                        icon: <EditOutlinedIcon fontSize="small" />,
+                        onClick: onEdit,
+                    },
+                    {
+                        label: t('actions.delete'),
+                        icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+                        danger: true,
+                        divider: true,
+                        onClick: onDelete,
+                    },
+                ])
+            }
         >
             <Stack
                 direction="row"

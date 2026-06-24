@@ -9,6 +9,7 @@ import {
 } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { useTranslation } from 'next-i18next';
+import { useContextMenu } from '../../../ContextMenuProvider';
 
 interface FixtureRowProps {
     label: string;
@@ -24,10 +25,23 @@ export const FixtureRow: React.FC<FixtureRowProps> = ({
     onDelete,
 }) => {
     const { t } = useTranslation('common');
+    const { openMenu } = useContextMenu();
     return (
         <Card
             variant="outlined"
             onClick={onSelect}
+            onContextMenu={e =>
+                openMenu(e, [
+                    { label: t('actions.select'), onClick: onSelect },
+                    {
+                        label: t('actions.delete'),
+                        icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+                        danger: true,
+                        divider: true,
+                        onClick: onDelete,
+                    },
+                ])
+            }
             sx={theme => ({
                 p: 1,
                 cursor: 'pointer',

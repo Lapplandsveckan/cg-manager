@@ -8,6 +8,7 @@ import {
     Typography,
 } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import { useTranslation } from 'next-i18next';
 import type { VideoRoute } from '../../lib/api/videoRoutes';
 import {
@@ -15,6 +16,7 @@ import {
     summariseDestination,
 } from '../../lib/routes/routeFormatters';
 import { StatusPill } from './StatusPill';
+import { useContextMenu } from '../ContextMenuProvider';
 
 interface RouteCardProps {
     route: VideoRoute;
@@ -30,6 +32,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
     onDelete,
 }) => {
     const { t } = useTranslation('common');
+    const { openMenu } = useContextMenu();
     // CardActionArea wraps the whole card so clicking anywhere opens the
     // editor — except for the inline controls (Switch / Delete) which stop
     // propagation so they don't double-fire as "edit this".
@@ -37,7 +40,31 @@ export const RouteCard: React.FC<RouteCardProps> = ({
         e.stopPropagation();
 
     return (
-        <Card sx={{ p: 0 }}>
+        <Card
+            sx={{ p: 0 }}
+            onContextMenu={e =>
+                openMenu(e, [
+                    {
+                        label: t('actions.edit'),
+                        icon: <EditOutlinedIcon fontSize="small" />,
+                        onClick: onEdit,
+                    },
+                    {
+                        label: route.enabled
+                            ? t('actions.disable')
+                            : t('actions.enable'),
+                        onClick: () => onToggle(!route.enabled),
+                    },
+                    {
+                        label: t('actions.delete'),
+                        icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+                        danger: true,
+                        divider: true,
+                        onClick: onDelete,
+                    },
+                ])
+            }
+        >
             <CardActionArea
                 onClick={onEdit}
                 sx={{ p: 2.5, alignItems: 'stretch' }}

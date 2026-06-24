@@ -9,8 +9,11 @@ import {
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
+import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
+import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
+import { useContextMenu } from './ContextMenuProvider';
 import { useSocket } from '../lib';
 import { usePlayEntry } from '../lib/hooks/usePlayEntry';
 import { useStopEntry } from '../lib/hooks/useStopEntry';
@@ -107,46 +110,73 @@ interface QuickActionTabProps {
     rundown: Rundown;
     active: boolean;
     onClick: () => void;
+    onRename: () => void;
+    onDelete: () => void;
 }
 
 const QuickActionTab: React.FC<QuickActionTabProps> = ({
     rundown,
     active,
     onClick,
-}) => (
-    <ButtonBase
-        onClick={onClick}
-        sx={theme => ({
-            px: 1.75,
-            py: 0.75,
-            borderRadius: 1.5,
-            border: `1px solid ${active ? theme.palette.primary.main : theme.palette.divider}`,
-            bgcolor: active
-                ? alpha(theme.palette.primary.main, 0.12)
-                : 'transparent',
-            color: active
-                ? theme.palette.text.primary
-                : theme.palette.text.secondary,
-            transition: theme.transitions.create(
-                ['background-color', 'border-color', 'color'],
-                {
-                    duration: 120,
-                },
-            ),
-            '&:hover': {
-                bgcolor: alpha(
-                    theme.palette.primary.main,
-                    active ? 0.16 : 0.06,
+    onRename,
+    onDelete,
+}) => {
+    const { t } = useTranslation('common');
+    const { openMenu } = useContextMenu();
+    return (
+        <ButtonBase
+            onClick={onClick}
+            onContextMenu={e =>
+                openMenu(e, [
+                    { label: t('actions.open'), onClick },
+                    {
+                        label: t('actions.rename'),
+                        icon: (
+                            <DriveFileRenameOutlineRoundedIcon fontSize="small" />
+                        ),
+                        onClick: onRename,
+                    },
+                    {
+                        label: t('actions.delete'),
+                        icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+                        danger: true,
+                        divider: true,
+                        onClick: onDelete,
+                    },
+                ])
+            }
+            sx={theme => ({
+                px: 1.75,
+                py: 0.75,
+                borderRadius: 1.5,
+                border: `1px solid ${active ? theme.palette.primary.main : theme.palette.divider}`,
+                bgcolor: active
+                    ? alpha(theme.palette.primary.main, 0.12)
+                    : 'transparent',
+                color: active
+                    ? theme.palette.text.primary
+                    : theme.palette.text.secondary,
+                transition: theme.transitions.create(
+                    ['background-color', 'border-color', 'color'],
+                    {
+                        duration: 120,
+                    },
                 ),
-                color: theme.palette.text.primary,
-            },
-        })}
-    >
-        <Typography variant="body1" fontWeight={active ? 600 : 400}>
-            {rundown.name}
-        </Typography>
-    </ButtonBase>
-);
+                '&:hover': {
+                    bgcolor: alpha(
+                        theme.palette.primary.main,
+                        active ? 0.16 : 0.06,
+                    ),
+                    color: theme.palette.text.primary,
+                },
+            })}
+        >
+            <Typography variant="body1" fontWeight={active ? 600 : 400}>
+                {rundown.name}
+            </Typography>
+        </ButtonBase>
+    );
+};
 
 interface QuickActionsProps {
     locked?: boolean;
@@ -241,6 +271,12 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
                             rundown={rundown}
                             active={rundown.id === quickAction}
                             onClick={() => setQuickAction(rundown.id)}
+                            onRename={() => setQuickEditing(rundown)}
+                            onDelete={() => {
+                                deleteQuickAction(rundown);
+                                if (quickAction === rundown.id)
+                                    setQuickAction(null);
+                            }}
                         />
                     ))}
 

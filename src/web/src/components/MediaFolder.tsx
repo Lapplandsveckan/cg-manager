@@ -11,8 +11,10 @@ import {
 import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
+import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
 import { useTranslation } from 'next-i18next';
 import { hasMediaMovePayload, parseMediaMovePayload } from '../lib/dragPayload';
+import { useContextMenu } from './ContextMenuProvider';
 
 export interface MediaFolderProps {
     name: string;
@@ -68,6 +70,8 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({
         if (payload) onMediaDrop(payload.id);
     };
 
+    const { openMenu } = useContextMenu();
+
     return (
         <Grid
             item
@@ -79,6 +83,29 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({
         >
             <Card
                 onClick={() => onClick?.()}
+                onContextMenu={e =>
+                    openMenu(e, [
+                        onClick && {
+                            label: t('actions.open'),
+                            icon: <FolderOpenOutlinedIcon fontSize="small" />,
+                            onClick,
+                        },
+                        onRename && {
+                            label: t('actions.rename'),
+                            icon: (
+                                <DriveFileRenameOutlineRoundedIcon fontSize="small" />
+                            ),
+                            onClick: onRename,
+                        },
+                        onDelete && {
+                            label: t('actions.delete'),
+                            icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+                            danger: true,
+                            divider: true,
+                            onClick: onDelete,
+                        },
+                    ])
+                }
                 onDragEnter={onDragEnter}
                 onDragOver={onDragOver}
                 onDragLeave={onDragLeave}

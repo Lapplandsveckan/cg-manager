@@ -11,8 +11,10 @@ import {
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import { useTranslation } from 'next-i18next';
 import { type Plugin } from '../lib/api/plugin';
+import { useContextMenu } from './ContextMenuProvider';
 
 export interface PluginCardProps {
     plugin: Plugin;
@@ -70,11 +72,34 @@ export const PluginCard: React.FC<PluginCardProps> = ({
     onUninstall,
 }) => {
     const { t } = useTranslation('common');
+    const { openMenu } = useContextMenu();
     const insufficient =
         plugin.minChannels > 0 && channelCount < plugin.minChannels;
     return (
         <Card
             onClick={onOpen}
+            onContextMenu={e =>
+                openMenu(e, [
+                    {
+                        label: t('actions.open'),
+                        icon: <OpenInNewRoundedIcon fontSize="small" />,
+                        onClick: onOpen,
+                    },
+                    {
+                        label: plugin.enabled
+                            ? t('actions.disable')
+                            : t('actions.enable'),
+                        onClick: () => onToggle(!plugin.enabled),
+                    },
+                    !plugin.builtin && {
+                        label: t('pluginsPage.uninstall.button'),
+                        icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+                        danger: true,
+                        divider: true,
+                        onClick: onUninstall,
+                    },
+                ])
+            }
             sx={theme => ({
                 p: 2.5,
                 cursor: 'pointer',
