@@ -196,7 +196,11 @@ export const PluginCard: React.FC<PluginCardProps> = ({
                     </Button>
                     <ChevronRightIcon
                         fontSize="small"
-                        sx={{ color: 'text.disabled', pointerEvents: 'none', visibility: hasUi ? 'visible' : 'hidden' }}
+                        sx={{
+                            color: 'text.disabled',
+                            pointerEvents: 'none',
+                            visibility: hasUi ? 'visible' : 'hidden',
+                        }}
                     />
                 </Stack>
             </Stack>

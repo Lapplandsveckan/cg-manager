@@ -261,12 +261,18 @@ interface RundownEntryProps {
 
     /** Drag handle wiring — when provided, a grip icon appears on the left
      *  edge and is the only element that initiates a reorder drag. */
-    onReorderDragStart?: (e: React.DragEvent<HTMLDivElement>) => void;
+    onReorderDragStart?: (
+        e: React.DragEvent<HTMLDivElement>,
+        height: number,
+        grabOffset: number,
+    ) => void;
     onReorderDragEnd?: () => void;
-    /** When set, a horizontal copper line is rendered above/below the card
-     *  to indicate where the dragged item will land. */
+    /** When set, an animated gap opens above/below the card to show where the
+     *  dragged item will land. */
     dropIndicator?: 'before' | 'after' | null;
-    /** Dimmed appearance while this card is the source of the active drag. */
+    /** Height of the gap in px. Defaults to 64. */
+    gapHeight?: number;
+    /** Collapses this card (source of the active drag) so the list closes up. */
     isDragging?: boolean;
 }
 
@@ -284,6 +290,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     onReorderDragStart,
     onReorderDragEnd,
     dropIndicator,
+    gapHeight = 64,
     isDragging,
 }) => {
     const { t } = useTranslation('common');
@@ -299,27 +306,36 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
     // reserved but hidden so toggling lock doesn't shift the title.
     return (
         <Box sx={{ position: 'relative' }}>
-            {dropIndicator === 'before' && <DropIndicator position="top" />}
+            <Box
+                sx={{
+                    height: dropIndicator === 'before' ? gapHeight : 0,
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                }}
+            />
 
             <Stack
                 ref={cardRef}
+                data-card
                 direction="row"
                 sx={theme => ({
                     position: 'relative',
-                    py: 2,
-                    pr: 2,
+                    py: isDragging ? 0 : 2,
+                    pr: isDragging ? 0 : 2,
                     // Reserve space so handle visibility toggle doesn't shift layout.
-                    pl: supportsReorder ? '28px' : 2,
+                    pl: isDragging ? 0 : supportsReorder ? '28px' : 2,
                     bgcolor: theme.palette.surface.paper,
                     border: `1px solid ${theme.palette.divider}`,
                     borderRadius: 1.5,
                     width: '100%',
                     cursor: cardClickable ? 'pointer' : 'default',
-                    opacity: isDragging ? 0.4 : disabled ? 0.55 : 1,
+                    opacity: isDragging ? 0 : disabled ? 0.55 : 1,
+                    maxHeight: isDragging ? 0 : 2000,
+                    overflow: isDragging ? 'hidden' : 'visible',
                     transition: theme.transitions.create(
                         ['border-color', 'background-color', 'opacity'],
                         {
-                            duration: 120,
+                            duration: 180,
                         },
                     ),
                     '&:hover': cardClickable
@@ -350,9 +366,9 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                                 : undefined
                         }
                         onDragStart={e => {
-                            if (cardRef.current) {
-                                const rect =
-                                    cardRef.current.getBoundingClientRect();
+                            const rect =
+                                cardRef.current?.getBoundingClientRect();
+                            if (cardRef.current && rect) {
                                 e.dataTransfer.setDragImage(
                                     cardRef.current,
                                     e.clientX - rect.left,
@@ -360,7 +376,11 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                                 );
                             }
                             e.stopPropagation();
-                            onReorderDragStart?.(e);
+                            onReorderDragStart?.(
+                                e,
+                                rect?.height ?? 64,
+                                e.clientY - (rect?.top ?? e.clientY),
+                            );
                         }}
                         onDragEnd={() => onReorderDragEnd?.()}
                         onClick={e => e.stopPropagation()}
@@ -469,28 +489,16 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                 </Stack>
             </Stack>
 
-            {dropIndicator === 'after' && <DropIndicator position="bottom" />}
+            <Box
+                sx={{
+                    height: dropIndicator === 'after' ? gapHeight : 0,
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                }}
+            />
         </Box>
     );
 };
-
-const DropIndicator: React.FC<{ position: 'top' | 'bottom' }> = ({
-    position,
-}) => (
-    <Box
-        sx={theme => ({
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            [position]: -8,
-            height: 2,
-            bgcolor: theme.palette.primary.main,
-            borderRadius: 1,
-            pointerEvents: 'none',
-            boxShadow: `0 0 6px ${alpha(theme.palette.primary.main, 0.6)}`,
-        })}
-    />
-);
 
 interface RundownsProps {
     entries: RundownEntry[];
@@ -557,10 +565,17 @@ export const Rundowns: React.FC<RundownsProps> = ({
     const [reorderDraggingId, setReorderDraggingId] = useState<string | null>(
         null,
     );
-    const [insertion, setInsertion] = useState<{
-        id: string;
-        position: 'before' | 'after';
-    } | null>(null);
+    const [draggingHeight, setDraggingHeight] = useState(0);
+    const [dropIndex, setDropIndex] = useState<number | null>(null);
+    // Written synchronously so computeDropIndex sees the correct offset on the
+    // first dragover without waiting for a re-render.
+    const grabOffsetRef = useRef(0);
+    // Mirrored each render so dragend reads the latest value without stale closures.
+    const dropIndexRef = useRef<number | null>(null);
+    dropIndexRef.current = dropIndex;
+    // Marked synchronously by applyReorderDrop so dragend can skip the
+    // outside-container path without relying on render timing.
+    const didDropInsideRef = useRef(false);
 
     const [activeTypes, setActiveTypes] = useState<Set<string> | null>(null);
     const [stoppableTypes, setStoppableTypes] = useState<Set<string>>(
@@ -700,33 +715,85 @@ export const Rundowns: React.FC<RundownsProps> = ({
         uploadCtrl.confirm();
     };
 
+    const clearReorderState = useCallback(() => {
+        setDropIndex(null);
+        setReorderDraggingId(null);
+        setDraggingHeight(0);
+        grabOffsetRef.current = 0;
+    }, []);
+
+    // Counts cards above the drag reference point using natural card heights, not
+    // live getBoundingClientRect().bottom — those are shifted by the open gap spacer
+    // and produce wrong results. [data-card] is a sibling of gap boxes so heights
+    // are gap-independent. Reads only refs so useCallback deps stay empty.
+    const computeDropIndex = useCallback((clientY: number): number => {
+        const refY = clientY - grabOffsetRef.current;
+        const el = stackRef.current;
+        // Subtract scrollTop so listTop tracks content origin as the user scrolls.
+        const listTop =
+            (el?.getBoundingClientRect().top ?? 0) - (el?.scrollTop ?? 0);
+        const cards = Array.from(
+            el?.querySelectorAll('[data-card]') ?? [],
+        ) as HTMLElement[];
+        const spacing = 12; // MUI Stack spacing={1.5} = 1.5 * 8px
+        let y = listTop;
+        let idx = 0;
+        for (let i = 0; i < cards.length; i++) {
+            if (i > 0) y += spacing;
+            y += cards[i].getBoundingClientRect().height;
+            if (y <= refY) idx++;
+            else break;
+        }
+        return idx;
+    }, []);
+
+    // Track cursor Y globally so the gap stays visible when dragging outside the container.
+    useEffect(() => {
+        if (!reorderDraggingId) return;
+        const handler = (e: DragEvent) => {
+            e.preventDefault();
+            setDropIndex(computeDropIndex(e.clientY));
+        };
+        document.addEventListener('dragover', handler);
+        return () => document.removeEventListener('dragover', handler);
+    }, [reorderDraggingId, computeDropIndex]);
+
     const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        if (
+        const isReorder = hasReorderPayload(e.dataTransfer);
+        const isCreate =
             acceptsDrop &&
             (hasRundownItemPayload(e.dataTransfer) ||
-                isFileDrag(e.dataTransfer))
-        ) {
+                isFileDrag(e.dataTransfer));
+
+        if (isReorder && acceptsReorder) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            // reorderDraggingId is set one RAF after dragstart so the drag image
+            // is captured from the full-height card before React collapses it.
+            if (reorderDraggingId) setDropIndex(computeDropIndex(e.clientY));
+            return;
+        }
+        if (isCreate) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'copy';
             if (!dragOver) setDragOver(true);
-            return;
+            setDropIndex(computeDropIndex(e.clientY));
         }
     };
+
     const onDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
         // Only flip off when the drag actually leaves the wrapper, not when
-        // moving between nested children. Without this the insertion line
-        // would stay drawn in one list after the cursor moved to another
-        // (e.g. Rundown ↔ Quick Actions) since per-item dragover only fires
-        // when entering items, not when leaving the whole column.
+        // moving between nested children.
         if (e.currentTarget.contains(e.relatedTarget as Node)) return;
         setDragOver(false);
-        setInsertion(null);
-    };
-    const resolveDropIndex = (): number | undefined => {
-        if (!insertion) return undefined;
-        const itemIndex = entries.findIndex(en => en.id === insertion.id);
-        if (itemIndex < 0) return undefined;
-        return insertion.position === 'before' ? itemIndex : itemIndex + 1;
+        if (!reorderDraggingId) {
+            setDropIndex(null);
+            return;
+        }
+        // Cursor left the container during a reorder drag. Snap to the nearest
+        // edge immediately (0 if above, entries.length if below/side) so the gap
+        // doesn't vanish while the document handler takes over continuous tracking.
+        setDropIndex(computeDropIndex(e.clientY));
     };
 
     const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -739,9 +806,9 @@ export const Rundowns: React.FC<RundownsProps> = ({
         if (isFileDrag(e.dataTransfer)) {
             e.preventDefault();
             const files = Array.from(e.dataTransfer.files);
-            const index = resolveDropIndex();
+            const index = dropIndex ?? undefined;
             setDragOver(false);
-            setInsertion(null);
+            setDropIndex(null);
             if (files.length) void handleFileDrop(files, index);
             return;
         }
@@ -749,88 +816,64 @@ export const Rundowns: React.FC<RundownsProps> = ({
         const payload = parseRundownItemPayload(e.dataTransfer);
         setDragOver(false);
         if (!payload) {
-            setInsertion(null);
+            setDropIndex(null);
             return;
         }
         e.preventDefault();
 
-        const index = resolveDropIndex();
-        setInsertion(null);
+        const index = dropIndex ?? undefined;
+        setDropIndex(null);
         onDropItem?.(payload, index);
-    };
-
-    const onItemDragOver = (e: React.DragEvent<HTMLDivElement>, id: string) => {
-        const isReorder = hasReorderPayload(e.dataTransfer);
-        const isCreate =
-            !isReorder &&
-            acceptsDrop &&
-            (hasRundownItemPayload(e.dataTransfer) ||
-                isFileDrag(e.dataTransfer));
-
-        if (isReorder && acceptsReorder) {
-            if (reorderDraggingId === id) {
-                // Hovering the source itself — clear any indicator
-                setInsertion(prev => (prev ? null : prev));
-                return;
-            }
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            const rect = e.currentTarget.getBoundingClientRect();
-            const position: 'before' | 'after' =
-                e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
-            setInsertion(prev =>
-                prev?.id === id && prev?.position === position
-                    ? prev
-                    : { id, position },
-            );
-            return;
-        }
-
-        if (isCreate) {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'copy';
-            const rect = e.currentTarget.getBoundingClientRect();
-            const position: 'before' | 'after' =
-                e.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
-            setInsertion(prev =>
-                prev?.id === id && prev?.position === position
-                    ? prev
-                    : { id, position },
-            );
-        }
     };
 
     const applyReorderDrop = (e: React.DragEvent<HTMLDivElement>) => {
         const fromId = e.dataTransfer.getData(RUNDOWN_REORDER_MIME);
-        if (!fromId || !insertion || !onReorder) {
-            setInsertion(null);
-            setReorderDraggingId(null);
+        if (!fromId || dropIndex === null || !onReorder) {
+            clearReorderState();
             return;
         }
         e.preventDefault();
 
         const fromIndex = entries.findIndex(en => en.id === fromId);
         if (fromIndex < 0) {
-            setInsertion(null);
-            setReorderDraggingId(null);
+            clearReorderState();
             return;
         }
 
-        let toIndex = entries.findIndex(en => en.id === insertion.id);
-        if (insertion.position === 'after') toIndex++;
-        if (fromIndex < toIndex) toIndex--;
-
-        setInsertion(null);
-        setReorderDraggingId(null);
+        // Mark before clearing so dragend (fired after drop) skips the outside-container path.
+        didDropInsideRef.current = true;
+        const toIndex = fromIndex < dropIndex ? dropIndex - 1 : dropIndex;
+        clearReorderState();
 
         if (fromIndex === toIndex) return;
 
         const next = [...entries];
         const [moved] = next.splice(fromIndex, 1);
         next.splice(toIndex, 0, moved);
-
         onReorder(next.map(en => en.id));
     };
+
+    const onReorderDragEnd = useCallback(() => {
+        if (!didDropInsideRef.current) {
+            const idx = dropIndexRef.current;
+            if (idx !== null && reorderDraggingId && onReorder) {
+                const fromIndex = entries.findIndex(
+                    en => en.id === reorderDraggingId,
+                );
+                if (fromIndex >= 0) {
+                    const toIndex = fromIndex < idx ? idx - 1 : idx;
+                    if (fromIndex !== toIndex) {
+                        const next = [...entries];
+                        const [moved] = next.splice(fromIndex, 1);
+                        next.splice(toIndex, 0, moved);
+                        onReorder(next.map(en => en.id));
+                    }
+                }
+            }
+        }
+        didDropInsideRef.current = false;
+        clearReorderState();
+    }, [reorderDraggingId, entries, onReorder, clearReorderState]);
 
     return (
         <>
@@ -860,6 +903,9 @@ export const Rundowns: React.FC<RundownsProps> = ({
                     minHeight: 0,
                     // Page disables overflowY at row level; this Stack owns scroll.
                     overflowY: 'auto',
+                    // Prevent scroll anchoring: gap-box reflows above the viewport
+                    // would nudge scrollTop and oscillate with computeDropIndex.
+                    overflowAnchor: 'none',
                     outline: dragOver
                         ? `2px dashed ${alpha(theme.palette.primary.main, 0.6)}`
                         : '2px dashed transparent',
@@ -888,7 +934,6 @@ export const Rundowns: React.FC<RundownsProps> = ({
                     return (
                         <Box
                             key={entry.id}
-                            onDragOver={e => onItemDragOver(e, entry.id)}
                             onContextMenu={e =>
                                 openMenu(e, [
                                     {
@@ -986,26 +1031,34 @@ export const Rundowns: React.FC<RundownsProps> = ({
                                 }
                                 onReorderDragStart={
                                     acceptsReorder
-                                        ? e => {
+                                        ? (e, height, offset) => {
                                               e.dataTransfer.setData(
                                                   RUNDOWN_REORDER_MIME,
                                                   entry.id,
                                               );
                                               e.dataTransfer.effectAllowed =
                                                   'move';
-                                              setReorderDraggingId(entry.id);
+                                              setDraggingHeight(height);
+                                              grabOffsetRef.current = offset;
+                                              // Defer so the drag image is captured before the card collapses.
+                                              requestAnimationFrame(() =>
+                                                  setReorderDraggingId(
+                                                      entry.id,
+                                                  ),
+                                              );
                                           }
                                         : undefined
                                 }
-                                onReorderDragEnd={() => {
-                                    setReorderDraggingId(null);
-                                    setInsertion(null);
-                                }}
+                                onReorderDragEnd={onReorderDragEnd}
                                 dropIndicator={
-                                    insertion?.id === entry.id
-                                        ? insertion.position
-                                        : null
+                                    dropIndex === index
+                                        ? 'before'
+                                        : dropIndex === entries.length &&
+                                            index === entries.length - 1
+                                          ? 'after'
+                                          : null
                                 }
+                                gapHeight={draggingHeight || 64}
                                 isDragging={reorderDraggingId === entry.id}
                             >
                                 <Injections
