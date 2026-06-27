@@ -94,6 +94,10 @@ export class CasparExecutor extends CommandExecutor {
 
         const isReconnect = this.hasConnectedBefore;
         this.hasConnectedBefore = true;
+        // Stamp before marking connected so the base-class promise() timeout
+        // re-arms for any commands buffered pre-connect, giving them a full 1 s
+        // window from this moment rather than from when they were enqueued.
+        this._connectedAt = Date.now();
         this._connected = true;
         this.failedAttempts = 0;
         this.send(''); // Flush buffer

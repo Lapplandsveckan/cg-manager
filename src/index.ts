@@ -128,7 +128,10 @@ async function main() {
 
     if (err) {
         Logger.error(err);
-        process.exit(1);
+        // AMCP errors (timeout, bad response) must not take the whole manager
+        // down — they're transient and the executor recovers on reconnect.
+        // Anything else (config parse failure, port bind, etc.) is fatal.
+        if (!isAmcpError(err)) process.exit(1);
     }
 }
 

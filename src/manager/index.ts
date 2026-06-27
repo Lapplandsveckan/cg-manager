@@ -74,7 +74,28 @@ export class CasparManager extends EventEmitter {
         // them on every connect — first boot (routes were loaded while the
         // socket was still warming up) and reconnect (CasparCG was wiped, so
         // the existing effects are stale refs and must be rebuilt).
+        //
+        // Channel allocation also happens here rather than in start() so that
+        // allocateChannel() (and any AMCP commands emitted by initial layer
+        // allocations) runs against a live socket instead of being enqueued
+        // pre-connect where the 1 s response timer would start before CasparCG
+        // can actually respond.
         this.unsubConnect = this.executor.onConnect(() => {
+            if (!this.channelsAllocated) {
+                this.channelsAllocated = true;
+                const channels = this.caspar.config?.channels;
+                if (!channels) {
+                    Logger.warn(
+                        'Skipping channel allocation: CasparCG config has no channels.',
+                    );
+                } else {
+                    Logger.info(
+                        `Allocating ${channels.length} channel${channels.length === 1 ? '' : 's'}...`,
+                    );
+                    for (let i = 0; i < channels.length; i++)
+                        this.executor.allocateChannel(i + 1);
+                }
+            }
             this.routes.refreshEffects();
         });
 
@@ -87,6 +108,7 @@ export class CasparManager extends EventEmitter {
         });
     }
 
+    private channelsAllocated = false;
     private unsubConnect: (() => void) | null = null;
     private unsubReconnect: (() => void) | null = null;
 
@@ -106,19 +128,6 @@ export class CasparManager extends EventEmitter {
         Logger.info('Starting rundown auto save...');
         this.rundowns.startAutosave();
         await this.rundowns.loadRundowns();
-
-        const channels = this.caspar.config?.channels;
-        if (!channels) {
-            Logger.warn(
-                'Skipping channel allocation: CasparCG config has no channels.',
-            );
-        } else {
-            Logger.info(
-                `Allocating ${channels.length} channel${channels.length === 1 ? '' : 's'}...`,
-            );
-            for (let i = 0; i < channels.length; i++)
-                this.executor.allocateChannel(i + 1);
-        }
     }
 
     async stop() {
