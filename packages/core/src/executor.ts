@@ -13,6 +13,7 @@ export interface TemplateInfo {
 
 export interface CommandListener {
     command: string;
+    timeout?: NodeJS.Timeout;
 
     success: (data: string[], code: number) => void;
     error: (data: string[], code: number) => void;
@@ -78,9 +79,15 @@ export class CommandExecutor {
 
     public promise(command: string) {
         return new Promise<{ data: string[], code: number }>((resolve, reject) => {
-            let timeout;
+            // `timeout` is tracked both as a local closure var (for fast clear
+            // inside the callbacks) and mirrored onto `listener.timeout` so that
+            // clearPendingCommands() can cancel it from outside the closure.
+            let timeout: NodeJS.Timeout | undefined;
+
             const startTimeout = () => {
                 timeout = setTimeout(() => {
+                    timeout = undefined;
+                    listener.timeout = undefined;
                     // Re-arm while disconnected, or within the first second after
                     // connecting — commands buffered pre-connect haven't had a fair
                     // response window yet since the bytes only just reached the server.
@@ -89,9 +96,8 @@ export class CommandExecutor {
                     this.removeListener(listener);
                     reject(new CasparResponseError(['Timeout'], -1));
                 }, 1000);
+                listener.timeout = timeout;
             };
-
-            startTimeout();
 
             const onSuccess = (data: string[], code: number) => {
                 if (timeout) clearTimeout(timeout);
@@ -109,6 +115,7 @@ export class CommandExecutor {
                 error: onError,
             };
 
+            startTimeout();
             this.addListener(listener);
         });
     }
@@ -215,6 +222,20 @@ export class CommandExecutor {
     protected removeListener(listener: CommandListener) {
         const index = this.listeners.indexOf(listener);
         if (index > -1) this.listeners.splice(index, 1);
+    }
+
+    /**
+     * Cancel all pending command-response listeners and reject their promises.
+     * Called on disconnect so orphaned timers (from commands sent just before the
+     * socket dropped) don't accumulate and fire spuriously after reconnect.
+     */
+    protected clearPendingCommands(data = ['Disconnected'], code = -1) {
+        const pending = this.listeners;
+        this.listeners = [];
+        for (const listener of pending) {
+            if (listener.timeout) clearTimeout(listener.timeout);
+            listener.error(data, code);
+        }
     }
 
     protected executeListeners(code: number, cmd: string, data: string[]) {
