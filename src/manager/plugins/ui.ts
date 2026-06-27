@@ -115,6 +115,15 @@ function getConfig(entry: string) {
         module: {
             rules: [
                 {
+                    // @babel/runtime helpers and some parser libs ship ESM .js files.
+                    // Webpack's auto module-type detection misfires in the pkg snapshot
+                    // (plugin on real disk, manager deps in /snapshot FS), so force
+                    // javascript/auto globally instead of relying on path heuristics.
+                    test: /\.m?js$/,
+                    type: 'javascript/auto',
+                    resolve: { fullySpecified: false },
+                },
+                {
                     test: /\.(js|jsx|ts|tsx)$/,
                     exclude: /node_modules/,
                     use: {
