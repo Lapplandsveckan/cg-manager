@@ -3,7 +3,7 @@
   "repository": "https://github.com/Lapplandsveckan/cg-manager-plugin",
   "author": "firecraftgaming <eliyah@sundstroem.com>",
   "license": "MIT",
-  "version": "0.0.40",
+  "version": "0.0.41",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -20,8 +20,12 @@
     "react": "^18.0.0"
   },
   "peerDependenciesMeta": {
-    "@types/react": { "optional": true },
-    "react": { "optional": true }
+    "@types/react": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@babel/core": "^7.19.3",

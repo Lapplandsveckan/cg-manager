@@ -37,6 +37,11 @@ export class CommandExecutor {
     private lastFetch = 0;
     private fetchPromise: Promise<TemplateInfo[]> = null;
 
+    // Stamped by the subclass in handleConnect() so that promise() can give
+    // commands buffered pre-connect a full timeout window from the moment the
+    // socket actually becomes live (not from when the command was enqueued).
+    protected _connectedAt: number = 0;
+
     public get connected() {
         return true;
     }
@@ -76,7 +81,10 @@ export class CommandExecutor {
             let timeout;
             const startTimeout = () => {
                 timeout = setTimeout(() => {
-                    if (!this.connected) return startTimeout();
+                    // Re-arm while disconnected, or within the first second after
+                    // connecting — commands buffered pre-connect haven't had a fair
+                    // response window yet since the bytes only just reached the server.
+                    if (!this.connected || (Date.now() - this._connectedAt < 1000)) return startTimeout();
 
                     this.removeListener(listener);
                     reject(new CasparResponseError(['Timeout'], -1));
