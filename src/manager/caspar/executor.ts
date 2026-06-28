@@ -189,6 +189,27 @@ export class CasparExecutor extends CommandExecutor {
         return channel.getGroup(group, index);
     }
 
+    public getEffectGroups() {
+        return this.getChannels().map(channel => {
+            const { channel: num, groups } = channel.toJSON();
+            return { channel: num, groups };
+        });
+    }
+
+    public findEffectGroup(identifier: string) {
+        const [c, name] = identifier.split(':');
+        const cid = parseInt(c);
+        if (isNaN(cid) || !name) return null;
+
+        const channel = this.getChannels().find(
+            ch => ch.toJSON().channel === cid,
+        );
+        const group = channel?.groups.find(g => g.name === name);
+        if (!channel || !group) return null;
+
+        return { channel: cid, ...group.toJSON() };
+    }
+
     // CasparCG may not be running (dev on macOS, or pre-boot). The parent's
     // getChannel returns undefined for unallocated channels, which crashes
     // plugins that assume the Channel is always there. Lazy-allocate so
