@@ -2,6 +2,9 @@ import {Channel} from './layers';
 import {BasicCommand, Command} from './command';
 import {Effect} from './effect';
 
+const COMMAND_TIMEOUT_MS = 1000;
+const CONNECT_GRACE_MS = 1000;
+
 export interface TemplateInfo {
     id: string;
     path: string;
@@ -38,9 +41,7 @@ export class CommandExecutor {
     private lastFetch = 0;
     private fetchPromise: Promise<TemplateInfo[]> = null;
 
-    // Stamped by the subclass in handleConnect() so that promise() can give
-    // commands buffered pre-connect a full timeout window from the moment the
-    // socket actually becomes live (not from when the command was enqueued).
+    // Stamped by the subclass on connect; used to grant pre-connect-buffered commands a fair response window.
     protected _connectedAt: number = 0;
 
     public get connected() {
@@ -78,45 +79,26 @@ export class CommandExecutor {
     }
 
     public promise(command: string) {
-        const callerStack = new Error().stack;
+        const callerStack = new Error().stack; // kept for timeout diagnostics
         return new Promise<{ data: string[], code: number }>((resolve, reject) => {
-            // `timeout` is tracked both as a local closure var (for fast clear
-            // inside the callbacks) and mirrored onto `listener.timeout` so that
-            // clearPendingCommands() can cancel it from outside the closure.
-            let timeout: NodeJS.Timeout | undefined;
-
             const startTimeout = () => {
-                timeout = setTimeout(() => {
-                    timeout = undefined;
+                listener.timeout = setTimeout(() => {
                     listener.timeout = undefined;
-                    // Re-arm while disconnected, or within the first second after
-                    // connecting — commands buffered pre-connect haven't had a fair
-                    // response window yet since the bytes only just reached the server.
-                    if (!this.connected || (Date.now() - this._connectedAt < 1000)) return startTimeout();
+                    // Re-arm while disconnected, or within the grace window after connect —
+                    // pre-connect-buffered commands only just reached the server.
+                    if (!this.connected || Date.now() - this._connectedAt < CONNECT_GRACE_MS)
+                        return startTimeout();
 
                     this.removeListener(listener);
-                    const err = new CasparResponseError([`Timeout: "${command}"`, callerStack ?? '(no stack)'], -1);
-                    reject(err);
-                }, 1000);
-                listener.timeout = timeout;
+                    reject(new CasparResponseError([`Timeout: "${command}"`, callerStack ?? '(no stack)'], -1));
+                }, COMMAND_TIMEOUT_MS);
             };
 
-            const onSuccess = (data: string[], code: number) => {
-                if (timeout) clearTimeout(timeout);
-                resolve({data, code});
-            };
+            const clear = () => { if (listener.timeout) clearTimeout(listener.timeout); };
+            const onSuccess = (data: string[], code: number) => { clear(); resolve({data, code}); };
+            const onError = (data: string[], code: number) => { clear(); reject(new CasparResponseError(data, code)); };
 
-            const onError = (data: string[], code: number) => {
-                if (timeout) clearTimeout(timeout);
-                reject(new CasparResponseError(data, code));
-            };
-
-            const listener: CommandListener = {
-                command,
-                success: onSuccess,
-                error: onError,
-            };
-
+            const listener: CommandListener = {command, success: onSuccess, error: onError};
             startTimeout();
             this.addListener(listener);
         });
@@ -226,11 +208,7 @@ export class CommandExecutor {
         if (index > -1) this.listeners.splice(index, 1);
     }
 
-    /**
-     * Cancel all pending command-response listeners and reject their promises.
-     * Called on disconnect so orphaned timers (from commands sent just before the
-     * socket dropped) don't accumulate and fire spuriously after reconnect.
-     */
+    /** Cancel pending listeners and reject their promises; call on disconnect to avoid orphaned timers. */
     protected clearPendingCommands(data = ['Disconnected'], code = -1) {
         const pending = this.listeners;
         this.listeners = [];
