@@ -290,3 +290,115 @@ export interface UploadModalProps {
 }
 
 export const UploadModal: React.FC<UploadModalProps>;
+
+// ---------------------------------------------------------------------------
+// Context menu
+// ---------------------------------------------------------------------------
+
+export interface ContextMenuItem {
+    label: string;
+    onClick: () => void;
+    icon?: React.ReactNode;
+    disabled?: boolean;
+    /** Renders the item in red — use for destructive actions like Delete. */
+    danger?: boolean;
+    /** Renders a Divider above this item. */
+    divider?: boolean;
+}
+
+/** The four host surfaces that plugins can contribute context-menu items to. */
+export type ContextMenuSurface = 'rundown-item' | 'media' | 'route' | 'plugin';
+
+/**
+ * A function that receives the right-clicked target and returns items to
+ * append after the host's built-in items. Falsy entries are filtered out,
+ * so you may conditionally return items with `cond && { ... }`.
+ */
+export type ContextMenuItemProvider<T = unknown> = (
+    target: T,
+) => (ContextMenuItem | false | null | undefined)[];
+
+// Target descriptors — one per surface.
+
+export interface ContextMenuMediaTarget {
+    name: string;
+    /** Full slash-separated media id, or null for folders / cards without dragId. */
+    id: string | null;
+    isFolder: boolean;
+    duration?: number;
+}
+
+export interface ContextMenuRundownItemTarget {
+    id: string;
+    title: string;
+    type?: string;
+    data: unknown;
+}
+
+export interface ContextMenuRouteTarget {
+    id: string;
+    name: string;
+    enabled: boolean;
+}
+
+export interface ContextMenuPluginTarget {
+    name: string;
+    enabled: boolean;
+    builtin: boolean;
+    hasUi: boolean;
+    minChannels: number;
+}
+
+export interface ContextMenuApi {
+    /** Open a menu at the cursor position with the given items. */
+    openMenu: (
+        event: React.MouseEvent,
+        items: (ContextMenuItem | false | null | undefined)[],
+    ) => void;
+    /** Convenience: returns an `onContextMenu` handler bound to the given items. */
+    bind: (
+        items: (ContextMenuItem | false | null | undefined)[],
+    ) => (event: React.MouseEvent) => void;
+    /**
+     * Register a provider that appends items to a host surface's context menu.
+     * Returns an unsubscribe function. Prefer `useRegisterContextMenuItems`
+     * over calling this directly.
+     */
+    registerProvider: <T>(
+        surface: ContextMenuSurface,
+        provider: ContextMenuItemProvider<T>,
+    ) => () => void;
+    /**
+     * Open a surface menu, appending any registered plugin items after
+     * `hostItems` (separated by a divider). Used by host surfaces internally;
+     * plugins normally don't call this directly.
+     */
+    openSurfaceMenu: <T>(
+        event: React.MouseEvent,
+        surface: ContextMenuSurface,
+        target: T,
+        hostItems: (ContextMenuItem | false | null | undefined)[],
+    ) => void;
+}
+
+/** Access the host's context-menu system from a plugin-injected component. */
+export function useContextMenu(): ContextMenuApi;
+
+/**
+ * Register a context-menu provider for a host surface. Call this once on
+ * mount; cleanup is handled automatically when the component unmounts.
+ *
+ * The provider function does NOT need to be stable (memoized).
+ *
+ * @example
+ * useRegisterContextMenuItems<ContextMenuRundownItemTarget>(
+ *   'rundown-item',
+ *   target => [
+ *     { label: 'Send to ProPresenter', onClick: () => sendTo(target) },
+ *   ],
+ * );
+ */
+export function useRegisterContextMenuItems<T>(
+    surface: ContextMenuSurface,
+    provider: ContextMenuItemProvider<T>,
+): void;
