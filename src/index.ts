@@ -23,11 +23,27 @@ function isAmcpError(e: unknown): boolean {
     );
 }
 
+/** Formats a caught value for logging. CasparResponseError gets a compact
+ *  one-liner instead of a multiline message + full stack. */
+function formatError(e: unknown): string | Error {
+    if (isAmcpError(e) && typeof e === 'object' && e !== null) {
+        const err = e as { name?: string; code?: number; data?: string[] };
+        const msg = Array.isArray(err.data) ? err.data.join(', ') : '';
+        return `${err.name ?? 'CasparResponseError'} (${err.code ?? '?'}): ${msg}`;
+    }
+    if (e instanceof Error) return e;
+    if (typeof e === 'object') return JSON.stringify(e);
+    return String(e);
+}
+
 async function start() {
     if (process.env.CASPAR_DIR) process.chdir(process.env.CASPAR_DIR);
 
     Logger.info('Starting Caspar CG manager...');
     await loadConfig();
+    Logger.info(
+        `Runtime: dev=${config.dev} NODE_ENV=${process.env.NODE_ENV ?? 'unset'}`,
+    );
     startWeb();
 
     const manager = CasparManager.getManager();
@@ -75,19 +91,28 @@ let stopHandler: () => Promise<void> | void;
 async function main() {
     const [err] = await noTryAsync(async () => {
         process.on('uncaughtException', e => {
-            Logger.error(e);
+            Logger.error(formatError(e));
+            // Mirror unhandledRejection: absorb AMCP errors rather than crash.
+            // An uncaught AMCP exception means plugin code threw instead of
+            // returning the rejected promise — same recovery applies.
+            if (isAmcpError(e)) {
+                if (config.dev) {
+                    const executor = CasparManager.getManager().executor;
+                    if (executor.connected) {
+                        Logger.warn(
+                            'Unhandled AMCP error — bouncing AMCP socket.',
+                        );
+                        executor.bounce();
+                    }
+                }
+                return false;
+            }
             if (config.dev) stop();
             return false;
         });
 
         process.on('unhandledRejection', e => {
-            Logger.error(
-                e instanceof Error
-                    ? e
-                    : typeof e === 'object'
-                      ? JSON.stringify(e)
-                      : String(e),
-            );
+            Logger.error(formatError(e));
 
             // AMCP errors (timeout, channel-out-of-range, 4xx/5xx response)
             // are catchable but a lot of plugin code doesn't bother. Rather

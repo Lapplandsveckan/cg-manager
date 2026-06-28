@@ -18,13 +18,6 @@ const WARN_AFTER_FAILED_ATTEMPTS = 10;
 const BOUNCE_WINDOW_MS = 10_000;
 const BOUNCE_MAX = 5;
 
-// How long to wait after the AMCP socket connects before dispatching the
-// connect/reconnect handlers (which emit the first wave of AMCP commands).
-// CasparCG accepts the socket before its channel consumers are fully
-// initialised; firing commands immediately risks timeouts. 500 ms gives it
-// enough headroom without meaningfully delaying startup.
-const CONNECT_DISPATCH_DELAY_MS = 500;
-
 export class CasparExecutor extends CommandExecutor {
     private client: net.Socket;
     private _connected: boolean = false;
@@ -33,7 +26,6 @@ export class CasparExecutor extends CommandExecutor {
     public readonly port: number;
 
     private retryTimeout: NodeJS.Timeout;
-    private connectDispatchTimeout: NodeJS.Timeout;
     private retry = true;
     private failedAttempts = 0;
     private buffer = '';
@@ -85,7 +77,13 @@ export class CasparExecutor extends CommandExecutor {
     }
 
     protected send(data: string) {
-        if (!this.client) return (this.buffer += data);
+        if (!this.client) {
+            this.buffer += data;
+            const lines = data.replace(/\r/g, '').split('\n');
+            for (const line of lines)
+                if (line) Logger.scope('AMCP').debug(`buffered: ${line}`);
+            return;
+        }
         if (this.buffer) data = this.buffer + data;
         this.client.write(data);
 
@@ -108,32 +106,45 @@ export class CasparExecutor extends CommandExecutor {
         this._connectedAt = Date.now();
         this._connected = true;
         this.failedAttempts = 0;
-        this.send(''); // Flush buffer
         this.fetchTemplates();
 
         Logger.info(
             `Caspar CG executor ${isReconnect ? 'reconnected' : 'connected'}`,
         );
 
-        // Delay dispatching the connect/reconnect handlers so CasparCG has
-        // time to finish initialising its channels/consumers after accepting
-        // the socket. Firing AMCP commands immediately after connect risks
-        // timeouts when the server isn't fully ready yet.
-        // The `connected` getter is already true above — only the command-
-        // emitting handlers are deferred. If the socket drops during the
-        // window (onDisconnect clears connectDispatchTimeout), the handlers
-        // never fire, avoiding commands against a dead socket.
-        clearTimeout(this.connectDispatchTimeout);
-        this.connectDispatchTimeout = setTimeout(() => {
-            // Snapshot before dispatch so a handler that subscribes/unsubscribes
-            // mid-iteration doesn't disturb the loop. connectHandlers fire on
-            // every connect (first boot included); reconnectListeners only after
-            // a prior connection was lost.
-            for (const listener of this.connectListeners) listener();
-            this.connectListeners = [];
-            this.dispatch(this.connectHandlers);
-            if (isReconnect) this.dispatch(this.reconnectListeners);
-        }, CONNECT_DISPATCH_DELAY_MS);
+        // Probe CasparCG readiness before dispatching connect/reconnect handlers.
+        // CasparCG accepts the AMCP socket before all channel consumers finish
+        // initialising — firing channel commands immediately risks timeouts on
+        // a server that isn't yet fully ready. A VERSION round-trip confirms
+        // the command pipeline is live. On success, flush any pre-connect buffer
+        // then dispatch handlers. On rejection (timeout or disconnect):
+        //   - If the socket already dropped, _connected is false → no-op
+        //     (onDisconnect already handles the retry loop).
+        //   - If still connected, the server stalled → force disconnect so the
+        //     retry loop can re-establish.
+        const probe = this.promise('VERSION');
+        this.send('VERSION\r\n');
+        probe.then(
+            () => {
+                if (!this._connected) return;
+                this.send(''); // flush any pre-connect buffered commands
+                this.dispatchConnect(isReconnect);
+            },
+            () => {
+                if (this._connected) this.onDisconnect();
+            },
+        );
+    }
+
+    private dispatchConnect(isReconnect: boolean) {
+        // Snapshot before dispatch so a handler that subscribes/unsubscribes
+        // mid-iteration doesn't disturb the loop. connectHandlers fire on
+        // every connect (first boot included); reconnectListeners only after
+        // a prior connection was lost.
+        for (const listener of this.connectListeners) listener();
+        this.connectListeners = [];
+        this.dispatch(this.connectHandlers);
+        if (isReconnect) this.dispatch(this.reconnectListeners);
     }
 
     private dispatch(handlers: Array<() => void>) {
@@ -185,10 +196,6 @@ export class CasparExecutor extends CommandExecutor {
 
         const wasConnected = this._connected;
         this._connected = false;
-
-        // Cancel the deferred connect-dispatch so handlers don't fire against a
-        // socket that's already gone (avoids AMCP commands on a dead connection).
-        clearTimeout(this.connectDispatchTimeout);
 
         // Any buffered commands belong to the pre-disconnect state, and
         // CasparCG has just forgotten everything anyway. Discard them so the
