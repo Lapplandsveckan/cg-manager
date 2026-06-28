@@ -21,12 +21,18 @@ export class CgCommand extends LayeredCommand {
         return command;
     }
 
+    // CasparCG's html_cg_proxy escapes " but not \ when building update("..."), so we
+    // pre-double backslashes; the proxy passes them through and the browser halves them back.
+    private static serializeData(data: any) {
+        return JSON.stringify(data).replace(/\\/g, '\\\\');
+    }
+
     public static add(templateName: string, playOnLoad = true, data?: any) {
         const cmd = CgCommand.single('ADD');
 
         cmd.arguments.push(templateName);
         cmd.arguments.push(playOnLoad ? '1' : '0');
-        if (data) cmd.arguments.push(JSON.stringify(data));
+        if (data) cmd.arguments.push(CgCommand.serializeData(data));
 
         return cmd;
     }
@@ -53,7 +59,7 @@ export class CgCommand extends LayeredCommand {
 
     public static update(data: any) {
         const command = CgCommand.single('UPDATE');
-        command.arguments.push(JSON.stringify(data));
+        command.arguments.push(CgCommand.serializeData(data));
 
         return command;
     }
