@@ -96,10 +96,18 @@ async function main() {
             // has. In prod we just absorb — keeping the manager up is the
             // priority. In dev we still bounce so the dev sees something
             // visibly happened.
+            // Only bounce if the socket is still up — disconnect-induced
+            // rejections (clearPendingCommands on drop) arrive while already
+            // disconnected, and bouncing then would race the existing retry.
             if (isAmcpError(e)) {
                 if (config.dev) {
-                    Logger.warn('Unhandled AMCP error — bouncing AMCP socket.');
-                    CasparManager.getManager().executor.bounce();
+                    const executor = CasparManager.getManager().executor;
+                    if (executor.connected) {
+                        Logger.warn(
+                            'Unhandled AMCP error — bouncing AMCP socket.',
+                        );
+                        executor.bounce();
+                    }
                 }
                 return false;
             }
