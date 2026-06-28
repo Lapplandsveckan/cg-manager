@@ -12,6 +12,7 @@ import { ConnectionProvider } from '../components/ConnectionProvider';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { ToastProvider } from '../components/ToastProvider';
 import { ContextMenuProvider } from '../components/ContextMenuProvider';
+import { PluginContextMenuMounts } from '../components/PluginContextMenuMounts';
 import { EntryClipboardProvider } from '../components/EntryClipboardProvider';
 import { AuthGate } from '../components/AuthGate';
 import { theme } from '../lib/theme';
@@ -52,6 +53,7 @@ function App({ Component, pageProps }: AppProps) {
                             <ConnectionProvider>
                                 <ToastProvider>
                                     <ContextMenuProvider>
+                                        <PluginContextMenuMounts />
                                         <EntryClipboardProvider>
                                             <Stack
                                                 direction="column"

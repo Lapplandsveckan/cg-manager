@@ -72,33 +72,44 @@ export const PluginCard: React.FC<PluginCardProps> = ({
     onUninstall,
 }) => {
     const { t } = useTranslation('common');
-    const { openMenu } = useContextMenu();
+    const { openSurfaceMenu } = useContextMenu();
     const insufficient =
         plugin.minChannels > 0 && channelCount < plugin.minChannels;
     return (
         <Card
             onClick={hasUi ? onOpen : undefined}
             onContextMenu={e =>
-                openMenu(e, [
-                    hasUi && {
-                        label: t('actions.open'),
-                        icon: <OpenInNewRoundedIcon fontSize="small" />,
-                        onClick: onOpen,
-                    },
+                openSurfaceMenu(
+                    e,
+                    'plugin',
                     {
-                        label: plugin.enabled
-                            ? t('actions.disable')
-                            : t('actions.enable'),
-                        onClick: () => onToggle(!plugin.enabled),
+                        name: plugin.name,
+                        enabled: plugin.enabled,
+                        builtin: plugin.builtin ?? false,
+                        hasUi,
+                        minChannels: plugin.minChannels,
                     },
-                    !plugin.builtin && {
-                        label: t('pluginsPage.uninstall.button'),
-                        icon: <DeleteOutlineRoundedIcon fontSize="small" />,
-                        danger: true,
-                        divider: true,
-                        onClick: onUninstall,
-                    },
-                ])
+                    [
+                        hasUi && {
+                            label: t('actions.open'),
+                            icon: <OpenInNewRoundedIcon fontSize="small" />,
+                            onClick: onOpen,
+                        },
+                        {
+                            label: plugin.enabled
+                                ? t('actions.disable')
+                                : t('actions.enable'),
+                            onClick: () => onToggle(!plugin.enabled),
+                        },
+                        !plugin.builtin && {
+                            label: t('pluginsPage.uninstall.button'),
+                            icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+                            danger: true,
+                            divider: true,
+                            onClick: onUninstall,
+                        },
+                    ],
+                )
             }
             sx={theme => ({
                 p: 2.5,

@@ -17,6 +17,12 @@ export const UI_INJECTION_ZONE = {
     // uploaded; the host passes `targetPaths: string[]` (server-side
     // absolute paths) so injections can act on the in-flight files.
     UPLOAD_OPTIONS: 'upload-options',
+
+    // Not rendered visually. Components injected here mount in a hidden div
+    // and call `useRegisterContextMenuItems(surface, provider)` to contribute
+    // items to host right-click menus. Use dotted sub-zones to target a
+    // specific surface, e.g. `context-menu.rundown-item`.
+    CONTEXT_MENU: 'context-menu',
 } as const;
 
 export type UI_INJECTION_ZONE =

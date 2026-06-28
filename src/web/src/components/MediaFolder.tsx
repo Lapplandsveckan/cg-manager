@@ -70,7 +70,7 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({
         if (payload) onMediaDrop(payload.id);
     };
 
-    const { openMenu } = useContextMenu();
+    const { openSurfaceMenu } = useContextMenu();
 
     return (
         <Grid
@@ -84,27 +84,36 @@ export const MediaFolder: React.FC<MediaFolderProps> = ({
             <Card
                 onClick={() => onClick?.()}
                 onContextMenu={e =>
-                    openMenu(e, [
-                        onClick && {
-                            label: t('actions.open'),
-                            icon: <FolderOpenOutlinedIcon fontSize="small" />,
-                            onClick,
-                        },
-                        onRename && {
-                            label: t('actions.rename'),
-                            icon: (
-                                <DriveFileRenameOutlineRoundedIcon fontSize="small" />
-                            ),
-                            onClick: onRename,
-                        },
-                        onDelete && {
-                            label: t('actions.delete'),
-                            icon: <DeleteOutlineRoundedIcon fontSize="small" />,
-                            danger: true,
-                            divider: true,
-                            onClick: onDelete,
-                        },
-                    ])
+                    openSurfaceMenu(
+                        e,
+                        'media',
+                        { name, id: null, isFolder: true },
+                        [
+                            onClick && {
+                                label: t('actions.open'),
+                                icon: (
+                                    <FolderOpenOutlinedIcon fontSize="small" />
+                                ),
+                                onClick,
+                            },
+                            onRename && {
+                                label: t('actions.rename'),
+                                icon: (
+                                    <DriveFileRenameOutlineRoundedIcon fontSize="small" />
+                                ),
+                                onClick: onRename,
+                            },
+                            onDelete && {
+                                label: t('actions.delete'),
+                                icon: (
+                                    <DeleteOutlineRoundedIcon fontSize="small" />
+                                ),
+                                danger: true,
+                                divider: true,
+                                onClick: onDelete,
+                            },
+                        ],
+                    )
                 }
                 onDragEnter={onDragEnter}
                 onDragOver={onDragOver}

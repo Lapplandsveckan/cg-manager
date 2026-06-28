@@ -1,4 +1,17 @@
 export { useSocket } from './hooks/useSocket';
+export {
+    useContextMenu,
+    useRegisterContextMenuItems,
+} from '../components/ContextMenuProvider';
+export type {
+    ContextMenuItem,
+    ContextMenuSurface,
+    ContextMenuItemProvider,
+    ContextMenuMediaTarget,
+    ContextMenuRundownItemTarget,
+    ContextMenuRouteTarget,
+    ContextMenuPluginTarget,
+} from '../components/ContextMenuProvider';
 export { MediaSelect, MediaView } from '../components/MediaView';
 export { MediaCard } from '../components/MediaCard';
 export {

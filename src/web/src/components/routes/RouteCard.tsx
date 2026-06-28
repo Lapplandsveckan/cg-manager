@@ -32,7 +32,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
     onDelete,
 }) => {
     const { t } = useTranslation('common');
-    const { openMenu } = useContextMenu();
+    const { openSurfaceMenu } = useContextMenu();
     // CardActionArea wraps the whole card so clicking anywhere opens the
     // editor — except for the inline controls (Switch / Delete) which stop
     // propagation so they don't double-fire as "edit this".
@@ -43,26 +43,31 @@ export const RouteCard: React.FC<RouteCardProps> = ({
         <Card
             sx={{ p: 0 }}
             onContextMenu={e =>
-                openMenu(e, [
-                    {
-                        label: t('actions.edit'),
-                        icon: <EditOutlinedIcon fontSize="small" />,
-                        onClick: onEdit,
-                    },
-                    {
-                        label: route.enabled
-                            ? t('actions.disable')
-                            : t('actions.enable'),
-                        onClick: () => onToggle(!route.enabled),
-                    },
-                    {
-                        label: t('actions.delete'),
-                        icon: <DeleteOutlineRoundedIcon fontSize="small" />,
-                        danger: true,
-                        divider: true,
-                        onClick: onDelete,
-                    },
-                ])
+                openSurfaceMenu(
+                    e,
+                    'route',
+                    { id: route.id, name: route.name, enabled: route.enabled },
+                    [
+                        {
+                            label: t('actions.edit'),
+                            icon: <EditOutlinedIcon fontSize="small" />,
+                            onClick: onEdit,
+                        },
+                        {
+                            label: route.enabled
+                                ? t('actions.disable')
+                                : t('actions.enable'),
+                            onClick: () => onToggle(!route.enabled),
+                        },
+                        {
+                            label: t('actions.delete'),
+                            icon: <DeleteOutlineRoundedIcon fontSize="small" />,
+                            danger: true,
+                            divider: true,
+                            onClick: onDelete,
+                        },
+                    ],
+                )
             }
         >
             <CardActionArea

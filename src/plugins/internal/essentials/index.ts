@@ -28,11 +28,16 @@ export default class EssentialsPlugin extends CasparPlugin {
             `${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${TOGGLE_VIDEO_ROUTE}` as UI_INJECTION_ZONE;
         const itemZone =
             `${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${TOGGLE_VIDEO_ROUTE}` as UI_INJECTION_ZONE;
+        // 'context-menu' is a new zone not yet in the @lappis/cg-manager
+        // package types — use the string literal until the package is updated.
+        const contextMenuZone =
+            'context-menu.rundown-item' as UI_INJECTION_ZONE;
 
         // In dev (ts-node) __dirname is src/…/essentials and only .tsx exists.
         // In the packaged snapshot tsc emits .jsx (jsx:"preserve") so only .jsx exists.
         this.api.registerUI(editorZone, this.uiFile('editor'));
         this.api.registerUI(itemZone, this.uiFile('item'));
+        this.api.registerUI(contextMenuZone, this.uiFile('contextMenu'));
     }
 
     private uiFile(name: string) {

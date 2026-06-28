@@ -36,6 +36,12 @@ export const UI_INJECTION_ZONE = {
     // The plugin-install modal deliberately passes `optionsZone={null}`
     // to suppress this zone — media-specific options make no sense there.
     UPLOAD_OPTIONS: 'upload-options',
+
+    // Not rendered visually. Components injected here mount in a hidden div
+    // and call `useRegisterContextMenuItems(surface, provider)` to contribute
+    // items to host right-click menus. Use dotted sub-zones to target a
+    // specific surface, e.g. `context-menu.rundown-item`.
+    CONTEXT_MENU: 'context-menu',
 } as const;
 
 export type UI_INJECTION_ZONE =
