@@ -1,14 +1,8 @@
-import net from 'net';
 import { CommandExecutor } from '@lappis/cg-manager';
 import { noTry } from 'no-try';
 import { Logger } from '../../util/log';
 import { getTemplatesWithContent } from '../scanner/scanner';
-
-// AMCP socket usually accepts within a few hundred ms of CasparCG starting,
-// so retry briefly while it warms up and only surface a warning if it stays
-// down for longer than that.
-const RETRY_INTERVAL_MS = 500;
-const WARN_AFTER_FAILED_ATTEMPTS = 10;
+import { AmcpSocket } from './amcp-socket';
 
 // Circuit-breaker for bounce(): if AMCP errors keep firing — e.g. a route
 // command repeatedly fails — the reconnect handler re-runs the same failing
@@ -19,15 +13,14 @@ const BOUNCE_WINDOW_MS = 10_000;
 const BOUNCE_MAX = 5;
 
 export class CasparExecutor extends CommandExecutor {
-    private client: net.Socket;
+    private socket: AmcpSocket | null = null;
+    private responseBuffer = '';
     private _connected: boolean = false;
 
     public readonly ip: string;
     public readonly port: number;
 
-    private retryTimeout: NodeJS.Timeout;
     private retry = true;
-    private failedAttempts = 0;
     private buffer = '';
     private hasConnectedBefore = false;
     private reconnectListeners: Array<() => void> = [];
@@ -48,27 +41,24 @@ export class CasparExecutor extends CommandExecutor {
     }
 
     public connect() {
-        if (this.retryTimeout) clearTimeout(this.retryTimeout);
         this.retry = true;
-        this.failedAttempts = 0;
-        this._internalConnect();
-    }
+        if (this.socket) {
+            this.socket.destroy();
+            this.socket = null;
+        }
+        this.responseBuffer = '';
 
-    private _internalConnect() {
-        if (this.client) this.client.destroy();
+        const sock = new AmcpSocket(this.port, this.ip);
+        this.socket = sock;
 
-        this.client = net.connect(this.port, this.ip, () =>
-            this.handleConnect(),
-        );
+        sock.on('ready', () => this.handleReady());
+        sock.on('data', (d: string) => {
+            this.responseBuffer = this.receive(this.responseBuffer + d);
+        });
+        sock.on('close', () => this.onDisconnect());
+        sock.on('error', (e: Error) => this.onDisconnect(e));
 
-        this.client.on('end', () => this.onDisconnect());
-        this.client.on('error', e => this.onDisconnect(e));
-
-        let responseBuffer = '';
-        this.client.on(
-            'data',
-            d => (responseBuffer = this.receive(responseBuffer + d.toString())),
-        );
+        sock.connect();
     }
 
     public disconnect() {
@@ -77,7 +67,7 @@ export class CasparExecutor extends CommandExecutor {
     }
 
     protected send(data: string) {
-        if (!this.client) {
+        if (!this.socket?.ready) {
             this.buffer += data;
             const lines = data.replace(/\r/g, '').split('\n');
             for (const line of lines)
@@ -85,7 +75,7 @@ export class CasparExecutor extends CommandExecutor {
             return;
         }
         if (this.buffer) data = this.buffer + data;
-        this.client.write(data);
+        this.socket.write(data);
 
         const lines = data.replace(/\r/g, '').split('\n');
         for (const line of lines) if (line) Logger.scope('AMCP').debug(line);
@@ -95,9 +85,8 @@ export class CasparExecutor extends CommandExecutor {
 
     private connectListeners: (() => void)[] = [];
     private connectHandlers: Array<() => void> = [];
-    protected handleConnect() {
-        clearTimeout(this.retryTimeout);
 
+    protected handleReady() {
         const isReconnect = this.hasConnectedBefore;
         this.hasConnectedBefore = true;
         // Stamp before marking connected so the base-class promise() timeout
@@ -105,35 +94,14 @@ export class CasparExecutor extends CommandExecutor {
         // window from this moment rather than from when they were enqueued.
         this._connectedAt = Date.now();
         this._connected = true;
-        this.failedAttempts = 0;
         this.fetchTemplates();
 
         Logger.info(
             `Caspar CG executor ${isReconnect ? 'reconnected' : 'connected'}`,
         );
 
-        // Probe CasparCG readiness before dispatching connect/reconnect handlers.
-        // CasparCG accepts the AMCP socket before all channel consumers finish
-        // initialising — firing channel commands immediately risks timeouts on
-        // a server that isn't yet fully ready. A VERSION round-trip confirms
-        // the command pipeline is live. On success, flush any pre-connect buffer
-        // then dispatch handlers. On rejection (timeout or disconnect):
-        //   - If the socket already dropped, _connected is false → no-op
-        //     (onDisconnect already handles the retry loop).
-        //   - If still connected, the server stalled → force disconnect so the
-        //     retry loop can re-establish.
-        const probe = this.promise('VERSION');
-        this.send('VERSION\r\n');
-        probe.then(
-            () => {
-                if (!this._connected) return;
-                this.send(''); // flush any pre-connect buffered commands
-                this.dispatchConnect(isReconnect);
-            },
-            () => {
-                if (this._connected) this.onDisconnect();
-            },
-        );
+        this.send(''); // flush any pre-connect buffered commands
+        this.dispatchConnect(isReconnect);
     }
 
     private dispatchConnect(isReconnect: boolean) {
@@ -188,39 +156,28 @@ export class CasparExecutor extends CommandExecutor {
         };
     }
 
-    protected onDisconnect(error?: Error) {
-        if (!this.client) return;
+    protected onDisconnect(_error?: Error) {
+        if (!this.socket) return;
 
-        this.client.destroy();
-        this.client = null;
+        this.socket.destroy();
+        this.socket = null;
 
         const wasConnected = this._connected;
         this._connected = false;
 
-        // Any buffered commands belong to the pre-disconnect state, and
-        // CasparCG has just forgotten everything anyway. Discard them so the
-        // reconnect-handlers can replay state from scratch without old AMCP
-        // strings being flushed first. Also reject any pending command-response
-        // listeners so their timers are cancelled and awaiting callers unblock.
+        // Discard buffered commands and reject pending listeners so awaiting
+        // callers unblock and state is clean for the reconnect handlers.
         this.buffer = '';
         this.clearPendingCommands();
 
         if (wasConnected) {
             Logger.info('Caspar CG executor disconnected');
-        } else if (this.retry) {
-            this.failedAttempts++;
-            if (this.failedAttempts === WARN_AFTER_FAILED_ATTEMPTS)
-                Logger.warn(
-                    `Caspar CG executor still cannot connect after ${this.failedAttempts} attempts${error ? `: ${error}` : ''}`,
-                );
         }
 
-        if (this.retryTimeout) clearTimeout(this.retryTimeout);
-        if (this.retry)
-            this.retryTimeout = setTimeout(
-                () => this._internalConnect(),
-                RETRY_INTERVAL_MS,
-            );
+        // When a ready connection drops unexpectedly, reconnect by creating a
+        // fresh AmcpSocket that retries until ready. An intentional disconnect()
+        // sets retry=false first, and destroy() is silent, so neither re-enters here.
+        if (this.retry && wasConnected) this.connect();
     }
 
     public getEffectGroup(identifier: string, index?: number) {
