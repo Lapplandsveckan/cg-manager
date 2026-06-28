@@ -36,14 +36,29 @@ function formatError(e: unknown): string | Error {
     return String(e);
 }
 
+/** AMCP errors (timeout, channel-out-of-range, 4xx/5xx response) are transient.
+ *  In prod, absorb them — keeping the manager up is the priority. In dev, bounce
+ *  the socket (when still up) so host state re-syncs and the dev sees it happened;
+ *  disconnect-induced rejections arrive while already disconnected, so guard on
+ *  `executor.connected` to avoid racing the existing retry.
+ *  Returns true if `e` was an AMCP error and has been handled. */
+function handleAmcpError(e: unknown): boolean {
+    if (!isAmcpError(e)) return false;
+    if (config.dev) {
+        const { executor } = CasparManager.getManager();
+        if (executor.connected) {
+            Logger.warn('Unhandled AMCP error — bouncing AMCP socket.');
+            executor.bounce();
+        }
+    }
+    return true;
+}
+
 async function start() {
     if (process.env.CASPAR_DIR) process.chdir(process.env.CASPAR_DIR);
 
     Logger.info('Starting Caspar CG manager...');
     await loadConfig();
-    Logger.info(
-        `Runtime: dev=${config.dev} NODE_ENV=${process.env.NODE_ENV ?? 'unset'}`,
-    );
     startWeb();
 
     const manager = CasparManager.getManager();
@@ -92,53 +107,15 @@ async function main() {
     const [err] = await noTryAsync(async () => {
         process.on('uncaughtException', e => {
             Logger.error(formatError(e));
-            // Mirror unhandledRejection: absorb AMCP errors rather than crash.
-            // An uncaught AMCP exception means plugin code threw instead of
-            // returning the rejected promise — same recovery applies.
-            if (isAmcpError(e)) {
-                if (config.dev) {
-                    const executor = CasparManager.getManager().executor;
-                    if (executor.connected) {
-                        Logger.warn(
-                            'Unhandled AMCP error — bouncing AMCP socket.',
-                        );
-                        executor.bounce();
-                    }
-                }
-                return false;
-            }
+            if (handleAmcpError(e)) return false;
             if (config.dev) stop();
             return false;
         });
 
         process.on('unhandledRejection', e => {
             Logger.error(formatError(e));
-
-            // AMCP errors (timeout, channel-out-of-range, 4xx/5xx response)
-            // are catchable but a lot of plugin code doesn't bother. Rather
-            // than tear the manager down for those, bounce the AMCP socket
-            // so host-side state re-syncs against whatever CasparCG actually
-            // has. In prod we just absorb — keeping the manager up is the
-            // priority. In dev we still bounce so the dev sees something
-            // visibly happened.
-            // Only bounce if the socket is still up — disconnect-induced
-            // rejections (clearPendingCommands on drop) arrive while already
-            // disconnected, and bouncing then would race the existing retry.
-            if (isAmcpError(e)) {
-                if (config.dev) {
-                    const executor = CasparManager.getManager().executor;
-                    if (executor.connected) {
-                        Logger.warn(
-                            'Unhandled AMCP error — bouncing AMCP socket.',
-                        );
-                        executor.bounce();
-                    }
-                }
-                return false;
-            }
-
-            // Anything else: legacy behaviour — graceful shutdown in dev,
-            // best-effort log-and-continue in prod.
+            if (handleAmcpError(e)) return false;
+            // Anything else: graceful shutdown in dev, log-and-continue in prod.
             if (config.dev) stop();
             return false;
         });

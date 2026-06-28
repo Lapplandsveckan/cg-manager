@@ -69,9 +69,6 @@ export class CasparExecutor extends CommandExecutor {
     protected send(data: string) {
         if (!this.socket?.ready) {
             this.buffer += data;
-            const lines = data.replace(/\r/g, '').split('\n');
-            for (const line of lines)
-                if (line) Logger.scope('AMCP').debug(`buffered: ${line}`);
             return;
         }
         if (this.buffer) data = this.buffer + data;
