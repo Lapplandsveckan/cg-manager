@@ -78,6 +78,7 @@ export class CommandExecutor {
     }
 
     public promise(command: string) {
+        const callerStack = new Error().stack;
         return new Promise<{ data: string[], code: number }>((resolve, reject) => {
             // `timeout` is tracked both as a local closure var (for fast clear
             // inside the callbacks) and mirrored onto `listener.timeout` so that
@@ -94,7 +95,8 @@ export class CommandExecutor {
                     if (!this.connected || (Date.now() - this._connectedAt < 1000)) return startTimeout();
 
                     this.removeListener(listener);
-                    reject(new CasparResponseError(['Timeout'], -1));
+                    const err = new CasparResponseError([`Timeout: "${command}"`, callerStack ?? '(no stack)'], -1);
+                    reject(err);
                 }, 1000);
                 listener.timeout = timeout;
             };
