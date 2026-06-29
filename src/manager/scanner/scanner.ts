@@ -468,6 +468,13 @@ function Scanner(db: FileDatabase) {
             if (inode !== undefined) {
                 const timer = setTimeout(() => {
                     pendingRemovals.delete(inode);
+                    // Guard: only remove if this id still belongs to the file we
+                    // scheduled for. A reencode (clip.mov → clip.mp4) produces a
+                    // new inode and reuses the same extension-stripped id; by the
+                    // time the timer fires, processAdd has already updated
+                    // inodeMap[mediaId] to the new file's inode — skip the remove
+                    // so the freshly-added entry isn't clobbered.
+                    if (inodeMap.get(mediaId) !== inode) return;
                     inodeMap.delete(mediaId);
                     db.remove(mediaId);
                 }, RENAME_WINDOW_MS);

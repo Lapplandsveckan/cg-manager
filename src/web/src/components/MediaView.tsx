@@ -98,7 +98,7 @@ export const MediaView: React.FC<MediaViewProps> = ({
             media
                 .filter(m => m.id.startsWith(prefix ?? ''))
                 .map(m => {
-                    const background = m._attachments['thumb.png'];
+                    const background = m._attachments?.['thumb.png'];
                     const url = background
                         ? `data:${background.content_type};base64,${Buffer.from(background.data).toString('base64')}`
                         : 'https://via.placeholder.com/1920x1080';
