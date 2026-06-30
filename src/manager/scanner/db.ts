@@ -4,6 +4,7 @@ import { noTry } from 'no-try';
 export interface MediaDoc {
     id: string;
     _invalidate?: boolean;
+    _hash?: string;
 
     mediaPath?: string;
     mediaSize?: number;
@@ -78,8 +79,10 @@ export interface MediaDoc {
 }
 
 export class FileDatabase extends EventEmitter {
-    private hash = new Map<string, MediaDoc>();
-    private db = new Map<string, string>();
+    // Primary store: id → doc
+    private docs = new Map<string, MediaDoc>();
+    // Secondary index: content hash → set of ids (for metadata reuse across copies)
+    private byHash = new Map<string, Set<string>>();
     // Recently-removed docs kept briefly so rename fast-path can reuse metadata
     private evicted = new Map<string, MediaDoc>();
     private static EVICTED_MAX = 50;
@@ -95,78 +98,98 @@ export class FileDatabase extends EventEmitter {
         FileDatabase.instance = this;
     }
 
-    get(id: string): MediaDoc {
-        const hash = this.getHash(id);
-        return hash ? this.retrieve(hash) : null;
+    get(id: string): MediaDoc | undefined {
+        return this.docs.get(id) ?? this.evicted.get(id);
     }
 
-    retrieve(hash: string): MediaDoc {
-        return this.hash.get(hash) ?? this.evicted.get(hash);
+    // Whether the id is in the live store (not just lingering in `evicted`).
+    has(id: string): boolean {
+        return this.docs.has(id);
     }
 
-    getHash(id: string): string {
-        return this.db.get(id);
+    // Find any live doc sharing the same content hash (for metadata reuse).
+    // Falls back to any evicted doc with that hash.
+    findByHash(hash: string): MediaDoc | undefined {
+        const ids = this.byHash.get(hash);
+        if (ids?.size) return this.docs.get(ids.values().next().value);
+        for (const doc of this.evicted.values())
+            if (doc._hash === hash) return doc;
+        return undefined;
     }
 
-    private evict(hash: string, doc: MediaDoc): void {
-        this.hash.delete(hash);
-        this.evicted.set(hash, doc);
+    getHash(id: string): string | undefined {
+        return this.docs.get(id)?._hash;
+    }
+
+    private evict(id: string, doc: MediaDoc): void {
+        this.docs.delete(id);
+        this.removeFromByHash(id, doc._hash);
+        this.evicted.set(id, doc);
         if (this.evicted.size > FileDatabase.EVICTED_MAX)
             this.evicted.delete(this.evicted.keys().next().value);
     }
 
+    private removeFromByHash(id: string, hash: string | undefined): void {
+        if (!hash) return;
+        const ids = this.byHash.get(hash);
+        if (!ids) return;
+        ids.delete(id);
+        if (!ids.size) this.byHash.delete(hash);
+    }
+
     put(hash: string, doc: MediaDoc): MediaDoc {
-        this.evicted.delete(hash);
+        this.evicted.delete(doc.id);
         const id = doc.id;
 
-        this.db.set(id, hash);
-        this.hash.set(hash, doc);
+        // Update byHash index: remove from old bucket if hash changed
+        const oldHash = this.docs.get(id)?._hash;
+        if (oldHash && oldHash !== hash) this.removeFromByHash(id, oldHash);
+
+        doc._hash = hash;
+        this.docs.set(id, doc);
+
+        if (!this.byHash.has(hash)) this.byHash.set(hash, new Set());
+        this.byHash.get(hash).add(id);
 
         this.emit('change', id, doc);
         return doc;
     }
 
-    remove(id: string): MediaDoc {
-        const hash = this.db.get(id);
-        const doc = hash ? this.hash.get(hash) : null;
+    remove(id: string): MediaDoc | undefined {
+        const doc = this.docs.get(id);
         this.emit('change', id, null);
 
-        if (hash) {
-            // Only evict if this id is still the current owner of the hash slot.
-            // After a rename, the slot is already claimed by the new id.
-            if (doc?.id === id) this.evict(hash, doc);
-        }
+        if (doc) this.evict(id, doc);
+        else this.docs.delete(id);
 
-        this.db.delete(id);
-        if (doc) return doc;
+        return doc;
     }
 
-    // Remove a stale id (e.g. the old name after a rename) without touching the
-    // hash entry, which is already claimed by the new id after db.put().
+    // Remove a stale id (e.g. the old name after a rename) without evicting the
+    // doc if ownership has already transferred to another id.
     removeStaleId(id: string): void {
-        const hash = this.db.get(id);
-        if (hash) {
-            const doc = this.hash.get(hash);
-            // If content also changed, the old hash is orphaned — clean it up.
-            if (doc?.id === id) this.evict(hash, doc);
+        const doc = this.docs.get(id);
+        if (doc) {
+            // If the doc still belongs to this id, evict it
+            if (doc.id === id) this.evict(id, doc);
+            else this.docs.delete(id);
         }
         this.emit('change', id, null);
-        this.db.delete(id);
     }
 
     allDocs(): MediaDoc[] {
-        return Array.from(this.db.values()).map(id => this.hash.get(id));
+        return Array.from(this.docs.values());
     }
 
     close() {
-        this.db.clear();
-        this.hash.clear();
+        this.docs.clear();
+        this.byHash.clear();
     }
 
     save() {
         return JSON.stringify(
             Object.fromEntries(
-                Array.from(this.hash.entries()).filter(
+                Array.from(this.docs.entries()).filter(
                     ([_, value]) => !value._invalidate,
                 ),
             ),
@@ -175,8 +198,12 @@ export class FileDatabase extends EventEmitter {
 
     load(data: string) {
         const [err, parsed] = noTry(() => JSON.parse(data));
-        const hash = err ? {} : parsed;
-        for (const [key, value] of Object.entries(hash))
-            this.put(key, { ...(value as MediaDoc), _invalidate: true });
+        const entries = err ? {} : parsed;
+        for (const [key, value] of Object.entries(entries)) {
+            const doc = value as MediaDoc;
+            // id may be stored in the value (new format) or keyed by id
+            if (!doc.id) doc.id = key;
+            this.put(doc._hash ?? key, { ...doc, _invalidate: true });
+        }
     }
 }

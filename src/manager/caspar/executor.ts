@@ -1,7 +1,7 @@
 import { CommandExecutor } from '@lappis/cg-manager';
 import { noTry } from 'no-try';
 import { Logger } from '../../util/log';
-import { getTemplatesWithContent } from '../scanner/scanner';
+import { getTemplatesWithContent } from '../scanner/templates';
 import { AmcpSocket } from './amcp-socket';
 
 // Circuit-breaker for bounce(): if AMCP errors keep firing — e.g. a route

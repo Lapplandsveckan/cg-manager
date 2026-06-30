@@ -5,7 +5,7 @@ import config from './config';
 import { Logger } from '../../util/log';
 import { getId } from './util';
 import { type FileDatabase } from './db';
-import { getTemplates, getTemplatesWithContent } from './scanner';
+import { getTemplates, getTemplatesWithContent } from './templates';
 
 const wrap = fn => (req, res, next) =>
     Promise.resolve(fn(req, res, next)).catch(next);

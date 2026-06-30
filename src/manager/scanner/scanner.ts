@@ -7,13 +7,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import moment from 'moment';
 import { noTryAsync } from 'no-try';
 import * as chokidar from 'chokidar';
-import {
-    extractGDDJSON,
-    getGDDScriptElement,
-    getId,
-    readFile,
-    hashFile,
-} from './util';
+import { getId, readFile, hashFile } from './util';
 import { Logger } from '../../util/log';
 import managerConfig from '../../util/config';
 import config from './config';
@@ -109,42 +103,46 @@ async function scanFile(
 
     const mediaLogger = logger.scope(mediaId);
     const hash = await hashFile(mediaPath);
-    const doc = db.retrieve(hash) || { id: mediaId };
+
+    // Look up the doc for THIS id specifically (not any other file sharing content)
+    const doc: MediaDoc = db.get(mediaId) ?? { id: mediaId };
     delete doc._invalidate;
-
-    const existingId = doc.id;
-    const idChanged = existingId !== mediaId;
-    const confirmedRename =
-        opts.renamedFrom !== undefined && existingId === opts.renamedFrom;
-
-    // Hash collided with a different, still-live file we are NOT renaming
-    // (e.g. `cp A.mp4 B.mp4`). Reusing the doc would steal A's identity.
-    if (idChanged && !confirmedRename && db.getHash(existingId) !== undefined)
-        return mediaLogger.debug('Duplicate of live media — not indexed');
-
-    if (idChanged) doc.id = mediaId;
-    if (doc.mediaPath && doc.mediaPath !== mediaPath) doc.mediaPath = mediaPath;
 
     const metaUnchanged =
         doc.mediaSize === mediaStat.size &&
         doc.mediaTime === mediaStat.mtime.getTime();
 
-    if (!idChanged && metaUnchanged) return mediaLogger.debug('Unchanged');
+    if (metaUnchanged && doc._hash === hash) {
+        // db.get() also returns recently-evicted docs; if this id was removed
+        // and re-added unchanged, resurrect it into the live store.
+        if (!db.has(mediaId)) db.put(hash, doc);
+        return mediaLogger.debug('Unchanged');
+    }
 
     doc.mediaPath = mediaPath;
     doc.mediaSize = mediaStat.size;
     doc.mediaTime = mediaStat.mtime.getTime();
 
-    // Rename fast-path: reuse existing metadata, just patch the id/path fields.
-    // Only valid when content (and thus size/mtime) is also unchanged — otherwise
-    // fall through and let generateInfo/generateThumb rebuild cinf correctly.
-    if (idChanged && metaUnchanged && doc.mediainfo) {
-        doc.mediainfo.name = mediaId;
-        doc.mediainfo.path = mediaPath;
-        doc.cinf = patchId(doc.cinf, existingId, mediaId);
-        doc.tinf = patchId(doc.tinf, existingId, mediaId);
+    // Metadata reuse: if another doc (rename source or a copy) already has mediainfo
+    // for the same content, clone it and patch the id/path — skips ffprobe. The donor's
+    // timestamps ride along (cinf/tinf/mediainfo.time), so a plain copy shows the
+    // original's modified-time; doc.mediaSize/mediaTime above stay accurate. _attachments
+    // and nested mediainfo are shared by reference — safe only because they're always
+    // replaced wholesale, never mutated in place.
+    const renamedFromDoc = opts.renamedFrom
+        ? db.get(opts.renamedFrom)
+        : undefined;
+    const donorDoc = renamedFromDoc?.mediainfo
+        ? renamedFromDoc
+        : db.findByHash(hash);
+    if (!doc.mediainfo && donorDoc?.mediainfo) {
+        const donor = donorDoc;
+        doc.mediainfo = { ...donor.mediainfo, name: mediaId, path: mediaPath };
+        doc.cinf = patchId(donor.cinf, donor.id, mediaId);
+        doc.tinf = patchId(donor.tinf, donor.id, mediaId);
+        doc._attachments = donor._attachments;
         db.put(hash, doc);
-        return mediaLogger.debug('Renamed (fast-path)');
+        return mediaLogger.debug('Reused metadata from copy/rename');
     }
 
     await Promise.all([
@@ -346,66 +344,6 @@ function createWatcher(
         .on('unlink', path => callback([path]));
 
     return () => watcher.close();
-}
-
-export interface TemplateInfo {
-    id: string;
-    path: string;
-    type: string;
-
-    gdd?: any;
-    error?: string;
-}
-
-export async function getTemplates() {
-    const rows = await fs.readdir(config.paths.template, { recursive: true });
-    return rows
-        .filter(x => /\.(ft|wt|ct|swf|htm|html)$/.test(x))
-        .map(x => ({
-            path: path.join(config.paths.template, x),
-            id: getId(config.paths.template, x),
-        }));
-}
-
-export async function getTemplatesWithContent() {
-    const files = await getTemplates();
-    const templates = await Promise.all(
-        files.map(async file => {
-            const match = file.path.match(/\.(ft|wt|ct|swf)$/);
-            const info: TemplateInfo = {
-                ...file,
-                type: match ? match[1] : 'html',
-            };
-
-            if (!match) {
-                const [error] = await noTryAsync(async () => {
-                    const gddScriptElement = await getGDDScriptElement(
-                        file.path,
-                    );
-                    if (gddScriptElement)
-                        info.gdd = await extractGDDJSON(
-                            file.path,
-                            gddScriptElement,
-                        );
-                });
-
-                if (error) {
-                    info.error = error.toString();
-                    logger.error(error);
-                }
-            }
-
-            return info as TemplateInfo;
-        }),
-    );
-
-    templates.sort((a, b) => {
-        if (a.id < b.id) return -1;
-        if (a.id > b.id) return 1;
-        return 0;
-    });
-
-    return templates;
 }
 
 function Scanner(db: FileDatabase) {
