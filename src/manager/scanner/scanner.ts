@@ -15,6 +15,8 @@ import { type FileDatabase, type MediaDoc } from './db';
 
 const logger = Logger.scope('Scanner');
 
+const THUMB_SEEK_SECONDS = 3;
+
 // Extensions the scanner will attempt to probe. Anything else is
 // silently ignored — there's no point running ffprobe + thumbnail
 // extraction on text files, plugin sidecars, READMEs, OS noise, etc.
@@ -145,16 +147,14 @@ async function scanFile(
         return mediaLogger.debug('Reused metadata from copy/rename');
     }
 
-    await Promise.all([
-        generateInfo(doc).catch(err => {
-            mediaLogger.error(err);
-            mediaLogger.error('Info Failed');
-        }),
-        generateThumb(doc).catch(err => {
-            mediaLogger.error(err);
-            mediaLogger.error('Thumbnail Failed');
-        }),
-    ]);
+    await generateInfo(doc).catch(err => {
+        mediaLogger.error(err);
+        mediaLogger.error('Info Failed');
+    });
+    await generateThumb(doc).catch(err => {
+        mediaLogger.error(err);
+        mediaLogger.error('Thumbnail Failed');
+    });
 
     // Anything ffprobe couldn't parse (text files, plugin sidecars
     // like `<file>.cgnoencode`, random binaries that ended up in the
@@ -178,9 +178,14 @@ async function generateThumb(doc: MediaDoc) {
     )}.png`;
 
     await fs.mkdir(path.dirname(tmpPath), { recursive: true });
+    const duration = doc.mediainfo?.format?.duration;
+    const seek =
+        duration && duration > THUMB_SEEK_SECONDS ? THUMB_SEEK_SECONDS : 0;
+
     await new Promise<void>((resolve, reject) => {
         ffmpeg()
             .input(doc.mediaPath)
+            .seekInput(seek)
             .output(tmpPath)
             .frames(1)
             .size('256x?')
