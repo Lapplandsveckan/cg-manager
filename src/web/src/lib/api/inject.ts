@@ -12,6 +12,7 @@ import * as ReactI18next from 'react-i18next';
 import { useSocket } from '../hooks/useSocket';
 import * as weblib from '../';
 import i18n from '../i18n';
+import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
 
 if (typeof window !== 'undefined') {
     window['React'] = React;
@@ -196,7 +197,13 @@ export const Injection: React.FC<InjectionProps> = ({ id, props }) => {
         };
     }, [id, socket]);
 
-    return Component ? createElement(Component, props ?? null) : null;
+    return Component
+        ? createElement(
+              SlotErrorBoundary,
+              { label: `plugin:${id}`, resetKeys: [id] },
+              createElement(Component, props ?? null),
+          )
+        : null;
 };
 
 interface InjectionsProps {
@@ -238,7 +245,15 @@ export const Injections: React.FC<InjectionsProps> = ({
         null,
         components.map(inject =>
             inject.component
-                ? createElement(inject.component, { key: inject.id, ...props })
+                ? createElement(
+                      SlotErrorBoundary,
+                      {
+                          key: inject.id,
+                          label: `plugin:${inject.id}`,
+                          resetKeys: [inject.id],
+                      },
+                      createElement(inject.component, props ?? null),
+                  )
                 : null,
         ),
     );

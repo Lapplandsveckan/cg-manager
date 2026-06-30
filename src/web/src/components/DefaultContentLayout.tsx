@@ -1,28 +1,11 @@
 import { Stack, Box, Typography } from '@mui/material';
 import React from 'react';
+import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { useTranslation } from 'next-i18next';
 import { Navbar } from './Navbar';
+import { reportClientError } from '../lib/reportClientError';
 
-class ErrorBoundary extends React.Component<
-    { children: React.ReactNode; fallback: React.ReactNode },
-    { hasError: boolean }
-> {
-    state = { hasError: false };
-
-    static getDerivedStateFromError() {
-        return { hasError: true };
-    }
-
-    componentDidCatch(error: Error, info: React.ErrorInfo) {
-        console.error('Unhandled error in DefaultContentLayout', error, info);
-    }
-
-    render() {
-        return this.state.hasError ? this.props.fallback : this.props.children;
-    }
-}
-
-const ErrorFallback: React.FC = () => {
+const ErrorFallback: React.FC<FallbackProps> = () => {
     const { t } = useTranslation('common');
     return (
         <Stack
@@ -67,7 +50,23 @@ export const DefaultContentLayout = (props: { children: React.ReactNode }) => (
                 p: 4,
             }}
         >
-            <ErrorBoundary fallback={<ErrorFallback />}>
+            <ErrorBoundary
+                FallbackComponent={ErrorFallback}
+                onError={(error, info) => {
+                    console.error(
+                        'Unhandled error in DefaultContentLayout',
+                        error,
+                        info,
+                    );
+                    const err = error as Error;
+                    reportClientError({
+                        source: 'layout',
+                        message: err.message,
+                        stack: err.stack,
+                        componentStack: info.componentStack,
+                    });
+                }}
+            >
                 {props.children}
             </ErrorBoundary>
         </Box>

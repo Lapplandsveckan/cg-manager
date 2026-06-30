@@ -21,6 +21,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { noTryAsync } from 'no-try';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
+import { SlotErrorBoundary } from './SlotErrorBoundary';
 import { useSocket } from '../lib';
 import {
     type RundownItemDragPayload,
@@ -996,87 +997,96 @@ export const Rundowns: React.FC<RundownsProps> = ({
                                 )
                             }
                         >
-                            <RundownEntry
-                                title={entry.title}
-                                type={entry.type}
-                                active={false}
-                                locked={locked}
-                                disabled={isOrphaned}
-                                onEdit={() => onEdit(entry)}
-                                onPlay={() => onPlay(entry)}
-                                onStop={
-                                    onStop &&
-                                    entry.type &&
-                                    stoppableTypes.has(entry.type)
-                                        ? () => onStop(entry)
-                                        : undefined
-                                }
-                                onDelete={
-                                    isOrphaned
-                                        ? () => {
-                                              conn.rawRequest(
-                                                  '/api/rundown/types',
-                                                  'GET',
-                                                  {},
-                                              )
-                                                  .then(res => {
-                                                      const fresh =
-                                                          new Set<string>(
-                                                              res.data ?? [],
-                                                          );
-                                                      setActiveTypes(fresh);
-                                                      if (
-                                                          entry.type &&
-                                                          !fresh.has(entry.type)
-                                                      ) {
-                                                          setPendingDelete(
-                                                              entry,
-                                                          );
-                                                      }
-                                                  })
-                                                  .catch(() => {
-                                                      /* fail closed — don't open dialog */
-                                                  });
-                                          }
-                                        : undefined
-                                }
-                                onReorderDragStart={
-                                    acceptsReorder
-                                        ? (e, height, offset) => {
-                                              e.dataTransfer.setData(
-                                                  RUNDOWN_REORDER_MIME,
-                                                  entry.id,
-                                              );
-                                              e.dataTransfer.effectAllowed =
-                                                  'move';
-                                              setDraggingHeight(height);
-                                              grabOffsetRef.current = offset;
-                                              // Defer so the drag image is captured before the card collapses.
-                                              requestAnimationFrame(() =>
-                                                  setReorderDraggingId(
-                                                      entry.id,
-                                                  ),
-                                              );
-                                          }
-                                        : undefined
-                                }
-                                onReorderDragEnd={onReorderDragEnd}
-                                dropIndicator={
-                                    dropIndex === index
-                                        ? 'before'
-                                        : dropIndex === entries.length &&
-                                            index === entries.length - 1
-                                          ? 'after'
-                                          : null
-                                }
-                                gapHeight={draggingHeight || 64}
-                                isDragging={reorderDraggingId === entry.id}
+                            <SlotErrorBoundary
+                                label={`rundown-entry:${entry.id}`}
+                                resetKeys={[entry.id]}
                             >
-                                <Injections
-                                    zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`}
-                                    props={{ entry }}
-                                />
-                            </RundownEntry>
+                                <RundownEntry
+                                    title={entry.title}
+                                    type={entry.type}
+                                    active={false}
+                                    locked={locked}
+                                    disabled={isOrphaned}
+                                    onEdit={() => onEdit(entry)}
+                                    onPlay={() => onPlay(entry)}
+                                    onStop={
+                                        onStop &&
+                                        entry.type &&
+                                        stoppableTypes.has(entry.type)
+                                            ? () => onStop(entry)
+                                            : undefined
+                                    }
+                                    onDelete={
+                                        isOrphaned
+                                            ? () => {
+                                                  conn.rawRequest(
+                                                      '/api/rundown/types',
+                                                      'GET',
+                                                      {},
+                                                  )
+                                                      .then(res => {
+                                                          const fresh =
+                                                              new Set<string>(
+                                                                  res.data ??
+                                                                      [],
+                                                              );
+                                                          setActiveTypes(fresh);
+                                                          if (
+                                                              entry.type &&
+                                                              !fresh.has(
+                                                                  entry.type,
+                                                              )
+                                                          ) {
+                                                              setPendingDelete(
+                                                                  entry,
+                                                              );
+                                                          }
+                                                      })
+                                                      .catch(() => {
+                                                          /* fail closed — don't open dialog */
+                                                      });
+                                              }
+                                            : undefined
+                                    }
+                                    onReorderDragStart={
+                                        acceptsReorder
+                                            ? (e, height, offset) => {
+                                                  e.dataTransfer.setData(
+                                                      RUNDOWN_REORDER_MIME,
+                                                      entry.id,
+                                                  );
+                                                  e.dataTransfer.effectAllowed =
+                                                      'move';
+                                                  setDraggingHeight(height);
+                                                  grabOffsetRef.current =
+                                                      offset;
+                                                  // Defer so the drag image is captured before the card collapses.
+                                                  requestAnimationFrame(() =>
+                                                      setReorderDraggingId(
+                                                          entry.id,
+                                                      ),
+                                                  );
+                                              }
+                                            : undefined
+                                    }
+                                    onReorderDragEnd={onReorderDragEnd}
+                                    dropIndicator={
+                                        dropIndex === index
+                                            ? 'before'
+                                            : dropIndex === entries.length &&
+                                                index === entries.length - 1
+                                              ? 'after'
+                                              : null
+                                    }
+                                    gapHeight={draggingHeight || 64}
+                                    isDragging={reorderDraggingId === entry.id}
+                                >
+                                    <Injections
+                                        zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`}
+                                        props={{ entry }}
+                                    />
+                                </RundownEntry>
+                            </SlotErrorBoundary>
                         </Box>
                     );
                 })}

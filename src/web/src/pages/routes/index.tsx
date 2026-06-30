@@ -14,6 +14,7 @@ import { DefaultContentLayout } from '../../components/DefaultContentLayout';
 import { RouteCard } from '../../components/routes/RouteCard';
 import { DeleteRouteModal } from '../../components/routes/DeleteRouteModal';
 import { useToast } from '../../components/ToastProvider';
+import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
 
 const Page = () => {
     const { t } = useTranslation('common');
@@ -285,15 +286,20 @@ const Page = () => {
 
             <Stack spacing={1.5} sx={{ maxWidth: 820 }}>
                 {routes?.map(route => (
-                    <RouteCard
+                    <SlotErrorBoundary
                         key={route.id}
-                        route={route}
-                        onEdit={() => setEditing(route)}
-                        onToggle={next => toggle(route.id, next)}
-                        onDelete={() => {
-                            setDeleting(route);
-                        }}
-                    />
+                        label={`route-card:${route.id}`}
+                        resetKeys={[route.id]}
+                    >
+                        <RouteCard
+                            route={route}
+                            onEdit={() => setEditing(route)}
+                            onToggle={next => toggle(route.id, next)}
+                            onDelete={() => {
+                                setDeleting(route);
+                            }}
+                        />
+                    </SlotErrorBoundary>
                 ))}
             </Stack>
 

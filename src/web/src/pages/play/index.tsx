@@ -6,6 +6,7 @@ import { useTranslation } from 'next-i18next';
 import { DefaultContentLayout } from '../../components/DefaultContentLayout';
 import { useRundowns } from '../../hooks/useRundowns';
 import { RundownCard } from '../../components/play/RundownCard';
+import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
 import { AddRundownModal } from '../../components/play/AddRundownModal';
 import { RenameRundownModal } from '../../components/play/RenameRundownModal';
 import { DeleteRundownModal } from '../../components/play/DeleteRundownModal';
@@ -66,16 +67,23 @@ const Page = () => {
                     </Card>
                 ) : (
                     rundowns.map(rundown => (
-                        <RundownCard
+                        <SlotErrorBoundary
                             key={rundown.id}
-                            rundown={rundown}
-                            onOpen={() => router.push(`/play/${rundown.id}`)}
-                            onEdit={() => setEditing(rundown)}
-                            onDelete={() => setDeleting(rundown)}
-                            onDuplicate={() =>
-                                createRundown(`${rundown.name} (copy)`)
-                            }
-                        />
+                            label={`rundown-card:${rundown.id}`}
+                            resetKeys={[rundown.id]}
+                        >
+                            <RundownCard
+                                rundown={rundown}
+                                onOpen={() =>
+                                    router.push(`/play/${rundown.id}`)
+                                }
+                                onEdit={() => setEditing(rundown)}
+                                onDelete={() => setDeleting(rundown)}
+                                onDuplicate={() =>
+                                    createRundown(`${rundown.name} (copy)`)
+                                }
+                            />
+                        </SlotErrorBoundary>
                     ))
                 )}
             </Stack>

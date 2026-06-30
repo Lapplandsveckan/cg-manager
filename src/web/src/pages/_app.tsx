@@ -7,6 +7,8 @@ import { Stack } from '@mui/material';
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { appWithTranslation } from 'next-i18next';
+import { ErrorBoundary } from 'react-error-boundary';
+import { reportClientError } from '../lib/reportClientError';
 import { SocketProvider } from '../components/SocketProvider';
 import { ConnectionProvider } from '../components/ConnectionProvider';
 import { ConnectionBanner } from '../components/ConnectionBanner';
@@ -18,6 +20,12 @@ import { AuthGate } from '../components/AuthGate';
 import { theme } from '../lib/theme';
 import i18n from '../lib/i18n';
 import { detectLanguage } from '../lib/detectLanguage';
+
+const appCrashFallback = (
+    <div style={{ padding: 32 }}>
+        Something went wrong. Reload to try again.
+    </div>
+);
 
 function App({ Component, pageProps }: AppProps) {
     const router = useRouter();
@@ -46,7 +54,21 @@ function App({ Component, pageProps }: AppProps) {
             <ThemeProvider theme={theme}>
                 <CssBaseline />
                 {isLogin ? (
-                    <Component {...pageProps} />
+                    <ErrorBoundary
+                        fallback={appCrashFallback}
+                        onError={(e, i) => {
+                            console.error('[app:login]', e, i);
+                            const err = e as Error;
+                            reportClientError({
+                                source: 'app:login',
+                                message: err.message,
+                                stack: err.stack,
+                                componentStack: i.componentStack,
+                            });
+                        }}
+                    >
+                        <Component {...pageProps} />
+                    </ErrorBoundary>
                 ) : (
                     <AuthGate>
                         <SocketProvider>
@@ -69,7 +91,32 @@ function App({ Component, pageProps }: AppProps) {
                                                         minHeight: 0,
                                                     }}
                                                 >
-                                                    <Component {...pageProps} />
+                                                    <ErrorBoundary
+                                                        fallback={
+                                                            appCrashFallback
+                                                        }
+                                                        onError={(e, i) => {
+                                                            console.error(
+                                                                '[app:page]',
+                                                                e,
+                                                                i,
+                                                            );
+                                                            const err =
+                                                                e as Error;
+                                                            reportClientError({
+                                                                source: 'app:page',
+                                                                message:
+                                                                    err.message,
+                                                                stack: err.stack,
+                                                                componentStack:
+                                                                    i.componentStack,
+                                                            });
+                                                        }}
+                                                    >
+                                                        <Component
+                                                            {...pageProps}
+                                                        />
+                                                    </ErrorBoundary>
                                                 </Stack>
                                             </Stack>
                                         </EntryClipboardProvider>

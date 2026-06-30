@@ -15,6 +15,7 @@ import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useSocket } from '../lib/hooks/useSocket';
+import { SlotErrorBoundary } from './SlotErrorBoundary';
 import { type MediaDoc } from '../lib/api/caspar';
 import { MediaCard } from '../components/MediaCard';
 import { MediaFolder } from '../components/MediaFolder';
@@ -153,65 +154,75 @@ export const MediaView: React.FC<MediaViewProps> = ({
             {data.length || folders.length ? (
                 <Grid container spacing={2}>
                     {data.map(clip => (
-                        <MediaCard
+                        <SlotErrorBoundary
                             key={clip.name}
-                            name={clip.name}
-                            duration={clip.duration}
-                            backgroundUrl={clip.backgroundUrl}
-                            columns={columns}
-                            onClick={
-                                onClipSelect
-                                    ? () => onClipSelect(clip.doc)
-                                    : undefined
-                            }
-                            onPlay={
-                                onClipPlay
-                                    ? () => onClipPlay(clip.doc)
-                                    : undefined
-                            }
-                            onDelete={
-                                onClipDelete
-                                    ? () => onClipDelete(clip.doc)
-                                    : undefined
-                            }
-                            onRename={
-                                onClipRename
-                                    ? () => onClipRename(clip.doc)
-                                    : undefined
-                            }
-                            dragId={
-                                onClipMoveToFolder ? clip.doc.id : undefined
-                            }
-                        />
+                            label={`media-card:${clip.name}`}
+                            resetKeys={[clip.name]}
+                        >
+                            <MediaCard
+                                name={clip.name}
+                                duration={clip.duration}
+                                backgroundUrl={clip.backgroundUrl}
+                                columns={columns}
+                                onClick={
+                                    onClipSelect
+                                        ? () => onClipSelect(clip.doc)
+                                        : undefined
+                                }
+                                onPlay={
+                                    onClipPlay
+                                        ? () => onClipPlay(clip.doc)
+                                        : undefined
+                                }
+                                onDelete={
+                                    onClipDelete
+                                        ? () => onClipDelete(clip.doc)
+                                        : undefined
+                                }
+                                onRename={
+                                    onClipRename
+                                        ? () => onClipRename(clip.doc)
+                                        : undefined
+                                }
+                                dragId={
+                                    onClipMoveToFolder ? clip.doc.id : undefined
+                                }
+                            />
+                        </SlotErrorBoundary>
                     ))}
 
                     {showAsDirectories &&
                         folders.map(folder => (
-                            <MediaFolder
+                            <SlotErrorBoundary
                                 key={folder}
-                                name={folder}
-                                columns={columns}
-                                onClick={() => onNavigate?.(folder)}
-                                onDelete={
-                                    onFolderDelete
-                                        ? () => onFolderDelete(folder)
-                                        : undefined
-                                }
-                                onRename={
-                                    onFolderRename
-                                        ? () => onFolderRename(folder)
-                                        : undefined
-                                }
-                                onMediaDrop={
-                                    onClipMoveToFolder
-                                        ? clipId =>
-                                              onClipMoveToFolder(
-                                                  clipId,
-                                                  `${prefix ?? ''}${folder}`,
-                                              )
-                                        : undefined
-                                }
-                            />
+                                label={`media-folder:${folder}`}
+                                resetKeys={[folder]}
+                            >
+                                <MediaFolder
+                                    name={folder}
+                                    columns={columns}
+                                    onClick={() => onNavigate?.(folder)}
+                                    onDelete={
+                                        onFolderDelete
+                                            ? () => onFolderDelete(folder)
+                                            : undefined
+                                    }
+                                    onRename={
+                                        onFolderRename
+                                            ? () => onFolderRename(folder)
+                                            : undefined
+                                    }
+                                    onMediaDrop={
+                                        onClipMoveToFolder
+                                            ? clipId =>
+                                                  onClipMoveToFolder(
+                                                      clipId,
+                                                      `${prefix ?? ''}${folder}`,
+                                                  )
+                                            : undefined
+                                    }
+                                />
+                            </SlotErrorBoundary>
                         ))}
                 </Grid>
             ) : (

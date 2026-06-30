@@ -86,6 +86,10 @@
         "error": {
             "title": "Something went wrong",
             "body": "The page hit an error and stopped rendering. Reload to try again, or check the browser console for details."
+        },
+        "slotError": {
+            "body": "This part failed to load.",
+            "retry": "Try again"
         }
     },
     "rundown": {

@@ -86,6 +86,10 @@
         "error": {
             "title": "Något gick fel",
             "body": "Sidan stötte på ett fel och slutade att rendera. Ladda om för att försöka igen, eller kontrollera webbläsarkonsolen för detaljer."
+        },
+        "slotError": {
+            "body": "Den här delen kunde inte laddas.",
+            "retry": "Försök igen"
         }
     },
     "rundown": {

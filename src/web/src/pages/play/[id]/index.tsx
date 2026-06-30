@@ -21,6 +21,7 @@ import { BottomPanel } from '../../../components/BottomPanel';
 import { RundownPreview } from '../../../components/RundownPreview';
 import { type RundownItemDragPayload } from '../../../lib/dragPayload';
 import { RundownLiveProvider } from '../../../hooks/useRundownLive';
+import { SlotErrorBoundary } from '../../../components/SlotErrorBoundary';
 
 // Default sizes target ~80% of the previous defaults (560/560/480) so the
 // three columns fit comfortably side-by-side on a standard 1440px viewport
@@ -320,19 +321,21 @@ const Page = () => {
                             <Typography variant="h2">
                                 {t('playPage.detail.rundownHeading')}
                             </Typography>
-                            <Rundowns
-                                entries={entries}
-                                locked={locked}
-                                onEdit={entry => setEditing(entry)}
-                                onPlay={play}
-                                onStop={stop}
-                                onAdd={() => setAdding(true)}
-                                onDelete={deleteEntry}
-                                onDropItem={openEditorForDrop}
-                                onReorder={reorderEntries}
-                                onDuplicate={handleDuplicate}
-                                onPaste={handlePaste}
-                            />
+                            <SlotErrorBoundary label="play:rundown-column">
+                                <Rundowns
+                                    entries={entries}
+                                    locked={locked}
+                                    onEdit={entry => setEditing(entry)}
+                                    onPlay={play}
+                                    onStop={stop}
+                                    onAdd={() => setAdding(true)}
+                                    onDelete={deleteEntry}
+                                    onDropItem={openEditorForDrop}
+                                    onReorder={reorderEntries}
+                                    onDuplicate={handleDuplicate}
+                                    onPaste={handlePaste}
+                                />
+                            </SlotErrorBoundary>
                         </Box>
 
                         <ResizeHandle
@@ -366,7 +369,9 @@ const Page = () => {
                                     )}
                                 </Typography>
                             </Stack>
-                            <QuickActions locked={locked} />
+                            <SlotErrorBoundary label="play:quick-actions-column">
+                                <QuickActions locked={locked} />
+                            </SlotErrorBoundary>
                         </Box>
 
                         <ResizeHandle
@@ -413,7 +418,9 @@ const Page = () => {
                         </Box>
                     </Stack>
 
-                    <BottomPanel />
+                    <SlotErrorBoundary label="play:bottom-panel">
+                        <BottomPanel />
+                    </SlotErrorBoundary>
                 </Stack>
 
                 <RundownModals

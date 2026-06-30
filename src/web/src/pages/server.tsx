@@ -23,6 +23,7 @@ import { DefaultContentLayout } from '../components/DefaultContentLayout';
 import { type CasparStatus } from '../lib/api/caspar';
 import { PreviewPanel } from '../components/PreviewPanel';
 import { useToast } from '../components/ToastProvider';
+import { SlotErrorBoundary } from '../components/SlotErrorBoundary';
 
 type Tone = 'success' | 'error' | 'warning' | 'neutral';
 
@@ -376,15 +377,23 @@ const Page = () => {
                 spacing={2}
                 sx={{ minHeight: 0, display: 'flex', flexGrow: 1 }}
             >
-                <StatusCard status={status} />
+                <SlotErrorBoundary label="server:status-card">
+                    <StatusCard status={status} />
+                </SlotErrorBoundary>
 
                 {status && !status.supported && (
-                    <UnsupportedBanner message={status.lastError ?? ''} />
+                    <SlotErrorBoundary label="server:unsupported-banner">
+                        <UnsupportedBanner message={status.lastError ?? ''} />
+                    </SlotErrorBoundary>
                 )}
 
-                <PreviewPanel />
+                <SlotErrorBoundary label="server:preview-panel">
+                    <PreviewPanel />
+                </SlotErrorBoundary>
 
-                <LogViewer logs={logs} onClear={() => setLogs('')} />
+                <SlotErrorBoundary label="server:log-viewer">
+                    <LogViewer logs={logs} onClear={() => setLogs('')} />
+                </SlotErrorBoundary>
             </Stack>
         </DefaultContentLayout>
     );
