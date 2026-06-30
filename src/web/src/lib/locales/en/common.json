@@ -111,12 +111,12 @@
             "body": "\"{{title}}\" (type: {{type}}) will be permanently removed from the rundown."
         },
         "indicator": {
-            "live": "LIVE",
+            "live": "PLAY",
             "edit": "EDIT"
         },
         "modeToggle": {
             "editTooltip": "Edit mode — click a card to open its editor. Fire items with the play button.",
-            "liveTooltip": "Live mode — click anywhere on a card to fire it."
+            "liveTooltip": "Play mode — click anywhere on a card to fire it."
         },
         "bottomPanel": {
             "resizeHint": "Drag to resize · Double-click to reset",

@@ -174,18 +174,6 @@ export const ModeToggle: React.FC<ModeToggleProps> = ({ locked, onChange }) => {
                     placement="bottom"
                 >
                     <Stack direction="row" alignItems="center" gap={0.75}>
-                        <Box
-                            sx={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                bgcolor: 'currentColor',
-                                flexShrink: 0,
-                                animation: !locked
-                                    ? `${livePulse} 1.4s ease-in-out infinite`
-                                    : 'none',
-                            }}
-                        />
                         <Typography
                             variant="caption"
                             sx={{

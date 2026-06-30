@@ -111,12 +111,12 @@
             "body": "\"{{title}}\" (typ: {{type}}) kommer att tas bort permanent från rundown."
         },
         "indicator": {
-            "live": "LIVE",
+            "live": "SPELA",
             "edit": "REDIGERA"
         },
         "modeToggle": {
             "editTooltip": "Redigeringsläge — klicka på ett kort för att öppna dess redigerare. Starta objekt med spelknappen.",
-            "liveTooltip": "Direktläge — klicka var som helst på ett kort för att starta det."
+            "liveTooltip": "Spelläge — klicka var som helst på ett kort för att starta det."
         },
         "bottomPanel": {
             "resizeHint": "Dra för att ändra storlek · Dubbelklicka för att återställa",
