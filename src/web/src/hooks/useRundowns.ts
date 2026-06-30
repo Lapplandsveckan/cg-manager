@@ -14,6 +14,8 @@ export interface Rundown {
     name: string;
     items: RundownItem[];
     type?: 'rundown' | 'quick';
+    /** Read straight off the rundown's file on disk — not user-editable. */
+    createdAt?: number;
 }
 
 export function useRundowns() {

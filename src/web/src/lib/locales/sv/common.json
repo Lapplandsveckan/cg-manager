@@ -716,6 +716,21 @@
             "bodyAfterName": "och alla dess objekt kommer att tas bort. Detta kan inte ångras."
         },
         "resizeTooltip": "Dra för att ändra storlek · Dubbelklicka för att återställa",
+        "sort": {
+            "label": "Sortera",
+            "default": "Standard",
+            "nameAsc": "Namn (A-Ö)",
+            "nameDesc": "Namn (Ö-A)",
+            "itemsDesc": "Flest objekt",
+            "itemsAsc": "Färst objekt",
+            "createdDesc": "Nyast först",
+            "createdAsc": "Äldst först"
+        },
+        "quickJump": {
+            "hint": "Hoppa",
+            "placeholder": "Sök rundowns…",
+            "empty": "Inga matchande rundowns"
+        },
         "detail": {
             "untitled": "Namnlös rundown",
             "itemsLabel": "Objekt",

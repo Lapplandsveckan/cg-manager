@@ -29,6 +29,7 @@ export interface Rundown {
 
     items: RundownItem[];
     type?: 'rundown' | 'quick';
+    createdAt?: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -52,6 +53,7 @@ export class RundownManager {
             items: [],
 
             type,
+            createdAt: Date.now(),
         };
 
         const state = {};

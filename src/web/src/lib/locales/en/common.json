@@ -716,6 +716,21 @@
             "bodyAfterName": "and all of its items will be removed. This can't be undone."
         },
         "resizeTooltip": "Drag to resize · Double-click to reset",
+        "sort": {
+            "label": "Sort",
+            "default": "Default",
+            "nameAsc": "Name (A-Z)",
+            "nameDesc": "Name (Z-A)",
+            "itemsDesc": "Most items",
+            "itemsAsc": "Fewest items",
+            "createdDesc": "Newest first",
+            "createdAsc": "Oldest first"
+        },
+        "quickJump": {
+            "hint": "Jump",
+            "placeholder": "Search rundowns…",
+            "empty": "No matching rundowns"
+        },
         "detail": {
             "untitled": "Untitled rundown",
             "itemsLabel": "Items",
