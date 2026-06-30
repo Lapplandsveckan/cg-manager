@@ -12,6 +12,7 @@ import { UIInjector } from './plugins/ui';
 import { RundownManager } from './rundown/rundown';
 import { VideoRoutesManager } from './routes/routes';
 import { PreviewManager } from './preview/preview';
+import { CompanionRegistry } from './companion/registry';
 
 export class CasparManager extends EventEmitter {
     public scanner: MediaScanner;
@@ -24,6 +25,7 @@ export class CasparManager extends EventEmitter {
     public rundowns: RundownManager;
     public routes: VideoRoutesManager;
     public preview: PreviewManager;
+    public companion: CompanionRegistry;
 
     private readonly onCasparStatusBroadcast = (status: CasparStatus) =>
         this.emit('caspar-status', status);
@@ -64,6 +66,7 @@ export class CasparManager extends EventEmitter {
         this.rundowns = new RundownManager();
         this.routes = new VideoRoutesManager(this);
         this.preview = new PreviewManager(this.executor);
+        this.companion = new CompanionRegistry();
 
         this.caspar.on('status', this.onCasparStatusBroadcast);
         this.caspar.on('status', this.onCasparStatusReconnect);

@@ -207,9 +207,12 @@ export class PluginManager {
             logger.error(
                 `Failed to disable plugin: ${Logger.formatError(err)}`,
             );
-        CasparManager.getManager().rundowns.executor.unregisterActionsByOwner(
-            plugin.pluginName,
-        );
+        const manager = CasparManager.getManager();
+        manager.rundowns.executor.unregisterActionsByOwner(plugin.pluginName);
+        // CompanionRegistry also tracks sub-cleanup internally, but calling
+        // unregisterOwner here ensures the broadcast fires before the plugin's
+        // own API teardown clears its handle list.
+        manager.companion.unregisterOwner(plugin.pluginName);
     }
 
     public get enabled() {
