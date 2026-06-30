@@ -11,6 +11,18 @@ import {CasparExecutor} from './caspar/executor';
 import {FileDatabase} from './scanner/db';
 import {RundownManager} from './rundown';
 import {VideoRoutesManager} from './routes';
+import {ActionDefinition, ActionHandle, FeedbackDefinition, FeedbackHandle, OptionValues, InvokeContext} from './companion';
+
+export declare class CompanionRegistry {
+    registerAction(def: ActionDefinition, owner: string): ActionHandle;
+    registerFeedback(def: FeedbackDefinition, owner: string): FeedbackHandle;
+    invoke(plugin: string, id: string, options: OptionValues, ctx: InvokeContext): Promise<void>;
+    subscribe(instanceId: string, plugin: string, id: string, options: OptionValues): void;
+    unsubscribe(instanceId: string): void;
+    invalidate(plugin: string, id: string): void;
+    unregisterOwner(owner: string): void;
+    listDefinitions(): { actions: unknown[]; feedbacks: unknown[] };
+}
 
 export declare class CasparManager extends EventEmitter {
     public effects: EffectRegistry;
@@ -23,6 +35,7 @@ export declare class CasparManager extends EventEmitter {
     public db: FileDatabase;
     public rundowns: RundownManager;
     public routes: VideoRoutesManager;
+    public companion: CompanionRegistry;
 
     // This is a static method, so it will not be available from the plugin
     // public static getManager(): CasparManager;

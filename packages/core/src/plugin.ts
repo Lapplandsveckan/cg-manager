@@ -9,6 +9,7 @@ import {UI_INJECTION_ZONE} from './types/ui';
 import {RundownActionMetadata, RundownItem, Rundown} from './types/rundown';
 import {VideoRoute, RouteChange} from './types/routes';
 import {CasparStatus} from './types/caspar/process';
+import {ActionDefinition, ActionHandle, FeedbackDefinition, FeedbackHandle, InvokeContext, OptionValues} from './types/companion';
 
 export class CasparPlugin {
     private _api: PluginAPI;
@@ -111,10 +112,20 @@ export class PluginAPI extends EventEmitter {
         this.uiInjections = [];
     }
 
+    private _companionActions: ActionHandle[] = [];
+    private _companionFeedbacks: FeedbackHandle[] = [];
+
+    private unregisterCompanion() {
+        this._manager.companion.unregisterOwner(this._plugin.pluginName);
+        this._companionActions = [];
+        this._companionFeedbacks = [];
+    }
+
     private unregister() {
         this.unregisterEffects();
         this.unregisterRoutes();
         this.unregisterUIInjections();
+        this.unregisterCompanion();
         return this.unregisterFiles();
     }
 
@@ -201,6 +212,24 @@ export class PluginAPI extends EventEmitter {
         metadata?: RundownActionMetadata,
     ) {
         this._manager.rundowns.executor.registerAction(name, handler, this._plugin.pluginName, metadata);
+    }
+
+    // Companion surface — actions & feedbacks
+
+    public registerAction(def: ActionDefinition): ActionHandle {
+        const handle = this._manager.companion.registerAction(def, this._plugin.pluginName);
+        this._companionActions.push(handle);
+        return handle;
+    }
+
+    public registerFeedback(def: FeedbackDefinition): FeedbackHandle {
+        const handle = this._manager.companion.registerFeedback(def, this._plugin.pluginName);
+        this._companionFeedbacks.push(handle);
+        return handle;
+    }
+
+    public invalidateFeedback(id: string): void {
+        this._manager.companion.invalidate(this._plugin.pluginName, id);
     }
 
     // Video routes — read
