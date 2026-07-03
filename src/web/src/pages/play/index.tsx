@@ -23,9 +23,12 @@ import { DeleteRundownModal } from '../../components/play/DeleteRundownModal';
 import { EditRundownModal } from '../../components/play/EditRundownModal';
 import { ModalShell } from '../../components/play/ModalShell';
 import { QuickJumpPalette } from '../../components/play/QuickJumpPalette';
+import { useStoredString } from '../../lib/hooks/useStoredString';
 import type { Rundown, RundownItem } from '../../hooks/useRundowns';
 
 export type { Rundown, RundownItem };
+
+const SORT_STORAGE_KEY = 'play.rundowns.sortBy';
 
 type SortKey =
     | 'default'
@@ -79,7 +82,11 @@ const Page = () => {
     const [editing, setEditing] = useState<Rundown | null>(null);
     const [adding, setAdding] = useState(false);
     const [deleting, setDeleting] = useState<Rundown | null>(null);
-    const [sortBy, setSortBy] = useState<SortKey>('default');
+    const [storedSort, setStoredSort] = useStoredString(
+        SORT_STORAGE_KEY,
+        'default',
+    );
+    const sortBy = (storedSort ?? 'default') as SortKey;
     const [jumpOpen, setJumpOpen] = useState(false);
 
     const sortedRundowns = useMemo(
@@ -125,7 +132,9 @@ const Page = () => {
                             labelId="rundown-sort-label"
                             label={t('playPage.sort.label')}
                             value={sortBy}
-                            onChange={e => setSortBy(e.target.value as SortKey)}
+                            onChange={e =>
+                                setStoredSort(e.target.value as SortKey)
+                            }
                         >
                             <MenuItem value="default">
                                 {t('playPage.sort.default')}
