@@ -130,14 +130,18 @@ async function scanFile(
     // timestamps ride along (cinf/tinf/mediainfo.time), so a plain copy shows the
     // original's modified-time; doc.mediaSize/mediaTime above stay accurate. _attachments
     // and nested mediainfo are shared by reference — safe only because they're always
-    // replaced wholesale, never mutated in place.
+    // replaced wholesale, never mutated in place. The hash check below is required even
+    // for the renamedFrom donor: a delete+add pair can land on a reused inode (false
+    // "rename") for files that don't share content, e.g. a reencode that writes a new
+    // file under a different name right after the original is removed — without it,
+    // the new file would inherit the old file's stale metadata/thumbnail.
     const renamedFromDoc = opts.renamedFrom
         ? db.get(opts.renamedFrom)
         : undefined;
     const donorDoc = renamedFromDoc?.mediainfo
         ? renamedFromDoc
         : db.findByHash(hash);
-    if (!doc.mediainfo && donorDoc?.mediainfo) {
+    if (!doc.mediainfo && donorDoc?.mediainfo && donorDoc._hash === hash) {
         const donor = donorDoc;
         doc.mediainfo = { ...donor.mediainfo, name: mediaId, path: mediaPath };
         doc.cinf = patchId(donor.cinf, donor.id, mediaId);

@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "2.19.0",
+  "version": "2.19.1",
   "name": "manager",
   "engines": {
     "node": ">=22"

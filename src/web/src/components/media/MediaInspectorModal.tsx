@@ -96,9 +96,12 @@ const MediaInspectorModal: React.FC<Props> = ({ doc, onClose }) => {
     // with no audio and effectively no duration — mirror the scanner's
     // STILL-vs-MOVIE heuristic (dur <= 1/24, see scanner.ts) so images
     // render in an <img> rather than a <video> that can't play them.
+    const rawDuration = info?.format?.duration ?? videoStream?.duration;
+    const parsedDuration = rawDuration == null ? null : Number(rawDuration);
     const durationSecs =
-        info?.format?.duration ??
-        (videoStream?.duration ? parseFloat(videoStream.duration) : null);
+        parsedDuration != null && Number.isFinite(parsedDuration)
+            ? parsedDuration
+            : null;
     const isImage =
         Boolean(doc) &&
         Boolean(videoStream) &&
