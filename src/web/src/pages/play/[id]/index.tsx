@@ -16,6 +16,7 @@ import {
     useRundownEntries,
 } from '../../../components/Rundowns';
 import { RundownModals } from '../../../components/RundownModals';
+import { RundownTitleEditor } from '../../../components/play/RundownTitleEditor';
 import { QuickActions } from '../../../components/QuickActions';
 import { BottomPanel } from '../../../components/BottomPanel';
 import { RundownPreview } from '../../../components/RundownPreview';
@@ -178,6 +179,7 @@ const Page = () => {
         deleteEntry,
         createEntry,
         reorderEntries,
+        renameRundown,
     } = useRundownEntries(router.query.id as string);
 
     const [editing, setEditing] = useState<RundownEntry | null>(null);
@@ -273,19 +275,11 @@ const Page = () => {
                                         alignSelf: 'stretch',
                                     })}
                                 />
-                                <Typography
-                                    variant="h2"
-                                    sx={{
-                                        fontSize: '1.75rem',
-                                        lineHeight: 1.2,
-                                        wordBreak: 'break-word',
-                                        color: name
-                                            ? 'text.primary'
-                                            : 'text.disabled',
-                                    }}
-                                >
-                                    {name ?? t('playPage.detail.untitled')}
-                                </Typography>
+                                <RundownTitleEditor
+                                    name={name}
+                                    rundownId={router.query.id as string}
+                                    onRename={renameRundown}
+                                />
                             </Stack>
                         </Stack>
                         <ModeToggle locked={locked} onChange={setLocked} />

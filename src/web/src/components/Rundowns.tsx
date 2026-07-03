@@ -207,6 +207,13 @@ export function useRundownEntries(rundown: string) {
         setEntries(entries.filter(v => v.id !== entry.id));
     };
 
+    const renameRundown = (newName: string) => {
+        const trimmed = newName.trim();
+        if (!trimmed || trimmed === name) return;
+        conn.rawRequest(`/api/rundown/${rundown}`, 'UPDATE', trimmed);
+        setName(trimmed);
+    };
+
     const reorderEntries = (orderedIds: string[]) => {
         const byId = new Map(entries.map(item => [item.id, item]));
         const reordered: RundownEntry[] = [];
@@ -234,6 +241,7 @@ export function useRundownEntries(rundown: string) {
         deleteEntry,
         createEntry,
         reorderEntries,
+        renameRundown,
     };
 }
 
