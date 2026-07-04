@@ -183,7 +183,12 @@ export class CGServer {
                 const token = AuthManager.readToken(
                     data.request.headers.cookie,
                 );
-                if (AuthManager.touch(token)) return;
+                const session = AuthManager.checkSession(token);
+                if (session.authenticated) {
+                    if (session.refresh)
+                        data.response.setHeader('Set-Cookie', session.refresh);
+                    return;
+                }
                 if (
                     AuthManager.verifyApiToken(
                         data.request.headers.authorization,
@@ -265,10 +270,6 @@ export class CGServer {
             }
 
             if (url === '/api/auth/logout' && data.request.method === 'POST') {
-                const token = AuthManager.readToken(
-                    data.request.headers.cookie,
-                );
-                AuthManager.invalidate(token);
                 data.response.setHeader(
                     'Set-Cookie',
                     AuthManager.clearCookieHeader(),

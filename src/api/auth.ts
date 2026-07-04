@@ -2,26 +2,15 @@ import crypto from 'crypto';
 import config from '../util/config';
 
 const COOKIE_NAME = 'cg-session';
-// Sliding-window expiry: every authenticated request updates `lastSeen`.
-// Tokens unused for this long are dropped.
+// Sliding-window expiry: tokens are re-issued with a fresh expiry once past
+// the halfway point of their lifetime (see `checkSession`). Tokens are
+// stateless (signed, not stored), so they survive a server restart.
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 // Brute-force defence: failed logins block for this long. Cheap to hit on
 // a single password setup, painful for anyone trying to guess.
 const FAILED_LOGIN_DELAY_MS = 250;
-const GC_INTERVAL_MS = 5 * 60 * 1000;
-
-interface Session {
-    lastSeen: number;
-}
 
 class AuthManagerImpl {
-    private sessions = new Map<string, Session>();
-
-    constructor() {
-        // GC loop. `unref()` so it doesn't keep the process alive on exit.
-        setInterval(() => this.gc(), GC_INTERVAL_MS).unref();
-    }
-
     /** Whether auth is configured. When false, all requests are allowed
      *  through — preserves the pre-auth open behavior. */
     get enabled(): boolean {
@@ -62,28 +51,82 @@ class AuthManagerImpl {
         return a.length === b.length && crypto.timingSafeEqual(a, b);
     }
 
+    /** Stateless signed session token: `<exp>.<hmac>`. No server-side store,
+     *  so validity survives a restart. Signed with a secret derived from the
+     *  configured password, so changing the password invalidates sessions. */
     createSession(): string {
-        const token = crypto.randomBytes(32).toString('hex');
-        this.sessions.set(token, { lastSeen: Date.now() });
-        return token;
+        return this.sign(Date.now() + SESSION_TTL_MS);
     }
 
-    /** Validate a token from a cookie. Touches `lastSeen` on success so
-     *  active sessions don't time out. */
+    /** Validate a token: signature must match and it must not be expired. */
     touch(token: string | undefined): boolean {
-        if (!token) return false;
-        const session = this.sessions.get(token);
-        if (!session) return false;
-        if (Date.now() - session.lastSeen > SESSION_TTL_MS) {
-            this.sessions.delete(token);
-            return false;
-        }
-        session.lastSeen = Date.now();
-        return true;
+        return this.checkSession(token).authenticated;
     }
 
-    invalidate(token: string | undefined): void {
-        if (token) this.sessions.delete(token);
+    /** Single verification pass covering both whether a token is valid and,
+     *  if so, whether it's past the halfway point of its lifetime and due
+     *  for a sliding-window refresh (`refresh` holds the new Set-Cookie
+     *  value in that case). Callers that need both should use this directly
+     *  instead of `touch`+`refreshedCookie`, which would verify twice. */
+    checkSession(token: string | undefined): {
+        authenticated: boolean;
+        refresh?: string;
+    } {
+        const exp = this.verify(token);
+        if (exp === undefined || exp <= Date.now())
+            return { authenticated: false };
+        const remaining = exp - Date.now();
+        const refresh =
+            remaining <= SESSION_TTL_MS / 2
+                ? this.cookieHeader(this.createSession())
+                : undefined;
+        return { authenticated: true, refresh };
+    }
+
+    /** Cookie sessions can only be minted via `verifyPassword`, so signing
+     *  requires a configured password. Without this guard, an `api-token`
+     *  -only deployment (no password) would derive the secret from an empty
+     *  string — a value anyone can compute, forging valid sessions. */
+    private secret(): Buffer | undefined {
+        if (typeof config.password !== 'string' || config.password.length === 0)
+            return undefined;
+        return crypto
+            .createHash('sha256')
+            .update(`cg-session:v1:${config.password}`)
+            .digest();
+    }
+
+    /** Only called after `verifyPassword` succeeds, so a password is always
+     *  configured here. */
+    private sign(exp: number): string {
+        const secret = this.secret();
+        if (!secret) throw new Error('sign() called without a password set');
+        const hmac = crypto
+            .createHmac('sha256', secret)
+            .update(String(exp))
+            .digest('hex');
+        return `${exp}.${hmac}`;
+    }
+
+    /** Returns the token's expiry timestamp if the signature is valid,
+     *  otherwise undefined. Does not check expiry itself. */
+    private verify(token: string | undefined): number | undefined {
+        const secret = this.secret();
+        if (!secret || !token) return undefined;
+        const [expPart, hmacPart] = token.split('.');
+        if (!expPart || !hmacPart) return undefined;
+        const exp = Number(expPart);
+        if (!Number.isFinite(exp)) return undefined;
+
+        const expected = crypto
+            .createHmac('sha256', secret)
+            .update(expPart)
+            .digest('hex');
+        const a = Buffer.from(hmacPart);
+        const b = Buffer.from(expected);
+        if (a.length !== b.length || !crypto.timingSafeEqual(a, b))
+            return undefined;
+        return exp;
     }
 
     /** Build the `Set-Cookie` header value for a session. HttpOnly so JS
@@ -105,13 +148,6 @@ class AuthManagerImpl {
             if (k === COOKIE_NAME) return rest.join('=');
         }
         return undefined;
-    }
-
-    private gc() {
-        const now = Date.now();
-        for (const [token, session] of this.sessions)
-            if (now - session.lastSeen > SESSION_TTL_MS)
-                this.sessions.delete(token);
     }
 
     private delay(ms: number): Promise<void> {
