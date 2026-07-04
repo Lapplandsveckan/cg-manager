@@ -129,6 +129,11 @@ function usePluginNavItems(): NavItem[] {
 const EXPANDED_WIDTH = 200;
 const COLLAPSED_WIDTH = 60;
 const STORAGE_KEY = 'navbar-collapsed';
+// Icons sit inside a fixed-width box matching the collapsed sidebar (minus
+// its 3px indicator border) so they stay centered in the same spot whether
+// the sidebar is collapsed or expanded — only the trailing label appears
+// or disappears next to it.
+const ICON_BOX_WIDTH = COLLAPSED_WIDTH - 3;
 
 const NavbarItem: React.FC<{
     item: NavItem;
@@ -146,11 +151,11 @@ const NavbarItem: React.FC<{
             sx={theme => ({
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1.5,
+                gap: collapsed ? 0 : 1.5,
                 width: '100%',
-                px: collapsed ? 0 : 2,
+                pr: 2,
                 py: 1.25,
-                justifyContent: collapsed ? 'center' : 'flex-start',
+                justifyContent: 'flex-start',
                 color: active
                     ? theme.palette.text.primary
                     : theme.palette.text.secondary,
@@ -158,7 +163,6 @@ const NavbarItem: React.FC<{
                     ? alpha(theme.palette.primary.main, 0.1)
                     : 'transparent',
                 borderLeft: `3px solid ${active ? theme.palette.primary.main : 'transparent'}`,
-                paddingLeft: collapsed ? 0 : active ? '13px' : '16px',
                 transition: theme.transitions.create(
                     ['background-color', 'color'],
                     {
@@ -174,12 +178,30 @@ const NavbarItem: React.FC<{
                 },
             })}
         >
-            <Icon fontSize="small" />
-            {!collapsed && (
-                <Typography variant="body1" fontWeight={active ? 600 : 400}>
-                    {label}
-                </Typography>
-            )}
+            <Box
+                sx={{
+                    width: ICON_BOX_WIDTH,
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                }}
+            >
+                <Icon fontSize="small" />
+            </Box>
+            <Typography
+                variant="body1"
+                fontWeight={active ? 600 : 400}
+                noWrap
+                sx={{
+                    width: collapsed ? 0 : 'auto',
+                    opacity: collapsed ? 0 : 1,
+                    overflow: 'hidden',
+                    whiteSpace: 'nowrap',
+                }}
+            >
+                {label}
+            </Typography>
         </ButtonBase>
     );
 
@@ -350,29 +372,36 @@ export const Navbar = () => {
                     pb={2.5}
                     gap={1}
                 >
-                    {!collapsed && (
-                        <Stack
-                            spacing={0.25}
-                            sx={{ minWidth: 0, overflow: 'hidden' }}
+                    <Stack
+                        spacing={0.25}
+                        sx={theme => ({
+                            minWidth: 0,
+                            overflow: 'hidden',
+                            width: collapsed ? 0 : 'auto',
+                            opacity: collapsed ? 0 : 1,
+                            transition: theme.transitions.create(
+                                ['width', 'opacity'],
+                                { duration: 160 },
+                            ),
+                        })}
+                    >
+                        <Typography
+                            variant="h4"
+                            fontWeight={700}
+                            letterSpacing="-0.01em"
+                            noWrap
+                            sx={{ whiteSpace: 'nowrap' }}
                         >
-                            <Typography
-                                variant="h4"
-                                fontWeight={700}
-                                letterSpacing="-0.01em"
-                                noWrap
-                                sx={{ whiteSpace: 'nowrap' }}
-                            >
-                                {t('brand.name')}
-                            </Typography>
-                            <Typography
-                                variant="caption"
-                                noWrap
-                                sx={{ whiteSpace: 'nowrap' }}
-                            >
-                                {t('brand.tagline')}
-                            </Typography>
-                        </Stack>
-                    )}
+                            {t('brand.name')}
+                        </Typography>
+                        <Typography
+                            variant="caption"
+                            noWrap
+                            sx={{ whiteSpace: 'nowrap' }}
+                        >
+                            {t('brand.tagline')}
+                        </Typography>
+                    </Stack>
                     <Tooltip
                         title={t(
                             collapsed ? 'sidebar.expand' : 'sidebar.collapse',
