@@ -135,6 +135,8 @@ export class CasparManager extends EventEmitter {
         Logger.info('Starting rundown auto save...');
         this.rundowns.startAutosave();
         await this.rundowns.loadRundowns();
+
+        this.executor.startCompaction();
     }
 
     async stop() {
@@ -143,6 +145,7 @@ export class CasparManager extends EventEmitter {
 
         await this.preview.disposeAll();
         this.routes.disposeAll();
+        this.executor.stopCompaction();
         this.executor.disconnect();
 
         await this.scanner.stop();

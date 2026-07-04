@@ -12,6 +12,12 @@ import { AmcpSocket, type AmcpTransport } from './amcp-socket';
 const BOUNCE_WINDOW_MS = 10_000;
 const BOUNCE_MAX = 5;
 
+// Effect churn (routes enabling/disabling, edgeblend rebuilds, ...) leaves
+// holes in each channel's layer order on purpose — see Channel.compact()'s
+// doc comment in @lappis/cg-manager. Periodically drop those holes so
+// CasparCG layer numbers don't creep upward forever over a long session.
+const COMPACTION_INTERVAL_MS = 60_000;
+
 export class CasparExecutor extends CommandExecutor {
     private socket: AmcpTransport | null = null;
     private responseBuffer = '';
@@ -24,6 +30,7 @@ export class CasparExecutor extends CommandExecutor {
     private buffer = '';
     private hasConnectedBefore = false;
     private reconnectListeners: Array<() => void> = [];
+    private compactionTimer: NodeJS.Timeout | null = null;
 
     protected _fetchTemplates(): Promise<any[]> {
         return getTemplatesWithContent();
@@ -38,6 +45,34 @@ export class CasparExecutor extends CommandExecutor {
 
     public get connected(): boolean {
         return this._connected;
+    }
+
+    public startCompaction() {
+        this.stopCompaction();
+        this.compactionTimer = setInterval(
+            () => this.compactChannels(),
+            COMPACTION_INTERVAL_MS,
+        );
+    }
+
+    public stopCompaction() {
+        if (this.compactionTimer) clearInterval(this.compactionTimer);
+        this.compactionTimer = null;
+    }
+
+    private compactChannels() {
+        if (!this.connected) return; // commands would just be buffered/dropped
+        const channels = this.getChannels();
+        if (channels.length === 0) return;
+
+        const [err] = noTry(() => {
+            for (const channel of channels) channel.compact();
+            this.executeAllocations(); // emits the SWAPs for the new order
+        });
+        if (err)
+            Logger.scope('AMCP').warn(
+                `Layer compaction failed: ${err.message}`,
+            );
     }
 
     protected createSocket(): AmcpTransport {
