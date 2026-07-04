@@ -23,9 +23,22 @@ const SUPPORTED_PLATFORMS: NodeJS.Platform[] = ['linux', 'win32'];
 const LOG_BUFFER_MAX = 256 * 1024;
 
 const logger = Logger.scope('CasparCG');
+
+// Uptime past which a crash is treated as fresh rather than part of the same
+// crash-loop — resets the retry counter so an occasional crash months apart
+// doesn't inherit a stale count.
+const CRASH_STABLE_MS = 60_000;
+const CRASH_RESTART_MAX = 5;
+const CRASH_BACKOFF_BASE_MS = 1000;
+const CRASH_BACKOFF_MAX_MS = 30_000;
+
 export class CasparProcess extends EventEmitter {
     private process: ChildProcessWithoutNullStreams = null;
     private starting = false;
+    private stopping = false;
+    private startedAt = 0;
+    private crashRestarts = 0;
+    private crashTimer: NodeJS.Timeout | null = null;
     private logs = '';
     private lastError: string | null = null;
     private mockRunning = false;
@@ -44,12 +57,25 @@ export class CasparProcess extends EventEmitter {
     }
 
     async start() {
-        // `start()` awaits configuration.get() before spawning, which means
+        // A user-initiated start gets a fresh crash budget — the auto-restart
+        // path calls `_start()` directly so it doesn't reset the counter and
+        // defeat the crash-loop cap.
+        this.crashRestarts = 0;
+        return this._start();
+    }
+
+    private async _start() {
+        // `_start()` awaits configuration.get() before spawning, which means
         // two near-simultaneous callers (UI double-click, client retry) both
         // pass the `this.process` guard and both spawn. The `starting` flag
         // dedupes those concurrent calls.
         if (this.process || this.starting || this.mockRunning) return;
         this.starting = true;
+        this.stopping = false;
+        if (this.crashTimer) {
+            clearTimeout(this.crashTimer);
+            this.crashTimer = null;
+        }
 
         await noTryAsync(async () => {
             configuration.setPath(this.casparPath);
@@ -87,6 +113,7 @@ export class CasparProcess extends EventEmitter {
             const detached = process.platform !== 'win32';
             const proc = spawn(cmd, [], { cwd: this.casparPath, detached });
             this.process = proc;
+            this.startedAt = Date.now();
 
             // CasparCG read `this.config` from disk at startup — surface it as the
             // running snapshot so UI consumers (previews, routes) can distinguish
@@ -103,22 +130,65 @@ export class CasparProcess extends EventEmitter {
                 logger.error(data.toString());
             });
 
+            // A failure to even spawn the process (e.g. missing binary) isn't
+            // something backoff can fix, so don't let it drive the auto-restart
+            // loop — the following `close` (if any) checks this flag.
+            let spawnFailed = false;
             proc.on('error', err => {
+                spawnFailed = true;
                 this.lastError = `Could not start CasparCG: ${err.message}`;
                 logger.error(this.lastError);
                 this.emit('status', this.getStatus());
             });
 
-            proc.on('close', code => {
-                logger.warn(`CasparCG exited with code ${code}`);
-                // Only clear `this.process` if it still points at us — guards
-                // against a stale close from an older proc nulling the
-                // reference to a newer survivor.
-                if (this.process === proc) this.process = null;
-                if (code !== 0 && code !== null)
-                    this.lastError = `CasparCG exited with code ${code}.`;
+            proc.on('close', (code, signal) => {
+                logger.warn(
+                    `CasparCG exited with code ${code}${signal ? ` (signal ${signal})` : ''}`,
+                );
+                // Only react if `proc` is still the tracked process — guards
+                // against a stale close from an older proc (nulling a newer
+                // survivor's reference, polluting the crash counter, or
+                // scheduling a bogus respawn).
+                const wasCurrent = this.process === proc;
+                if (wasCurrent) this.process = null;
+                // A user-initiated stop/restart sets `stopping` before killing,
+                // so that path never counts as an error or triggers a respawn
+                // below — only an exit we didn't ask for does.
+                if (wasCurrent && !this.stopping && (code !== 0 || signal))
+                    this.lastError = `CasparCG exited with code ${code}${signal ? ` (signal ${signal})` : ''}.`;
                 this.emit('status', this.getStatus());
                 this.emit('running-config', this.getRunningConfig());
+
+                if (
+                    wasCurrent &&
+                    !this.stopping &&
+                    !spawnFailed &&
+                    this.supported &&
+                    config['caspar-auto-restart']
+                ) {
+                    if (Date.now() - this.startedAt > CRASH_STABLE_MS)
+                        this.crashRestarts = 0;
+
+                    if (this.crashRestarts < CRASH_RESTART_MAX) {
+                        this.crashRestarts += 1;
+                        const backoff = Math.min(
+                            CRASH_BACKOFF_BASE_MS *
+                                2 ** (this.crashRestarts - 1),
+                            CRASH_BACKOFF_MAX_MS,
+                        );
+                        logger.warn(
+                            `Auto-restarting CasparCG in ${backoff}ms (attempt ${this.crashRestarts}/${CRASH_RESTART_MAX})`,
+                        );
+                        this.crashTimer = setTimeout(
+                            () => this._start(),
+                            backoff,
+                        );
+                    } else {
+                        logger.error(
+                            `CasparCG crashed ${this.crashRestarts} times — giving up auto-restart.`,
+                        );
+                    }
+                }
             });
 
             this.emit('status', this.getStatus());
@@ -128,6 +198,12 @@ export class CasparProcess extends EventEmitter {
     }
 
     async stop() {
+        this.stopping = true;
+        if (this.crashTimer) {
+            clearTimeout(this.crashTimer);
+            this.crashTimer = null;
+        }
+
         if (this.mockRunning) {
             this.mockRunning = false;
             this.emit('status', this.getStatus());

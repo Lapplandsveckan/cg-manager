@@ -18,6 +18,7 @@ export interface Config {
     host?: string | null;
     'socket-path'?: string | null;
     'caspar-profile'?: string;
+    'caspar-auto-restart': boolean;
 }
 
 const isDev = process.env.NODE_ENV !== 'production';
@@ -126,6 +127,11 @@ export const schema: Record<keyof Omit<Config, 'temp'>, FieldMeta> = {
         type: 'string',
         default: 'upstream',
         desc: 'CasparCG build profile. Valid values: "upstream" (stock CasparCG) or "lappis" (Lappis custom builds). Controls which config schema variants and feature flags are active.',
+    },
+    'caspar-auto-restart': {
+        type: 'boolean',
+        default: true,
+        desc: 'Automatically respawn CasparCG (with backoff and a retry cap) when it exits unexpectedly, e.g. a crash. false = leave it down until manually restarted.',
     },
 };
 
