@@ -8,11 +8,24 @@ import {
     Typography,
 } from '@mui/material';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import Fuse from 'fuse.js';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import type { Rundown } from '../../hooks/useRundowns';
 
 const MAX_RESULTS = 8;
+
+// Strips Fuse's extended-search operator characters (' ! ^ = $ |) from each
+// whitespace-separated token so raw user input can't be misread as a query
+// DSL, while whitespace itself still ANDs the tokens together.
+function toFuzzyTokens(query: string): string {
+    return query
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(token => token.replace(/['!^=$|]/g, ''))
+        .join(' ');
+}
 
 interface QuickJumpPaletteProps {
     rundowns: Rundown[];
@@ -38,15 +51,24 @@ export const QuickJumpPalette: React.FC<QuickJumpPaletteProps> = ({
         }
     }, [open]);
 
+    const fuse = useMemo(
+        () =>
+            new Fuse(rundowns, {
+                keys: ['name'],
+                threshold: 0.4,
+                ignoreLocation: true,
+                useExtendedSearch: true,
+            }),
+        [rundowns],
+    );
+
     const matches = useMemo(() => {
-        const needle = query.trim().toLowerCase();
+        const needle = toFuzzyTokens(query);
         const filtered = needle
-            ? rundowns.filter(rundown =>
-                  (rundown.name || '').toLowerCase().includes(needle),
-              )
+            ? fuse.search(needle).map(result => result.item)
             : rundowns;
         return filtered.slice(0, MAX_RESULTS);
-    }, [rundowns, query]);
+    }, [fuse, rundowns, query]);
 
     return (
         <Dialog
