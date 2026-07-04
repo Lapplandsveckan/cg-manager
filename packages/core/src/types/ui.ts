@@ -1,6 +1,15 @@
 export const UI_INJECTION_ZONE = {
     PLUGIN_PAGE: 'plugin-page',
 
+    // Contributes a top-level sidebar button + page (served at
+    // /ext/:plugin[/:pageKey]). One registration = one button. Use a dotted
+    // sub-zone (`navbar-page.<pageKey>`) to add more than one button per
+    // plugin; a bare registration is the single-button case. The label/icon
+    // are read from a `meta = { label, icon }` export on the page module
+    // (label falls back to the page-key, then the plugin name; icon falls
+    // back to a default).
+    NAVBAR_PAGE: 'navbar-page',
+
     RUNDOWN_ITEM: 'rundown-item',
     RUNDOWN_EDITOR: 'rundown-editor',
 
