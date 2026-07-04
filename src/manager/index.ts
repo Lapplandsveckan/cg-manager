@@ -4,6 +4,8 @@ import { Logger } from '../util/log';
 import { MediaScanner } from './scanner';
 import { CasparProcess, type CasparStatus } from './caspar/process';
 import { CasparExecutor } from './caspar/executor';
+import { MockCasparExecutor } from './caspar/mock-executor';
+import { isMockMode } from './caspar/mock';
 import { PluginManager } from './plugins/plugin';
 import { type CGServer } from '../api/server';
 import { DirectoryManager } from './scanner/dir';
@@ -60,7 +62,9 @@ export class CasparManager extends EventEmitter {
         this.scanner = new MediaScanner();
         this.caspar = new CasparProcess();
         this.effects = new EffectRegistry();
-        this.executor = new CasparExecutor();
+        this.executor = isMockMode()
+            ? new MockCasparExecutor()
+            : new CasparExecutor();
         this.plugins = new PluginManager();
         this.ui = new UIInjector();
         this.rundowns = new RundownManager();

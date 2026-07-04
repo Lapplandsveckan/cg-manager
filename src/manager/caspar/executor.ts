@@ -2,7 +2,7 @@ import { CommandExecutor } from '@lappis/cg-manager';
 import { noTry } from 'no-try';
 import { Logger } from '../../util/log';
 import { getTemplatesWithContent } from '../scanner/templates';
-import { AmcpSocket } from './amcp-socket';
+import { AmcpSocket, type AmcpTransport } from './amcp-socket';
 
 // Circuit-breaker for bounce(): if AMCP errors keep firing — e.g. a route
 // command repeatedly fails — the reconnect handler re-runs the same failing
@@ -13,7 +13,7 @@ const BOUNCE_WINDOW_MS = 10_000;
 const BOUNCE_MAX = 5;
 
 export class CasparExecutor extends CommandExecutor {
-    private socket: AmcpSocket | null = null;
+    private socket: AmcpTransport | null = null;
     private responseBuffer = '';
     private _connected: boolean = false;
 
@@ -40,6 +40,10 @@ export class CasparExecutor extends CommandExecutor {
         return this._connected;
     }
 
+    protected createSocket(): AmcpTransport {
+        return new AmcpSocket(this.port, this.ip);
+    }
+
     public connect() {
         this.retry = true;
         if (this.socket) {
@@ -48,7 +52,7 @@ export class CasparExecutor extends CommandExecutor {
         }
         this.responseBuffer = '';
 
-        const sock = new AmcpSocket(this.port, this.ip);
+        const sock = this.createSocket();
         this.socket = sock;
 
         sock.on('ready', () => this.handleReady());

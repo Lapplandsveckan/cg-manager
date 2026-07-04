@@ -6,6 +6,7 @@ import { Logger } from '../../util/log';
 import config from '../../util/config';
 import { configuration } from '../config';
 import { type Config } from './config/types';
+import { isMockMode } from './mock';
 
 export interface CasparStatus {
     running: boolean;
@@ -27,6 +28,7 @@ export class CasparProcess extends EventEmitter {
     private starting = false;
     private logs = '';
     private lastError: string | null = null;
+    private mockRunning = false;
     public config: Config;
 
     appendLog(data: string) {
@@ -38,7 +40,7 @@ export class CasparProcess extends EventEmitter {
     }
 
     private get supported(): boolean {
-        return SUPPORTED_PLATFORMS.includes(process.platform);
+        return isMockMode() || SUPPORTED_PLATFORMS.includes(process.platform);
     }
 
     async start() {
@@ -46,12 +48,23 @@ export class CasparProcess extends EventEmitter {
         // two near-simultaneous callers (UI double-click, client retry) both
         // pass the `this.process` guard and both spawn. The `starting` flag
         // dedupes those concurrent calls.
-        if (this.process || this.starting) return;
+        if (this.process || this.starting || this.mockRunning) return;
         this.starting = true;
 
         await noTryAsync(async () => {
             configuration.setPath(this.casparPath);
             this.config = await configuration.get(true); // force re-read so running-config matches what's on disk
+
+            if (isMockMode()) {
+                this.lastError = null;
+                this.mockRunning = true;
+                logger.info(
+                    'CASPAR_MOCK enabled — skipping real CasparCG process.',
+                );
+                this.emit('running-config', this.getRunningConfig());
+                this.emit('status', this.getStatus());
+                return;
+            }
 
             if (!this.supported) {
                 this.lastError = `CasparCG cannot be started on ${process.platform} — only Linux and Windows are supported.`;
@@ -115,6 +128,12 @@ export class CasparProcess extends EventEmitter {
     }
 
     async stop() {
+        if (this.mockRunning) {
+            this.mockRunning = false;
+            this.emit('status', this.getStatus());
+            this.emit('running-config', this.getRunningConfig());
+            return;
+        }
         if (!this.process) return;
         const proc = this.process;
         const closed = new Promise<void>(resolve =>
@@ -139,7 +158,7 @@ export class CasparProcess extends EventEmitter {
     }
 
     get running() {
-        return this.process !== null;
+        return this.process !== null || this.mockRunning;
     }
 
     get log() {

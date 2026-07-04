@@ -8,6 +8,13 @@ const PROBE_TIMEOUT_MS = 1000;
 
 const log = Logger.scope('AMCP');
 
+export interface AmcpTransport extends EventEmitter {
+    readonly ready: boolean;
+    connect(): void;
+    write(data: string): void;
+    destroy(): void;
+}
+
 /**
  * AMCP TCP socket with built-in first-connect readiness probing.
  *
@@ -23,7 +30,7 @@ const log = Logger.scope('AMCP');
  *
  * destroy() is silent — it does not emit any events.
  */
-export class AmcpSocket extends EventEmitter {
+export class AmcpSocket extends EventEmitter implements AmcpTransport {
     private readonly port: number;
     private readonly ip: string;
 
