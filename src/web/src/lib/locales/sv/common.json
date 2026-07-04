@@ -593,6 +593,10 @@
     "notFound": {
         "title": "Sidan hittades inte"
     },
+    "extPage": {
+        "notFoundTitle": "Sidan är inte tillgänglig",
+        "notFoundBody": "Den här plugin-sidan är inte registrerad — plugin kan vara inaktiverat. Försök öppna den från sidopanelen."
+    },
     "login": {
         "subtitle": "Operatörsloggning",
         "password": "Lösenord",

@@ -25,6 +25,15 @@ if (typeof window !== 'undefined') {
 export const UI_INJECTION_ZONE = {
     PLUGIN_PAGE: 'plugin-page',
 
+    // Contributes a top-level sidebar button + page (served at
+    // /ext/:plugin[/:pageKey]). One registration = one button. Use a dotted
+    // sub-zone (`navbar-page.<pageKey>`) to add more than one button per
+    // plugin; a bare registration is the single-button case. The label/icon
+    // are read from a `meta = { label, icon }` export on the page module
+    // (label falls back to the page-key, then the plugin name; icon falls
+    // back to a default).
+    NAVBAR_PAGE: 'navbar-page',
+
     RUNDOWN_ITEM: 'rundown-item',
     RUNDOWN_EDITOR: 'rundown-editor',
 
@@ -59,10 +68,7 @@ export interface Injection {
 }
 
 export class PluginInjectionAPI extends EventEmitter {
-    private _loaded = new Map<
-        string,
-        React.ComponentType | Promise<React.ComponentType>
-    >();
+    private _modules = new Map<string, any | Promise<any>>();
     private _plugins = new Map<string, Injection>();
     private _pluginPromise: Promise<Map<string, Injection>>;
     private socket: REPClient;
@@ -99,7 +105,7 @@ export class PluginInjectionAPI extends EventEmitter {
         return this._plugins;
     }
 
-    private async _import(id: string) {
+    private async _importModule(id: string) {
         const data = await this.socket.request(
             `api/plugins/inject/${id}`,
             'GET',
@@ -110,30 +116,41 @@ export class PluginInjectionAPI extends EventEmitter {
         if (typeof URL.createObjectURL !== 'undefined') {
             const blob = new Blob([str], { type: 'text/javascript' });
             const url = URL.createObjectURL(blob);
-            const component = import(/* webpackIgnore: true */ url).then(
-                module => module.default,
-            );
+            const module = await import(/* webpackIgnore: true */ url);
             URL.revokeObjectURL(url);
 
-            return component;
+            return module;
         }
 
         const url = `data:text/javascript;base64,${btoa(str)}`;
-        return import(/* webpackIgnore: true */ url).then(
-            module => module.default,
-        );
+        return import(/* webpackIgnore: true */ url);
+    }
+
+    // Loads (and caches) the full ES module namespace for an injection, so
+    // both its default export (the component) and named exports (e.g. a
+    // navbar page's `meta`) are reachable from one bundle fetch.
+    private async moduleOf(id: string): Promise<any> {
+        if (this._modules.has(id)) return this._modules.get(id);
+
+        const promise = this._importModule(id);
+        this._modules.set(id, promise);
+
+        const module = await promise;
+        this._modules.set(id, module);
+
+        return module;
     }
 
     public async import(id: string): Promise<React.ComponentType> {
-        if (this._loaded.has(id)) return this._loaded.get(id);
+        const module = await this.moduleOf(id);
+        return module?.default;
+    }
 
-        const promise = this._import(id);
-        this._loaded.set(id, promise);
-
-        const component = await promise;
-        this._loaded.set(id, component);
-
-        return component;
+    // Named `meta` export of a navbar-page (or similar) injection module —
+    // e.g. `{ label, icon }`. Returns null if the module has none.
+    public async meta(id: string): Promise<any> {
+        const module = await this.moduleOf(id);
+        return module?.meta ?? null;
     }
 
     public async getInjects(

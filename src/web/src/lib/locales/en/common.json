@@ -593,6 +593,10 @@
     "notFound": {
         "title": "Page not found"
     },
+    "extPage": {
+        "notFoundTitle": "Page not available",
+        "notFoundBody": "This plugin page isn't registered — the plugin may be disabled. Try opening it from the sidebar."
+    },
     "login": {
         "subtitle": "Operator sign-in",
         "password": "Password",
