@@ -181,6 +181,14 @@ export class PluginAPI extends EventEmitter {
     }
 
     /**
+     * The absolute path to CasparCG's media root directory, e.g. to write
+     * generated files into it directly instead of going through uploads.
+     */
+    public getMediaRoot() {
+        return this._manager.getMediaScanner().mediaRoot;
+    }
+
+    /**
      * @param injectionZone The zone to inject the file into, e.g. UI_INJECTION_ZONE.EFFECT_CREATOR for the effect creator
      * @param file The file to inject, it holds the component as default export
      */
