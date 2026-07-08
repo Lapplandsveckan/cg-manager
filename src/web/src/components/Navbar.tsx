@@ -151,7 +151,7 @@ const NavbarItem: React.FC<{
             sx={theme => ({
                 display: 'flex',
                 alignItems: 'center',
-                gap: collapsed ? 0 : 1.5,
+                gap: 0,
                 width: '100%',
                 pr: 2,
                 py: 1.25,
@@ -196,6 +196,7 @@ const NavbarItem: React.FC<{
                 sx={{
                     width: collapsed ? 0 : 'auto',
                     opacity: collapsed ? 0 : 1,
+                    ml: collapsed ? 0 : -1.25,
                     overflow: 'hidden',
                     whiteSpace: 'nowrap',
                 }}
