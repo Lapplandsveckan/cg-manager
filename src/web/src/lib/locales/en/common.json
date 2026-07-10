@@ -675,6 +675,19 @@
             "error": "Failed to uninstall plugin",
             "success": "Plugin uninstalled"
         },
+        "versions": {
+            "button": "Versions",
+            "menuTitle": "Installed versions",
+            "current": "Current",
+            "switch": "Switch to this version",
+            "switchError": "Failed to switch version",
+            "delete": "Delete version",
+            "deleteTitle": "Delete version?",
+            "deleteBody": "\"{{name}}\" v{{version}} will be removed. This cannot be undone.",
+            "deleteLastWarning": "This is the last installed version — deleting it will uninstall \"{{name}}\" entirely.",
+            "deleteConfirm": "Delete",
+            "deleteError": "Failed to delete version"
+        },
         "toggle": {
             "error": "Failed to toggle plugin"
         },

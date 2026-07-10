@@ -34,6 +34,11 @@ const Page = () => {
     const [channelCount, setChannelCount] = useState(0);
     const [error, setError] = useState<string | null>(null);
     const [uninstalling, setUninstalling] = useState<string | null>(null);
+    const [deletingVersion, setDeletingVersion] = useState<{
+        name: string;
+        version: string;
+        isLast: boolean;
+    } | null>(null);
     const [enableWarning, setEnableWarning] = useState<ChannelInfo | null>(
         null,
     );
@@ -200,6 +205,53 @@ const Page = () => {
         setShowRestartPrompt(true);
     };
 
+    const selectVersion = useCallback(
+        async (name: string, version: string) => {
+            if (!socket) return;
+            const [err, updated] = await noTryAsync(() =>
+                socket.plugin.setActiveVersion(name, version),
+            );
+            if (err) {
+                notify(t('pluginsPage.versions.switchError'), 'error');
+                return;
+            }
+            // `updated` can be null if the version bump renamed the plugin's
+            // pluginName (server looks it up by the old name). Skip the
+            // optimistic patch in that case — the `plugins` broadcast reconciles.
+            if (updated)
+                setPlugins(
+                    prev =>
+                        prev?.map(p => (p.name === name ? updated : p)) ?? prev,
+                );
+        },
+        [socket],
+    );
+
+    const requestDeleteVersion = useCallback(
+        (name: string, version: string) => {
+            const plugin = plugins?.find(p => p.name === name);
+            setDeletingVersion({
+                name,
+                version,
+                isLast: (plugin?.versions?.length ?? 0) <= 1,
+            });
+        },
+        [plugins],
+    );
+
+    const confirmDeleteVersion = async () => {
+        if (!deletingVersion || !socket) return;
+        const { name, version } = deletingVersion;
+        setDeletingVersion(null);
+        const [err] = await noTryAsync(() =>
+            socket.plugin.deleteVersion(name, version),
+        );
+        if (err) notify(t('pluginsPage.versions.deleteError'), 'error');
+        // The server-pushed `plugins` broadcast (onPluginChange) refreshes
+        // the list — including dropping the plugin entirely if this was its
+        // last version.
+    };
+
     const confirmUninstall = async () => {
         if (!uninstalling || !socket) return;
         const name = uninstalling;
@@ -311,6 +363,12 @@ const Page = () => {
                                 router.push(`/plugins/${plugin.name}`)
                             }
                             onUninstall={() => setUninstalling(plugin.name)}
+                            onSelectVersion={version =>
+                                selectVersion(plugin.name, version)
+                            }
+                            onDeleteVersion={version =>
+                                requestDeleteVersion(plugin.name, version)
+                            }
                         />
                     ))}
                 </Stack>
@@ -343,6 +401,9 @@ const Page = () => {
                 uninstalling={uninstalling}
                 onUninstallClose={() => setUninstalling(null)}
                 onConfirmUninstall={confirmUninstall}
+                deletingVersion={deletingVersion}
+                onDeleteVersionClose={() => setDeletingVersion(null)}
+                onConfirmDeleteVersion={confirmDeleteVersion}
             />
         </DefaultContentLayout>
     );

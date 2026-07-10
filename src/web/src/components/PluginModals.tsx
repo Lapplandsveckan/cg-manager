@@ -8,6 +8,12 @@ interface ChannelInfo {
     have: number;
 }
 
+interface VersionDeleteInfo {
+    name: string;
+    version: string;
+    isLast: boolean;
+}
+
 export interface PluginModalsProps {
     enableWarning: ChannelInfo | null;
     onEnableWarningClose: () => void;
@@ -23,6 +29,9 @@ export interface PluginModalsProps {
     uninstalling: string | null;
     onUninstallClose: () => void;
     onConfirmUninstall: () => void;
+    deletingVersion: VersionDeleteInfo | null;
+    onDeleteVersionClose: () => void;
+    onConfirmDeleteVersion: () => void;
 }
 
 const centeredModal = {
@@ -58,6 +67,9 @@ export const PluginModals: React.FC<PluginModalsProps> = ({
     uninstalling,
     onUninstallClose,
     onConfirmUninstall,
+    deletingVersion,
+    onDeleteVersionClose,
+    onConfirmDeleteVersion,
 }) => {
     const { t } = useTranslation('common');
     return (
@@ -277,6 +289,73 @@ export const PluginModals: React.FC<PluginModalsProps> = ({
                                     onClick={onConfirmUninstall}
                                 >
                                     {t('pluginsPage.uninstall.confirm')}
+                                </Button>
+                            </Stack>
+                        </Stack>
+                    </Card>
+                </Stack>
+            </Modal>
+
+            <Modal
+                open={Boolean(deletingVersion)}
+                onClose={onDeleteVersionClose}
+            >
+                <Stack
+                    justifyContent="center"
+                    alignItems="center"
+                    sx={centeredModal}
+                >
+                    <Card sx={cardSx(460)}>
+                        <Stack spacing={2}>
+                            <Stack
+                                direction="row"
+                                alignItems="center"
+                                gap={1.5}
+                            >
+                                <WarningAmberRoundedIcon
+                                    sx={{ color: '#e88c8c' }}
+                                />
+                                <Typography variant="h3">
+                                    {t('pluginsPage.versions.deleteTitle')}
+                                </Typography>
+                            </Stack>
+                            <Typography
+                                variant="body1"
+                                sx={{ color: 'text.secondary' }}
+                            >
+                                {t('pluginsPage.versions.deleteBody', {
+                                    name: deletingVersion?.name,
+                                    version: deletingVersion?.version,
+                                })}
+                            </Typography>
+                            {deletingVersion?.isLast && (
+                                <Typography
+                                    variant="body2"
+                                    sx={{ color: 'warning.main' }}
+                                >
+                                    {t(
+                                        'pluginsPage.versions.deleteLastWarning',
+                                        { name: deletingVersion?.name },
+                                    )}
+                                </Typography>
+                            )}
+                            <Stack
+                                direction="row"
+                                justifyContent="flex-end"
+                                gap={1}
+                            >
+                                <Button
+                                    color="inherit"
+                                    onClick={onDeleteVersionClose}
+                                >
+                                    {t('actions.cancel')}
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    color="error"
+                                    onClick={onConfirmDeleteVersion}
+                                >
+                                    {t('pluginsPage.versions.deleteConfirm')}
                                 </Button>
                             </Stack>
                         </Stack>

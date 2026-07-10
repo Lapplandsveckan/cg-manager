@@ -1,8 +1,14 @@
+import { useState } from 'react';
 import {
     Box,
     Button,
     Card,
     Chip,
+    Divider,
+    ListItemIcon,
+    ListItemText,
+    Menu,
+    MenuItem,
     Stack,
     Switch,
     Typography,
@@ -12,6 +18,8 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
+import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import { useTranslation } from 'next-i18next';
 import { type Plugin } from '../lib/api/plugin';
 import { useContextMenu } from './ContextMenuProvider';
@@ -23,6 +31,8 @@ export interface PluginCardProps {
     onToggle: (next: boolean) => void;
     onOpen: () => void;
     onUninstall: () => void;
+    onSelectVersion: (version: string) => void;
+    onDeleteVersion: (version: string) => void;
 }
 
 const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
@@ -63,6 +73,88 @@ const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
     );
 };
 
+const VersionsMenu: React.FC<{
+    plugin: Plugin;
+    disabled?: boolean;
+    onSelectVersion: (version: string) => void;
+    onDeleteVersion: (version: string) => void;
+}> = ({ plugin, disabled, onSelectVersion, onDeleteVersion }) => {
+    const { t } = useTranslation('common');
+    const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+
+    return (
+        <>
+            <Button
+                size="small"
+                color="inherit"
+                disabled={disabled}
+                sx={{ minWidth: 0, px: 0.75, py: 0.5 }}
+                title={t('pluginsPage.versions.button')}
+                onClick={e => {
+                    e.stopPropagation();
+                    setAnchorEl(e.currentTarget);
+                }}
+            >
+                <HistoryRoundedIcon fontSize="small" />
+            </Button>
+            <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={() => setAnchorEl(null)}
+                onClick={e => e.stopPropagation()}
+            >
+                <ListItemText
+                    sx={{ px: 2, py: 0.5, color: 'text.secondary' }}
+                    primaryTypographyProps={{ variant: 'caption' }}
+                >
+                    {t('pluginsPage.versions.menuTitle')}
+                </ListItemText>
+                <Divider />
+                {(plugin.versions ?? []).map(version => {
+                    const isActive = version === plugin.activeVersion;
+                    return (
+                        <MenuItem
+                            key={version}
+                            disabled={isActive}
+                            onClick={() => {
+                                setAnchorEl(null);
+                                onSelectVersion(version);
+                            }}
+                        >
+                            <ListItemIcon>
+                                {isActive && (
+                                    <CheckRoundedIcon fontSize="small" />
+                                )}
+                            </ListItemIcon>
+                            <ListItemText
+                                primary={`v${version}`}
+                                secondary={
+                                    isActive
+                                        ? t('pluginsPage.versions.current')
+                                        : t('pluginsPage.versions.switch')
+                                }
+                            />
+                            <Button
+                                size="small"
+                                color="error"
+                                sx={{ minWidth: 0, px: 0.75, ml: 1 }}
+                                title={t('pluginsPage.versions.delete')}
+                                onClick={e => {
+                                    e.stopPropagation();
+                                    setAnchorEl(null);
+                                    onDeleteVersion(version);
+                                }}
+                            >
+                                <DeleteOutlineRoundedIcon fontSize="small" />
+                            </Button>
+                        </MenuItem>
+                    );
+                })}
+            </Menu>
+        </>
+    );
+};
+
 export const PluginCard: React.FC<PluginCardProps> = ({
     plugin,
     hasUi,
@@ -70,11 +162,15 @@ export const PluginCard: React.FC<PluginCardProps> = ({
     onToggle,
     onOpen,
     onUninstall,
+    onSelectVersion,
+    onDeleteVersion,
 }) => {
     const { t } = useTranslation('common');
     const { openSurfaceMenu } = useContextMenu();
     const insufficient =
         plugin.minChannels > 0 && channelCount < plugin.minChannels;
+    const hasVersions = (plugin.versions?.length ?? 0) > 0;
+    const showVersions = plugin.builtin || hasVersions;
     return (
         <Card
             onClick={hasUi ? onOpen : undefined}
@@ -141,6 +237,13 @@ export const PluginCard: React.FC<PluginCardProps> = ({
                             {plugin.name}
                         </Typography>
                         <StatusPill enabled={plugin.enabled} />
+                        {plugin.activeVersion && (
+                            <Chip
+                                size="small"
+                                label={`v${plugin.activeVersion}`}
+                                sx={{ fontFamily: 'monospace' }}
+                            />
+                        )}
                         {insufficient && (
                             <Chip
                                 size="small"
@@ -192,6 +295,14 @@ export const PluginCard: React.FC<PluginCardProps> = ({
                             }),
                         }}
                     />
+                    {showVersions && (
+                        <VersionsMenu
+                            plugin={plugin}
+                            disabled={!!plugin.builtin}
+                            onSelectVersion={onSelectVersion}
+                            onDeleteVersion={onDeleteVersion}
+                        />
+                    )}
                     <Button
                         size="small"
                         color="error"

@@ -3,38 +3,47 @@ import { promises as fs } from 'fs';
 import { noTry, noTryAsync } from 'no-try';
 import { type CasparPlugin } from '@lappis/cg-manager';
 import config, { loadConfigQuiet } from '../util/config';
-import { readDisabled, writeDisabled } from '../plugins/state';
+import {
+    readDisabled,
+    writeDisabled,
+    readState,
+    writeState,
+} from '../plugins/state';
 import {
     extractCgPlugin,
     purgePluginCache,
     loadSinglePlugin,
 } from '../plugins/install';
+import { listPluginFolders, resolveActiveVersion } from '../plugins/versions';
 import files from '../plugins/_plugins';
 
 interface PluginEntry {
     id: string;
     folder: string;
+    /** Whole-plugin dir (all versions) — used for uninstall. */
     dir: string;
     builtin: boolean;
 }
 
-/** Scan pluginsDir and resolve each folder's pluginName via require().
- *  Falls back to the folder name when instantiation fails. */
+/** Scan pluginsDir and resolve each folder's pluginName via its active
+ *  installed version. Falls back to the folder name when no version loads. */
 async function scanExternal(pluginsDir: string): Promise<PluginEntry[]> {
-    const [readErr, entries] = await noTryAsync(() => fs.readdir(pluginsDir));
-    if (readErr) return [];
+    const { active } = await readState();
+    const folders = await listPluginFolders(pluginsDir);
 
     const result: PluginEntry[] = [];
-    for (const folder of entries) {
-        if (folder.includes('.')) continue;
+    for (const folder of folders) {
         const dir = path.join(pluginsDir, folder);
-        const [, pluginClass] = noTry(() => loadSinglePlugin(dir));
+        const resolved = await resolveActiveVersion(pluginsDir, folder, active);
         let id = folder;
-        if (pluginClass) {
-            const [, inst] = noTry(
-                () => new (pluginClass as typeof CasparPlugin)(),
-            );
-            if (inst) id = inst.pluginName;
+        if (resolved) {
+            const [, pluginClass] = noTry(() => loadSinglePlugin(resolved.dir));
+            if (pluginClass) {
+                const [, inst] = noTry(
+                    () => new (pluginClass as typeof CasparPlugin)(),
+                );
+                if (inst) id = inst.pluginName;
+            }
         }
         result.push({ id, folder, dir, builtin: false });
     }
@@ -117,6 +126,13 @@ export async function runPluginCli(args: string[]): Promise<void> {
 
         await fs.mkdir(pluginsDir, { recursive: true });
         const result = await extractCgPlugin(absFile, pluginsDir);
+
+        // Auto-activate the freshly installed version, mirroring the
+        // upload-hook behavior in the running manager.
+        const state = await readState();
+        state.active[result.name] = result.version;
+        await writeState(state.disabled, state.active);
+
         console.log(
             `Installed "${result.name}" v${result.version} → ${result.dir}`,
         );
@@ -169,9 +185,14 @@ export async function runPluginCli(args: string[]): Promise<void> {
             process.exit(1);
         }
 
-        // Remove from disabled set if present.
-        const disabled = await readDisabled();
-        if (disabled.delete(entry.id)) await writeDisabled(disabled);
+        // Remove from disabled set and active-version map if present.
+        const state = await readState();
+        let changed = state.disabled.delete(entry.id);
+        if (entry.folder in state.active) {
+            delete state.active[entry.folder];
+            changed = true;
+        }
+        if (changed) await writeState(state.disabled, state.active);
 
         console.log(`Uninstalled "${entry.id}".`);
         return;

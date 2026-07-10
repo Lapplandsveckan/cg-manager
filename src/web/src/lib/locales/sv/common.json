@@ -675,6 +675,19 @@
             "error": "Misslyckades att avinstallera plugin",
             "success": "Plugin avinstallerat"
         },
+        "versions": {
+            "button": "Versioner",
+            "menuTitle": "Installerade versioner",
+            "current": "Aktuell",
+            "switch": "Växla till den här versionen",
+            "switchError": "Misslyckades att växla version",
+            "delete": "Ta bort version",
+            "deleteTitle": "Ta bort version?",
+            "deleteBody": "\"{{name}}\" v{{version}} kommer att tas bort. Det går inte att ångra.",
+            "deleteLastWarning": "Detta är den sista installerade versionen — om du tar bort den avinstalleras \"{{name}}\" helt.",
+            "deleteConfirm": "Ta bort",
+            "deleteError": "Misslyckades att ta bort version"
+        },
         "toggle": {
             "error": "Misslyckades att växla plugin"
         },

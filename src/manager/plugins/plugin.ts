@@ -7,22 +7,51 @@ import {
     sanitizeName,
     purgePluginCache,
     removeOrTombstone,
+    loadSinglePlugin,
 } from '../../plugins/install';
-import { readDisabled, writeDisabled } from '../../plugins/state';
+import { versionDir, listVersionsSync } from '../../plugins/versions';
+import { readState, writeState } from '../../plugins/state';
 import { CasparManager } from '../index';
 
 export class PluginManager {
     private _plugins: CasparPlugin[] = [];
     private _disabled: Set<string> = new Set();
+    /** pluginName -> currently loaded dir (active version dir for external
+     *  plugins, flat internal dir for built-ins). */
     private _pluginDirs = new Map<string, string>();
     private _builtin = new Set<string>();
     private _minChannels = new Map<string, number>();
     /** Plugins skipped at enable time solely because of insufficient channels. */
     private _channelBlocked = new Set<string>();
     private _channelCount = 0;
+    /** folderName -> active version, for external (uploaded) plugins. */
+    private _active: Record<string, string> = {};
+    /** pluginName -> on-disk folder name. External plugins only — the
+     *  runtime identity (pluginName) and the on-disk identity (sanitized
+     *  package name) are independent. */
+    private _folderNames = new Map<string, string>();
+    /** folderName -> installed versions, newest-first. Cached so the sync
+     *  list() can include it without hitting disk on every call. */
+    private _versions = new Map<string, string[]>();
+
+    private get pluginsDir(): string {
+        return path.resolve(process.cwd(), config['plugins-dir']);
+    }
 
     public async loadState() {
-        this._disabled = await readDisabled();
+        const state = await readState();
+        this._disabled = state.disabled;
+        this._active = state.active;
+    }
+
+    /** Snapshot of the persisted active-version selections, used by the
+     *  plugin loader to resolve which version to load at startup. */
+    public getActiveMap(): Record<string, string> {
+        return { ...this._active };
+    }
+
+    public getFolderName(pluginName: string): string | undefined {
+        return this._folderNames.get(pluginName);
     }
 
     public setChannelCount(n: number) {
@@ -49,11 +78,21 @@ export class PluginManager {
     }
 
     private async saveState() {
-        const [err] = await noTryAsync(() => writeDisabled(this._disabled));
+        const [err] = await noTryAsync(() =>
+            writeState(this._disabled, this._active),
+        );
         if (err)
             Logger.scope('Plugin Loader').error(
                 `Failed to save plugin state: ${Logger.formatError(err)}`,
             );
+    }
+
+    /** Refresh the in-memory version-list cache for a folder from disk. */
+    private refreshVersions(folderName: string) {
+        this._versions.set(
+            folderName,
+            listVersionsSync(this.pluginsDir, folderName).map(v => v.version),
+        );
     }
 
     public register(
@@ -87,7 +126,14 @@ export class PluginManager {
 
         this._plugins.push(_plugin);
         if (dir) this._pluginDirs.set(_plugin.pluginName, dir);
-        if (builtin) this._builtin.add(_plugin.pluginName);
+        if (builtin) {
+            this._builtin.add(_plugin.pluginName);
+        } else if (dir) {
+            // dir is `<pluginsDir>/<folderName>/<version>` for external plugins.
+            const folderName = path.basename(path.dirname(dir));
+            this._folderNames.set(_plugin.pluginName, folderName);
+            this.refreshVersions(folderName);
+        }
         const minCh = (plugin as any).minChannels ?? 0;
         this._minChannels.set(_plugin.pluginName, minCh);
         pluginLogger.debug('Loaded');
@@ -104,6 +150,7 @@ export class PluginManager {
         this._builtin.delete(plugin.pluginName);
         this._minChannels.delete(plugin.pluginName);
         this._channelBlocked.delete(plugin.pluginName);
+        this._folderNames.delete(plugin.pluginName);
         const pluginLogger = Logger.scope('Plugin Loader').scope(
             plugin.pluginName,
         );
@@ -120,12 +167,29 @@ export class PluginManager {
 
     /** Serializable plugin list for the API / WS broadcast. */
     public list() {
-        return this._plugins.map(p => ({
-            name: p.pluginName,
-            enabled: p['_enabled'] as boolean,
-            builtin: this._builtin.has(p.pluginName),
-            minChannels: this._minChannels.get(p.pluginName) ?? 0,
-        }));
+        return this._plugins.map(p => {
+            const folderName = this._folderNames.get(p.pluginName);
+            // Derive the displayed active version from the dir actually
+            // loaded, rather than the persisted selection — this stays
+            // correct even before any explicit setActiveVersion call has
+            // persisted a choice (e.g. right after startup discovery).
+            const loadedDir = this._pluginDirs.get(p.pluginName);
+            const activeVersion = folderName
+                ? (this._active[folderName] ??
+                  (loadedDir ? path.basename(loadedDir) : undefined))
+                : undefined;
+            return {
+                name: p.pluginName,
+                enabled: p['_enabled'] as boolean,
+                builtin: this._builtin.has(p.pluginName),
+                minChannels: this._minChannels.get(p.pluginName) ?? 0,
+                ...(folderName && {
+                    folderName,
+                    activeVersion,
+                    versions: this._versions.get(folderName) ?? [],
+                }),
+            };
+        });
     }
 
     private _enabled: boolean = false;
@@ -220,14 +284,25 @@ export class PluginManager {
     }
 
     /** Hot-load a plugin from a directory that's already on disk.
-     *  If a plugin with the same name is already registered, it is unregistered
-     *  first (update path). The new plugin is registered; enabling is conditional
-     *  on `_enabled` and not being in the disabled set. */
-    public installFromDir(dir: string, pluginClass: typeof CasparPlugin) {
+     *  If a plugin from the same source folder is already registered, it is
+     *  unregistered first (update path) — matched by folderName when given,
+     *  so a version whose class renamed pluginName is still swapped out
+     *  cleanly; otherwise falls back to matching by pluginName. The new
+     *  plugin is registered; enabling is conditional on `_enabled` and not
+     *  being in the disabled set. */
+    public installFromDir(
+        dir: string,
+        pluginClass: typeof CasparPlugin,
+        folderName?: string,
+    ) {
         const label =
             (pluginClass as any).pluginName ?? pluginClass.name ?? 'unknown';
 
-        const existing = this._plugins.find(p => p.pluginName === label);
+        const existing = folderName
+            ? this._plugins.find(
+                  p => this._folderNames.get(p.pluginName) === folderName,
+              )
+            : this._plugins.find(p => p.pluginName === label);
         if (existing) this.unregister(existing);
 
         this.register(pluginClass, dir);
@@ -236,7 +311,86 @@ export class PluginManager {
         );
     }
 
-    /** Disable, unregister, and delete the plugin folder from disk. */
+    /** Switch (or initially activate) which installed version of an
+     *  external plugin is running. Used both by the upload-completion hook
+     *  (auto-activate the freshly uploaded version) and by the rollback UI
+     *  (activate a previously installed version). Preserves enable state
+     *  across the swap, provided the plugin's pluginName is stable between
+     *  versions. */
+    public async setActiveVersion(
+        folderName: string,
+        version: string,
+    ): Promise<void> {
+        const dir = versionDir(this.pluginsDir, folderName, version);
+        const logger = Logger.scope('Plugin Loader').scope(folderName);
+
+        const [loadErr, pluginClass] = noTry(() => loadSinglePlugin(dir));
+        if (loadErr) {
+            logger.error(
+                `Failed to load version "${version}": ${Logger.formatError(loadErr)}`,
+            );
+            throw loadErr;
+        }
+
+        // Purge the outgoing version's require cache separately — it's a
+        // different path than `dir` and won't be touched by loadSinglePlugin.
+        const previous = this._plugins.find(
+            p => this._folderNames.get(p.pluginName) === folderName,
+        );
+        const previousDir = previous
+            ? this._pluginDirs.get(previous.pluginName)
+            : undefined;
+        if (previousDir && previousDir !== dir) purgePluginCache(previousDir);
+
+        this._active[folderName] = version;
+        this.installFromDir(dir, pluginClass, folderName);
+        await this.saveState();
+        CasparManager.getManager().emit('plugin-list-changed');
+        logger.info(`Activated version ${version}`);
+    }
+
+    /** Remove a single installed version. If it's the only version, this
+     *  delegates to a full uninstall. If it's the active version, the
+     *  newest remaining version is activated automatically. */
+    public async removeVersion(
+        folderName: string,
+        version: string,
+    ): Promise<void> {
+        const versions = listVersionsSync(this.pluginsDir, folderName);
+        const target = versions.find(v => v.version === version);
+        if (!target)
+            throw new Error(
+                `Version "${version}" of plugin "${folderName}" not found`,
+            );
+
+        if (versions.length === 1) {
+            const plugin = this._plugins.find(
+                p => this._folderNames.get(p.pluginName) === folderName,
+            );
+            await this.uninstall(plugin?.pluginName ?? folderName);
+            return;
+        }
+
+        const wasActive =
+            (this._active[folderName] ?? versions[0].version) === version;
+
+        purgePluginCache(target.dir);
+        await removeOrTombstone(target.dir);
+
+        if (wasActive) {
+            delete this._active[folderName];
+            const remaining = listVersionsSync(this.pluginsDir, folderName);
+            if (remaining[0])
+                await this.setActiveVersion(folderName, remaining[0].version);
+        } else {
+            this.refreshVersions(folderName);
+            await this.saveState();
+            CasparManager.getManager().emit('plugin-list-changed');
+        }
+    }
+
+    /** Disable, unregister, and delete the entire plugin folder (every
+     *  installed version) from disk. */
     public async uninstall(name: string) {
         const plugin = this._plugins.find(p => p.pluginName === name);
         if (!plugin) throw new Error(`Plugin "${name}" not found`);
@@ -245,24 +399,24 @@ export class PluginManager {
                 `Plugin "${name}" is built-in and cannot be uninstalled`,
             );
 
-        // Capture dir before unregister clears the map.
-        const trackedDir = this._pluginDirs.get(name);
+        const folderName = this._folderNames.get(name) ?? sanitizeName(name);
+
         this.unregister(plugin);
         // Broadcast immediately — the plugin is already gone from the running
         // process. This fires even if the folder deletion below fails.
         CasparManager.getManager().emit('plugin-list-changed');
 
-        const dir =
-            trackedDir ??
-            path.join(
-                path.resolve(process.cwd(), config['plugins-dir']),
-                sanitizeName(name),
-            );
+        const folderDir = path.join(this.pluginsDir, folderName);
 
-        // Purge JS module cache, then remove the folder. removeOrTombstone
-        // handles Windows native-addon locks by renaming aside for next-restart cleanup.
-        purgePluginCache(dir);
-        await removeOrTombstone(dir);
+        // Purge JS module cache for every version, then remove the whole
+        // folder. removeOrTombstone handles Windows native-addon locks by
+        // renaming aside for next-restart cleanup.
+        purgePluginCache(folderDir);
+        await removeOrTombstone(folderDir);
+
+        delete this._active[folderName];
+        this._versions.delete(folderName);
+        await this.saveState();
 
         Logger.scope('Plugin Loader').info(`Uninstalled plugin "${name}"`);
     }

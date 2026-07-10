@@ -13,13 +13,20 @@ export default {
 
         if (!plugin) throw new WebError('Plugin not found', 404);
 
-        return {
-            name: plugin.pluginName,
-            enabled: plugin['_enabled'],
-            builtin: CasparManager.getManager()
-                .getPlugins()
-                .isBuiltin(plugin.pluginName),
-        };
+        const entry = CasparManager.getManager()
+            .getPlugins()
+            .list()
+            .find(p => p.name === plugin.pluginName);
+
+        return (
+            entry ?? {
+                name: plugin.pluginName,
+                enabled: plugin['_enabled'],
+                builtin: CasparManager.getManager()
+                    .getPlugins()
+                    .isBuiltin(plugin.pluginName),
+            }
+        );
     },
     DELETE: async request => {
         if (!request.params.id)

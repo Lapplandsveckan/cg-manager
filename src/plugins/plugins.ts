@@ -1,11 +1,15 @@
 import path from 'path';
 import { promises as fs } from 'fs';
-import { noTryAsync } from 'no-try';
+import { noTry, noTryAsync } from 'no-try';
 import { Logger } from '../util/log';
 import config from '../util/config';
 import files from './_plugins';
-import { loadPluginFolder } from './util';
 import { extractCgPlugin, loadSinglePlugin, sweepTombstones } from './install';
+import {
+    listPluginFolders,
+    migrateFlatLayout,
+    resolveActiveVersion,
+} from './versions';
 import { CasparManager } from '../manager';
 import { configuration } from '../manager/config';
 import { Upload } from '../manager/scanner/upload';
@@ -16,18 +20,21 @@ export async function loadPlugins() {
 
     const pluginsDir = path.resolve(process.cwd(), config['plugins-dir']);
     await sweepTombstones(pluginsDir);
-    const externalPlugins = loadPluginFolder(pluginsDir);
+    await migrateFlatLayout(pluginsDir);
 
     // Wire the plugin-upload completion hook so uploaded .cgplugin zips are
-    // extracted and hot-loaded without a restart.
+    // extracted, activated, and hot-loaded without a restart.
     Upload.onPluginComplete = async (zipPath: string) => {
         try {
             const result = await extractCgPlugin(zipPath, pluginsDir);
             const manager = CasparManager.getManager();
-            const pluginClass = loadSinglePlugin(result.dir);
-            manager.getPlugins().installFromDir(result.dir, pluginClass);
+            await manager
+                .getPlugins()
+                .setActiveVersion(result.name, result.version);
             manager.emit('plugin-list-changed');
-            logger.info(`Plugin "${result.name}" installed and enabled`);
+            logger.info(
+                `Plugin "${result.name}" v${result.version} installed and activated`,
+            );
         } finally {
             await noTryAsync(() => fs.rm(zipPath, { force: true }));
         }
@@ -42,8 +49,27 @@ export async function loadPlugins() {
 
     for (const { plugin, dir } of files)
         CasparManager.getManager().plugins.register(plugin, dir, true);
-    for (const { plugin, dir } of externalPlugins)
-        CasparManager.getManager().plugins.register(plugin, dir);
+
+    const active = CasparManager.getManager().plugins.getActiveMap();
+    const externalFolders = await listPluginFolders(pluginsDir);
+    for (const folderName of externalFolders) {
+        const resolved = await resolveActiveVersion(
+            pluginsDir,
+            folderName,
+            active,
+        );
+        if (!resolved) continue;
+
+        const [err, pluginClass] = noTry(() => loadSinglePlugin(resolved.dir));
+        if (err) {
+            logger.error(
+                `Failed to load plugin "${folderName}" from ${resolved.dir}: ${Logger.formatError(err)}`,
+            );
+            continue;
+        }
+
+        CasparManager.getManager().plugins.register(pluginClass, resolved.dir);
+    }
 
     logger.info('Enabling plugins...');
     CasparManager.getManager().plugins.enableAll();

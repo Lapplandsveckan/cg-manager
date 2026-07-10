@@ -7,6 +7,10 @@ export interface Plugin {
     enabled: boolean;
     builtin?: boolean;
     minChannels: number;
+    /** Present for external (uploaded) plugins with a resolvable folder. */
+    folderName?: string;
+    activeVersion?: string;
+    versions?: string[];
 }
 
 export class PluginApi extends EventEmitter {
@@ -70,6 +74,26 @@ export class PluginApi extends EventEmitter {
     public async uninstall(name: string) {
         await this.socket.request(
             `api/plugins/${encodeURIComponent(name)}`,
+            'DELETE',
+            {},
+        );
+    }
+
+    public async setActiveVersion(
+        name: string,
+        version: string,
+    ): Promise<Plugin> {
+        const res = await this.socket.request(
+            `api/plugins/${encodeURIComponent(name)}/version`,
+            'ACTION',
+            { version },
+        );
+        return res.data as Plugin;
+    }
+
+    public async deleteVersion(name: string, version: string): Promise<void> {
+        await this.socket.request(
+            `api/plugins/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}`,
             'DELETE',
             {},
         );
