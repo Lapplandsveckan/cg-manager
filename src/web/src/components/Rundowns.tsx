@@ -1099,15 +1099,17 @@ export const Rundowns: React.FC<RundownsProps> = ({
                                     gapHeight={draggingHeight || 64}
                                     isDragging={reorderDraggingId === entry.id}
                                 >
-                                    <Injections
-                                        zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`}
-                                        props={{ entry }}
-                                        fallback={
-                                            <DefaultRundownItemView
-                                                entry={entry}
-                                            />
-                                        }
-                                    />
+                                    {!isOrphaned && (
+                                        <Injections
+                                            zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`}
+                                            props={{ entry }}
+                                            fallback={
+                                                <DefaultRundownItemView
+                                                    entry={entry}
+                                                />
+                                            }
+                                        />
+                                    )}
                                 </RundownEntry>
                             </SlotErrorBoundary>
                         </Box>
