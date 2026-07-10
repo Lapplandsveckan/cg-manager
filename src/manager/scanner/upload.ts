@@ -162,6 +162,7 @@ export class Upload {
         await this.closeFile();
 
         const finalPath = this.getPath();
+        await fs.mkdir(path.dirname(finalPath), { recursive: true });
         await fs.rename(this.getTemporaryPath(), finalPath);
         if (this.data.destination.type === 'media')
             Upload.onComplete?.(finalPath);
