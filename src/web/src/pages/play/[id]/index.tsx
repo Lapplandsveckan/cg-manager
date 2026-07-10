@@ -20,7 +20,7 @@ import { RundownTitleEditor } from '../../../components/play/RundownTitleEditor'
 import { QuickActions } from '../../../components/QuickActions';
 import { BottomPanel } from '../../../components/BottomPanel';
 import { RundownPreview } from '../../../components/RundownPreview';
-import { type RundownItemDragPayload } from '../../../lib/dragPayload';
+import { useRundownDropEditor } from '../../../lib/hooks/useRundownDropEditor';
 import { RundownLiveProvider } from '../../../hooks/useRundownLive';
 import { SlotErrorBoundary } from '../../../components/SlotErrorBoundary';
 
@@ -182,7 +182,6 @@ const Page = () => {
         renameRundown,
     } = useRundownEntries(router.query.id as string);
 
-    const [editing, setEditing] = useState<RundownEntry | null>(null);
     const [adding, setAdding] = useState(false);
     const [locked, setLocked] = useState(true);
 
@@ -191,34 +190,13 @@ const Page = () => {
     const sideColumnRef = useRef<HTMLDivElement>(null);
     useDragAutoScroll(sideColumnRef);
 
-    // When the user drops a payload onto a specific spot in the list we
-    // remember the target index here so that whenever the editor modal saves
-    // (after pre-fill / edit) the new entry lands at that position rather
-    // than at the end. Cleared whenever the modal closes.
-    const [pendingDropIndex, setPendingDropIndex] = useState<
-        number | undefined
-    >(undefined);
-
-    const openEditorForDrop = (
-        payload: RundownItemDragPayload,
-        index?: number,
-    ) => {
-        setEditing({
-            id: Math.random().toString(36).substring(2, 11),
-            title: payload.title ?? t('playPage.detail.newItemTitle'),
-            type: payload.type,
-            data: payload.data ?? {},
-        });
-        setPendingDropIndex(index);
-    };
-
-    const handleSetEditing = (next: RundownEntry | null) => {
-        setEditing(next);
-        if (next === null) setPendingDropIndex(undefined);
-    };
-
-    const createEntryAtPending = (entry: RundownEntry) =>
-        createEntry(entry, pendingDropIndex);
+    // When the user drops a payload onto a specific spot in the list the
+    // hook remembers the target index so that whenever the editor modal
+    // saves (after pre-fill / edit) the new entry lands at that position
+    // rather than at the end. When the dropped payload sets `immediate`,
+    // the hook skips the editor and creates the entry straight away.
+    const { editing, setEditing, openEditorForDrop, createEntryAtPending } =
+        useRundownDropEditor(createEntry, t('playPage.detail.newItemTitle'));
 
     const newId = () => Math.random().toString(36).substring(2, 11);
 
@@ -419,7 +397,7 @@ const Page = () => {
 
                 <RundownModals
                     editing={editing}
-                    setEditing={handleSetEditing}
+                    setEditing={setEditing}
                     adding={adding}
                     setAdding={setAdding}
                     entries={entries}

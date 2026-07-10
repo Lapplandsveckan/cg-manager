@@ -20,11 +20,16 @@ import { noTry } from 'no-try';
  *           type: 'play-video',
  *           data: { video: 'INTRO.mp4', loop: false },
  *           title: 'Intro',
+ *           immediate: false,
  *       }));
  *       e.dataTransfer.effectAllowed = 'copy';
  *   };
  *
  *   <div draggable onDragStart={onDragStart}>…</div>
+ *
+ * Set `immediate: true` when the plugin already has everything it needs
+ * (e.g. an upload flow that matched a file to an action) to skip the editor
+ * modal entirely and create the entry straight away.
  */
 
 export const RUNDOWN_ITEM_DRAG_MIME = 'application/x-cg-rundown-item';
@@ -36,6 +41,8 @@ export interface RundownItemDragPayload {
     data?: unknown;
     /** Pre-filled item.title. Defaults to "New Rundown Item" if missing. */
     title?: string;
+    /** Skip the editor modal and create the entry immediately on drop. */
+    immediate?: boolean;
 }
 
 /**

@@ -21,6 +21,7 @@ import { EditRundown, type Rundown } from '../pages/play';
 import { RundownModals } from './RundownModals';
 import { type RundownEntry, Rundowns, useRundownEntries } from './Rundowns';
 import { useStoredString } from '../lib/hooks/useStoredString';
+import { useRundownDropEditor } from '../lib/hooks/useRundownDropEditor';
 
 function useQuickActions() {
     const conn = useSocket();
@@ -211,36 +212,15 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     const selected = quickActions.find(q => q.id === quickAction) ?? null;
 
     const [quickEditing, setQuickEditing] = useState<Rundown | null>(null);
-    const [editing, setEditing] = useState<RundownEntry | null>(null);
     const [adding, setAdding] = useState(false);
 
-    // Drop-to-insert is now owned by the inner <Rundowns /> — when an item is
-    // dropped on a specific spot we remember the index here and use it when
-    // the editor saves so the new entry lands in the right place.
-    const [pendingDropIndex, setPendingDropIndex] = useState<
-        number | undefined
-    >(undefined);
-
-    const openEditorForDrop = (
-        payload: { type: string; data?: unknown; title?: string },
-        index?: number,
-    ) => {
-        setEditing({
-            id: Math.random().toString(36).substring(2, 11),
-            title: payload.title ?? t('rundown.newItemDefaultTitle'),
-            type: payload.type,
-            data: payload.data ?? {},
-        });
-        setPendingDropIndex(index);
-    };
-
-    const handleSetEditing = (next: RundownEntry | null) => {
-        setEditing(next);
-        if (next === null) setPendingDropIndex(undefined);
-    };
-
-    const createEntryAtPending = (entry: RundownEntry) =>
-        createEntry(entry, pendingDropIndex);
+    // Drop-to-insert is owned by the inner <Rundowns /> — when an item is
+    // dropped on a specific spot the hook remembers the index and uses it
+    // when the editor saves so the new entry lands in the right place. When
+    // the dropped payload sets `immediate`, the hook skips the editor and
+    // creates the entry straight away.
+    const { editing, setEditing, openEditorForDrop, createEntryAtPending } =
+        useRundownDropEditor(createEntry, t('rundown.newItemDefaultTitle'));
 
     const newId = () => Math.random().toString(36).substring(2, 11);
 
@@ -354,7 +334,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
 
             <RundownModals
                 editing={editing}
-                setEditing={handleSetEditing}
+                setEditing={setEditing}
                 adding={adding}
                 setAdding={setAdding}
                 entries={entries}
