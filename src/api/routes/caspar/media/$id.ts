@@ -33,9 +33,12 @@ export default {
 
         const { mediaPath } = resolveDoc(request.params.id);
         await fs.unlink(mediaPath).catch(err => {
-            if (err.code === 'ENOENT') return; // already gone — let the scanner reconcile
+            if (err.code === 'ENOENT') return; // already gone — fall through, still remove from DB
             throw new WebError(`Failed to delete: ${err.message}`, 500);
         });
+
+        // Update the DB + broadcast immediately instead of waiting for chokidar.
+        CasparManager.getManager().getMediaScanner().applyDelete(mediaPath);
 
         return { ok: true };
     },
@@ -113,6 +116,11 @@ export default {
         await fs.rename(mediaPath, target).catch(err => {
             throw new WebError(`Failed to rename: ${err.message}`, 500);
         });
+
+        // Update the DB + broadcast immediately instead of waiting for chokidar.
+        await CasparManager.getManager()
+            .getMediaScanner()
+            .applyRename(mediaPath, target);
 
         return { ok: true };
     },

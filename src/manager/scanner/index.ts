@@ -66,6 +66,14 @@ export class MediaScanner {
         return this.db;
     }
 
+    public applyDelete(mediaPath: string) {
+        this.scanner.applyDelete(mediaPath);
+    }
+
+    public applyRename(oldPath: string, newPath: string) {
+        return this.scanner.applyRename(oldPath, newPath);
+    }
+
     public get mediaRoot() {
         return config.paths.media;
     }

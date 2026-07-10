@@ -372,11 +372,16 @@ function Scanner(db: FileDatabase) {
         mediaPath: string,
         mediaId: string,
         mediaStat: Stats,
+        renamedFromId?: string,
     ) => {
         // Non-zero inode uniquely identifies a file; zero means unsupported FS
         // (some Windows volumes) — fall back to normal behaviour in that case.
         const inode: number = mediaStat.ino;
-        const pending = inode ? pendingRemovals.get(inode) : undefined;
+        const pending = renamedFromId
+            ? { mediaId: renamedFromId, timer: undefined }
+            : inode
+              ? pendingRemovals.get(inode)
+              : undefined;
 
         if (pending) {
             // Same inode → rename. Cancel the deferred deletion so the old entry
@@ -443,12 +448,40 @@ function Scanner(db: FileDatabase) {
         await processAdd(mediaPath, getId(config.paths.media, mediaPath), stat);
     };
 
+    // Optimistic delete — called right after the route handler's fs.unlink
+    // succeeds, so the DB/broadcast update fires immediately instead of
+    // waiting for chokidar's `unlink` + RENAME_WINDOW_MS deferral. The later
+    // chokidar event is harmless: the inode is already gone from inodeMap, so
+    // it just re-removes an already-absent id.
+    const applyDelete = (mediaPath: string) => {
+        const mediaId = getId(config.paths.media, mediaPath);
+        inodeMap.delete(mediaId);
+        db.remove(mediaId);
+    };
+
+    // Optimistic rename/move — called right after the route handler's
+    // fs.rename succeeds. Reuses processAdd's rename branch (via
+    // renamedFromId) so the UI sees the item change name/path rather than
+    // disappear and reappear. The later chokidar `unlink oldPath` + `add
+    // newPath` events are harmless — the old inode is already cleared, and
+    // the new file's hash is unchanged so scanFile skips the rescan.
+    const applyRename = async (oldPath: string, newPath: string) => {
+        const [err, stat] = await noTryAsync(() => fs.stat(newPath));
+        if (err || !stat) return;
+
+        const oldId = getId(config.paths.media, oldPath);
+        const newId = getId(config.paths.media, newPath);
+        inodeMap.delete(oldId);
+
+        await processAdd(newPath, newId, stat, oldId);
+    };
+
     const stop = async () => {
         for (const { timer } of pendingRemovals.values()) clearTimeout(timer);
         pendingRemovals.clear();
         await closeWatcher();
     };
 
-    return { stop, scan };
+    return { stop, scan, applyDelete, applyRename };
 }
 export default Scanner;
