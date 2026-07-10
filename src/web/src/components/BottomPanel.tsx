@@ -14,6 +14,7 @@ import { useTranslation } from 'next-i18next';
 import { useSocket } from '../lib/hooks/useSocket';
 import { useStoredBoolean } from '../lib/hooks/useStoredBoolean';
 import { useStoredNumber } from '../lib/hooks/useStoredNumber';
+import { useStoredString } from '../lib/hooks/useStoredString';
 import {
     type Injection,
     Injection as InjectionView,
@@ -25,6 +26,7 @@ const MIN_HEIGHT = 160;
 const MAX_HEIGHT = 600;
 const HEIGHT_KEY = 'rundown-bottom-panel-height';
 const COLLAPSED_KEY = 'rundown-bottom-panel-collapsed';
+const ACTIVE_TAB_KEY = 'rundown-bottom-panel-active-tab';
 
 function clampHeight(h: number): number {
     return Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, Math.round(h)));
@@ -121,7 +123,7 @@ export const BottomPanel: React.FC = () => {
     );
     const [collapsed, setCollapsed] = useStoredBoolean(COLLAPSED_KEY, false);
 
-    const [activeId, setActiveId] = useState<string | null>(null);
+    const [activeId, setActiveId] = useStoredString(ACTIVE_TAB_KEY, null);
 
     useEffect(() => {
         if (!socket) return;
