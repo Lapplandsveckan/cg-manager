@@ -627,6 +627,17 @@ export const Rundowns: React.FC<RundownsProps> = ({
         return () => conn.routes.unregister(listener);
     }, [conn, refetchTypes]);
 
+    // Plugin enable/disable also changes which action types are registered
+    // (see CasparPlugin._applyDisable unregistering actions by owner), so
+    // re-fetch on every plugin list change rather than only on caspar restart.
+    useEffect(() => {
+        const handler = () => refetchTypes();
+        conn.plugin.on('change', handler);
+        return () => {
+            conn.plugin.off('change', handler);
+        };
+    }, [conn, refetchTypes]);
+
     const acceptsDrop = Boolean(onDropItem);
     const acceptsReorder = Boolean(onReorder);
 
