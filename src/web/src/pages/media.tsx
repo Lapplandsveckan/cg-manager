@@ -52,11 +52,13 @@ const Page = () => {
     const [canPlay, setCanPlay] = useState(false);
     const [playEntry, setPlayEntry] = useState<RundownEntry | null>(null);
     const [deleting, setDeleting] = useState<MediaDoc | null>(null);
+    const [bulkDeleting, setBulkDeleting] = useState<MediaDoc[] | null>(null);
     const [renaming, setRenaming] = useState<MediaDoc | null>(null);
     const [renameValue, setRenameValue] = useState('');
     const [creatingFolder, setCreatingFolder] = useState(false);
     const [folderName, setFolderName] = useState('');
     const [deletingFolder, setDeletingFolder] = useState<string | null>(null);
+    const [folderNotEmpty, setFolderNotEmpty] = useState(false);
     const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
     const [folderRenameValue, setFolderRenameValue] = useState('');
     const [inspecting, setInspecting] = useState<MediaDoc | null>(null);
@@ -267,6 +269,7 @@ const Page = () => {
                     }}
                     onFolderDelete={folder => {
                         setError(null);
+                        setFolderNotEmpty(false);
                         setDeletingFolder(folder);
                     }}
                     onFolderRename={folder => {
@@ -275,6 +278,11 @@ const Page = () => {
                         setFolderRenameValue(folder);
                     }}
                     onClipMoveToFolder={handleMediaMove}
+                    enableSelection
+                    onBulkDelete={docs => {
+                        setError(null);
+                        setBulkDeleting(docs);
+                    }}
                 />
             </Dropzone>
 
@@ -307,16 +315,40 @@ const Page = () => {
                 }
             />
 
+            <DeleteMediaModal
+                open={Boolean(bulkDeleting)}
+                deleting={null}
+                items={bulkDeleting ?? undefined}
+                busy={busy}
+                error={error}
+                onClose={() => setBulkDeleting(null)}
+                onConfirm={() =>
+                    handlers.confirmDeleteMany(bulkDeleting ?? [], () =>
+                        setBulkDeleting(null),
+                    )
+                }
+            />
+
             <DeleteFolderModal
                 open={Boolean(deletingFolder)}
                 folderPath={path}
                 folderName={deletingFolder}
+                notEmpty={folderNotEmpty}
                 busy={busy}
                 error={error}
-                onClose={() => setDeletingFolder(null)}
+                onClose={() => {
+                    setDeletingFolder(null);
+                    setFolderNotEmpty(false);
+                }}
                 onConfirm={() =>
-                    handlers.confirmDeleteFolder(deletingFolder, () =>
-                        setDeletingFolder(null),
+                    handlers.confirmDeleteFolder(
+                        deletingFolder,
+                        folderNotEmpty,
+                        () => {
+                            setDeletingFolder(null);
+                            setFolderNotEmpty(false);
+                        },
+                        () => setFolderNotEmpty(true),
                     )
                 }
             />

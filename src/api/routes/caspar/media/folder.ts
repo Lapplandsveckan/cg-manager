@@ -10,9 +10,11 @@ import {
 } from '../../../../manager/scanner/util';
 import {
     PLACEHOLDER_NAME,
+    isReservedTopLevel,
     listAllFolders,
     normalizeFolderPath,
     removeEmptyFolder,
+    removeFolderRecursive,
 } from '../../../../manager/scanner/folders';
 
 /**
@@ -81,11 +83,22 @@ export default {
             throw new WebError('Request body must be an object', 400);
 
         const segments = validatePath((data as { path?: string }).path ?? '');
+        const recursive = (data as { recursive?: unknown }).recursive === true;
 
         const target = resolveSafePath(
             scannerConfig.paths.media,
             segments.join(path.sep),
         );
+
+        if (recursive) {
+            if (isReservedTopLevel(segments))
+                throw new WebError('Reserved folder', 400);
+
+            const [err] = await noTryAsync(() => removeFolderRecursive(target));
+            if (err)
+                throw new WebError(`Failed to delete: ${err.message}`, 500);
+            return { ok: true };
+        }
 
         const [err] = await noTryAsync(() => removeEmptyFolder(target));
         if (err) {

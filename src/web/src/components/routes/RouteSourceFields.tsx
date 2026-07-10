@@ -13,7 +13,7 @@ import { useTranslation } from 'next-i18next';
 import { useSocket } from '../../lib/hooks/useSocket';
 import { type VideoRouteSource } from '../../lib/api/videoRoutes';
 import { type MediaDoc } from '../../lib/api/caspar';
-import { MediaSelect } from '../MediaView';
+import { MediaSelect } from '../MediaSelectPicker';
 import { BUILTIN_VIDEO_MODES } from '../../lib/videoModes';
 import type { SourceType } from './RouteSourceTypePicker';
 

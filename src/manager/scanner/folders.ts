@@ -25,6 +25,13 @@ function isReserved(name: string): boolean {
     return RESERVED_FOLDERS.has(name);
 }
 
+/** True when the first segment of a folder path is reserved. Callers doing a
+ *  recursive delete must check this before touching disk — `removeEmptyFolder`
+ *  is naturally guarded by "not empty", but `fs.rm` isn't. */
+export function isReservedTopLevel(segments: string[]): boolean {
+    return isReserved((segments[0] ?? '').toLowerCase());
+}
+
 /** True when a media ID lives under a reserved top-level folder. Use to
  *  hide plugin-internal symlinks from UI consumers (the scanner-facing
  *  endpoints on :8000 still expose them so CasparCG can play them). */
@@ -152,4 +159,15 @@ export async function removeEmptyFolder(targetAbs: string): Promise<void> {
         await noTryAsync(() => fs.unlink(path.join(targetAbs, name)));
 
     await fs.rmdir(targetAbs);
+}
+
+/** Remove a folder under `root` and everything inside it. Unlike
+ *  {@link removeEmptyFolder}, this doesn't check contents first — the caller
+ *  is expected to have already gotten a "not empty" rejection and prompted
+ *  the user to escalate. Contained media is not touched via the DB directly;
+ *  the scanner's watcher reconciles each deleted file via its own `unlink`
+ *  event. Uses `force: true`, so a missing directory is a silent no-op
+ *  rather than an ENOENT throw — deletion is idempotent either way. */
+export async function removeFolderRecursive(targetAbs: string): Promise<void> {
+    await fs.rm(targetAbs, { recursive: true, force: true });
 }

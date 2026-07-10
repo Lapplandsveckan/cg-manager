@@ -1,13 +1,13 @@
 import { noTryAsync } from 'no-try';
 import { type ManagerApi } from '../api/api';
-import { type MediaDoc } from '../api/caspar';
+import { type MediaDoc, RequestError } from '../api/caspar';
 
 type Severity = 'info' | 'warning' | 'error' | 'success';
 
 interface MediaHandlersConfig {
     socket: ManagerApi | null;
     path: string;
-    t: (key: string) => string;
+    t: (key: string, options?: Record<string, unknown>) => string;
     setBusy: (busy: boolean) => void;
     setError: (error: string | null) => void;
     notify: (text: string, severity?: Severity) => void;
@@ -34,6 +34,36 @@ export const createMediaHandlers = (config: MediaHandlersConfig) => {
         }
 
         setBusy(false);
+    };
+
+    const confirmDeleteMany = async (
+        deleting: MediaDoc[],
+        onSuccess: () => void,
+    ) => {
+        if (!deleting.length || !socket) return;
+        setBusy(true);
+        setError(null);
+
+        const results = await Promise.allSettled(
+            deleting.map(doc => socket.caspar.deleteMedia(doc.id)),
+        );
+        const failed = results.filter(r => r.status === 'rejected').length;
+
+        setBusy(false);
+        if (failed > 0) {
+            setError(
+                failed === deleting.length
+                    ? t('media.errors.deleteFailed')
+                    : `${t('media.errors.deleteFailed')} (${failed})`,
+            );
+            return;
+        }
+
+        notify(
+            t('media.success.filesDeleted', { count: deleting.length }),
+            'success',
+        );
+        onSuccess();
     };
 
     const confirmRename = async (
@@ -94,17 +124,25 @@ export const createMediaHandlers = (config: MediaHandlersConfig) => {
 
     const confirmDeleteFolder = async (
         deletingFolder: string | null,
+        recursive: boolean,
         onSuccess: () => void,
+        onNotEmpty?: () => void,
     ) => {
         if (!socket || !deletingFolder) return;
         setBusy(true);
         setError(null);
         const target = `${path}${deletingFolder}`;
         const [err] = await noTryAsync(() =>
-            socket.caspar.deleteFolder(target),
+            socket.caspar.deleteFolder(target, recursive),
         );
         setBusy(false);
         if (err) {
+            const isNotEmpty =
+                !recursive && err instanceof RequestError && err.status === 409;
+            if (isNotEmpty && onNotEmpty) {
+                onNotEmpty();
+                return;
+            }
             setError(err.message ?? t('media.errors.deleteFolderFailed'));
             return;
         }
@@ -136,6 +174,7 @@ export const createMediaHandlers = (config: MediaHandlersConfig) => {
 
     return {
         confirmDelete,
+        confirmDeleteMany,
         confirmRename,
         confirmRenameFolder,
         confirmDeleteFolder,

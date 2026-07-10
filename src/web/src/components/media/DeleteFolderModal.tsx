@@ -8,6 +8,9 @@ interface DeleteFolderModalProps {
     open: boolean;
     folderPath: string;
     folderName: string | null;
+    /** True once the server has rejected a plain delete because the folder
+     *  isn't empty — switches the modal to the recursive-delete warning. */
+    notEmpty?: boolean;
     busy: boolean;
     error: string | null;
     onClose: () => void;
@@ -18,6 +21,7 @@ const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
     open,
     folderPath,
     folderName,
+    notEmpty,
     busy,
     error,
     onClose,
@@ -53,6 +57,11 @@ const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
                         </strong>{' '}
                         {t('media.deleteFolder.body')}
                     </Typography>
+                    {notEmpty && (
+                        <Typography variant="body2" color="error">
+                            {t('media.deleteFolder.notEmptyWarning')}
+                        </Typography>
+                    )}
                     {error && (
                         <Typography variant="body2" color="error">
                             {error}
@@ -74,7 +83,9 @@ const DeleteFolderModal: React.FC<DeleteFolderModalProps> = ({
                         >
                             {busy
                                 ? t('media.deleteMedia.deleting')
-                                : t('actions.delete')}
+                                : notEmpty
+                                  ? t('media.deleteFolder.deleteAll')
+                                  : t('actions.delete')}
                         </Button>
                     </Stack>
                 </Stack>

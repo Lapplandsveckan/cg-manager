@@ -173,7 +173,7 @@
             "detail": "Ladda upp filer från Media-sidan för att göra dem tillgängliga här."
         },
         "folder": {
-            "deleteTooltip": "Ta bort (bara om den är tom)"
+            "deleteTooltip": "Ta bort mapp"
         },
         "play": {
             "failed": "Kunde inte spela upp denna media",
@@ -247,11 +247,24 @@
         "deleteMedia": {
             "title": "Ta bort media?",
             "body": "kommer att tas bort från CasparCG mediamappen. Detta kan inte ångras.",
-            "deleting": "Tar bort…"
+            "deleting": "Tar bort…",
+            "bulkTitle_one": "Ta bort {{count}} fil?",
+            "bulkTitle_other": "Ta bort {{count}} filer?",
+            "bulkBody": "kommer att tas bort från CasparCG mediamappen. Detta kan inte ångras.",
+            "bulkDeleting_one": "Tar bort {{count}} fil…",
+            "bulkDeleting_other": "Tar bort {{count}} filer…"
         },
         "deleteFolder": {
             "title": "Ta bort mapp?",
-            "body": "kommer att tas bort. Fungerar bara om mappen är tom."
+            "body": "kommer att tas bort om den är tom. Om den inte är det får du möjlighet att ta bort allt inuti den också.",
+            "notEmptyWarning": "Mappen är inte tom. Om du tar bort den försvinner även allt som finns i den.",
+            "deleteAll": "Ta bort mapp och allt innehåll"
+        },
+        "selection": {
+            "count_one": "{{count}} markerad",
+            "count_other": "{{count}} markerade",
+            "delete": "Ta bort markerade",
+            "clear": "Rensa markering"
         },
         "createFolder": {
             "title": "Ny mapp",
@@ -284,6 +297,8 @@
         },
         "success": {
             "deleted": "Fil borttagen",
+            "filesDeleted_one": "{{count}} fil borttagen",
+            "filesDeleted_other": "{{count}} filer borttagna",
             "renamed": "Fil omdöpt",
             "moved": "Fil flyttad",
             "folderDeleted": "Mapp borttagen",

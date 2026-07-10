@@ -12,7 +12,8 @@ export type {
     ContextMenuRouteTarget,
     ContextMenuPluginTarget,
 } from '../components/ContextMenuProvider';
-export { MediaSelect, MediaView } from '../components/MediaView';
+export { MediaView } from '../components/MediaView';
+export { MediaSelect } from '../components/MediaSelectPicker';
 export { MediaCard } from '../components/MediaCard';
 export {
     RundownEditorActionBar,

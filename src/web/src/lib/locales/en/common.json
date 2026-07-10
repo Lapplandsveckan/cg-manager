@@ -173,7 +173,7 @@
             "detail": "Upload files from the Media page to make them available here."
         },
         "folder": {
-            "deleteTooltip": "Delete (only if empty)"
+            "deleteTooltip": "Delete folder"
         },
         "play": {
             "failed": "Couldn't play this media",
@@ -247,11 +247,24 @@
         "deleteMedia": {
             "title": "Delete media?",
             "body": "will be removed from the CasparCG media folder. This can't be undone.",
-            "deleting": "Deleting…"
+            "deleting": "Deleting…",
+            "bulkTitle_one": "Delete {{count}} file?",
+            "bulkTitle_other": "Delete {{count}} files?",
+            "bulkBody": "will be removed from the CasparCG media folder. This can't be undone.",
+            "bulkDeleting_one": "Deleting {{count}} file…",
+            "bulkDeleting_other": "Deleting {{count}} files…"
         },
         "deleteFolder": {
             "title": "Delete folder?",
-            "body": "will be removed. Only works if the folder is empty."
+            "body": "will be removed if it's empty. If it's not, you'll get the option to delete everything inside it too.",
+            "notEmptyWarning": "This folder isn't empty. Deleting it will permanently remove everything inside it too.",
+            "deleteAll": "Delete folder and all contents"
+        },
+        "selection": {
+            "count_one": "{{count}} selected",
+            "count_other": "{{count}} selected",
+            "delete": "Delete selected",
+            "clear": "Clear selection"
         },
         "createFolder": {
             "title": "New folder",
@@ -284,6 +297,8 @@
         },
         "success": {
             "deleted": "File deleted",
+            "filesDeleted_one": "{{count}} file deleted",
+            "filesDeleted_other": "{{count}} files deleted",
             "renamed": "File renamed",
             "moved": "File moved",
             "folderDeleted": "Folder deleted",

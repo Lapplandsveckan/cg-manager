@@ -107,6 +107,23 @@ function clampLogs(buf: string): string {
         : buf;
 }
 
+/** The REP websocket transport resolves every reply, success or failure —
+ *  it never rejects the request promise. A failed request comes back as
+ *  `{status, error}` instead of `{status: 200, data}`. Carries `.status`
+ *  so callers can branch on the code (e.g. a 409 "folder not empty"). */
+export class RequestError extends Error {
+    status: number;
+    constructor(message: string, status: number) {
+        super(message);
+        this.status = status;
+    }
+}
+
+function assertOk(res: { status?: number; error?: string } | undefined) {
+    if (res && typeof res.status === 'number' && res.status >= 400)
+        throw new RequestError(res.error ?? 'Request failed', res.status);
+}
+
 export class CasparServerApi extends EventEmitter {
     private socket: REPClient;
     private status: CasparStatus = {
@@ -281,10 +298,12 @@ export class CasparServerApi extends EventEmitter {
     }
 
     public async deleteMedia(id: string): Promise<void> {
-        await this.socket.request(
-            `api/caspar/media/${encodeURIComponent(id)}`,
-            'DELETE',
-            {},
+        assertOk(
+            await this.socket.request(
+                `api/caspar/media/${encodeURIComponent(id)}`,
+                'DELETE',
+                {},
+            ),
         );
     }
 
@@ -344,12 +363,20 @@ export class CasparServerApi extends EventEmitter {
 
     /** Delete a folder under the media root. Server-side this only succeeds
      *  if the folder is empty (the `.cgkeep` placeholder doesn't count) —
-     *  any real media or sub-folders inside cause a 409. */
-    public async deleteFolder(folderPath: string): Promise<void> {
-        await this.socket.request('api/caspar/media/folder', 'DELETE', {
-            path: folderPath,
-        });
+     *  any real media or sub-folders inside cause a 409, unless `recursive`
+     *  is set, which removes the folder and everything inside it. */
+    public async deleteFolder(
+        folderPath: string,
+        recursive = false,
+    ): Promise<void> {
+        assertOk(
+            await this.socket.request('api/caspar/media/folder', 'DELETE', {
+                path: folderPath,
+                recursive,
+            }),
+        );
         this.emit('folders');
+        if (recursive) this.emit('media');
     }
 
     /** Rename a folder. Both paths are slash-separated and relative to the

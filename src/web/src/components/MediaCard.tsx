@@ -7,6 +7,7 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
+import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
@@ -42,7 +43,9 @@ export interface MediaCardProps {
     backgroundUrl: string;
 
     columns?: number;
-    onClick?: () => void;
+    /** Receives the mouse event so callers can branch on Ctrl/Cmd/Shift
+     *  for multi-select instead of always inspecting the clip. */
+    onClick?: (e: React.MouseEvent) => void;
     onPlay?: () => void;
     onDelete?: () => void;
     onRename?: () => void;
@@ -51,6 +54,9 @@ export interface MediaCardProps {
      *  folders and breadcrumbs on the Media page can receive the drop and
      *  move the file. */
     dragId?: string;
+    /** Renders the selected visual state (border + tint). Driven by the
+     *  Ctrl/Cmd/Shift multi-select in `MediaView`. */
+    selected?: boolean;
 }
 
 export const MediaCard: React.FC<MediaCardProps> = ({
@@ -63,6 +69,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
     onDelete,
     onRename,
     dragId,
+    selected,
 }) => {
     const { t } = useTranslation('common');
     const { openSurfaceMenu } = useContextMenu();
@@ -84,7 +91,7 @@ export const MediaCard: React.FC<MediaCardProps> = ({
             xl={span / 5}
         >
             <Card
-                onClick={() => onClick?.()}
+                onClick={e => onClick?.(e)}
                 onContextMenu={e =>
                     openSurfaceMenu(
                         e,
@@ -93,7 +100,10 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                         [
                             onClick && {
                                 label: t('actions.inspect'),
-                                onClick,
+                                // Context-menu "inspect" is a plain click —
+                                // no modifier keys, so it always inspects
+                                // rather than toggling selection.
+                                onClick: () => onClick({} as React.MouseEvent),
                             },
                             onPlay && {
                                 label: t('actions.play'),
@@ -142,11 +152,28 @@ export const MediaCard: React.FC<MediaCardProps> = ({
                     backgroundPosition: 'center',
                     backgroundColor: theme.palette.surface.base,
                     cursor: onClick ? 'pointer' : 'default',
+                    outline: selected
+                        ? `2px solid ${theme.palette.primary.main}`
+                        : 'none',
+                    outlineOffset: '-2px',
                     '&:hover .media-card-actions': hasActions
                         ? { opacity: 1 }
                         : {},
                 })}
             >
+                {selected && (
+                    <CheckCircleRoundedIcon
+                        fontSize="small"
+                        sx={theme => ({
+                            position: 'absolute',
+                            top: 6,
+                            left: 6,
+                            color: theme.palette.primary.main,
+                            backgroundColor: theme.palette.surface.base,
+                            borderRadius: '50%',
+                        })}
+                    />
+                )}
                 {hasActions && (
                     <Stack
                         className="media-card-actions"
