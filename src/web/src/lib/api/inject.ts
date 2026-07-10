@@ -227,25 +227,33 @@ interface InjectionsProps {
     zone: UI_INJECTION_ZONE_KEY;
     plugin?: string | null;
     props?: any;
+    fallback?: React.ReactNode;
 }
 
 export const Injections: React.FC<InjectionsProps> = ({
     zone,
     plugin,
     props,
+    fallback,
 }) => {
     const [components, setComponents] = useState<
         { id: string; component: ComponentType }[]
     >([]);
+    const [loaded, setLoaded] = useState(false);
     const socket = useSocket();
 
     useEffect(() => {
         let mounted = true;
 
+        setLoaded(false);
+        setComponents([]);
+
         const resolve = () => {
-            socket.injects
-                .inject(zone, plugin)
-                .then(components => mounted && setComponents(components));
+            socket.injects.inject(zone, plugin).then(components => {
+                if (!mounted) return;
+                setComponents(components);
+                setLoaded(true);
+            });
         };
 
         resolve();
@@ -256,6 +264,14 @@ export const Injections: React.FC<InjectionsProps> = ({
             socket.injects.off('change', resolve);
         };
     }, [zone, plugin]);
+
+    if (loaded && components.length === 0 && fallback) {
+        return createElement(
+            SlotErrorBoundary,
+            { label: `default:${zone}`, resetKeys: [zone] },
+            fallback,
+        );
+    }
 
     return createElement(
         Fragment,

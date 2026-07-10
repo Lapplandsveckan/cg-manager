@@ -4,6 +4,7 @@ import { useTranslation } from 'next-i18next';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
 import { type RundownEntry } from './Rundowns';
 import { useSocket } from '../lib';
+import { DefaultRundownItemEditor } from './DefaultRundownItem';
 
 interface BaseModalProps {
     editing: RundownEntry | null;
@@ -168,10 +169,9 @@ const EditorModal: React.FC<BaseModalProps> = ({
 }) => (
     <Modal open={editing !== null} onClose={() => setEditing(null)}>
         <ModalShell>
-            {editing !== null && (
-                <Injections
-                    zone={`${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${editing.type}`}
-                    props={{
+            {editing !== null &&
+                (() => {
+                    const injectedProps = {
                         entry: editing,
                         creating: !entries.some(e => e.id === editing.id),
 
@@ -187,9 +187,21 @@ const EditorModal: React.FC<BaseModalProps> = ({
                             setEditing(null);
                             deleteEntry(entry);
                         },
-                    }}
-                />
-            )}
+
+                        onCancel: () => setEditing(null),
+                    };
+
+                    return (
+                        <Injections
+                            key={editing.id}
+                            zone={`${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${editing.type}`}
+                            props={injectedProps}
+                            fallback={
+                                <DefaultRundownItemEditor {...injectedProps} />
+                            }
+                        />
+                    );
+                })()}
         </ModalShell>
     </Modal>
 );

@@ -140,6 +140,13 @@
                 "empty": "No item types are registered."
             }
         },
+        "defaultEditor": {
+            "title": "Edit item",
+            "description": "This action doesn't have a custom editor — edit its raw data below.",
+            "titleLabel": "Title",
+            "dataLabel": "Data (JSON)",
+            "invalidData": "Invalid JSON"
+        },
         "play": {
             "offline": "CasparCG is offline — can't play",
             "failed": "Failed to play item"

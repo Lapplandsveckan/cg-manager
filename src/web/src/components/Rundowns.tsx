@@ -22,6 +22,7 @@ import { useTranslation } from 'next-i18next';
 import { noTryAsync } from 'no-try';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
 import { SlotErrorBoundary } from './SlotErrorBoundary';
+import { DefaultRundownItemView } from './DefaultRundownItem';
 import { useSocket } from '../lib';
 import {
     type RundownItemDragPayload,
@@ -1090,6 +1091,11 @@ export const Rundowns: React.FC<RundownsProps> = ({
                                     <Injections
                                         zone={`${UI_INJECTION_ZONE.RUNDOWN_ITEM}.${entry.type}`}
                                         props={{ entry }}
+                                        fallback={
+                                            <DefaultRundownItemView
+                                                entry={entry}
+                                            />
+                                        }
                                     />
                                 </RundownEntry>
                             </SlotErrorBoundary>

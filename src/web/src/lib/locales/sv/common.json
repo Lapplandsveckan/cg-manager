@@ -140,6 +140,13 @@
                 "empty": "Inga objekttyper är registrerade."
             }
         },
+        "defaultEditor": {
+            "title": "Redigera objekt",
+            "description": "Den här åtgärden har ingen egen redigerare — redigera dess rådata nedan.",
+            "titleLabel": "Titel",
+            "dataLabel": "Data (JSON)",
+            "invalidData": "Ogiltig JSON"
+        },
         "play": {
             "offline": "CasparCG är offline — kan inte spela",
             "failed": "Det gick inte att spela objektet"
