@@ -327,6 +327,24 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                 ref={cardRef}
                 data-card
                 direction="row"
+                draggable={draggable}
+                title={draggable ? t('rundown.entry.dragToReorder') : undefined}
+                onDragStart={e => {
+                    const rect = cardRef.current?.getBoundingClientRect();
+                    if (cardRef.current && rect) {
+                        e.dataTransfer.setDragImage(
+                            cardRef.current,
+                            e.clientX - rect.left,
+                            e.clientY - rect.top,
+                        );
+                    }
+                    onReorderDragStart?.(
+                        e,
+                        rect?.height ?? 64,
+                        e.clientY - (rect?.top ?? e.clientY),
+                    );
+                }}
+                onDragEnd={() => onReorderDragEnd?.()}
                 sx={theme => ({
                     position: 'relative',
                     py: isDragging ? 0 : 2,
@@ -337,7 +355,11 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                     border: `1px solid ${theme.palette.divider}`,
                     borderRadius: 1.5,
                     width: '100%',
-                    cursor: cardClickable ? 'pointer' : 'default',
+                    cursor: draggable
+                        ? 'grab'
+                        : cardClickable
+                          ? 'pointer'
+                          : 'default',
                     opacity: isDragging ? 0 : disabled ? 0.55 : 1,
                     maxHeight: isDragging ? 0 : 2000,
                     overflow: isDragging ? 'hidden' : 'visible',
@@ -347,6 +369,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                             duration: 180,
                         },
                     ),
+                    '&:active': draggable ? { cursor: 'grabbing' } : undefined,
                     '&:hover': cardClickable
                         ? {
                               bgcolor: theme.palette.surface.elevated,
@@ -368,31 +391,6 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                 {supportsReorder && (
                     <Box
                         className="rundown-drag-handle"
-                        draggable={draggable}
-                        title={
-                            draggable
-                                ? t('rundown.entry.dragToReorder')
-                                : undefined
-                        }
-                        onDragStart={e => {
-                            const rect =
-                                cardRef.current?.getBoundingClientRect();
-                            if (cardRef.current && rect) {
-                                e.dataTransfer.setDragImage(
-                                    cardRef.current,
-                                    e.clientX - rect.left,
-                                    e.clientY - rect.top,
-                                );
-                            }
-                            e.stopPropagation();
-                            onReorderDragStart?.(
-                                e,
-                                rect?.height ?? 64,
-                                e.clientY - (rect?.top ?? e.clientY),
-                            );
-                        }}
-                        onDragEnd={() => onReorderDragEnd?.()}
-                        onClick={e => e.stopPropagation()}
                         sx={theme => ({
                             position: 'absolute',
                             left: 2,
@@ -402,14 +400,12 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            cursor: draggable ? 'grab' : 'default',
+                            pointerEvents: 'none',
                             visibility: draggable ? 'visible' : 'hidden',
                             color: theme.palette.text.secondary,
                             transition: theme.transitions.create('color', {
                                 duration: 120,
                             }),
-                            '&:active': { cursor: 'grabbing' },
-                            '&:hover': { color: theme.palette.text.primary },
                         })}
                     >
                         <DragIndicatorRoundedIcon sx={{ fontSize: 16 }} />
@@ -437,6 +433,8 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                             direction="row"
                             alignItems="center"
                             gap={0.5}
+                            draggable={false}
+                            title=""
                             sx={{ flexShrink: 0 }}
                             onClick={e => e.stopPropagation()}
                         >
