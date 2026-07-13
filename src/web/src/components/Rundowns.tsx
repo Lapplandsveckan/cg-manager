@@ -19,7 +19,7 @@ import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'next-i18next';
-import { noTryAsync } from 'no-try';
+import { noTry, noTryAsync } from 'no-try';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
 import { SlotErrorBoundary } from './SlotErrorBoundary';
 import { DefaultRundownItemView } from './DefaultRundownItem';
@@ -276,7 +276,7 @@ interface RundownEntryProps {
         height: number,
         grabOffset: number,
     ) => void;
-    onReorderDragEnd?: () => void;
+    onReorderDragEnd?: (e: React.DragEvent<HTMLDivElement>) => void;
     /** When set, an animated gap opens above/below the card to show where the
      *  dragged item will land. */
     dropIndicator?: 'before' | 'after' | null;
@@ -345,7 +345,7 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
                         e.clientY - (rect?.top ?? e.clientY),
                     );
                 }}
-                onDragEnd={() => onReorderDragEnd?.()}
+                onDragEnd={e => onReorderDragEnd?.(e)}
                 sx={theme => ({
                     position: 'relative',
                     py: isDragging ? 0 : 2,
@@ -509,6 +509,10 @@ export const RundownEntry: React.FC<RundownEntryProps> = ({
 };
 
 interface RundownsProps {
+    /** Id of the rundown this list renders. Lets a drop tell a same-list
+     *  reorder apart from a drag arriving from a different Rundowns
+     *  instance (e.g. between the main rundown and a quick-actions list). */
+    rundownId: string;
     entries: RundownEntry[];
 
     onEdit: (entry: RundownEntry) => void;
@@ -527,7 +531,8 @@ interface RundownsProps {
      *  with the pre-filled fields). When the user hovered over a specific item
      *  during the drag, `index` is the position in the list where the entry
      *  should be inserted; when omitted (dropped on empty space), the entry
-     *  should be appended. */
+     *  should be appended. Also used (with `immediate: true`) to copy in an
+     *  existing entry dragged from a different Rundowns instance. */
     onDropItem?: (payload: RundownItemDragPayload, index?: number) => void;
     /** Called when items have been reordered via drag. Receives the new
      *  ordered list of item ids. */
@@ -549,6 +554,7 @@ function hasReorderPayload(dt: DataTransfer | null): boolean {
 }
 
 export const Rundowns: React.FC<RundownsProps> = ({
+    rundownId,
     entries,
     onEdit,
     onPlay,
@@ -784,12 +790,13 @@ export const Rundowns: React.FC<RundownsProps> = ({
             (hasRundownItemPayload(e.dataTransfer) ||
                 isFileDrag(e.dataTransfer));
 
-        if (isReorder && acceptsReorder) {
+        // Accept a reorder-shaped drag either for a same-list reorder or for
+        // an existing entry arriving from a different Rundowns instance —
+        // the latter only needs onDropItem, not onReorder.
+        if (isReorder && (acceptsReorder || acceptsDrop)) {
             e.preventDefault();
             e.dataTransfer.dropEffect = 'move';
-            // reorderDraggingId is set one RAF after dragstart so the drag image
-            // is captured from the full-height card before React collapses it.
-            if (reorderDraggingId) setDropIndex(computeDropIndex(e.clientY));
+            setDropIndex(computeDropIndex(e.clientY));
             return;
         }
         if (isCreate) {
@@ -846,22 +853,57 @@ export const Rundowns: React.FC<RundownsProps> = ({
     };
 
     const applyReorderDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        const fromId = e.dataTransfer.getData(RUNDOWN_REORDER_MIME);
-        if (!fromId || dropIndex === null || !onReorder) {
+        const raw = e.dataTransfer.getData(RUNDOWN_REORDER_MIME);
+        const [, parsed] = noTry(
+            () => JSON.parse(raw) as { rundownId: string; entry: RundownEntry },
+        );
+        const fromRundownId = parsed?.rundownId;
+        const draggedEntry = parsed?.entry;
+        if (!draggedEntry?.id || !fromRundownId || dropIndex === null) {
+            clearReorderState();
+            return;
+        }
+        const index = dropIndex;
+
+        // Assumes distinct Rundowns instances never share a rundownId — if
+        // they did, this would misfire as a same-list reorder here.
+        if (fromRundownId !== rundownId) {
+            // Entry dragged in from a different Rundowns instance (e.g. the
+            // main rundown <-> quick actions) — copy it here; the source
+            // keeps its own entry (cross-list drags don't remove it).
+            clearReorderState();
+            if (!onDropItem) {
+                e.dataTransfer.dropEffect = 'none';
+                return;
+            }
+            e.preventDefault();
+            onDropItem(
+                {
+                    type: draggedEntry.type,
+                    data: draggedEntry.data,
+                    title: draggedEntry.title,
+                    immediate: true,
+                },
+                index,
+            );
+            return;
+        }
+
+        if (!onReorder) {
+            clearReorderState();
+            return;
+        }
+
+        const fromIndex = entries.findIndex(en => en.id === draggedEntry.id);
+        if (fromIndex < 0) {
             clearReorderState();
             return;
         }
         e.preventDefault();
 
-        const fromIndex = entries.findIndex(en => en.id === fromId);
-        if (fromIndex < 0) {
-            clearReorderState();
-            return;
-        }
-
         // Mark before clearing so dragend (fired after drop) skips the outside-container path.
         didDropInsideRef.current = true;
-        const toIndex = fromIndex < dropIndex ? dropIndex - 1 : dropIndex;
+        const toIndex = fromIndex < index ? index - 1 : index;
         clearReorderState();
 
         if (fromIndex === toIndex) return;
@@ -872,8 +914,22 @@ export const Rundowns: React.FC<RundownsProps> = ({
         onReorder(next.map(en => en.id));
     };
 
-    const onReorderDragEnd = useCallback(() => {
-        if (!didDropInsideRef.current) {
+    const onReorderDragEnd = useCallback(
+        (e: React.DragEvent<HTMLDivElement>) => {
+            if (didDropInsideRef.current) {
+                didDropInsideRef.current = false;
+                clearReorderState();
+                return;
+            }
+
+            if (e.dataTransfer.dropEffect !== 'none') {
+                // Accepted by a different Rundowns instance — it already
+                // created its own copy of this entry, and cross-list drags
+                // are copy-only, so there's nothing further to do here.
+                clearReorderState();
+                return;
+            }
+
             const idx = dropIndexRef.current;
             if (idx !== null && reorderDraggingId && onReorder) {
                 const fromIndex = entries.findIndex(
@@ -889,10 +945,10 @@ export const Rundowns: React.FC<RundownsProps> = ({
                     }
                 }
             }
-        }
-        didDropInsideRef.current = false;
-        clearReorderState();
-    }, [reorderDraggingId, entries, onReorder, clearReorderState]);
+            clearReorderState();
+        },
+        [reorderDraggingId, entries, onReorder, clearReorderState],
+    );
 
     return (
         <>
@@ -1071,7 +1127,10 @@ export const Rundowns: React.FC<RundownsProps> = ({
                                             ? (e, height, offset) => {
                                                   e.dataTransfer.setData(
                                                       RUNDOWN_REORDER_MIME,
-                                                      entry.id,
+                                                      JSON.stringify({
+                                                          rundownId,
+                                                          entry,
+                                                      }),
                                                   );
                                                   e.dataTransfer.effectAllowed =
                                                       'move';

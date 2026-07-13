@@ -308,6 +308,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
 
                 {selected && (
                     <Rundowns
+                        rundownId={selected.id}
                         entries={entries}
                         locked={locked}
                         onEdit={entry => setEditing(entry)}

@@ -295,6 +295,7 @@ const Page = () => {
                             </Typography>
                             <SlotErrorBoundary label="play:rundown-column">
                                 <Rundowns
+                                    rundownId={router.query.id as string}
                                     entries={entries}
                                     locked={locked}
                                     onEdit={entry => setEditing(entry)}
