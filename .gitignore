@@ -1,6 +1,6 @@
 node_modules
-dist
-out
-src/web/.next
-src/web/tsconfig.tsbuildinfo
-test
+packages/*/dist
+packages/*/out
+packages/*/src/web/.next
+packages/*/src/web/tsconfig.tsbuildinfo
+packages/*/test

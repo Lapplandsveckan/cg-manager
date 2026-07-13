@@ -3,9 +3,12 @@ const fss = require('fs');
 const fs = fss.promises;
 const path = require('path');
 const root = path.join(__dirname, '../../');
+// Yarn workspaces hoist deps to the monorepo-root node_modules — `root` here
+// is `packages/server`, so binaries/patched files live two levels further up.
+const modulesRoot = path.join(root, '..', '..', 'node_modules');
 
 function cmd(command, ...args) {
-    let cmdPath = JSON.stringify(path.join(root, 'node_modules', command));
+    let cmdPath = JSON.stringify(path.join(modulesRoot, command));
     cmdPath += args.map(arg => ` ${arg}`).join('');
 
     return new Promise((resolve, reject) => {
@@ -123,7 +126,7 @@ async function applyPatch(filePath, from, to, label) {
 async function patchVmCallSites() {
     console.log('Patching vm call sites...');
     const loader = "require('vm').constants.USE_MAIN_CONTEXT_DEFAULT_LOADER";
-    const webpackFile = path.join(root, 'node_modules', 'webpack', 'lib', 'javascript', 'JavascriptModulesPlugin.js');
+    const webpackFile = path.join(modulesRoot, 'webpack', 'lib', 'javascript', 'JavascriptModulesPlugin.js');
 
     // webpack's JavascriptModulesPlugin uses vm.runInThisContext for executeModule.
     await applyPatch(
@@ -141,7 +144,7 @@ async function patchVmCallSites() {
 
     // Next.js's load-manifest uses vm.runInNewContext for app-router manifests.
     await applyPatch(
-        path.join(root, 'node_modules', 'next', 'dist', 'server', 'load-manifest.external.js'),
+        path.join(modulesRoot, 'next', 'dist', 'server', 'load-manifest.external.js'),
         '(0, _vm.runInNewContext)(content, contextObject);',
         '(0, _vm.runInNewContext)(content, contextObject, { importModuleDynamically: _vm.constants.USE_MAIN_CONTEXT_DEFAULT_LOADER });',
         'next.js vm patch',
@@ -154,7 +157,7 @@ async function patchVmCallSites() {
     // embedded as a pkg script, so fall back to require() — the same fix Next
     // already applies for jest (see the comment just above the patched line).
     await applyPatch(
-        path.join(root, 'node_modules', 'next', 'dist', 'server', 'config.js'),
+        path.join(modulesRoot, 'next', 'dist', 'server', 'config.js'),
         'userConfigModule = await import((0, _url.pathToFileURL)(path).href);',
         'userConfigModule = require(path); // pkg: ESM import() of snapshot path fails; config is CJS',
         'next.js config.js loadConfig',
@@ -167,7 +170,7 @@ async function patchVmCallSites() {
     // so the cache falls back to os.tmpdir() — harmless since cacheDirectory is
     // not set in our webpack config and the cache function is never actually called.
     await applyPatch(
-        path.join(root, 'node_modules', 'babel-loader', 'lib', 'cache.js'),
+        path.join(modulesRoot, 'babel-loader', 'lib', 'cache.js'),
         'const findCacheDirP = import("find-cache-dir");',
         'const findCacheDirP = Promise.resolve({ default: () => null }); // find-cache-dir is ESM-only; fall back to os.tmpdir()',
         'babel-loader cache.js',
@@ -185,7 +188,19 @@ async function package() {
     await patchVmCallSites();
 
     console.log('Packaging executable...');
-    await cmd(path.join('@yao-pkg', 'pkg', 'lib-es5', 'bin.js'), JSON.stringify(path.join(root, 'package.json')));
+    // pkg names the output after package.json's `name` (last path segment for
+    // scoped names, e.g. "@cg-manager/server" -> "server"), ignoring `bin`.
+    // Force it explicitly so the artifact stays "manager" regardless of the
+    // workspace package name.
+    let ending = 'manager';
+    if (process.platform === 'win32') ending += '.exe';
+    const output = path.join(root, 'out', ending);
+
+    await cmd(
+        path.join('@yao-pkg', 'pkg', 'lib-es5', 'bin.js'),
+        JSON.stringify(path.join(root, 'package.json')),
+        '--output', JSON.stringify(output),
+    );
 }
 
 async function moveExecutable() {

@@ -23,7 +23,7 @@ jobs:
 
       - name: Get tag name
         id: tag
-        run: echo "name=$(node ./.lappis/scripts/get-release-name.js ${{ github.run_number }})" >> $GITHUB_OUTPUT
+        run: echo "name=$(node ./packages/server/.lappis/scripts/get-release-name.js ${{ github.run_number }})" >> $GITHUB_OUTPUT
 
       - name: Install project dependencies
         run: yarn install --prefer-offline
@@ -40,4 +40,4 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            ./out/manager
+            ./packages/server/out/manager
