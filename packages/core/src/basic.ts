@@ -1,4 +1,4 @@
-import {Allocation} from './command';
+import { type Allocation } from './command';
 
 export class BasicChannel {
     protected readonly casparChannel: number; // maybe this should not be readonly
@@ -52,9 +52,7 @@ export class BasicLayer {
         this.onMove();
     }
 
-    protected onMove() {
-
-    }
+    protected onMove() {}
 
     public getCasparLayer() {
         return this.casparLayer;

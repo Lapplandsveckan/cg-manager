@@ -1,7 +1,20 @@
 export type CompanionOption =
-    | { type: 'dropdown'; id: string; label: string; choices: { id: string; label: string }[]; default?: string }
+    | {
+          type: 'dropdown';
+          id: string;
+          label: string;
+          choices: { id: string; label: string }[];
+          default?: string;
+      }
     | { type: 'textinput'; id: string; label: string; default?: string }
-    | { type: 'number'; id: string; label: string; default?: number; min?: number; max?: number }
+    | {
+          type: 'number';
+          id: string;
+          label: string;
+          default?: number;
+          min?: number;
+          max?: number;
+      }
     | { type: 'checkbox'; id: string; label: string; default?: boolean }
     | { type: 'colorpicker'; id: string; label: string; default?: number };
 
@@ -15,14 +28,19 @@ export interface CompanionStyle {
 }
 
 export type OptionValues = Record<string, string | number | boolean>;
-export interface InvokeContext { surface?: string }
+export interface InvokeContext {
+    surface?: string;
+}
 
 export interface ActionDefinition {
     id: string;
     name: string;
     description?: string;
     options?: CompanionOption[];
-    handler: (options: OptionValues, ctx: InvokeContext) => void | Promise<void>;
+    handler: (
+        options: OptionValues,
+        ctx: InvokeContext,
+    ) => void | Promise<void>;
 }
 
 export interface FeedbackDefinition {

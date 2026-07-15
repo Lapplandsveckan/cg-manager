@@ -1,5 +1,5 @@
-import {LayeredCommand} from '../command';
-import {BasicChannel, BasicLayer} from '../basic';
+import { LayeredCommand } from '../command';
+import { type BasicChannel, type BasicLayer } from '../basic';
 
 export enum Transition {
     CUT = 'CUT',
@@ -37,14 +37,13 @@ export class Color {
         if (g > 255 || g < 0) throw new Error('g must be between 0 and 255');
         if (b > 255 || b < 0) throw new Error('b must be between 0 and 255');
 
-        if (a !== undefined && (a > 255 || a < 0)) throw new Error('a must be between 0 and 255');
+        if (a !== undefined && (a > 255 || a < 0))
+            throw new Error('a must be between 0 and 255');
 
         const v = [r, g, b];
         if (a !== undefined) v.unshift(a);
 
-        const hex = v
-            .map(v => v.toString(16).padStart(2, '0'))
-            .join('');
+        const hex = v.map(v => v.toString(16).padStart(2, '0')).join('');
 
         return `#${hex}`;
     }
@@ -98,22 +97,27 @@ export class LoadBGCommand extends LayeredCommand {
     }
 
     public static video(video: string, options?: PlayoutOptions) {
-        return new this()
-            .setArguments(video, ...Video.getVideoArguments(options));
+        return new this().setArguments(
+            video,
+            ...Video.getVideoArguments(options),
+        );
     }
 
     public static decklink(device: number, format: string) {
-        return new this()
-            .setArguments('DECKLINK', 'DEVICE', device.toString(), 'FORMAT', format);
+        return new this().setArguments(
+            'DECKLINK',
+            'DEVICE',
+            device.toString(),
+            'FORMAT',
+            format,
+        );
     }
 
     public static route(source: BasicLayer | BasicChannel) {
-        return new this()
-            .setArguments(`route://${source.getCommandString()}`);
+        return new this().setArguments(`route://${source.getCommandString()}`);
     }
 
     public static color(color: string) {
-        return new this()
-            .setArguments(color);
+        return new this().setArguments(color);
     }
 }

@@ -1,4 +1,4 @@
-import {LoadBGCommand} from './loadbg';
+import { LoadBGCommand } from './loadbg';
 
 export class LoadCommand extends LoadBGCommand {
     protected getCommandType() {

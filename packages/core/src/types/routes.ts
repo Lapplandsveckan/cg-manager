@@ -1,4 +1,4 @@
-import {CasparManager} from '../index';
+import { type CasparManager } from '../index';
 
 interface DecklinkSource {
     device: number;

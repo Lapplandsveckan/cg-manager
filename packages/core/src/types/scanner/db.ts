@@ -1,4 +1,4 @@
-import {EventEmitter} from 'events';
+import { EventEmitter } from 'events';
 
 export interface MediaDoc {
     id: string;
@@ -28,7 +28,7 @@ export interface MediaDoc {
                 time_base: string;
                 tag_string: string;
                 is_avc: any;
-            },
+            };
 
             // Video
             width: number;
@@ -65,15 +65,15 @@ export interface MediaDoc {
             duration: number;
             bit_rate: number;
             max_bit_rate: number;
-        },
+        };
     };
 
     _attachments?: {
         'thumb.png': {
             content_type: string;
             data: Buffer;
-        }
-    }
+        };
+    };
 }
 
 export declare class FileDatabase extends EventEmitter {

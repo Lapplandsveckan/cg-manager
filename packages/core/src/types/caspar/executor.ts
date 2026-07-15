@@ -1,5 +1,5 @@
-import {CommandExecutor} from '../../executor';
-import {Channel, EffectGroup} from '../../layers';
+import { CommandExecutor } from '../../executor';
+import { type Channel, type EffectGroup } from '../../layers';
 
 export declare class CasparExecutor extends CommandExecutor {
     public readonly ip: string;

@@ -1,4 +1,4 @@
-import {SimpleArgsCommand} from '../command';
+import { SimpleArgsCommand } from '../command';
 
 export class AddCommand extends SimpleArgsCommand {
     protected getCommandType() {

@@ -7,7 +7,7 @@ export enum LogLevel {
     ERROR = 'ERROR',
     FATAL = 'FATAL',
 
-    NONE = 'NONE'
+    NONE = 'NONE',
 }
 
 export declare class Logger {

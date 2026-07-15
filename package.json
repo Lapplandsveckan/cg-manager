@@ -8,8 +8,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "package": "yarn workspace @cg-manager/server package",
-    "start": "yarn workspace @cg-manager/server start",
+    "build": "yarn workspace @lappis/cg-manager build",
+    "package": "yarn workspace @lappis/cg-manager build && yarn workspace @cg-manager/server package",
+    "start": "yarn workspace @lappis/cg-manager build && yarn workspace @cg-manager/server start",
     "lint": "yarn workspaces run lint",
     "lint:fix": "yarn workspaces run lint:fix",
     "format": "yarn workspaces run format",

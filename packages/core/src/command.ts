@@ -1,4 +1,4 @@
-import {BasicChannel, BasicLayer} from './basic';
+import { BasicChannel, BasicLayer } from './basic';
 
 export abstract class Command {
     public abstract getCommand(): string | undefined | void;
@@ -11,12 +11,15 @@ export abstract class BasicCommand {
     protected abstract getCommandType(): string;
     protected abstract getArguments(): string[];
 
-    public static construct(command: string, ...args: string[]): ReturnType<typeof BasicCommand.create> {
+    public static construct(
+        command: string,
+        ...args: string[]
+    ): ReturnType<typeof BasicCommand.create> {
         return this.create(command, ...args);
     }
 
     private static create(command: string, ...args: string[]) {
-        return new class extends BasicCommand {
+        return new (class extends BasicCommand {
             protected getCommandType() {
                 return command;
             }
@@ -32,7 +35,7 @@ export abstract class BasicCommand {
             public getArgs() {
                 return this.getArguments();
             }
-        };
+        })();
     }
 
     private static parseQuotes(args: string[]): string[] {
@@ -71,16 +74,22 @@ export abstract class BasicCommand {
         return result;
     }
 
-    public static from(command: string): ReturnType<typeof BasicCommand.create> {
+    public static from(
+        command: string,
+    ): ReturnType<typeof BasicCommand.create> {
         if (command.endsWith('\r\n')) command = command.slice(0, -2);
-        if (command.indexOf('\r\n') > -1) throw new Error('Command cannot contain line breaks');
-        if (command.startsWith('"')) throw new Error('Command cannot start with quotes');
+        if (command.indexOf('\r\n') > -1)
+            throw new Error('Command cannot contain line breaks');
+        if (command.startsWith('"'))
+            throw new Error('Command cannot start with quotes');
 
         const parts = command.split(' ');
         return this.create(parts[0], ...this.parseArguments(parts.slice(1)));
     }
 
-    public static interpret(command: string): ReturnType<typeof BasicCommand.create>[] {
+    public static interpret(
+        command: string,
+    ): ReturnType<typeof BasicCommand.create>[] {
         return command
             .split('\r\n')
             .filter(line => line.length > 0)
@@ -89,10 +98,9 @@ export abstract class BasicCommand {
 
     protected compileArgs() {
         // NOTE: we treat any quote as an escaped quote, so if you would pass "hello" to make sure, it would be treated as \"hello\" and not hello
-        return this
-            .getArguments()
+        return this.getArguments()
             .map(v => JSON.stringify(v)) // escapes anything that needs to be escaped, and wraps the string in quotes
-            .map(v => v.includes(' ') ? v : v.substring(1, v.length - 1)) // removes quotes if the string does not contain spaces
+            .map(v => (v.includes(' ') ? v : v.substring(1, v.length - 1))) // removes quotes if the string does not contain spaces
             .join(' ');
     }
 
@@ -178,7 +186,8 @@ export class CommandGroup extends Command {
         this.allocation = BasicLayer.from(arg1, arg2);
 
         for (const command of this.commands)
-            if (command instanceof LayeredCommand) command.allocate(this.allocation);
+            if (command instanceof LayeredCommand)
+                command.allocate(this.allocation);
 
         return this;
     }

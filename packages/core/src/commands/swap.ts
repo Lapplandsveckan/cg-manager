@@ -1,5 +1,9 @@
-import {Allocation, BasicCommand, ChannelResolvable} from '../command';
-import {BasicChannel, BasicLayer} from '../basic';
+import {
+    type Allocation,
+    BasicCommand,
+    type ChannelResolvable,
+} from '../command';
+import { type BasicChannel, BasicLayer } from '../basic';
 
 export class SwapCommand extends BasicCommand {
     protected allocation1?: BasicLayer | BasicChannel;
@@ -7,9 +11,17 @@ export class SwapCommand extends BasicCommand {
     protected transforms: boolean;
 
     constructor();
-    constructor(allocation1: Allocation, allocation2: Allocation, transforms?: boolean);
+    constructor(
+        allocation1: Allocation,
+        allocation2: Allocation,
+        transforms?: boolean,
+    );
 
-    constructor(allocation1?: Allocation, allocation2?: Allocation, transforms = true) {
+    constructor(
+        allocation1?: Allocation,
+        allocation2?: Allocation,
+        transforms = true,
+    ) {
         super();
         if (allocation1) this.allocate1(allocation1);
         if (allocation2) this.allocate2(allocation2);

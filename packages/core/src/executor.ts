@@ -1,6 +1,6 @@
-import {Channel} from './layers';
-import {BasicCommand, Command} from './command';
-import {Effect} from './effect';
+import { Channel } from './layers';
+import { BasicCommand, type Command } from './command';
+import { type Effect } from './effect';
 
 const COMMAND_TIMEOUT_MS = 1000;
 const CONNECT_GRACE_MS = 1000;
@@ -55,18 +55,16 @@ export class CommandExecutor {
     protected fetchTemplates() {
         // TODO: optimize and better options
         if (!this.fetchPromise)
-            this.fetchPromise = this._fetchTemplates()
-                .then(templates => {
-                    this.fetchPromise = null;
-                    return this.templates = templates;
-                });
-
+            this.fetchPromise = this._fetchTemplates().then(templates => {
+                this.fetchPromise = null;
+                return (this.templates = templates);
+            });
 
         return this.fetchPromise;
     }
 
     public async getTemplates(force = false) {
-        if (force || (Date.now() - this.lastFetch > 1000 * 60 * 5)) {
+        if (force || Date.now() - this.lastFetch > 1000 * 60 * 5) {
             this.lastFetch = Date.now();
             await this.fetchTemplates();
         }
@@ -80,28 +78,53 @@ export class CommandExecutor {
 
     public promise(command: string) {
         const callerStack = new Error().stack; // kept for timeout diagnostics
-        return new Promise<{ data: string[], code: number }>((resolve, reject) => {
-            const startTimeout = () => {
-                listener.timeout = setTimeout(() => {
-                    listener.timeout = undefined;
-                    // Re-arm while disconnected, or within the grace window after connect —
-                    // pre-connect-buffered commands only just reached the server.
-                    if (!this.connected || Date.now() - this._connectedAt < CONNECT_GRACE_MS)
-                        return startTimeout();
+        return new Promise<{ data: string[]; code: number }>(
+            (resolve, reject) => {
+                const startTimeout = () => {
+                    listener.timeout = setTimeout(() => {
+                        listener.timeout = undefined;
+                        // Re-arm while disconnected, or within the grace window after connect —
+                        // pre-connect-buffered commands only just reached the server.
+                        if (
+                            !this.connected ||
+                            Date.now() - this._connectedAt < CONNECT_GRACE_MS
+                        )
+                            return startTimeout();
 
-                    this.removeListener(listener);
-                    reject(new CasparResponseError([`Timeout: "${command}"`, callerStack ?? '(no stack)'], -1));
-                }, COMMAND_TIMEOUT_MS);
-            };
+                        this.removeListener(listener);
+                        reject(
+                            new CasparResponseError(
+                                [
+                                    `Timeout: "${command}"`,
+                                    callerStack ?? '(no stack)',
+                                ],
+                                -1,
+                            ),
+                        );
+                    }, COMMAND_TIMEOUT_MS);
+                };
 
-            const clear = () => { if (listener.timeout) clearTimeout(listener.timeout); };
-            const onSuccess = (data: string[], code: number) => { clear(); resolve({data, code}); };
-            const onError = (data: string[], code: number) => { clear(); reject(new CasparResponseError(data, code)); };
+                const clear = () => {
+                    if (listener.timeout) clearTimeout(listener.timeout);
+                };
+                const onSuccess = (data: string[], code: number) => {
+                    clear();
+                    resolve({ data, code });
+                };
+                const onError = (data: string[], code: number) => {
+                    clear();
+                    reject(new CasparResponseError(data, code));
+                };
 
-            const listener: CommandListener = {command, success: onSuccess, error: onError};
-            startTimeout();
-            this.addListener(listener);
-        });
+                const listener: CommandListener = {
+                    command,
+                    success: onSuccess,
+                    error: onError,
+                };
+                startTimeout();
+                this.addListener(listener);
+            },
+        );
     }
 
     /** @description NOTE: only use this function when you are certain that the server won't respond */
@@ -118,7 +141,7 @@ export class CommandExecutor {
 
         // TODO: handle information from commands sent such as if the cmd was a CLEAR or SWAP,
         // which would affect critical systems of this application and should be handled accordingly
-        
+
         const commands = BasicCommand.interpret(data);
         const promises = commands.map(cmd => this.promise(cmd.getCmd()));
         this.send(data);
@@ -149,9 +172,7 @@ export class CommandExecutor {
             channel.executeAllocation();
     }
 
-    protected send(data: string) {
-
-    }
+    protected send(_data: string) {}
 
     private readData(code: number, cmd: string, lines: string[]): number {
         const data = [];
@@ -234,9 +255,7 @@ export class CommandExecutor {
         }
     }
 
-    protected onEvent(code: number, cmd: string, data: string[]) {
-
-    }
+    protected onEvent(_code: number, _cmd: string, _data: string[]) {}
 
     protected effects = new Map<string, Effect>();
 

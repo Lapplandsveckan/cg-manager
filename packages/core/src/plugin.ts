@@ -1,15 +1,27 @@
-import {EventEmitter} from 'events';
-import {Effect, EffectConstructor} from './effect';
-import {Channel} from './layers';
-import {noTry} from 'no-try';
-import {Logger, CasparManager} from './types';
-import {Method, WebsocketOutboundMethod} from 'rest-exchange-protocol';
-import {Route} from 'rest-exchange-protocol/dist/route';
-import {UI_INJECTION_ZONE} from './types/ui';
-import {RundownActionMetadata, RundownItem, Rundown} from './types/rundown';
-import {VideoRoute, RouteChange} from './types/routes';
-import {CasparStatus} from './types/caspar/process';
-import {ActionDefinition, ActionHandle, FeedbackDefinition, FeedbackHandle, InvokeContext, OptionValues} from './types/companion';
+import { EventEmitter } from 'events';
+import { noTry } from 'no-try';
+import {
+    type Method,
+    type WebsocketOutboundMethod,
+} from 'rest-exchange-protocol';
+import { type Route } from 'rest-exchange-protocol/dist/route';
+import { type Effect, type EffectConstructor } from './effect';
+import { type Channel } from './layers';
+import { type Logger, type CasparManager } from './types';
+import { type UI_INJECTION_ZONE } from './types/ui';
+import {
+    type RundownActionMetadata,
+    type RundownItem,
+    type Rundown,
+} from './types/rundown';
+import { type VideoRoute, type RouteChange } from './types/routes';
+import { type CasparStatus } from './types/caspar/process';
+import {
+    type ActionDefinition,
+    type ActionHandle,
+    type FeedbackDefinition,
+    type FeedbackHandle,
+} from './types/companion';
 
 export class CasparPlugin {
     private _api: PluginAPI;
@@ -48,13 +60,9 @@ export class CasparPlugin {
         else logger.debug('Disabled');
     }
 
-    protected onEnable() {
+    protected onEnable() {}
 
-    }
-
-    protected onDisable() {
-
-    }
+    protected onDisable() {}
 
     protected get api() {
         return this._api;
@@ -74,7 +82,9 @@ export class PluginAPI extends EventEmitter {
         this._plugin = _plugin;
 
         this._plugin['_api'] = this;
-        this._plugin['logger'] = _manager.getLogger('Plugin').scope(this._plugin.pluginName);
+        this._plugin['logger'] = _manager
+            .getLogger('Plugin')
+            .scope(this._plugin.pluginName);
     }
 
     public onReconnect(handler: () => void) {
@@ -93,22 +103,26 @@ export class PluginAPI extends EventEmitter {
     }
 
     private unregisterEffects() {
-        for (const effect of this._effects) this._manager.effects.unregister(effect);
+        for (const effect of this._effects)
+            this._manager.effects.unregister(effect);
         this._effects = [];
     }
 
     private unregisterRoutes() {
-        for (const route of this.routes) this._manager.server.unregisterRoute(route);
+        for (const route of this.routes)
+            this._manager.server.unregisterRoute(route);
         this.routes = [];
     }
 
     private async unregisterFiles() {
-        for (const file of this.files) await this._manager.directory.deleteDirectory(file);
+        for (const file of this.files)
+            await this._manager.directory.deleteDirectory(file);
         this.files = [];
     }
 
     private unregisterUIInjections() {
-        for (const injection of this.uiInjections) this._manager.ui.unregister(injection);
+        for (const injection of this.uiInjections)
+            this._manager.ui.unregister(injection);
         this.uiInjections = [];
     }
 
@@ -129,8 +143,16 @@ export class PluginAPI extends EventEmitter {
         return this.unregisterFiles();
     }
 
-    public registerRoute(path: string, handler: Route['handler'], method: Method) {
-        const route = this._manager.server.registerRoute(`plugin/${this._plugin.pluginName}/${path}`, handler, method);
+    public registerRoute(
+        path: string,
+        handler: Route['handler'],
+        method: Method,
+    ) {
+        const route = this._manager.server.registerRoute(
+            `plugin/${this._plugin.pluginName}/${path}`,
+            handler,
+            method,
+        );
         this.routes.push(route);
 
         return route;
@@ -144,15 +166,27 @@ export class PluginAPI extends EventEmitter {
         this._manager.server.unregisterRoute(route);
     }
 
-    public broadcast(target: string, method: WebsocketOutboundMethod, data: any, exclude?: any) {
-        this._manager.server.broadcast(`plugin/${this._plugin.pluginName}/${target}`, method, data, exclude);
+    public broadcast(
+        target: string,
+        method: WebsocketOutboundMethod,
+        data: any,
+        exclude?: any,
+    ) {
+        this._manager.server.broadcast(
+            `plugin/${this._plugin.pluginName}/${target}`,
+            method,
+            data,
+            exclude,
+        );
     }
 
     public registerFile(type: 'media' | 'template', path: string) {
-        return this._manager.directory.createDirectory(type, path).then(data => {
-            this.files.push(data.id);
-            return data;
-        });
+        return this._manager.directory
+            .createDirectory(type, path)
+            .then(data => {
+                this.files.push(data.id);
+                return data;
+            });
     }
 
     public getEffectGroup(name: string, index?: number) {
@@ -193,7 +227,11 @@ export class PluginAPI extends EventEmitter {
      * @param file The file to inject, it holds the component as default export
      */
     public registerUI(injectionZone: UI_INJECTION_ZONE, file: string) {
-        const id = this._manager.ui.register(injectionZone, file, this._plugin.pluginName);
+        const id = this._manager.ui.register(
+            injectionZone,
+            file,
+            this._plugin.pluginName,
+        );
         this.uiInjections.push(id);
     }
 
@@ -219,19 +257,30 @@ export class PluginAPI extends EventEmitter {
         handler: (item: RundownItem) => Promise<void> | void,
         metadata?: RundownActionMetadata,
     ) {
-        this._manager.rundowns.executor.registerAction(name, handler, this._plugin.pluginName, metadata);
+        this._manager.rundowns.executor.registerAction(
+            name,
+            handler,
+            this._plugin.pluginName,
+            metadata,
+        );
     }
 
     // Companion surface — actions & feedbacks
 
     public registerAction(def: ActionDefinition): ActionHandle {
-        const handle = this._manager.companion.registerAction(def, this._plugin.pluginName);
+        const handle = this._manager.companion.registerAction(
+            def,
+            this._plugin.pluginName,
+        );
         this._companionActions.push(handle);
         return handle;
     }
 
     public registerFeedback(def: FeedbackDefinition): FeedbackHandle {
-        const handle = this._manager.companion.registerFeedback(def, this._plugin.pluginName);
+        const handle = this._manager.companion.registerFeedback(
+            def,
+            this._plugin.pluginName,
+        );
         this._companionFeedbacks.push(handle);
         return handle;
     }
@@ -263,7 +312,8 @@ export class PluginAPI extends EventEmitter {
     }
 
     public setVideoRouteEnabled(id: string, enabled?: boolean) {
-        const value = enabled ?? !this._manager.routes.getVideoRoute(id)?.enabled;
+        const value =
+            enabled ?? !this._manager.routes.getVideoRoute(id)?.enabled;
         this._manager.routes.setVideoRouteEnabled(id, value);
     }
 

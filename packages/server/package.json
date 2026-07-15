@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "2.31.0",
+  "version": "2.32.0",
   "name": "@cg-manager/server",
   "engines": {
     "node": ">=22"
@@ -22,7 +22,7 @@
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@fontsource/roboto": "^5.0.8",
-    "@lappis/cg-manager": "^0.0.52",
+    "@lappis/cg-manager": "*",
     "@mui/base": "^5.0.0-beta.36",
     "@mui/icons-material": "^5.15.9",
     "@mui/material": "^5.15.9",

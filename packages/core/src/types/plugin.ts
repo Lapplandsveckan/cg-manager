@@ -1,4 +1,4 @@
-import {CasparPlugin} from '../plugin';
+import { type CasparPlugin } from '../plugin';
 
 export declare class PluginManager {
     public register(plugin: typeof CasparPlugin): void;

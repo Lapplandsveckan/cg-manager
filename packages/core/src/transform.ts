@@ -1,6 +1,6 @@
 /* eslint camelcase: 0 */
 
-import {MixerCommand, Tween} from './commands/mixer';
+import { MixerCommand, type Tween } from './commands/mixer';
 
 export interface Point {
     x: number;
@@ -12,8 +12,14 @@ export interface Rect {
     end: Point;
 }
 
-type Tuple<T, N extends number> = N extends N ? number extends N ? T[] : _TupleOf<T, N, []> : never;
-type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N ? R : _TupleOf<T, N, [T, ...R]>;
+type Tuple<T, N extends number> = N extends N
+    ? number extends N
+        ? T[]
+        : _TupleOf<T, N, []>
+    : never;
+type _TupleOf<T, N extends number, R extends unknown[]> = R['length'] extends N
+    ? R
+    : _TupleOf<T, N, [T, ...R]>;
 
 export class Transform {
     public source: Rect;
@@ -29,8 +35,8 @@ export class Transform {
 
     public static getRect(sx: number, sy: number, ex: number, ey: number) {
         return {
-            start: {x: sx, y: sy},
-            end: {x: ex, y: ey},
+            start: { x: sx, y: sy },
+            end: { x: ex, y: ey },
         };
     }
 
@@ -60,8 +66,10 @@ export class Transform {
     private getFill(rect: Rect, crop: Rect) {
         crop = crop ?? Transform.normalRect();
 
-        const xScale = (rect.end.x - rect.start.x) / (crop.end.x - crop.start.x);
-        const yScale = (rect.end.y - rect.start.y) / (crop.end.y - crop.start.y);
+        const xScale =
+            (rect.end.x - rect.start.x) / (crop.end.x - crop.start.x);
+        const yScale =
+            (rect.end.y - rect.start.y) / (crop.end.y - crop.start.y);
 
         const x = rect.start.x - crop.start.x * xScale;
         const y = rect.start.y - crop.start.y * yScale;
@@ -84,9 +92,10 @@ export class Transform {
     }
 
     public getCommand() {
-        const base = MixerCommand
-            .create()
-            .fill(this.getFill(this.destination, this.source), this.fillTransition);
+        const base = MixerCommand.create().fill(
+            this.getFill(this.destination, this.source),
+            this.fillTransition,
+        );
 
         let clipping = false;
         if (this.source.start.x > 0 || this.source.start.y > 0) clipping = true;

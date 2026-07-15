@@ -1,4 +1,4 @@
-import {RawCommand, SimpleCommand} from '../command';
+import { RawCommand, SimpleCommand } from '../command';
 
 export class ClearCommand extends SimpleCommand {
     protected getCommandType() {

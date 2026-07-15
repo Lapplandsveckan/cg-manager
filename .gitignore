@@ -3,4 +3,4 @@ packages/*/dist
 packages/*/out
 packages/*/src/web/.next
 packages/*/src/web/tsconfig.tsbuildinfo
-packages/*/test
+packages/server/test

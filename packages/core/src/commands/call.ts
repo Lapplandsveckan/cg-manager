@@ -1,4 +1,4 @@
-import {LayeredCommand} from '../command';
+import { LayeredCommand } from '../command';
 
 export class CallCommand extends LayeredCommand {
     private method: string;

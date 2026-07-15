@@ -1,8 +1,8 @@
-import {v4 as uuid} from 'uuid';
-import {Transform} from './transform';
-import {EffectGroup, Layer} from './layers';
-import {Command} from './command';
-import {EventEmitter} from 'events';
+import { EventEmitter } from 'events';
+import { v4 as uuid } from 'uuid';
+import { type Transform } from './transform';
+import { type EffectGroup, type Layer } from './layers';
+import { type Command } from './command';
 
 export abstract class Effect extends EventEmitter {
     private _active: boolean = false;
@@ -129,7 +129,10 @@ export abstract class Effect extends EventEmitter {
     }
 }
 
-export type EffectConstructor = (group: EffectGroup, options: Record<string, any>) => Effect;
+export type EffectConstructor = (
+    group: EffectGroup,
+    options: Record<string, any>,
+) => Effect;
 export class EffectRegistry {
     private effects: Map<string, EffectConstructor> = new Map();
 
@@ -145,7 +148,11 @@ export class EffectRegistry {
         return this.effects.get(name);
     }
 
-    public create(name: string, group: EffectGroup, options: Record<string, any>) {
+    public create(
+        name: string,
+        group: EffectGroup,
+        options: Record<string, any>,
+    ) {
         const effect = this.get(name);
         if (!effect) return null;
 

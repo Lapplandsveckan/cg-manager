@@ -1,23 +1,40 @@
-import {EventEmitter} from 'events';
-import {Injection, UIInjector} from './ui';
-import {EffectRegistry} from '../effect';
-import {Logger} from './log';
-import {MediaScanner} from './scanner/scanner';
-import {DirectoryManager} from './scanner/dir';
-import {CGServer} from './server';
-import {PluginManager} from './plugin';
-import {CasparProcess} from './caspar/process';
-import {CasparExecutor} from './caspar/executor';
-import {FileDatabase} from './scanner/db';
-import {RundownManager} from './rundown';
-import {VideoRoutesManager} from './routes';
-import {ActionDefinition, ActionHandle, FeedbackDefinition, FeedbackHandle, OptionValues, InvokeContext} from './companion';
+import { EventEmitter } from 'events';
+import { type Injection, type UIInjector } from './ui';
+import { type EffectRegistry } from '../effect';
+import { type Logger } from './log';
+import { type MediaScanner } from './scanner/scanner';
+import { type DirectoryManager } from './scanner/dir';
+import { type CGServer } from './server';
+import { type PluginManager } from './plugin';
+import { type CasparProcess } from './caspar/process';
+import { type CasparExecutor } from './caspar/executor';
+import { type FileDatabase } from './scanner/db';
+import { type RundownManager } from './rundown';
+import { type VideoRoutesManager } from './routes';
+import {
+    type ActionDefinition,
+    type ActionHandle,
+    type FeedbackDefinition,
+    type FeedbackHandle,
+    type OptionValues,
+    type InvokeContext,
+} from './companion';
 
 export declare class CompanionRegistry {
     registerAction(def: ActionDefinition, owner: string): ActionHandle;
     registerFeedback(def: FeedbackDefinition, owner: string): FeedbackHandle;
-    invoke(plugin: string, id: string, options: OptionValues, ctx: InvokeContext): Promise<void>;
-    subscribe(instanceId: string, plugin: string, id: string, options: OptionValues): void;
+    invoke(
+        plugin: string,
+        id: string,
+        options: OptionValues,
+        ctx: InvokeContext,
+    ): Promise<void>;
+    subscribe(
+        instanceId: string,
+        plugin: string,
+        id: string,
+        options: OptionValues,
+    ): void;
     unsubscribe(instanceId: string): void;
     invalidate(plugin: string, id: string): void;
     unregisterOwner(owner: string): void;

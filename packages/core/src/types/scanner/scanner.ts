@@ -1,4 +1,4 @@
-import {FileDatabase} from './db';
+import { type FileDatabase } from './db';
 
 export declare class MediaScanner {
     public started: boolean;

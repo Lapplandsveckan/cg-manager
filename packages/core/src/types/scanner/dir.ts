@@ -18,7 +18,10 @@ export declare class DirectoryManager {
     createDirectories(): Promise<void>;
     deleteDirectories(): Promise<void>;
 
-    public createDirectory(type: 'media' | 'template', from: string): Promise<InternalMediaData>;
+    public createDirectory(
+        type: 'media' | 'template',
+        from: string,
+    ): Promise<InternalMediaData>;
     public deleteDirectory(id: string): Promise<void>;
 
     public getDirectory(id: string): Promise<InternalMediaData>;

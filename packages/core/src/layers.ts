@@ -1,11 +1,11 @@
-import {Effect} from './effect';
-import {CommandGroup} from './command';
-import {ClearCommand} from './commands/clear';
-import {SwapCommand} from './commands/swap';
-import {BasicChannel, BasicLayer} from './basic';
-import {CommandExecutor} from './executor';
 import { v4 as uuid } from 'uuid';
-import {MixerCommand} from './commands';
+import { type Effect } from './effect';
+import { CommandGroup } from './command';
+import { ClearCommand } from './commands/clear';
+import { SwapCommand } from './commands/swap';
+import { BasicChannel, BasicLayer } from './basic';
+import { type CommandExecutor } from './executor';
+import { MixerCommand } from './commands';
 export interface AllocateOptions {
     count?: number;
     index?: number;
@@ -95,7 +95,7 @@ export class EffectGroup {
     }
 }
 
-export class Channel extends BasicChannel{
+export class Channel extends BasicChannel {
     public layers = new Map<string, Layer>();
     public groups: EffectGroup[] = [];
 
@@ -132,7 +132,9 @@ export class Channel extends BasicChannel{
     }
 
     public getLayers() {
-        return this.currentOrder.map(id => this.layers.get(id)).filter(layer => layer !== undefined);
+        return this.currentOrder
+            .map(id => this.layers.get(id))
+            .filter(layer => layer !== undefined);
     }
 
     public getLayerIndex(layer: Layer) {
@@ -160,7 +162,11 @@ export class Channel extends BasicChannel{
 
         // We want to move the layers as little as possible,
         // so we'll try to remove empty space to try to keep it in the same place as before
-        for (let i = index + 1; i < this.currentOrder.length && count > 0; i++) {
+        for (
+            let i = index + 1;
+            i < this.currentOrder.length && count > 0;
+            i++
+        ) {
             const id = this.currentOrder[i];
             if (id !== undefined) continue;
 
@@ -261,7 +267,10 @@ export class Channel extends BasicChannel{
         return {
             channel: this.casparChannel,
 
-            layers: this.currentOrder.filter(v => v).map(v => this.layers.get(v)).map(layer => layer.toJSON()),
+            layers: this.currentOrder
+                .filter(v => v)
+                .map(v => this.layers.get(v))
+                .map(layer => layer.toJSON()),
             groups: this.groups.map(group => group.toJSON()),
         };
     }

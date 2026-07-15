@@ -1,4 +1,4 @@
-import {CommandGroup, LayeredCommand} from '../command';
+import { CommandGroup, LayeredCommand } from '../command';
 
 interface ChromaEnabled {
     enabled: true;
@@ -59,10 +59,12 @@ interface Perspective {
     bottom_left: Anchor;
 }
 
-export type Tween = {
-    type?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
-    duration: number;
-} | number;
+export type Tween =
+    | {
+          type?: 'linear' | 'ease-in' | 'ease-out' | 'ease-in-out';
+          duration: number;
+      }
+    | number;
 
 export interface EdgeBlendOptions {
     edgeblend: [number, number, number, number];
@@ -137,7 +139,11 @@ export class MixerCommand extends CommandGroup {
             chroma.show_mask ? 1 : 0,
         ] as any[];
 
-        return this.single('CHROMA', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'CHROMA',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public blend(blend: string) {
@@ -149,35 +155,43 @@ export class MixerCommand extends CommandGroup {
     }
 
     public opacity(opacity: number, tween?: Tween) {
-        const args = [
-            opacity,
-        ] as any[];
+        const args = [opacity] as any[];
 
-        return this.single('OPACITY', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'OPACITY',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public brightness(brightness: number, tween?: Tween) {
-        const args = [
-            brightness,
-        ] as any[];
+        const args = [brightness] as any[];
 
-        return this.single('BRIGHTNESS', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'BRIGHTNESS',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public saturation(saturation: number, tween?: Tween) {
-        const args = [
-            saturation,
-        ] as any[];
+        const args = [saturation] as any[];
 
-        return this.single('SATURATION', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'SATURATION',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public contrast(contrast: number, tween?: Tween) {
-        const args = [
-            contrast,
-        ] as any[];
+        const args = [contrast] as any[];
 
-        return this.single('CONTRAST', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'CONTRAST',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public levels(levels: Levels, tween?: Tween) {
@@ -189,38 +203,41 @@ export class MixerCommand extends CommandGroup {
             levels.max_output,
         ] as any[];
 
-        return this.single('LEVELS', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'LEVELS',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public fill(fill: Fill, tween?: Tween) {
-        const args = [
-            fill.x,
-            fill.y,
-            fill.x_scale,
-            fill.y_scale,
-        ] as any[];
+        const args = [fill.x, fill.y, fill.x_scale, fill.y_scale] as any[];
 
-        return this.single('FILL', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'FILL',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public clip(clip: Clip, tween?: Tween) {
-        const args = [
-            clip.x,
-            clip.y,
-            clip.width,
-            clip.height,
-        ] as any[];
+        const args = [clip.x, clip.y, clip.width, clip.height] as any[];
 
-        return this.single('CLIP', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'CLIP',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public anchor(anchor: Anchor, tween?: Tween) {
-        const args = [
-            anchor.x,
-            anchor.y,
-        ] as any[];
+        const args = [anchor.x, anchor.y] as any[];
 
-        return this.single('ANCHOR', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'ANCHOR',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public crop(crop: Crop, tween?: Tween) {
@@ -231,15 +248,21 @@ export class MixerCommand extends CommandGroup {
             crop.bottom_edge,
         ] as any[];
 
-        return this.single('CROP', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'CROP',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public rotation(angle: number, tween?: Tween) {
-        const args = [
-            angle,
-        ] as any[];
+        const args = [angle] as any[];
 
-        return this.single('ROTATION', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'ROTATION',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public perspective(perspective: Perspective, tween?: Tween) {
@@ -254,7 +277,11 @@ export class MixerCommand extends CommandGroup {
             perspective.bottom_left.y,
         ] as any[];
 
-        return this.single('PERSPECTIVE', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'PERSPECTIVE',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public mipmap(mipmap: boolean) {
@@ -262,11 +289,13 @@ export class MixerCommand extends CommandGroup {
     }
 
     public volume(volume: number, tween?: Tween) {
-        const args = [
-            volume,
-        ] as any[];
+        const args = [volume] as any[];
 
-        return this.single('VOLUME', args.map(arg => arg.toString()), tween);
+        return this.single(
+            'VOLUME',
+            args.map(arg => arg.toString()),
+            tween,
+        );
     }
 
     public mastervolume(volume: number) {
@@ -289,7 +318,10 @@ export class MixerCommand extends CommandGroup {
             edgeblend.a ?? 0.5,
         ] as any[];
 
-        return this.single('EDGEBLEND', args.map(arg => arg.toString()));
+        return this.single(
+            'EDGEBLEND',
+            args.map(arg => arg.toString()),
+        );
     }
 
     public clear() {
