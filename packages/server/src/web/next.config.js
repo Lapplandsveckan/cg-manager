@@ -10,10 +10,17 @@
 // with no importModuleDynamically callback, so the import() throws
 // ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING on first SSR. Transpiling them forces
 // webpack to bundle them in (as require()) instead of emitting import().
+const path = require('path');
 const { i18n } = require('./next-i18next.config');
 
 module.exports = {
     i18n,
+    // Standalone tracing (@vercel/nft) computes the exact SSR runtime
+    // dependency closure into .next/standalone/node_modules. The packaging
+    // pipeline reads that closure to decide which node_modules packages to
+    // bundle into the pkg snapshot instead of shipping all of node_modules.
+    output: 'standalone',
+    outputFileTracingRoot: path.join(__dirname, '../../../..'),
     transpilePackages: ['mui-color-input', 'react-i18next', 'i18next'],
     logging: {
         // Silences the dev " GET /path 200 in Nms" access log lines. Only

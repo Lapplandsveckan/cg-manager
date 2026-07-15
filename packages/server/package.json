@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "2.31.0",
+  "version": "2.32.0",
   "name": "@cg-manager/server",
   "engines": {
     "node": ">=22"
@@ -85,9 +85,7 @@
     "assets": [
       "dist/web/.next/**/*",
       "dist/web/public/**/*",
-      "dist/plugins/internal/**/ui/*.jsx",
-      "../../node_modules/**/*",
-      "!../../node_modules/@cg-manager/**"
+      "dist/plugins/internal/**/ui/*.jsx"
     ],
     "targets": [
       "node22-linux-x64"
