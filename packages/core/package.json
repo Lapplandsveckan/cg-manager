@@ -1,9 +1,11 @@
 {
   "name": "@lappis/cg-manager",
-  "repository": "https://github.com/Lapplandsveckan/cg-manager-plugin",
+  "repository": {
+    "url": "git+https://github.com/Lapplandsveckan/cg-manager.git"
+  },
   "author": "firecraftgaming <eliyah@sundstroem.com>",
   "license": "MIT",
-  "version": "0.0.53",
+  "version": "0.0.54",
   "publishConfig": {
     "access": "public"
   },
