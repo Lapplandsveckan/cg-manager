@@ -3,7 +3,10 @@
   "repository": "https://github.com/Lapplandsveckan/cg-manager-plugin",
   "author": "firecraftgaming <eliyah@sundstroem.com>",
   "license": "MIT",
-  "version": "0.0.52",
+  "version": "0.0.53",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {

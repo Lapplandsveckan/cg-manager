@@ -1,0 +1,48 @@
+name: Publish @lappis/cg-manager
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  publish-core:
+    name: Publish core package to npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone codebase
+        uses: actions/checkout@v6
+
+      - name: Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: 'yarn'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install project dependencies
+        run: yarn install --prefer-offline
+
+      - name: Build core package
+        run: yarn build
+
+      - name: Check if version is already published
+        id: version-check
+        run: |
+          VERSION=$(node -p "require('./packages/core/package.json').version")
+          PUBLISHED=$(npm view @lappis/cg-manager@$VERSION version 2>/dev/null || true)
+          if [ -z "$PUBLISHED" ]; then
+            echo "should_publish=true" >> $GITHUB_OUTPUT
+          else
+            echo "should_publish=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish to npm
+        if: steps.version-check.outputs.should_publish == 'true'
+        working-directory: packages/core
+        run: npm publish --access public
