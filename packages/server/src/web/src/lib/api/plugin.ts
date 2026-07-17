@@ -7,6 +7,10 @@ export interface Plugin {
     enabled: boolean;
     builtin?: boolean;
     minChannels: number;
+    dependencies?: string[];
+    /** Present while disabled solely because of an unmet gate. */
+    blockedReason?: 'channels' | 'dependency';
+    missingDeps?: string[];
     /** Present for external (uploaded) plugins with a resolvable folder. */
     folderName?: string;
     activeVersion?: string;

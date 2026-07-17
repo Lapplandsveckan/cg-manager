@@ -26,7 +26,10 @@ export default {
         if (!folderName) throw new WebError('Plugin not found', 404);
 
         const [err] = await noTryAsync(() =>
-            plugins.setActiveVersion(folderName, (data as any).version),
+            plugins.versions.setActiveVersion(
+                folderName,
+                (data as any).version,
+            ),
         );
         if (err)
             throw new WebError(err.message ?? 'Failed to switch version', 404);

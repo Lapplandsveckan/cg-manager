@@ -36,9 +36,13 @@ export const UI_INJECTION_ZONE = {
 
 export type UI_INJECTION_ZONE =
     (typeof UI_INJECTION_ZONE)[keyof typeof UI_INJECTION_ZONE];
+// A plugin can also define its own zone for other plugins to extend, in the
+// form `plugin:<owner-defined-name>` — mirrors @lappis/cg-manager's
+// types/ui.ts, keep both in sync.
 export type UI_INJECTION_ZONE_KEY =
     | UI_INJECTION_ZONE
-    | `${UI_INJECTION_ZONE}.${string}`;
+    | `${UI_INJECTION_ZONE}.${string}`
+    | `plugin:${string}`;
 
 export interface Injection {
     zone: UI_INJECTION_ZONE_KEY;

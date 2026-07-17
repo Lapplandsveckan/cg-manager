@@ -36,7 +36,7 @@ export default {
         if (manager.getPlugins().isBuiltin(request.params.id))
             throw new WebError('Built-in plugins cannot be uninstalled', 403);
 
-        await manager.getPlugins().uninstall(request.params.id);
+        await manager.getPlugins().versions.uninstall(request.params.id);
         manager.emit('plugin-list-changed');
         return null;
     },

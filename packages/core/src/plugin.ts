@@ -8,7 +8,7 @@ import { type Route } from 'rest-exchange-protocol/dist/route';
 import { type Effect, type EffectConstructor } from './effect';
 import { type Channel } from './layers';
 import { type Logger, type CasparManager } from './types';
-import { type UI_INJECTION_ZONE } from './types/ui';
+import { type UI_INJECTION_ZONE_KEY } from './types/ui';
 import {
     type RundownActionMetadata,
     type RundownItem,
@@ -22,11 +22,22 @@ import {
     type FeedbackDefinition,
     type FeedbackHandle,
 } from './types/companion';
+import {
+    type ServiceHandle,
+    type ContributionHandle,
+    type Contribution,
+} from './types/interop';
 
 export class CasparPlugin {
     private _api: PluginAPI;
     private _enabled: boolean = false;
     protected logger: Logger;
+
+    // Optional static hooks, read reflectively by the host (like
+    // `minChannels` — not declared here so plugins aren't forced to extend a
+    // constructor):
+    //   static dependencies = ['other-plugin'];          // hard: gates enable
+    //   static optionalDependencies = ['nice-to-have'];   // soft: orders only
 
     public static get pluginName() {
         return this.name;
@@ -140,6 +151,7 @@ export class PluginAPI extends EventEmitter {
         this.unregisterRoutes();
         this.unregisterUIInjections();
         this.unregisterCompanion();
+        this._manager.interop.unregisterOwner(this._plugin.pluginName);
         return this.unregisterFiles();
     }
 
@@ -223,10 +235,11 @@ export class PluginAPI extends EventEmitter {
     }
 
     /**
-     * @param injectionZone The zone to inject the file into, e.g. UI_INJECTION_ZONE.EFFECT_CREATOR for the effect creator
+     * @param injectionZone The zone to inject the file into, e.g. UI_INJECTION_ZONE.EFFECT_CREATOR
+     *   for the effect creator, or a plugin-defined zone (`plugin:<name>`) to extend another plugin's UI.
      * @param file The file to inject, it holds the component as default export
      */
-    public registerUI(injectionZone: UI_INJECTION_ZONE, file: string) {
+    public registerUI(injectionZone: UI_INJECTION_ZONE_KEY, file: string) {
         const id = this._manager.ui.register(
             injectionZone,
             file,
@@ -378,5 +391,64 @@ export class PluginAPI extends EventEmitter {
 
     public offRouteChange(handler: (change: RouteChange) => void) {
         this._manager.off('route-change', handler);
+    }
+
+    // Inter-plugin services — a named, in-process object another plugin can
+    // look up and call directly. Loosely coupled: consumers address the
+    // provider by string name only, never by importing its class.
+    public provideService<T>(name: string, impl: T): ServiceHandle<T> {
+        return this._manager.interop.provideService(
+            name,
+            impl,
+            this._plugin.pluginName,
+        );
+    }
+
+    public getService<T>(name: string): T | null {
+        return this._manager.interop.getService(name);
+    }
+
+    /** Resolves once a service with this name is provided (now or later). */
+    public awaitService<T>(name: string): Promise<T> {
+        return this._manager.interop.awaitService(
+            name,
+            this._plugin.pluginName,
+        );
+    }
+
+    public onServiceChange(handler: (name: string) => void) {
+        this._manager.interop.onServiceChange(handler);
+    }
+
+    public offServiceChange(handler: (name: string) => void) {
+        this._manager.interop.offServiceChange(handler);
+    }
+
+    // Inter-plugin extension points — the inverse of a service: a provider
+    // declares a named point and consumers push contributions into it.
+    public contribute<T>(point: string, value: T): ContributionHandle<T> {
+        return this._manager.interop.contribute(
+            point,
+            value,
+            this._plugin.pluginName,
+        );
+    }
+
+    public getContributions<T>(point: string): Contribution<T>[] {
+        return this._manager.interop.getContributions(point);
+    }
+
+    public onContributionsChange(
+        point: string,
+        handler: (contributions: Contribution[]) => void,
+    ) {
+        this._manager.interop.onContributionsChange(point, handler);
+    }
+
+    public offContributionsChange(
+        point: string,
+        handler: (contributions: Contribution[]) => void,
+    ) {
+        this._manager.interop.offContributionsChange(point, handler);
     }
 }

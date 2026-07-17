@@ -1,4 +1,5 @@
 export * from './types';
+export * from './types/interop';
 
 export * from './basic';
 export * from './command';

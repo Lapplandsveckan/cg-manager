@@ -5,7 +5,7 @@
   },
   "author": "firecraftgaming <eliyah@sundstroem.com>",
   "license": "MIT",
-  "version": "0.0.54",
+  "version": "0.1.0",
   "publishConfig": {
     "access": "public"
   },

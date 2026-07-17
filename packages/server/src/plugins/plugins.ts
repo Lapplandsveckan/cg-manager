@@ -30,7 +30,7 @@ export async function loadPlugins() {
             const manager = CasparManager.getManager();
             await manager
                 .getPlugins()
-                .setActiveVersion(result.name, result.version);
+                .versions.setActiveVersion(result.name, result.version);
             manager.emit('plugin-list-changed');
             logger.info(
                 `Plugin "${result.name}" v${result.version} installed and activated`,

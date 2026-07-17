@@ -19,7 +19,7 @@ export default {
         if (!folderName) throw new WebError('Plugin not found', 404);
 
         const [err] = await noTryAsync(() =>
-            plugins.removeVersion(folderName, request.params.version),
+            plugins.versions.removeVersion(folderName, request.params.version),
         );
         if (err)
             throw new WebError(err.message ?? 'Failed to remove version', 404);

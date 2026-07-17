@@ -19,6 +19,36 @@ import {
     type OptionValues,
     type InvokeContext,
 } from './companion';
+import {
+    type ServiceHandle,
+    type ContributionHandle,
+    type Contribution,
+} from './interop';
+
+export declare class PluginInterop {
+    provideService<T>(name: string, impl: T, owner: string): ServiceHandle<T>;
+    getService<T>(name: string): T | null;
+    awaitService<T>(name: string, owner: string): Promise<T>;
+    onServiceChange(handler: (name: string) => void): void;
+    offServiceChange(handler: (name: string) => void): void;
+
+    contribute<T>(
+        point: string,
+        value: T,
+        owner: string,
+    ): ContributionHandle<T>;
+    getContributions<T>(point: string): Contribution<T>[];
+    onContributionsChange(
+        point: string,
+        handler: (contributions: Contribution[]) => void,
+    ): void;
+    offContributionsChange(
+        point: string,
+        handler: (contributions: Contribution[]) => void,
+    ): void;
+
+    unregisterOwner(owner: string): void;
+}
 
 export declare class CompanionRegistry {
     registerAction(def: ActionDefinition, owner: string): ActionHandle;
@@ -53,6 +83,7 @@ export declare class CasparManager extends EventEmitter {
     public rundowns: RundownManager;
     public routes: VideoRoutesManager;
     public companion: CompanionRegistry;
+    public interop: PluginInterop;
 
     // This is a static method, so it will not be available from the plugin
     // public static getManager(): CasparManager;
