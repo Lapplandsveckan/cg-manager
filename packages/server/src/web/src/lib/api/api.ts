@@ -25,6 +25,15 @@ export class ManagerApi {
         return this.socket.routes;
     }
 
+    /** True while the websocket transport is actually open. Requests fall
+     *  back to HTTP when it drops, so a successful request does NOT imply
+     *  broadcasts are alive — poll this to detect a dead socket. Reaches
+     *  into REPClient's private getter (advisory privacy, same pattern as
+     *  Logger). */
+    public get wsConnected(): boolean {
+        return Boolean(this.socket['connected']);
+    }
+
     constructor(host: string) {
         ManagerApi.instance = this;
 

@@ -8,9 +8,12 @@ import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import { appWithTranslation } from 'next-i18next';
 import { ErrorBoundary } from 'react-error-boundary';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { reportClientError } from '../lib/reportClientError';
+import { queryClient } from '../lib/query/client';
 import { SocketProvider } from '../components/SocketProvider';
 import { ConnectionProvider } from '../components/ConnectionProvider';
+import { QuerySync } from '../components/QuerySync';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { ToastProvider } from '../components/ToastProvider';
 import { UndoProvider } from '../components/UndoProvider';
@@ -73,61 +76,67 @@ function App({ Component, pageProps }: AppProps) {
                 ) : (
                     <AuthGate>
                         <SocketProvider>
-                            <ConnectionProvider>
-                                <ToastProvider>
-                                    <UndoProvider>
-                                        <ContextMenuProvider>
-                                            <PluginContextMenuMounts />
-                                            <EntryClipboardProvider>
-                                                <Stack
-                                                    direction="column"
-                                                    sx={{
-                                                        height: '100vh',
-                                                        width: '100%',
-                                                    }}
-                                                >
-                                                    <ConnectionBanner />
+                            <QueryClientProvider client={queryClient}>
+                                <ConnectionProvider>
+                                    <QuerySync />
+                                    <ToastProvider>
+                                        <UndoProvider>
+                                            <ContextMenuProvider>
+                                                <PluginContextMenuMounts />
+                                                <EntryClipboardProvider>
                                                     <Stack
+                                                        direction="column"
                                                         sx={{
-                                                            flex: 1,
-                                                            minHeight: 0,
+                                                            height: '100vh',
+                                                            width: '100%',
                                                         }}
                                                     >
-                                                        <ErrorBoundary
-                                                            fallback={
-                                                                appCrashFallback
-                                                            }
-                                                            onError={(e, i) => {
-                                                                console.error(
-                                                                    '[app:page]',
-                                                                    e,
-                                                                    i,
-                                                                );
-                                                                const err =
-                                                                    e as Error;
-                                                                reportClientError(
-                                                                    {
-                                                                        source: 'app:page',
-                                                                        message:
-                                                                            err.message,
-                                                                        stack: err.stack,
-                                                                        componentStack:
-                                                                            i.componentStack,
-                                                                    },
-                                                                );
+                                                        <ConnectionBanner />
+                                                        <Stack
+                                                            sx={{
+                                                                flex: 1,
+                                                                minHeight: 0,
                                                             }}
                                                         >
-                                                            <Component
-                                                                {...pageProps}
-                                                            />
-                                                        </ErrorBoundary>
+                                                            <ErrorBoundary
+                                                                fallback={
+                                                                    appCrashFallback
+                                                                }
+                                                                onError={(
+                                                                    e,
+                                                                    i,
+                                                                ) => {
+                                                                    console.error(
+                                                                        '[app:page]',
+                                                                        e,
+                                                                        i,
+                                                                    );
+                                                                    const err =
+                                                                        e as Error;
+                                                                    reportClientError(
+                                                                        {
+                                                                            source: 'app:page',
+                                                                            message:
+                                                                                err.message,
+                                                                            stack: err.stack,
+                                                                            componentStack:
+                                                                                i.componentStack,
+                                                                        },
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <Component
+                                                                    {...pageProps}
+                                                                />
+                                                            </ErrorBoundary>
+                                                        </Stack>
                                                     </Stack>
-                                                </Stack>
-                                            </EntryClipboardProvider>
-                                        </ContextMenuProvider>
-                                    </UndoProvider>
-                                </ToastProvider>
-                            </ConnectionProvider>
+                                                </EntryClipboardProvider>
+                                            </ContextMenuProvider>
+                                        </UndoProvider>
+                                    </ToastProvider>
+                                </ConnectionProvider>
+                            </QueryClientProvider>
                         </SocketProvider>
                     </AuthGate>
                 )}
