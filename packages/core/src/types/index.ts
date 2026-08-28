@@ -4,5 +4,5 @@ export * from './ui';
 export * from './rundown';
 export * from './routes';
 export * from './companion';
-export { CasparStatus } from './caspar/process';
-export { MediaDoc } from './scanner/db';
+export type { CasparStatus } from './caspar/process';
+export type { MediaDoc } from './scanner/db';
