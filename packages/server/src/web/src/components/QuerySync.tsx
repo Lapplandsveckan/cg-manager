@@ -1,6 +1,7 @@
 import type React from 'react';
 import { useEffect, useRef } from 'react';
 import { queryClient } from '../lib/query/client';
+import { useRoutesSync } from '../lib/query/routes';
 import { useConnection } from './ConnectionProvider';
 
 /** Renderless mount point for the per-domain cache sync hooks. Also refetches
@@ -9,6 +10,7 @@ import { useConnection } from './ConnectionProvider';
  *  UndoProvider uses for clearAll() so the two stay in lockstep. */
 export const QuerySync: React.FC = () => {
     const { state } = useConnection();
+    useRoutesSync();
 
     const wasConnectedRef = useRef(state === 'connected');
     useEffect(() => {

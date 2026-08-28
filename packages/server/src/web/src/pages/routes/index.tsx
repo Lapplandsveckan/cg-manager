@@ -17,13 +17,18 @@ import { useToast } from '../../components/ToastProvider';
 import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
 import { liveId, record } from '../../lib/undo/undoStore';
 import { omitId, rekeyId, routeScope } from '../../lib/undo/tools';
+import {
+    mergeRouteInCache,
+    removeRouteFromCache,
+    useRoutesQuery,
+} from '../../lib/query/routes';
 
 const Page = () => {
     const { t } = useTranslation('common');
     const socket = useSocket();
     const notify = useToast();
 
-    const [routes, setRoutes] = useState<VideoRoute[] | null>(null);
+    const { data: routes, error: routesError } = useRoutesQuery();
     const [channels, setChannels] = useState<number[]>([]);
     const [videoModes, setVideoModes] = useState<string[]>([]);
     const [channelSizes, setChannelSizes] = useState<
@@ -35,76 +40,6 @@ const Page = () => {
     const [picking, setPicking] = useState(false);
     const [editing, setEditing] = useState<VideoRoute | null>(null);
     const [newType, setNewType] = useState<SourceType | null>(null);
-
-    const refresh = useCallback(() => {
-        if (!socket) return;
-        socket.videoRoutes
-            .list()
-            .then(setRoutes)
-            .catch(e =>
-                notify(
-                    (e as Error)?.message ?? t('videoRoutes.errors.loadFailed'),
-                    'error',
-                ),
-            );
-    }, [socket]);
-
-    useEffect(() => {
-        refresh();
-    }, [refresh]);
-
-    useEffect(() => {
-        if (!socket) return;
-
-        const createListener = {
-            path: 'routes',
-            method: 'CREATE',
-            handler: (req: any) => {
-                const route = req.getData() as VideoRoute;
-                if (!route?.id) return;
-                setRoutes(prev =>
-                    prev
-                        ? prev.some(r => r.id === route.id)
-                            ? prev
-                            : [...prev, route]
-                        : [route],
-                );
-            },
-        };
-
-        const updateListener = {
-            path: 'routes',
-            method: 'UPDATE',
-            handler: (req: any) => {
-                const route = req.getData() as VideoRoute;
-                if (!route?.id) return;
-                setRoutes(
-                    prev =>
-                        prev?.map(r => (r.id === route.id ? route : r)) ?? prev,
-                );
-            },
-        };
-
-        const deleteListener = {
-            path: 'routes',
-            method: 'DELETE',
-            handler: (req: any) => {
-                const id = req.getData();
-                if (typeof id !== 'string') return;
-                setRoutes(prev => prev?.filter(r => r.id !== id) ?? prev);
-            },
-        };
-
-        socket.routes.register(createListener);
-        socket.routes.register(updateListener);
-        socket.routes.register(deleteListener);
-
-        return () => {
-            socket.routes.unregister(createListener);
-            socket.routes.unregister(updateListener);
-            socket.routes.unregister(deleteListener);
-        };
-    }, [socket]);
 
     useEffect(() => {
         if (!socket) return;
@@ -140,16 +75,6 @@ const Page = () => {
         };
     }, [socket]);
 
-    const mergeRoute = (route: VideoRoute) =>
-        setRoutes(prev => {
-            if (!prev) return [route];
-            return prev.some(r => r.id === route.id)
-                ? prev.map(r => (r.id === route.id ? route : r))
-                : [...prev, route];
-        });
-    const removeRoute = (id: string) =>
-        setRoutes(prev => prev?.filter(r => r.id !== id) ?? prev);
-
     const toggle = useCallback(
         async (id: string, next: boolean) => {
             if (!socket) return;
@@ -165,7 +90,7 @@ const Page = () => {
                 return;
             }
 
-            mergeRoute(updated);
+            mergeRouteInCache(updated);
             record({
                 label: {
                     key: next ? 'routeEnable' : 'routeDisable',
@@ -179,7 +104,7 @@ const Page = () => {
                         liveId(id),
                         enabled,
                     );
-                    mergeRoute(applied);
+                    mergeRouteInCache(applied);
                 },
             });
         },
@@ -199,7 +124,7 @@ const Page = () => {
                 'error',
             );
         } else {
-            removeRoute(deleting.id);
+            removeRouteFromCache(deleting.id);
             const deleted = deleting;
             setDeleting(null);
             notify(t('videoRoutes.success.deleted'), 'success');
@@ -214,12 +139,12 @@ const Page = () => {
                             omitId(route),
                         );
                         rekeyId(route.id, created.id, routeScope, entry);
-                        mergeRoute(created);
+                        mergeRouteInCache(created);
                         return;
                     }
                     const id = liveId(deleted.id);
                     await api.videoRoutes.delete(id);
-                    removeRoute(id);
+                    removeRouteFromCache(id);
                 },
             });
         }
@@ -236,7 +161,7 @@ const Page = () => {
                     editing.id,
                     data,
                 );
-                mergeRoute(updated);
+                mergeRouteInCache(updated);
                 record({
                     label: {
                         key: 'routeUpdate',
@@ -251,12 +176,12 @@ const Page = () => {
                             id,
                             omitId(route),
                         );
-                        mergeRoute(applied);
+                        mergeRouteInCache(applied);
                     },
                 });
             } else {
                 const created = await socket.videoRoutes.create(data);
-                mergeRoute(created);
+                mergeRouteInCache(created);
                 record<VideoRoute | null>({
                     label: {
                         key: 'routeCreate',
@@ -276,12 +201,12 @@ const Page = () => {
                                 routeScope,
                                 entry,
                             );
-                            mergeRoute(recreated);
+                            mergeRouteInCache(recreated);
                             return;
                         }
                         const id = liveId(created.id);
                         await api.videoRoutes.delete(id);
-                        removeRoute(id);
+                        removeRouteFromCache(id);
                     },
                 });
             }
@@ -331,9 +256,15 @@ const Page = () => {
                 </Button>
             </Stack>
 
-            {routes === null && (
+            {routes === undefined && !routesError && (
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {t('actions.loading')}
+                </Typography>
+            )}
+
+            {routesError && (
+                <Typography variant="body2" sx={{ color: 'error.main' }}>
+                    {routesError.message || t('videoRoutes.errors.loadFailed')}
                 </Typography>
             )}
 

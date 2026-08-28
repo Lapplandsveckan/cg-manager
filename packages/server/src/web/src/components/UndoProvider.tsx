@@ -24,6 +24,7 @@ import {
 } from '../lib/undo/undoStore';
 import { isBarrierEntry, type UndoLabel } from '../lib/undo/types';
 import { UndoStaleError, routeScope, rundownScope } from '../lib/undo/tools';
+import { useWsBroadcast } from '../lib/query/useWsBroadcast';
 
 interface UndoContextValue {
     undo: () => void;
@@ -187,97 +188,47 @@ export const UndoProvider: React.FC<{ children: React.ReactNode }> = ({
         return () => window.removeEventListener('keydown', handler);
     }, [undo, redo]);
 
-    useEffect(() => {
-        if (!conn) return;
+    useWsBroadcast(conn, 'rundown/entry', 'UPDATE', data => {
+        const { id, entry } = data as { id: string; entry: unknown };
+        const entries = Array.isArray(entry) ? entry : [entry];
+        invalidate(
+            entries
+                .filter((e): e is { id: string } =>
+                    Boolean((e as { id?: string })?.id),
+                )
+                .map(e => rundownScope(id, `entry:${e.id}`)),
+        );
+    });
 
-        const rundownEntryListener = {
-            path: 'rundown/entry',
-            method: 'UPDATE',
-            handler: (request: { getData: () => unknown }) => {
-                const data = request.getData() as {
-                    id: string;
-                    entry: unknown;
-                };
-                const entries = Array.isArray(data.entry)
-                    ? data.entry
-                    : [data.entry];
-                invalidate(
-                    entries
-                        .filter((e): e is { id: string } =>
-                            Boolean((e as any)?.id),
-                        )
-                        .map(e => rundownScope(data.id, `entry:${e.id}`)),
-                );
-            },
-        };
-        const rundownEntryDeleteListener = {
-            path: 'rundown/entry',
-            method: 'DELETE',
-            handler: (request: { getData: () => unknown }) => {
-                const data = request.getData() as { id: string; entry: string };
-                invalidate([rundownScope(data.id, `entry:${data.entry}`)]);
-            },
-        };
-        const rundownOrderListener = {
-            path: 'rundown/order',
-            method: 'ACTION',
-            handler: (request: { getData: () => unknown }) => {
-                const data = request.getData() as { id: string };
-                invalidate([rundownScope(data.id, 'order')]);
-            },
-        };
-        const rundownRenameListener = {
-            path: 'rundown',
-            method: 'UPDATE',
-            handler: (request: { getData: () => unknown }) => {
-                const data = request.getData() as { id: string };
-                invalidate([rundownScope(data.id, 'name')]);
-            },
-        };
-        const rundownDeleteListener = {
-            path: 'rundown',
-            method: 'DELETE',
-            handler: (request: { getData: () => unknown }) => {
-                const id = request.getData();
-                if (typeof id === 'string') invalidate([rundownScope(id)]);
-            },
-        };
-        const routesUpdateListener = {
-            path: 'routes',
-            method: 'UPDATE',
-            handler: (request: { getData: () => unknown }) => {
-                const route = request.getData() as { id?: string };
-                if (!route?.id) return;
-                invalidate([routeScope(route.id)]);
-            },
-        };
-        const routesDeleteListener = {
-            path: 'routes',
-            method: 'DELETE',
-            handler: (request: { getData: () => unknown }) => {
-                const id = request.getData();
-                if (typeof id !== 'string') return;
-                invalidate([routeScope(id)]);
-            },
-        };
-        conn.routes.register(rundownEntryListener);
-        conn.routes.register(rundownEntryDeleteListener);
-        conn.routes.register(rundownOrderListener);
-        conn.routes.register(rundownRenameListener);
-        conn.routes.register(rundownDeleteListener);
-        conn.routes.register(routesUpdateListener);
-        conn.routes.register(routesDeleteListener);
+    useWsBroadcast(conn, 'rundown/entry', 'DELETE', data => {
+        const { id, entry } = data as { id: string; entry: string };
+        invalidate([rundownScope(id, `entry:${entry}`)]);
+    });
 
-        return () => {
-            conn.routes.unregister(rundownEntryListener);
-            conn.routes.unregister(rundownEntryDeleteListener);
-            conn.routes.unregister(rundownOrderListener);
-            conn.routes.unregister(rundownRenameListener);
-            conn.routes.unregister(rundownDeleteListener);
-            conn.routes.unregister(routesUpdateListener);
-            conn.routes.unregister(routesDeleteListener);
-        };
-    }, [conn]);
+    useWsBroadcast(conn, 'rundown/order', 'ACTION', data => {
+        const { id } = data as { id: string };
+        invalidate([rundownScope(id, 'order')]);
+    });
+
+    useWsBroadcast(conn, 'rundown', 'UPDATE', data => {
+        const { id } = data as { id: string };
+        invalidate([rundownScope(id, 'name')]);
+    });
+
+    useWsBroadcast(conn, 'rundown', 'DELETE', data => {
+        if (typeof data === 'string') invalidate([rundownScope(data)]);
+    });
+
+    useWsBroadcast(conn, 'routes', 'UPDATE', data => {
+        const route = data as { id?: string };
+        if (!route?.id) return;
+        invalidate([routeScope(route.id)]);
+    });
+
+    useWsBroadcast(conn, 'routes', 'DELETE', data => {
+        if (typeof data !== 'string') return;
+        invalidate([routeScope(data)]);
+    });
 
     return (
         <UndoContext.Provider
