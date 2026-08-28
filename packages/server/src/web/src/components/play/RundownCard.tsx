@@ -13,7 +13,7 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'next-i18next';
-import type { Rundown, RundownItem } from '../../hooks/useRundowns';
+import type { Rundown, RundownItem } from '../../lib/query/rundowns';
 import { useContextMenu } from '../ContextMenuProvider';
 
 interface RundownCardProps {
@@ -36,8 +36,10 @@ function summariseTypes(
     items: RundownItem[],
 ): { label: string; count: number }[] {
     const counts = new Map<string, number>();
-    for (const item of items)
+    for (const item of items) {
+        if (!item.type) continue;
         counts.set(item.type, (counts.get(item.type) ?? 0) + 1);
+    }
     return Array.from(counts.entries())
         .sort(([a, ca], [b, cb]) => cb - ca || a.localeCompare(b))
         .map(([type, count]) => ({ label: formatItemType(type), count }));

@@ -11,143 +11,25 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { useContextMenu } from './ContextMenuProvider';
-import { useSocket } from '../lib';
 import { usePlayEntry } from '../lib/hooks/usePlayEntry';
 import { useStopEntry } from '../lib/hooks/useStopEntry';
-import { EditRundown, type Rundown } from '../pages/play';
+import { EditRundown } from '../pages/play';
 import { RundownModals } from './RundownModals';
-import { type RundownEntry, Rundowns, useRundownEntries } from './Rundowns';
+import { Rundowns } from './Rundowns';
 import { useStoredString } from '../lib/hooks/useStoredString';
 import { useRundownDropEditor } from '../lib/hooks/useRundownDropEditor';
-import { record, recordBarrier } from '../lib/undo/undoStore';
-import { okData, request, requestOk, rundownScope } from '../lib/undo/tools';
-import { useLatest } from '../lib/hooks/useLatest';
-
-function useQuickActions() {
-    const conn = useSocket();
-    const [quickActions, setQuickActions] = useState<Rundown[]>([]);
-    const quickActionsRef = useLatest(quickActions);
-
-    useEffect(() => {
-        conn.rawRequest('/api/rundown/quick', 'GET', {}).then(quickActions =>
-            setQuickActions(quickActions.data ?? []),
-        );
-
-        const updateListener = {
-            path: 'rundown',
-            method: 'UPDATE',
-            handler: (request: any) =>
-                setQuickActions(quickActions =>
-                    quickActions.map(v =>
-                        v.id === request.getData().id
-                            ? { ...v, name: request.getData().name }
-                            : v,
-                    ),
-                ),
-        };
-
-        const deleteListener = {
-            path: 'rundown',
-            method: 'DELETE',
-            handler: (request: any) =>
-                setQuickActions(quickActions =>
-                    quickActions.filter(v => v.id !== request.getData()),
-                ),
-        };
-
-        const createListener = {
-            path: 'rundown',
-            method: 'CREATE',
-            handler: (request: any) =>
-                request.getData().type === 'quick' &&
-                setQuickActions(quickActions => [
-                    ...quickActions,
-                    request.getData(),
-                ]),
-        };
-
-        conn.routes.register(updateListener);
-        conn.routes.register(deleteListener);
-        conn.routes.register(createListener);
-
-        return () => {
-            conn.routes.unregister(updateListener);
-            conn.routes.unregister(deleteListener);
-            conn.routes.unregister(createListener);
-        };
-    }, []);
-
-    const updateQuickAction = async (entry: Rundown) => {
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${entry.id}`,
-            'UPDATE',
-            entry.name,
-        );
-        if (!ok) return;
-
-        const before = quickActionsRef.current.find(v => v.id === entry.id);
-        if (!before) return;
-
-        setQuickActions(prev =>
-            prev.map(v => (v.id === entry.id ? { ...v, name: entry.name } : v)),
-        );
-        record({
-            label: { key: 'quickRename', params: { name: entry.name } },
-            scopes: [rundownScope(entry.id, 'name')],
-            prev: before.name,
-            next: entry.name,
-            apply: async (name, { api }) => {
-                await request(api, {
-                    path: `/api/rundown/${entry.id}`,
-                    method: 'UPDATE',
-                    data: name,
-                });
-                setQuickActions(prev =>
-                    prev.map(v => (v.id === entry.id ? { ...v, name } : v)),
-                );
-            },
-        });
-    };
-
-    const deleteQuickAction = async (entry: Rundown) => {
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${entry.id}`,
-            'DELETE',
-            null,
-        );
-        if (!ok) return;
-
-        setQuickActions(prev => prev.filter(v => v.id !== entry.id));
-        recordBarrier({ key: 'rundownDelete', params: { name: entry.name } }, [
-            rundownScope(entry.id),
-        ]);
-    };
-
-    const createQuickAction = (name: string): Promise<Rundown | null> =>
-        conn.rawRequest('/api/rundown/quick', 'CREATE', name).then(res => {
-            const data = okData<Rundown>(res);
-            if (!data) return null;
-
-            setQuickActions(prev => [...prev, data]);
-            recordBarrier({ key: 'quickCreate', params: { name: data.name } }, [
-                rundownScope(data.id),
-            ]);
-            return data;
-        });
-
-    return {
-        quickActions,
-
-        updateQuickAction,
-        deleteQuickAction,
-        createQuickAction,
-    };
-}
+import {
+    type Rundown,
+    useQuickActionsList,
+    useRundownMutations,
+} from '../lib/query/rundowns';
+import {
+    type RundownEntry,
+    useRundownEntries,
+} from '../lib/query/rundownEntries';
 
 interface QuickActionTabProps {
     rundown: Rundown;
@@ -230,12 +112,16 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     const play = usePlayEntry();
     const stop = useStopEntry();
 
+    const { data: quickActionsData } = useQuickActionsList();
+    const quickActions = useMemo(
+        () => quickActionsData ?? [],
+        [quickActionsData],
+    );
     const {
-        quickActions,
-        updateQuickAction,
-        deleteQuickAction,
-        createQuickAction,
-    } = useQuickActions();
+        updateRundown: updateQuickAction,
+        deleteRundown: deleteQuickAction,
+        createRundown: createQuickAction,
+    } = useRundownMutations('quick');
 
     const [quickAction, setQuickAction] = useStoredString('quickAction');
     const { entries, updateEntry, deleteEntry, createEntry, reorderEntries } =

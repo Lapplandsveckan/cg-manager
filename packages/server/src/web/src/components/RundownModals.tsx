@@ -1,9 +1,9 @@
 import { Card, Modal, Stack, Typography, alpha } from '@mui/material';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'next-i18next';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
 import { type RundownEntry } from './Rundowns';
-import { useSocket } from '../lib';
+import { useRundownTypesQuery } from '../lib/query/rundownMeta';
 import { DefaultRundownItemEditor } from './DefaultRundownItem';
 
 interface BaseModalProps {
@@ -83,14 +83,8 @@ const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({
     onChoose,
 }) => {
     const { t } = useTranslation('common');
-    const conn = useSocket();
-    const [types, setTypes] = useState<string[] | null>(null);
-
-    useEffect(() => {
-        conn.rawRequest('/api/rundown/types', 'GET', {})
-            .then(res => setTypes(res.data ?? []))
-            .catch(() => setTypes([]));
-    }, []);
+    const typesQuery = useRundownTypesQuery();
+    const types = typesQuery.isError ? [] : typesQuery.data;
 
     return (
         <Stack spacing={2}>
@@ -103,7 +97,7 @@ const AddRundownEntry: React.FC<{ onChoose: (type: string) => void }> = ({
                 </Typography>
             </Stack>
 
-            {types === null && (
+            {types === undefined && (
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                     {t('rundown.modals.addItem.loading')}
                 </Typography>

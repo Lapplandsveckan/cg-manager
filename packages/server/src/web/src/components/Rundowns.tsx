@@ -17,7 +17,13 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+    useCallback,
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+} from 'react';
 import { useTranslation } from 'next-i18next';
 import { noTry, noTryAsync } from 'no-try';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
@@ -34,10 +40,11 @@ import { UploadModal, useFileUpload } from './Upload';
 import { useToast } from './ToastProvider';
 import { useContextMenu } from './ContextMenuProvider';
 import { useEntryClipboard } from './EntryClipboardProvider';
-import { record } from '../lib/undo/undoStore';
-import { request, requestOk, rundownScope } from '../lib/undo/tools';
-import { useLatest } from '../lib/hooks/useLatest';
-import { type ManagerApi } from '../lib/api/api';
+import { type RundownItem } from '../lib/query/rundowns';
+import {
+    useRundownActionsQuery,
+    useRundownTypesQuery,
+} from '../lib/query/rundownMeta';
 
 interface RundownFileMatchResult {
     actionId: string;
@@ -52,350 +59,14 @@ function isFileDrag(dt: DataTransfer | null): boolean {
     return Array.from(dt.types).includes('Files');
 }
 
-function reorderById<T extends { id: string }>(
-    items: T[],
-    order: string[],
-): T[] {
-    const byId = new Map(items.map(item => [item.id, item]));
-    const reordered: T[] = [];
-    for (const id of order) {
-        const item = byId.get(id);
-        if (!item) continue;
-        reordered.push(item);
-        byId.delete(id);
-    }
-    for (const item of byId.values()) reordered.push(item);
-    return reordered;
-}
-
 export { EditIndicator, LiveIndicator, ModeToggle } from './RundownChrome';
 export const RUNDOWN_REORDER_MIME = 'application/x-cg-rundown-reorder';
 
-export interface RundownEntry {
-    id: string;
-    title: string;
-    data: any;
-
-    type?: string;
-}
-
-export function useRundownEntries(rundown: string) {
-    const conn = useSocket();
-    const [entries, setEntries] = useState<RundownEntry[]>([]);
-    const [name, setName] = useState<string>('');
-    const entriesRef = useLatest(entries);
-    const rundownRef = useLatest(rundown);
-
-    useEffect(() => {
-        if (!rundown) {
-            setName('');
-            return;
-        }
-        conn.rawRequest(`/api/rundown/${rundown}`, 'GET', {}).then(res => {
-            setEntries(res.data?.items ?? []);
-            setName(res.data?.name ?? '');
-        });
-
-        const updateListener = {
-            path: 'rundown/entry',
-            method: 'UPDATE',
-
-            handler: request => {
-                const data = request.getData();
-                const { id, entry } = data;
-                if (id !== rundown) return;
-
-                if (Array.isArray(entry)) {
-                    const updates = new Map<string, RundownEntry>(
-                        entry.map(item => [item.id, item]),
-                    );
-                    return setEntries(entries =>
-                        entries.map(item => updates.get(item.id) ?? item),
-                    );
-                }
-
-                setEntries(entries =>
-                    entries.map(item => (item.id === entry.id ? entry : item)),
-                );
-            },
-        };
-
-        const deleteListener = {
-            path: 'rundown/entry',
-            method: 'DELETE',
-
-            handler: request => {
-                const data = request.getData();
-                const { id, entry } = data;
-                if (id !== rundown) return;
-
-                setEntries(entries => entries.filter(v => v.id !== entry));
-            },
-        };
-
-        const createListener = {
-            path: 'rundown/entry',
-            method: 'CREATE',
-
-            handler: request => {
-                const data = request.getData();
-                const { id, entry, index } = data;
-                if (id !== rundown) return;
-
-                setEntries(entries => {
-                    if (typeof index !== 'number') return [...entries, entry];
-                    const next = [...entries];
-                    next.splice(
-                        Math.max(0, Math.min(next.length, index)),
-                        0,
-                        entry,
-                    );
-                    return next;
-                });
-            },
-        };
-
-        const orderListener = {
-            path: 'rundown/order',
-            method: 'ACTION',
-
-            handler: request => {
-                const data = request.getData();
-                const { id, order } = data as { id: string; order: string[] };
-                if (id !== rundown) return;
-                if (!Array.isArray(order)) return;
-
-                setEntries(entries => {
-                    const byId = new Map(entries.map(item => [item.id, item]));
-                    const reordered: RundownEntry[] = [];
-                    for (const oid of order) {
-                        const item = byId.get(oid);
-                        if (!item) continue;
-                        reordered.push(item);
-                        byId.delete(oid);
-                    }
-                    for (const item of byId.values()) reordered.push(item);
-                    return reordered;
-                });
-            },
-        };
-
-        // Handle multi-client name synchronization: renames from other clients
-        // propagate here via rundown-level UPDATE.
-        const renameListener = {
-            path: 'rundown',
-            method: 'UPDATE',
-
-            handler: request => {
-                const data = request.getData();
-                if (data?.id !== rundown) return;
-                if (typeof data.name === 'string') setName(data.name);
-            },
-        };
-
-        conn.routes.register(updateListener);
-        conn.routes.register(deleteListener);
-        conn.routes.register(createListener);
-        conn.routes.register(orderListener);
-        conn.routes.register(renameListener);
-
-        return () => {
-            conn.routes.unregister(updateListener);
-            conn.routes.unregister(deleteListener);
-            conn.routes.unregister(createListener);
-            conn.routes.unregister(orderListener);
-            conn.routes.unregister(renameListener);
-        };
-    }, [rundown]);
-
-    const applyEntryUpdate = (entry: RundownEntry) =>
-        setEntries(entries =>
-            entries.map(item => (item.id === entry.id ? entry : item)),
-        );
-    const applyEntryDelete = (id: string) =>
-        setEntries(entries => entries.filter(v => v.id !== id));
-    const applyEntryCreate = (entry: RundownEntry, index?: number) =>
-        setEntries(entries => {
-            if (typeof index !== 'number') return [...entries, entry];
-            const next = [...entries];
-            next.splice(Math.max(0, Math.min(next.length, index)), 0, entry);
-            return next;
-        });
-
-    // Guard against applying a stale rundown's undo/redo to whatever rundown
-    // this hook instance currently displays — the hook is reused across
-    // selection changes (e.g. switching quick-action tabs), so the target
-    // rundown recorded at undo-stack-push time may no longer be the one shown.
-    const entryApply =
-        (method: string, data: unknown, apply: () => void) =>
-        async (api: ManagerApi) => {
-            await request(api, {
-                path: `/api/rundown/${rundown}/entry`,
-                method,
-                data,
-            });
-            if (rundownRef.current === rundown) apply();
-        };
-
-    const createEntry = async (entry: RundownEntry, index?: number) => {
-        const insertIndex =
-            typeof index === 'number' ? index : entriesRef.current.length;
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${rundown}/entry`,
-            'CREATE',
-            typeof index === 'number' ? { entry, index } : entry,
-        );
-        if (!ok) return;
-
-        applyEntryCreate(entry, index);
-        record<RundownEntry | null>({
-            label: { key: 'entryCreate', params: { title: entry.title } },
-            scopes: [rundownScope(rundown, `entry:${entry.id}`)],
-            prev: null,
-            next: entry,
-            apply: (state, { api }) =>
-                state
-                    ? entryApply(
-                          'CREATE',
-                          { entry: state, index: insertIndex },
-                          () => applyEntryCreate(state, insertIndex),
-                      )(api)
-                    : entryApply('DELETE', entry.id, () =>
-                          applyEntryDelete(entry.id),
-                      )(api),
-        });
-    };
-
-    const updateEntry = async (entry: RundownEntry) => {
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${rundown}/entry`,
-            'UPDATE',
-            entry,
-        );
-        if (!ok) return;
-
-        const before = entriesRef.current.find(v => v.id === entry.id);
-        if (!before) return;
-
-        applyEntryUpdate(entry);
-        record({
-            label: { key: 'entryUpdate', params: { title: entry.title } },
-            scopes: [rundownScope(rundown, `entry:${entry.id}`)],
-            prev: before,
-            next: entry,
-            apply: (state, { api }) =>
-                entryApply('UPDATE', state, () => applyEntryUpdate(state))(api),
-        });
-    };
-
-    const deleteEntry = async (entry: RundownEntry) => {
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${rundown}/entry`,
-            'DELETE',
-            entry.id,
-        );
-        if (!ok) return;
-
-        const index = entriesRef.current.findIndex(v => v.id === entry.id);
-        if (index < 0) return;
-
-        applyEntryDelete(entry.id);
-        record<RundownEntry | null>({
-            label: { key: 'entryDelete', params: { title: entry.title } },
-            scopes: [rundownScope(rundown, `entry:${entry.id}`)],
-            prev: entry,
-            next: null,
-            apply: (state, { api }) =>
-                state
-                    ? entryApply('CREATE', { entry: state, index }, () =>
-                          applyEntryCreate(state, index),
-                      )(api)
-                    : entryApply('DELETE', entry.id, () =>
-                          applyEntryDelete(entry.id),
-                      )(api),
-        });
-    };
-
-    const renameRundown = async (newName: string) => {
-        const trimmed = newName.trim();
-        if (!trimmed || trimmed === name) return;
-
-        const before = name;
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${rundown}`,
-            'UPDATE',
-            trimmed,
-        );
-        if (!ok) return;
-
-        setName(trimmed);
-        record({
-            label: { key: 'rundownRename', params: { name: trimmed } },
-            scopes: [rundownScope(rundown, 'name')],
-            prev: before,
-            next: trimmed,
-            apply: async (value, { api }) => {
-                await request(api, {
-                    path: `/api/rundown/${rundown}`,
-                    method: 'UPDATE',
-                    data: value,
-                });
-                if (rundownRef.current === rundown) setName(value);
-            },
-        });
-    };
-
-    const reorderEntries = async (orderedIds: string[]) => {
-        const before = entriesRef.current.map(item => item.id);
-        if (
-            before.length === orderedIds.length &&
-            before.every((id, i) => id === orderedIds[i])
-        )
-            return;
-
-        const reordered = reorderById(entriesRef.current, orderedIds);
-        const after = reordered.map(item => item.id);
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${rundown}/order`,
-            'ACTION',
-            after,
-        );
-        if (!ok) return;
-
-        setEntries(reordered);
-        record({
-            label: { key: 'reorder' },
-            scopes: [rundownScope(rundown, 'order')],
-            prev: before,
-            next: after,
-            apply: async (order, { api }) => {
-                await request(api, {
-                    path: `/api/rundown/${rundown}/order`,
-                    method: 'ACTION',
-                    data: order,
-                });
-                if (rundownRef.current === rundown)
-                    setEntries(entries => reorderById(entries, order));
-            },
-        });
-    };
-
-    return {
-        name,
-        entries,
-
-        updateEntry,
-        deleteEntry,
-        createEntry,
-        reorderEntries,
-        renameRundown,
-    };
-}
+/** Kept as an interface so the type name can coexist with the RundownEntry
+ *  card component below (a type-only re-export of the same name would
+ *  collide with the exported const). Same shape as lib/query's RundownItem. */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface RundownEntry extends RundownItem {}
 
 interface RundownEntryProps {
     title: string;
@@ -742,58 +413,19 @@ export const Rundowns: React.FC<RundownsProps> = ({
     // outside-container path without relying on render timing.
     const didDropInsideRef = useRef(false);
 
-    const [activeTypes, setActiveTypes] = useState<Set<string> | null>(null);
-    const [stoppableTypes, setStoppableTypes] = useState<Set<string>>(
-        new Set(),
+    // Kept fresh by useRundownMetaSync (QuerySync): invalidated whenever
+    // CasparCG restarts or the plugin list changes, since both re-register
+    // the available action types.
+    const { data: types, refetch: refetchTypes } = useRundownTypesQuery();
+    const { data: actionDescriptors } = useRundownActionsQuery();
+    const activeTypes = useMemo(() => (types ? new Set(types) : null), [types]);
+    const stoppableTypes = useMemo(
+        () =>
+            new Set(
+                (actionDescriptors ?? []).filter(d => d.hasStop).map(d => d.id),
+            ),
+        [actionDescriptors],
     );
-    const refetchTypes = useCallback(() => {
-        conn.rawRequest('/api/rundown/types', 'GET', {})
-            .then(res => setActiveTypes(new Set(res.data ?? [])))
-            .catch(() => {
-                /* keep previous on error */
-            });
-        conn.rawRequest('/api/rundown/actions', 'GET', {})
-            .then(res => {
-                const descriptors = (res.data ?? []) as {
-                    id: string;
-                    hasStop: boolean;
-                }[];
-                setStoppableTypes(
-                    new Set(descriptors.filter(d => d.hasStop).map(d => d.id)),
-                );
-            })
-            .catch(() => {
-                /* keep previous on error */
-            });
-    }, [conn]);
-
-    // Fetch on mount and re-fetch whenever CasparCG restarts (plugins
-    // re-register their actions after each restart, so the type list can
-    // change without a page reload).
-    useEffect(() => {
-        refetchTypes();
-    }, [refetchTypes]);
-
-    useEffect(() => {
-        const listener = {
-            path: 'caspar/status',
-            method: 'ACTION',
-            handler: () => refetchTypes(),
-        };
-        conn.routes.register(listener);
-        return () => conn.routes.unregister(listener);
-    }, [conn, refetchTypes]);
-
-    // Plugin enable/disable also changes which action types are registered
-    // (see CasparPlugin._applyDisable unregistering actions by owner), so
-    // re-fetch on every plugin list change rather than only on caspar restart.
-    useEffect(() => {
-        const handler = () => refetchTypes();
-        conn.plugin.on('change', handler);
-        return () => {
-            conn.plugin.off('change', handler);
-        };
-    }, [conn, refetchTypes]);
 
     const acceptsDrop = Boolean(onDropItem);
     const acceptsReorder = Boolean(onReorder);
@@ -1249,18 +881,18 @@ export const Rundowns: React.FC<RundownsProps> = ({
                                     onDelete={
                                         isOrphaned
                                             ? () => {
-                                                  conn.rawRequest(
-                                                      '/api/rundown/types',
-                                                      'GET',
-                                                      {},
-                                                  )
-                                                      .then(res => {
+                                                  // Re-check against a fresh
+                                                  // fetch; fail closed (don't
+                                                  // open the dialog) on error.
+                                                  void refetchTypes().then(
+                                                      res => {
+                                                          if (res.isError)
+                                                              return;
                                                           const fresh =
                                                               new Set<string>(
                                                                   res.data ??
                                                                       [],
                                                               );
-                                                          setActiveTypes(fresh);
                                                           if (
                                                               entry.type &&
                                                               !fresh.has(
@@ -1271,10 +903,8 @@ export const Rundowns: React.FC<RundownsProps> = ({
                                                                   entry,
                                                               );
                                                           }
-                                                      })
-                                                      .catch(() => {
-                                                          /* fail closed — don't open dialog */
-                                                      });
+                                                      },
+                                                  );
                                               }
                                             : undefined
                                     }

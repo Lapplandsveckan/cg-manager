@@ -11,7 +11,7 @@ import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import Fuse from 'fuse.js';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'next-i18next';
-import type { Rundown } from '../../hooks/useRundowns';
+import type { Rundown } from '../../lib/query/rundowns';
 
 const MAX_RESULTS = 8;
 

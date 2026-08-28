@@ -13,8 +13,8 @@ import {
     ModeToggle,
     type RundownEntry,
     Rundowns,
-    useRundownEntries,
 } from '../../../components/Rundowns';
+import { useRundownEntries } from '../../../lib/query/rundownEntries';
 import { RundownModals } from '../../../components/RundownModals';
 import { RundownTitleEditor } from '../../../components/play/RundownTitleEditor';
 import { QuickActions } from '../../../components/QuickActions';

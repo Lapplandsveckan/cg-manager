@@ -2,7 +2,7 @@ import { TextField, Typography } from '@mui/material';
 import React, { useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import { RundownEditorActionBar } from '../../lib';
-import type { Rundown } from '../../hooks/useRundowns';
+import type { Rundown } from '../../lib/query/rundowns';
 
 interface RenameRundownModalProps {
     rundown: Rundown;

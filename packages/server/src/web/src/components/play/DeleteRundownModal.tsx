@@ -2,7 +2,7 @@ import { Button, Card, Stack, Typography, Modal } from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import React from 'react';
 import { useTranslation } from 'next-i18next';
-import type { Rundown } from '../../hooks/useRundowns';
+import type { Rundown } from '../../lib/query/rundowns';
 
 interface DeleteRundownModalProps {
     open: boolean;

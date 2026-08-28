@@ -14,7 +14,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'next-i18next';
 import { DefaultContentLayout } from '../../components/DefaultContentLayout';
-import { useRundowns } from '../../hooks/useRundowns';
+import { useRundownList, useRundownMutations } from '../../lib/query/rundowns';
 import { RundownCard } from '../../components/play/RundownCard';
 import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
 import { AddRundownModal } from '../../components/play/AddRundownModal';
@@ -25,7 +25,7 @@ import { ModalShell } from '../../components/play/ModalShell';
 import { QuickJumpPalette } from '../../components/play/QuickJumpPalette';
 import { useStoredString } from '../../lib/hooks/useStoredString';
 import { useToast } from '../../components/ToastProvider';
-import type { Rundown, RundownItem } from '../../hooks/useRundowns';
+import type { Rundown, RundownItem } from '../../lib/query/rundowns';
 
 export type { Rundown, RundownItem };
 
@@ -76,8 +76,10 @@ const Page = () => {
     const { t } = useTranslation('common');
     const router = useRouter();
     const notify = useToast();
-    const { rundowns, updateRundown, deleteRundown, createRundown } =
-        useRundowns();
+    const { data: rundownsData } = useRundownList();
+    const rundowns = useMemo(() => rundownsData ?? [], [rundownsData]);
+    const { updateRundown, deleteRundown, createRundown } =
+        useRundownMutations('rundown');
 
     const [editing, setEditing] = useState<Rundown | null>(null);
     const [adding, setAdding] = useState(false);

@@ -2,6 +2,9 @@ import type React from 'react';
 import { useEffect, useRef } from 'react';
 import { queryClient } from '../lib/query/client';
 import { useRoutesSync } from '../lib/query/routes';
+import { useRundownsSync } from '../lib/query/rundowns';
+import { useRundownEntriesSync } from '../lib/query/rundownEntries';
+import { useRundownMetaSync } from '../lib/query/rundownMeta';
 import { useConnection } from './ConnectionProvider';
 
 /** Renderless mount point for the per-domain cache sync hooks. Also refetches
@@ -11,6 +14,9 @@ import { useConnection } from './ConnectionProvider';
 export const QuerySync: React.FC = () => {
     const { state } = useConnection();
     useRoutesSync();
+    useRundownsSync();
+    useRundownEntriesSync();
+    useRundownMetaSync();
 
     const wasConnectedRef = useRef(state === 'connected');
     useEffect(() => {
