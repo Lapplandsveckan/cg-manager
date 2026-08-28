@@ -85,11 +85,15 @@ export class VideoRoutesManager {
     private notify(
         method: 'CREATE' | 'UPDATE' | 'DELETE',
         data: VideoRoute | string,
+        excludeClientId?: string,
     ) {
-        this.manager.emit('route-change', { method, data });
+        this.manager.emit('route-change', { method, data, excludeClientId });
     }
 
-    public createVideoRoute(data: Omit<VideoRoute, 'id'>): VideoRoute {
+    public createVideoRoute(
+        data: Omit<VideoRoute, 'id'>,
+        excludeClientId?: string,
+    ): VideoRoute {
         const id = UUID.generate();
         const route = {
             id,
@@ -100,7 +104,7 @@ export class VideoRoutesManager {
         this.checkState(route.id);
         this.saveVideoRoute(route);
 
-        this.notify('CREATE', route);
+        this.notify('CREATE', route, excludeClientId);
         return route;
     }
 
@@ -112,7 +116,7 @@ export class VideoRoutesManager {
         return Array.from(this.routes.values()).map(({ route }) => route);
     }
 
-    public async updateVideoRoute(data: VideoRoute) {
+    public async updateVideoRoute(data: VideoRoute, excludeClientId?: string) {
         const state = this.routes.get(data.id);
         if (!state) return;
 
@@ -129,7 +133,7 @@ export class VideoRoutesManager {
         this.checkState(data.id);
 
         await this.saveVideoRoute(data);
-        this.notify('UPDATE', data);
+        this.notify('UPDATE', data, excludeClientId);
     }
 
     public async loadVideoRoutes() {
@@ -185,12 +189,12 @@ export class VideoRoutesManager {
         Logger.error(err);
     }
 
-    public async deleteVideoRoute(id: string) {
+    public async deleteVideoRoute(id: string, excludeClientId?: string) {
         const existed = this.routes.has(id);
         this.checkState(id, true);
         this.routes.delete(id);
 
-        if (existed) this.notify('DELETE', id);
+        if (existed) this.notify('DELETE', id, excludeClientId);
 
         const dir = config['routes-dir'];
         const file = path.join(dir, `${id}.json`);
@@ -202,7 +206,7 @@ export class VideoRoutesManager {
         Logger.error(err);
     }
 
-    public enableVideoRoute(id: string) {
+    public enableVideoRoute(id: string, excludeClientId?: string) {
         const state = this.routes.get(id);
         if (!state) return;
         if (state.route.enabled && state.enabled) return;
@@ -213,10 +217,10 @@ export class VideoRoutesManager {
         state.route.enabled = true;
         this.checkState(id);
         this.saveVideoRoute(state.route);
-        this.notify('UPDATE', state.route);
+        this.notify('UPDATE', state.route, excludeClientId);
     }
 
-    public disableVideoRoute(id: string) {
+    public disableVideoRoute(id: string, excludeClientId?: string) {
         const state = this.routes.get(id);
         if (!state) return;
         if (!state.route.enabled && !state.enabled) return;
@@ -225,7 +229,7 @@ export class VideoRoutesManager {
         state.route.enabled = false;
         this.checkState(id);
         this.saveVideoRoute(state.route);
-        this.notify('UPDATE', state.route);
+        this.notify('UPDATE', state.route, excludeClientId);
     }
 
     // PluginAPI.setVideoRouteEnabled (in @lappis/cg-manager) delegates here;

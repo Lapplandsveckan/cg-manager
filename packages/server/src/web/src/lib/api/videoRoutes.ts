@@ -1,4 +1,5 @@
 import { type REPClient } from 'rest-exchange-protocol-client';
+import { assertOk } from './caspar';
 
 export interface DecklinkSource {
     type: 'decklink';
@@ -40,9 +41,6 @@ export interface VideoRoute {
 
     transform?: number[];
     edgeblend?: number[];
-    /** Quad corners in TL, TR, BR, BL order
-     *  (`[tlX, tlY, trX, trY, brX, brY, blX, blY]`) — applied via CasparCG's
-     *  MIXER PERSPECTIVE for non-affine warps. */
     perspective?: number[];
 
     source: VideoRouteSource;
@@ -66,6 +64,7 @@ export class VideoRoutesApi {
 
     public async create(data: Omit<VideoRoute, 'id'>): Promise<VideoRoute> {
         const res = await this.socket.request('api/routes', 'CREATE', data);
+        assertOk(res);
         return res.data as VideoRoute;
     }
 
@@ -79,10 +78,12 @@ export class VideoRoutesApi {
     }
 
     public async delete(id: string): Promise<void> {
-        await this.socket.request(
-            `api/routes/${encodeURIComponent(id)}`,
-            'DELETE',
-            {},
+        assertOk(
+            await this.socket.request(
+                `api/routes/${encodeURIComponent(id)}`,
+                'DELETE',
+                {},
+            ),
         );
     }
 
@@ -97,6 +98,7 @@ export class VideoRoutesApi {
             'UPDATE',
             patch,
         );
+        assertOk(res);
         return res.data as VideoRoute;
     }
 
@@ -107,6 +109,7 @@ export class VideoRoutesApi {
             'ACTION',
             {},
         );
+        assertOk(res);
         return res.data as VideoRoute;
     }
 }

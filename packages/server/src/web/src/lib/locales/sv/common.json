@@ -229,7 +229,9 @@
                 "doneOne": "Uppladdning slutförd",
                 "doneMulti": "Laddade upp {{count}} filer",
                 "failed": "Uppladdning misslyckades",
-                "partial": "Laddade upp {{success}} av {{total}}"
+                "partial": "Laddade upp {{success}} av {{total}}",
+                "canceledOne": "Uppladdning avbruten",
+                "canceledMulti": "Uppladdning avbruten ({{success}} av {{total}} uppladdade)"
             },
             "errors": {
                 "startFailed": "Misslyckades att starta uppladdning",
@@ -755,6 +757,9 @@
             "bodyAfterName": "och alla dess objekt kommer att tas bort. Detta kan inte ångras."
         },
         "resizeTooltip": "Dra för att ändra storlek · Dubbelklicka för att återställa",
+        "errors": {
+            "createFailed": "Det gick inte att skapa rundown"
+        },
         "sort": {
             "label": "Sortera",
             "default": "Standard",

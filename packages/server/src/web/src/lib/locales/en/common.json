@@ -229,7 +229,9 @@
                 "doneOne": "Upload complete",
                 "doneMulti": "Uploaded {{count}} files",
                 "failed": "Upload failed",
-                "partial": "Uploaded {{success}} of {{total}}"
+                "partial": "Uploaded {{success}} of {{total}}",
+                "canceledOne": "Upload canceled",
+                "canceledMulti": "Upload canceled ({{success}} of {{total}} uploaded)"
             },
             "errors": {
                 "startFailed": "Failed to start upload",
@@ -755,6 +757,9 @@
             "bodyAfterName": "and all of its items will be removed. This can't be undone."
         },
         "resizeTooltip": "Drag to resize · Double-click to reset",
+        "errors": {
+            "createFailed": "Failed to create rundown"
+        },
         "sort": {
             "label": "Sort",
             "default": "Default",

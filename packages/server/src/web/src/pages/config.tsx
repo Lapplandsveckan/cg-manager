@@ -31,6 +31,16 @@ const blankChannel = (videoMode: string): Channel => ({
     consumers: [],
 });
 
+function stableStringify(value: unknown): string {
+    return JSON.stringify(value, (_key, val) =>
+        val && typeof val === 'object' && !Array.isArray(val)
+            ? Object.fromEntries(
+                  Object.entries(val).sort(([a], [b]) => a.localeCompare(b)),
+              )
+            : val,
+    );
+}
+
 interface EditingConsumer {
     channelIndex: number;
     consumerIndex: number | null; // null = creating
@@ -109,12 +119,12 @@ const Page = () => {
     // compare so deeply-equal configs don't false-positive.
     const drift = useMemo(() => {
         if (!original || !running) return false;
-        return JSON.stringify(original) !== JSON.stringify(running);
+        return stableStringify(original) !== stableStringify(running);
     }, [original, running]);
 
     const dirty = useMemo(() => {
         if (!original || !draft) return false;
-        return JSON.stringify(original) !== JSON.stringify(draft);
+        return stableStringify(original) !== stableStringify(draft);
     }, [original, draft]);
 
     const save = async () => {

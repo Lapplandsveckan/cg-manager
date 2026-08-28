@@ -119,7 +119,7 @@ export class RequestError extends Error {
     }
 }
 
-function assertOk(res: { status?: number; error?: string } | undefined) {
+export function assertOk(res: { status?: number; error?: string } | undefined) {
     if (res && typeof res.status === 'number' && res.status >= 400)
         throw new RequestError(res.error ?? 'Request failed', res.status);
 }
@@ -249,6 +249,7 @@ export class CasparServerApi extends EventEmitter {
             'UPDATE',
             config,
         );
+        assertOk(res);
         return res.data as CasparConfig;
     }
 
@@ -308,12 +309,14 @@ export class CasparServerApi extends EventEmitter {
     }
 
     public async renameMedia(id: string, newName: string): Promise<void> {
-        await this.socket.request(
-            `api/caspar/media/${encodeURIComponent(id)}`,
-            'UPDATE',
-            {
-                name: newName,
-            },
+        assertOk(
+            await this.socket.request(
+                `api/caspar/media/${encodeURIComponent(id)}`,
+                'UPDATE',
+                {
+                    name: newName,
+                },
+            ),
         );
     }
 
@@ -322,12 +325,14 @@ export class CasparServerApi extends EventEmitter {
      *  file's extension is preserved). Use to drag media into a folder, or
      *  drop it onto a breadcrumb to move it back up the tree. */
     public async moveMedia(id: string, newPath: string): Promise<void> {
-        await this.socket.request(
-            `api/caspar/media/${encodeURIComponent(id)}`,
-            'UPDATE',
-            {
-                path: newPath,
-            },
+        assertOk(
+            await this.socket.request(
+                `api/caspar/media/${encodeURIComponent(id)}`,
+                'UPDATE',
+                {
+                    path: newPath,
+                },
+            ),
         );
     }
 
@@ -357,6 +362,7 @@ export class CasparServerApi extends EventEmitter {
                 path: folderPath,
             },
         );
+        assertOk(res);
         this.emit('folders');
         return { path: (res?.data as { path: string }).path };
     }
@@ -392,6 +398,7 @@ export class CasparServerApi extends EventEmitter {
             'UPDATE',
             { from, to },
         );
+        assertOk(res);
         this.emit('folders');
         return { path: (res?.data as { path: string }).path };
     }

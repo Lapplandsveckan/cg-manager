@@ -4,6 +4,7 @@ import {
     CloudUploadRounded,
     CheckCircleRounded,
     ErrorOutlineRounded,
+    CancelRounded,
 } from '@mui/icons-material';
 import type { UploadPhase } from './types';
 
@@ -11,6 +12,8 @@ export const PhaseIcon: React.FC<{ phase: UploadPhase }> = ({ phase }) => {
     if (phase === 'done')
         return <CheckCircleRounded sx={{ color: '#5fc97a' }} />;
     if (phase === 'error') return <ErrorOutlineRounded color="error" />;
+    if (phase === 'canceled')
+        return <CancelRounded sx={{ color: 'text.secondary' }} />;
     return (
         <Box
             sx={theme => ({

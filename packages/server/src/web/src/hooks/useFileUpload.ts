@@ -31,6 +31,7 @@ export function useFileUpload({
     const canceledRef = useRef(false);
     const runningRef = useRef(false);
     const queueRef = useRef<File[]>([]);
+    const runIdRef = useRef(0);
 
     useEffect(
         () => () => {
@@ -40,8 +41,10 @@ export function useFileUpload({
     );
 
     const reset = () => {
+        runIdRef.current += 1;
         cancelRef.current = null;
         canceledRef.current = false;
+        runningRef.current = false;
         queueRef.current = [];
         setState(IDLE_STATE);
     };
@@ -71,6 +74,9 @@ export function useFileUpload({
         const files = queueRef.current;
         if (!files.length) return;
 
+        const runId = ++runIdRef.current;
+        const stale = () => runIdRef.current !== runId;
+
         runningRef.current = true;
         const completed: UploadFileResult[] = [];
 
@@ -85,7 +91,7 @@ export function useFileUpload({
         });
 
         for (let i = 0; i < files.length; i++) {
-            if (canceledRef.current) break;
+            if (canceledRef.current || stale()) break;
 
             const file = files[i];
             setState(s => ({
@@ -98,6 +104,7 @@ export function useFileUpload({
             }));
 
             const [createErr, id] = await noTryAsync(() => createUpload(file));
+            if (stale()) break;
             if (createErr || !id) {
                 const msg =
                     createErr?.message ?? t('media.upload.errors.startFailed');
@@ -115,6 +122,7 @@ export function useFileUpload({
 
             const [uploadErr] = await noTryAsync(() => promise);
             cancelRef.current = null;
+            if (stale()) break;
 
             if (canceledRef.current) {
                 completed.push({
@@ -132,10 +140,27 @@ export function useFileUpload({
             completed.push({ file });
         }
 
-        if (!canceledRef.current) {
-            const anyError = completed.some(c => c.error);
+        // Always land on a terminal phase, cancel included — files that
+        // finished uploading before the cancel are already on disk, and the
+        // undo barrier effect (media.tsx) only fires on 'done'/'error'/
+        // 'canceled', so a cancel that stayed on 'uploading' forever would
+        // leave those files unbarriered and let the next Ctrl+Z reach past
+        // them. This is why UploadModal's cancel deliberately doesn't also
+        // reset — a reset here makes the run stale and skips this block,
+        // since replaying a terminal state would reopen a closed modal.
+        if (!stale()) {
+            // A deliberate cancel is its own terminal phase, not an error —
+            // a cancel caught at the loop-top check (between files) never
+            // pushes a per-file error entry, so treating it as 'error' left
+            // the modal showing an error state with no message.
+            const anyFileError = completed.some(c => c.error);
+            const phase = canceledRef.current
+                ? 'canceled'
+                : anyFileError
+                  ? 'error'
+                  : 'done';
             setState({
-                phase: anyError ? 'error' : 'done',
+                phase,
                 queue: files,
                 completed,
                 currentIndex: -1,
@@ -143,9 +168,8 @@ export function useFileUpload({
                 currentFile: null,
                 error: completed.find(c => c.error)?.error ?? null,
             });
+            runningRef.current = false;
         }
-
-        runningRef.current = false;
     };
 
     return { state, start, confirm, cancel, reset };

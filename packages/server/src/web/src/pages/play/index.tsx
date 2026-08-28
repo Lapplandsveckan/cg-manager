@@ -24,6 +24,7 @@ import { EditRundownModal } from '../../components/play/EditRundownModal';
 import { ModalShell } from '../../components/play/ModalShell';
 import { QuickJumpPalette } from '../../components/play/QuickJumpPalette';
 import { useStoredString } from '../../lib/hooks/useStoredString';
+import { useToast } from '../../components/ToastProvider';
 import type { Rundown, RundownItem } from '../../hooks/useRundowns';
 
 export type { Rundown, RundownItem };
@@ -39,8 +40,6 @@ type SortKey =
     | 'created-desc'
     | 'created-asc';
 
-// Rundowns with no createdAt yet (just created, not written to disk) sort
-// after everything else regardless of direction — there's nothing to compare.
 function compareCreatedAt(a: Rundown, b: Rundown, desc: boolean): number {
     if (a.createdAt == null && b.createdAt == null) return 0;
     if (a.createdAt == null) return 1;
@@ -76,6 +75,7 @@ function sortRundowns(rundowns: Rundown[], sortBy: SortKey): Rundown[] {
 const Page = () => {
     const { t } = useTranslation('common');
     const router = useRouter();
+    const notify = useToast();
     const { rundowns, updateRundown, deleteRundown, createRundown } =
         useRundowns();
 
@@ -203,7 +203,17 @@ const Page = () => {
                                 onEdit={() => setEditing(rundown)}
                                 onDelete={() => setDeleting(rundown)}
                                 onDuplicate={() =>
-                                    createRundown(`${rundown.name} (copy)`)
+                                    createRundown(
+                                        `${rundown.name} (copy)`,
+                                    ).then(data => {
+                                        if (!data)
+                                            notify(
+                                                t(
+                                                    'playPage.errors.createFailed',
+                                                ),
+                                                'error',
+                                            );
+                                    })
                                 }
                             />
                         </SlotErrorBoundary>
@@ -232,9 +242,16 @@ const Page = () => {
                     <AddRundownModal
                         onCreate={name => {
                             setAdding(false);
-                            createRundown(name).then(data =>
-                                router.push(`/play/${data.id}`),
-                            );
+                            createRundown(name).then(data => {
+                                if (!data) {
+                                    notify(
+                                        t('playPage.errors.createFailed'),
+                                        'error',
+                                    );
+                                    return;
+                                }
+                                router.push(`/play/${data.id}`);
+                            });
                         }}
                         onCancel={() => setAdding(false)}
                     />

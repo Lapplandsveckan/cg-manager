@@ -26,13 +26,11 @@ import MediaInspectorModal from '../components/media/MediaInspectorModal';
 import { type RundownEntry } from '../components/Rundowns';
 import { useToast } from '../components/ToastProvider';
 
-/** Mirrors RundownActionDescriptor on the server — keep in sync. */
 interface RundownActionDescriptor {
     id: string;
     acceptsFiles: boolean;
 }
 
-/** Mirrors RundownFileMatchResult on the server — keep in sync. */
 interface RundownFileMatchResult {
     actionId: string;
     payload: { type: string; data?: unknown; title?: string };
@@ -89,9 +87,6 @@ const Page = () => {
         const streams = clip.mediainfo?.streams ?? [];
         const hasVideo = streams.some(s => s.codec?.type === 'video');
         const hasAudio = streams.some(s => s.codec?.type === 'audio');
-        // Coarse MIME hint for action match predicates. When mediainfo hasn't
-        // been scanned yet (no streams) we can't know the kind — fall back to
-        // image/* as the least-surprising default rather than guessing video.
         const mimeType = hasVideo
             ? 'video/*'
             : hasAudio
@@ -116,8 +111,6 @@ const Page = () => {
             return;
         }
 
-        // If several actions accept this media we deliberately take the first;
-        // the Media view has no picker UI (unlike the rundown drop flow).
         const { payload } = matches[0];
         setPlayEntry({
             id: Math.random().toString(36).substring(2, 11),
@@ -127,29 +120,28 @@ const Page = () => {
         });
     };
 
-    /** Move a media file to the given destination folder. `clipId` is the
-     *  full media id (e.g. `INTRO/CLIP`); `folderFullPath` is the full
-     *  target folder, no trailing slash, "" for root. Fire-and-forget —
-     *  the scanner broadcasts media-removed + media-added on completion
-     *  which refreshes the view automatically. */
     const handleMediaMove = async (clipId: string, folderFullPath: string) => {
         if (!socket) return;
+
         const basename = clipId.split('/').pop();
         if (!basename) return;
+
         const newPath = folderFullPath
             ? `${folderFullPath}/${basename}`
             : basename;
-        // No-op if the clip is already in this folder.
         if (newPath === clipId) return;
+
         const [err] = await noTryAsync(() =>
             socket.caspar.moveMedia(clipId, newPath),
         );
-        if (err)
-            notify(
+        if (err) {
+            return notify(
                 (err as Error)?.message ?? t('media.errors.moveFailed'),
                 'error',
             );
-        else notify(t('media.success.moved'), 'success');
+        }
+
+        notify(t('media.success.moved'), 'success');
     };
 
     const navigate = (next: string) => {
@@ -172,9 +164,6 @@ const Page = () => {
         if (renaming) setRenameValue(clipShortName(renaming));
     }, [renaming]);
 
-    // Shared controller so the Upload button and the page-wide Dropzone feed
-    // the same progress modal. Files dropped or picked land in the current
-    // folder (`path`) — same as the existing button behaviour.
     const uploadCtrl = useFileUpload({
         createUpload: file => socket.caspar.uploadMedia(path + file.name, file),
     });

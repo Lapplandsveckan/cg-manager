@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { noTryAsync } from 'no-try';
 import { useSocket } from '../lib';
+import { assertOk } from '../lib/api/caspar';
 
 export interface RundownItem {
     id: string;
@@ -68,23 +70,43 @@ export function useRundowns() {
         };
     }, []);
 
-    const updateRundown = (entry: Rundown) => {
-        conn.rawRequest(`/api/rundown/${entry.id}`, 'UPDATE', entry.name);
+    const updateRundown = async (entry: Rundown) => {
+        const res = await conn.rawRequest(
+            `/api/rundown/${entry.id}`,
+            'UPDATE',
+            entry.name,
+        );
+
+        const [err] = await noTryAsync(async () => assertOk(res));
+        if (err) return;
+
         setRundowns(prev =>
             prev.map(v => (v.id === entry.id ? { ...v, name: entry.name } : v)),
         );
     };
 
-    const deleteRundown = (entry: Rundown) => {
-        conn.rawRequest(`/api/rundown/${entry.id}`, 'DELETE', null);
+    const deleteRundown = async (entry: Rundown) => {
+        const res = await conn.rawRequest(
+            `/api/rundown/${entry.id}`,
+            'DELETE',
+            null,
+        );
+
+        const [err] = await noTryAsync(async () => assertOk(res));
+        if (err) return;
+
         setRundowns(prev => prev.filter(v => v.id !== entry.id));
     };
 
-    const createRundown = (name: string) =>
-        conn.rawRequest('/api/rundown', 'CREATE', name).then(({ data }) => {
-            setRundowns(prev => [...prev, data]);
-            return data as Rundown;
-        });
+    const createRundown = async (name: string): Promise<Rundown | null> => {
+        const res = await conn.rawRequest('/api/rundown', 'CREATE', name);
+
+        const [err] = await noTryAsync(async () => assertOk(res));
+        if (err || !res.data) return null;
+        
+        setRundowns(prev => [...prev, res.data]);
+        return res.data;
+    }
 
     return { rundowns, updateRundown, deleteRundown, createRundown };
 }

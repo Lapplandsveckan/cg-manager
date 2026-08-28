@@ -4,7 +4,8 @@ export type UploadPhase =
     | 'starting'
     | 'uploading'
     | 'done'
-    | 'error';
+    | 'error'
+    | 'canceled';
 
 export interface UploadFileResult {
     file: File;

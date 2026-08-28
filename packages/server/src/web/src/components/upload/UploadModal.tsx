@@ -34,8 +34,10 @@ export const UploadModal: React.FC<UploadModalProps> = ({
 }) => {
     const open = state.phase !== 'idle';
     const handleClose = () => {
-        if (state.phase === 'uploading' || state.phase === 'starting')
+        if (state.phase === 'uploading' || state.phase === 'starting') {
             onCancel?.();
+            return;
+        }
         onClose();
     };
 
@@ -124,6 +126,13 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({
         title = multi
             ? t('media.upload.title.doneMulti', { count: successCount })
             : t('media.upload.title.doneOne');
+    else if (phase === 'canceled')
+        title = multi
+            ? t('media.upload.title.canceledMulti', {
+                  success: successCount,
+                  total: queue.length,
+              })
+            : t('media.upload.title.canceledOne');
     else
         title =
             failedCount === queue.length
@@ -189,7 +198,7 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({
                 </Box>
             )}
 
-            {(phase === 'done' || phase === 'error') &&
+            {(phase === 'done' || phase === 'error' || phase === 'canceled') &&
                 multi &&
                 completed.length > 0 && (
                     <Stack

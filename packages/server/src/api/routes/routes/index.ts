@@ -42,15 +42,18 @@ export default {
         if (!validateDestination(payload.destination))
             throw new WebError('Invalid `destination`', 400);
 
-        return CasparManager.getManager().routes.createVideoRoute({
-            name: payload.name,
-            source: payload.source,
-            destination: payload.destination,
-            enabled: payload.enabled ?? true,
-            transform: payload.transform,
-            edgeblend: payload.edgeblend,
-            perspective: payload.perspective,
-            metadata: payload.metadata,
-        });
+        return CasparManager.getManager().routes.createVideoRoute(
+            {
+                name: payload.name,
+                source: payload.source,
+                destination: payload.destination,
+                enabled: payload.enabled ?? true,
+                transform: payload.transform,
+                edgeblend: payload.edgeblend,
+                perspective: payload.perspective,
+                metadata: payload.metadata,
+            },
+            request.getClient()?.id,
+        );
     },
 } satisfies RouteExport;

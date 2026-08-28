@@ -7,7 +7,10 @@ export default {
         if (!request.params.id) throw new WebError('No id', 400);
 
         const manager = CasparManager.getManager();
-        manager.routes.disableVideoRoute(request.params.id);
+        manager.routes.disableVideoRoute(
+            request.params.id,
+            request.getClient()?.id,
+        );
 
         const route = manager.routes.getVideoRoute(request.params.id);
         if (!route) throw new WebError('Route not found', 404);

@@ -111,7 +111,12 @@ export default {
         // this is a no-op; for cross-folder moves the user may be moving
         // into a folder that exists already (or one they implicitly want
         // created — `recursive: true` handles both).
-        await fs.mkdir(path.dirname(target), { recursive: true });
+        await fs.mkdir(path.dirname(target), { recursive: true }).catch(err => {
+            throw new WebError(
+                `Failed to create directory: ${err.message}`,
+                500,
+            );
+        });
 
         await fs.rename(mediaPath, target).catch(err => {
             throw new WebError(`Failed to rename: ${err.message}`, 500);

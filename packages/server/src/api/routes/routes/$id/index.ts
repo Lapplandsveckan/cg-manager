@@ -18,6 +18,7 @@ export default {
 
         await CasparManager.getManager().routes.deleteVideoRoute(
             request.params.id,
+            request.getClient()?.id,
         );
 
         return { ok: true };
@@ -54,7 +55,7 @@ export default {
             ...(payload.metadata ? { metadata: payload.metadata } : {}),
         };
 
-        await manager.routes.updateVideoRoute(next);
+        await manager.routes.updateVideoRoute(next, request.getClient()?.id);
         return manager.routes.getVideoRoute(existing.id);
     },
 } satisfies RouteExport;
