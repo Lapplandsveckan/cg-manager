@@ -13,6 +13,7 @@ import { SocketProvider } from '../components/SocketProvider';
 import { ConnectionProvider } from '../components/ConnectionProvider';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { ToastProvider } from '../components/ToastProvider';
+import { UndoProvider } from '../components/UndoProvider';
 import { ContextMenuProvider } from '../components/ContextMenuProvider';
 import { PluginContextMenuMounts } from '../components/PluginContextMenuMounts';
 import { EntryClipboardProvider } from '../components/EntryClipboardProvider';
@@ -74,53 +75,57 @@ function App({ Component, pageProps }: AppProps) {
                         <SocketProvider>
                             <ConnectionProvider>
                                 <ToastProvider>
-                                    <ContextMenuProvider>
-                                        <PluginContextMenuMounts />
-                                        <EntryClipboardProvider>
-                                            <Stack
-                                                direction="column"
-                                                sx={{
-                                                    height: '100vh',
-                                                    width: '100%',
-                                                }}
-                                            >
-                                                <ConnectionBanner />
+                                    <UndoProvider>
+                                        <ContextMenuProvider>
+                                            <PluginContextMenuMounts />
+                                            <EntryClipboardProvider>
                                                 <Stack
+                                                    direction="column"
                                                     sx={{
-                                                        flex: 1,
-                                                        minHeight: 0,
+                                                        height: '100vh',
+                                                        width: '100%',
                                                     }}
                                                 >
-                                                    <ErrorBoundary
-                                                        fallback={
-                                                            appCrashFallback
-                                                        }
-                                                        onError={(e, i) => {
-                                                            console.error(
-                                                                '[app:page]',
-                                                                e,
-                                                                i,
-                                                            );
-                                                            const err =
-                                                                e as Error;
-                                                            reportClientError({
-                                                                source: 'app:page',
-                                                                message:
-                                                                    err.message,
-                                                                stack: err.stack,
-                                                                componentStack:
-                                                                    i.componentStack,
-                                                            });
+                                                    <ConnectionBanner />
+                                                    <Stack
+                                                        sx={{
+                                                            flex: 1,
+                                                            minHeight: 0,
                                                         }}
                                                     >
-                                                        <Component
-                                                            {...pageProps}
-                                                        />
-                                                    </ErrorBoundary>
+                                                        <ErrorBoundary
+                                                            fallback={
+                                                                appCrashFallback
+                                                            }
+                                                            onError={(e, i) => {
+                                                                console.error(
+                                                                    '[app:page]',
+                                                                    e,
+                                                                    i,
+                                                                );
+                                                                const err =
+                                                                    e as Error;
+                                                                reportClientError(
+                                                                    {
+                                                                        source: 'app:page',
+                                                                        message:
+                                                                            err.message,
+                                                                        stack: err.stack,
+                                                                        componentStack:
+                                                                            i.componentStack,
+                                                                    },
+                                                                );
+                                                            }}
+                                                        >
+                                                            <Component
+                                                                {...pageProps}
+                                                            />
+                                                        </ErrorBoundary>
+                                                    </Stack>
                                                 </Stack>
-                                            </Stack>
-                                        </EntryClipboardProvider>
-                                    </ContextMenuProvider>
+                                            </EntryClipboardProvider>
+                                        </ContextMenuProvider>
+                                    </UndoProvider>
                                 </ToastProvider>
                             </ConnectionProvider>
                         </SocketProvider>

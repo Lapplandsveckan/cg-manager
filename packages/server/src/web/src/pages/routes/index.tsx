@@ -15,6 +15,8 @@ import { RouteCard } from '../../components/routes/RouteCard';
 import { DeleteRouteModal } from '../../components/routes/DeleteRouteModal';
 import { useToast } from '../../components/ToastProvider';
 import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
+import { liveId, record } from '../../lib/undo/undoStore';
+import { omitId, rekeyId, routeScope } from '../../lib/undo/tools';
 
 const Page = () => {
     const { t } = useTranslation('common');
@@ -107,16 +109,12 @@ const Page = () => {
     useEffect(() => {
         if (!socket) return;
         let cancelled = false;
-        // Populate the channel dropdown(s) in the modal. Falls back to an
-        // empty list if the CG config can't be read — the modal allows the
-        // current draft channel through anyway.
         socket.caspar
             .getConfig()
             .then(cfg => {
                 if (cancelled) return;
                 setChannels(cfg.channels.map((_, i) => i + 1));
                 setVideoModes(cfg.videoModes.map(m => m.id).filter(Boolean));
-                // Build channelIdx → output WxH for the GeometryEditor stage.
                 const sizes: Record<number, { width: number; height: number }> =
                     {};
                 for (let i = 0; i < cfg.channels.length; i++) {
@@ -142,25 +140,23 @@ const Page = () => {
         };
     }, [socket]);
 
+    const mergeRoute = (route: VideoRoute) =>
+        setRoutes(prev => {
+            if (!prev) return [route];
+            return prev.some(r => r.id === route.id)
+                ? prev.map(r => (r.id === route.id ? route : r))
+                : [...prev, route];
+        });
+    const removeRoute = (id: string) =>
+        setRoutes(prev => prev?.filter(r => r.id !== id) ?? prev);
+
     const toggle = useCallback(
         async (id: string, next: boolean) => {
             if (!socket) return;
-            setRoutes(
-                prev =>
-                    prev?.map(r =>
-                        r.id === id ? { ...r, enabled: next } : r,
-                    ) ?? prev,
-            );
             const [err, updated] = await noTryAsync(async () =>
                 socket.videoRoutes.setEnabled(id, next),
             );
             if (err) {
-                setRoutes(
-                    prev =>
-                        prev?.map(r =>
-                            r.id === id ? { ...r, enabled: !next } : r,
-                        ) ?? prev,
-                );
                 notify(
                     (err as Error)?.message ??
                         t('videoRoutes.errors.toggleFailed'),
@@ -169,9 +165,23 @@ const Page = () => {
                 return;
             }
 
-            setRoutes(
-                prev => prev?.map(r => (r.id === id ? updated : r)) ?? prev,
-            );
+            mergeRoute(updated);
+            record({
+                label: {
+                    key: next ? 'routeEnable' : 'routeDisable',
+                    params: { name: updated.name },
+                },
+                scopes: [routeScope(id)],
+                prev: !next,
+                next,
+                apply: async (enabled, { api }) => {
+                    const applied = await api.videoRoutes.setEnabled(
+                        liveId(id),
+                        enabled,
+                    );
+                    mergeRoute(applied);
+                },
+            });
         },
         [socket],
     );
@@ -189,9 +199,29 @@ const Page = () => {
                 'error',
             );
         } else {
-            setRoutes(prev => prev?.filter(r => r.id !== deleting.id) ?? prev);
+            removeRoute(deleting.id);
+            const deleted = deleting;
             setDeleting(null);
             notify(t('videoRoutes.success.deleted'), 'success');
+            record<VideoRoute | null>({
+                label: { key: 'routeDelete', params: { name: deleted.name } },
+                scopes: [routeScope(deleted.id)],
+                prev: deleted,
+                next: null,
+                apply: async (route, { api, entry }) => {
+                    if (route) {
+                        const created = await api.videoRoutes.create(
+                            omitId(route),
+                        );
+                        rekeyId(route.id, created.id, routeScope, entry);
+                        mergeRoute(created);
+                        return;
+                    }
+                    const id = liveId(deleted.id);
+                    await api.videoRoutes.delete(id);
+                    removeRoute(id);
+                },
+            });
         }
 
         setBusy(false);
@@ -201,22 +231,58 @@ const Page = () => {
         if (!socket) return;
         const [err] = await noTryAsync(async () => {
             if (editing) {
+                const before = editing;
                 const updated = await socket.videoRoutes.update(
                     editing.id,
                     data,
                 );
-                setRoutes(
-                    prev =>
-                        prev?.map(r => (r.id === updated.id ? updated : r)) ??
-                        prev,
-                );
+                mergeRoute(updated);
+                record({
+                    label: {
+                        key: 'routeUpdate',
+                        params: { name: updated.name },
+                    },
+                    scopes: [routeScope(updated.id)],
+                    prev: before,
+                    next: updated,
+                    apply: async (route, { api }) => {
+                        const id = liveId(updated.id);
+                        const applied = await api.videoRoutes.update(
+                            id,
+                            omitId(route),
+                        );
+                        mergeRoute(applied);
+                    },
+                });
             } else {
                 const created = await socket.videoRoutes.create(data);
-                setRoutes(prev => {
-                    if (!prev) return [created];
-                    return prev.some(r => r.id === created.id)
-                        ? prev.map(r => (r.id === created.id ? created : r))
-                        : [...prev, created];
+                mergeRoute(created);
+                record<VideoRoute | null>({
+                    label: {
+                        key: 'routeCreate',
+                        params: { name: created.name },
+                    },
+                    scopes: [routeScope(created.id)],
+                    prev: null,
+                    next: created,
+                    apply: async (route, { api, entry }) => {
+                        if (route) {
+                            const recreated = await api.videoRoutes.create(
+                                omitId(route),
+                            );
+                            rekeyId(
+                                created.id,
+                                recreated.id,
+                                routeScope,
+                                entry,
+                            );
+                            mergeRoute(recreated);
+                            return;
+                        }
+                        const id = liveId(created.id);
+                        await api.videoRoutes.delete(id);
+                        removeRoute(id);
+                    },
                 });
             }
         });

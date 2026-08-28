@@ -1,0 +1,294 @@
+import React, {
+    createContext,
+    useCallback,
+    useContext,
+    useEffect,
+    useRef,
+    useSyncExternalStore,
+} from 'react';
+import { noTryAsync } from 'no-try';
+import { useTranslation } from 'next-i18next';
+import { useSocket } from '../lib/hooks/useSocket';
+import { useConnection } from './ConnectionProvider';
+import { useToast } from './ToastProvider';
+import {
+    clearAll,
+    getRedoStack,
+    getUndoStack,
+    invalidate,
+    popRedo,
+    popUndo,
+    pushRedo,
+    pushUndo,
+    subscribe,
+} from '../lib/undo/undoStore';
+import { isBarrierEntry, type UndoLabel } from '../lib/undo/types';
+import { UndoStaleError, routeScope, rundownScope } from '../lib/undo/tools';
+
+interface UndoContextValue {
+    undo: () => void;
+    redo: () => void;
+    canUndo: boolean;
+    canRedo: boolean;
+}
+
+const UndoContext = createContext<UndoContextValue>({
+    undo: () => undefined,
+    redo: () => undefined,
+    canUndo: false,
+    canRedo: false,
+});
+
+export const useUndo = (): UndoContextValue => useContext(UndoContext);
+
+const MAX_UNDO_ATTEMPTS = 2;
+
+function isEditableTarget(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) return false;
+    if (target instanceof HTMLInputElement) return true;
+    if (target instanceof HTMLTextAreaElement) return true;
+    return target.isContentEditable;
+}
+
+export const UndoProvider: React.FC<{ children: React.ReactNode }> = ({
+    children,
+}) => {
+    const { t } = useTranslation('common');
+    const conn = useSocket();
+    const notify = useToast();
+    const { state: connectionState } = useConnection();
+    const busyRef = useRef(false);
+
+    const undoStack = useSyncExternalStore(
+        subscribe,
+        getUndoStack,
+        getUndoStack,
+    );
+    const redoStack = useSyncExternalStore(
+        subscribe,
+        getRedoStack,
+        getRedoStack,
+    );
+
+    const labelText = useCallback(
+        (label: UndoLabel) => {
+            if (label.text !== undefined) return label.text;
+            if (typeof label.key !== 'string' || !label.key)
+                return t('undo.labels.unknown');
+            if (label.key.includes(':')) return t(label.key, label.params);
+            return t(`undo.labels.${label.key}`, label.params);
+        },
+        [t],
+    );
+
+    const undo = useCallback(async () => {
+        if (!conn || busyRef.current) return;
+        const entry = popUndo();
+        if (!entry) {
+            notify(t('undo.nothingToUndo'), 'info');
+            return;
+        }
+        if (isBarrierEntry(entry)) {
+            notify(
+                t('undo.barrier', { label: labelText(entry.label) }),
+                'warning',
+            );
+            return;
+        }
+
+        busyRef.current = true;
+        const [err] = await noTryAsync(async () =>
+            entry.apply(entry.prev, { api: conn, direction: 'undo', entry }),
+        );
+        busyRef.current = false;
+
+        if (!err) {
+            pushRedo(entry.failCount ? { ...entry, failCount: 0 } : entry);
+            notify(
+                t('undo.undid', { label: labelText(entry.label) }),
+                'success',
+            );
+            return;
+        }
+        if (err instanceof UndoStaleError) {
+            notify(t('undo.stale'), 'warning');
+            return;
+        }
+        const failCount = (entry.failCount ?? 0) + 1;
+        if (failCount >= MAX_UNDO_ATTEMPTS) {
+            notify(t('undo.errors.undoFailedDropped'), 'error');
+            return;
+        }
+        pushUndo({ ...entry, failCount });
+        notify(t('undo.errors.undoFailed'), 'error');
+    }, [conn, notify, t, labelText]);
+
+    const redo = useCallback(async () => {
+        if (!conn || busyRef.current) return;
+        const entry = popRedo();
+        if (!entry) {
+            notify(t('undo.nothingToRedo'), 'info');
+            return;
+        }
+
+        busyRef.current = true;
+        const [err] = await noTryAsync(async () =>
+            entry.apply(entry.next, { api: conn, direction: 'redo', entry }),
+        );
+        busyRef.current = false;
+
+        if (!err) {
+            pushUndo(entry.failCount ? { ...entry, failCount: 0 } : entry);
+            notify(
+                t('undo.redid', { label: labelText(entry.label) }),
+                'success',
+            );
+            return;
+        }
+        const failCount = (entry.failCount ?? 0) + 1;
+        if (failCount >= MAX_UNDO_ATTEMPTS) {
+            notify(t('undo.errors.redoFailedDropped'), 'error');
+            return;
+        }
+        pushRedo({ ...entry, failCount });
+        notify(t('undo.errors.redoFailed'), 'error');
+    }, [conn, notify, t, labelText]);
+
+    const wasConnectedRef = useRef(connectionState === 'connected');
+    useEffect(() => {
+        const reconnected =
+            connectionState === 'connected' && !wasConnectedRef.current;
+        wasConnectedRef.current = connectionState === 'connected';
+        if (reconnected) clearAll();
+    }, [connectionState]);
+
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if (isEditableTarget(e.target)) return;
+            const mod = e.metaKey || e.ctrlKey;
+            if (!mod) return;
+
+            const key = e.key.toLowerCase();
+            const isRedo =
+                (key === 'z' && e.shiftKey) || (key === 'y' && e.ctrlKey);
+            const isUndo = key === 'z' && !e.shiftKey;
+
+            if (isRedo) {
+                e.preventDefault();
+                void redo();
+                return;
+            }
+            if (isUndo) {
+                e.preventDefault();
+                void undo();
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [undo, redo]);
+
+    useEffect(() => {
+        if (!conn) return;
+
+        const rundownEntryListener = {
+            path: 'rundown/entry',
+            method: 'UPDATE',
+            handler: (request: { getData: () => unknown }) => {
+                const data = request.getData() as {
+                    id: string;
+                    entry: unknown;
+                };
+                const entries = Array.isArray(data.entry)
+                    ? data.entry
+                    : [data.entry];
+                invalidate(
+                    entries
+                        .filter((e): e is { id: string } =>
+                            Boolean((e as any)?.id),
+                        )
+                        .map(e => rundownScope(data.id, `entry:${e.id}`)),
+                );
+            },
+        };
+        const rundownEntryDeleteListener = {
+            path: 'rundown/entry',
+            method: 'DELETE',
+            handler: (request: { getData: () => unknown }) => {
+                const data = request.getData() as { id: string; entry: string };
+                invalidate([rundownScope(data.id, `entry:${data.entry}`)]);
+            },
+        };
+        const rundownOrderListener = {
+            path: 'rundown/order',
+            method: 'ACTION',
+            handler: (request: { getData: () => unknown }) => {
+                const data = request.getData() as { id: string };
+                invalidate([rundownScope(data.id, 'order')]);
+            },
+        };
+        const rundownRenameListener = {
+            path: 'rundown',
+            method: 'UPDATE',
+            handler: (request: { getData: () => unknown }) => {
+                const data = request.getData() as { id: string };
+                invalidate([rundownScope(data.id, 'name')]);
+            },
+        };
+        const rundownDeleteListener = {
+            path: 'rundown',
+            method: 'DELETE',
+            handler: (request: { getData: () => unknown }) => {
+                const id = request.getData();
+                if (typeof id === 'string') invalidate([rundownScope(id)]);
+            },
+        };
+        const routesUpdateListener = {
+            path: 'routes',
+            method: 'UPDATE',
+            handler: (request: { getData: () => unknown }) => {
+                const route = request.getData() as { id?: string };
+                if (!route?.id) return;
+                invalidate([routeScope(route.id)]);
+            },
+        };
+        const routesDeleteListener = {
+            path: 'routes',
+            method: 'DELETE',
+            handler: (request: { getData: () => unknown }) => {
+                const id = request.getData();
+                if (typeof id !== 'string') return;
+                invalidate([routeScope(id)]);
+            },
+        };
+        conn.routes.register(rundownEntryListener);
+        conn.routes.register(rundownEntryDeleteListener);
+        conn.routes.register(rundownOrderListener);
+        conn.routes.register(rundownRenameListener);
+        conn.routes.register(rundownDeleteListener);
+        conn.routes.register(routesUpdateListener);
+        conn.routes.register(routesDeleteListener);
+
+        return () => {
+            conn.routes.unregister(rundownEntryListener);
+            conn.routes.unregister(rundownEntryDeleteListener);
+            conn.routes.unregister(rundownOrderListener);
+            conn.routes.unregister(rundownRenameListener);
+            conn.routes.unregister(rundownDeleteListener);
+            conn.routes.unregister(routesUpdateListener);
+            conn.routes.unregister(routesDeleteListener);
+        };
+    }, [conn]);
+
+    return (
+        <UndoContext.Provider
+            value={{
+                undo: () => void undo(),
+                redo: () => void redo(),
+                canUndo: undoStack.length > 0,
+                canRedo: redoStack.length > 0,
+            }}
+        >
+            {children}
+        </UndoContext.Provider>
+    );
+};

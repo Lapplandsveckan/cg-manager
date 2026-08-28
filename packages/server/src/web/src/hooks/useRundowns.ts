@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { noTryAsync } from 'no-try';
 import { useSocket } from '../lib';
-import { assertOk } from '../lib/api/caspar';
+import { record, recordBarrier } from '../lib/undo/undoStore';
+import { okData, request, requestOk, rundownScope } from '../lib/undo/tools';
+import { useLatest } from '../lib/hooks/useLatest';
 
 export interface RundownItem {
     id: string;
@@ -23,6 +24,7 @@ export interface Rundown {
 export function useRundowns() {
     const conn = useSocket();
     const [rundowns, setRundowns] = useState<Rundown[]>([]);
+    const rundownsRef = useLatest(rundowns);
 
     useEffect(() => {
         conn.rawRequest('/api/rundown', 'GET', {}).then(res =>
@@ -71,42 +73,64 @@ export function useRundowns() {
     }, []);
 
     const updateRundown = async (entry: Rundown) => {
-        const res = await conn.rawRequest(
+        const ok = await requestOk(
+            conn,
             `/api/rundown/${entry.id}`,
             'UPDATE',
             entry.name,
         );
+        if (!ok) return;
 
-        const [err] = await noTryAsync(async () => assertOk(res));
-        if (err) return;
+        const before = rundownsRef.current.find(v => v.id === entry.id);
+        if (!before) return;
 
         setRundowns(prev =>
             prev.map(v => (v.id === entry.id ? { ...v, name: entry.name } : v)),
         );
+        record({
+            label: { key: 'rundownRename', params: { name: entry.name } },
+            scopes: [rundownScope(entry.id, 'name')],
+            prev: before.name,
+            next: entry.name,
+            apply: async (name, { api }) => {
+                await request(api, {
+                    path: `/api/rundown/${entry.id}`,
+                    method: 'UPDATE',
+                    data: name,
+                });
+                setRundowns(prev =>
+                    prev.map(v => (v.id === entry.id ? { ...v, name } : v)),
+                );
+            },
+        });
     };
 
     const deleteRundown = async (entry: Rundown) => {
-        const res = await conn.rawRequest(
+        const ok = await requestOk(
+            conn,
             `/api/rundown/${entry.id}`,
             'DELETE',
             null,
         );
-
-        const [err] = await noTryAsync(async () => assertOk(res));
-        if (err) return;
+        if (!ok) return;
 
         setRundowns(prev => prev.filter(v => v.id !== entry.id));
+        recordBarrier({ key: 'rundownDelete', params: { name: entry.name } }, [
+            rundownScope(entry.id),
+        ]);
     };
 
     const createRundown = async (name: string): Promise<Rundown | null> => {
         const res = await conn.rawRequest('/api/rundown', 'CREATE', name);
+        const data = okData<Rundown>(res);
+        if (!data) return null;
 
-        const [err] = await noTryAsync(async () => assertOk(res));
-        if (err || !res.data) return null;
-        
-        setRundowns(prev => [...prev, res.data]);
-        return res.data;
-    }
+        setRundowns(prev => [...prev, data]);
+        recordBarrier({ key: 'rundownCreate', params: { name: data.name } }, [
+            rundownScope(data.id),
+        ]);
+        return data;
+    };
 
     return { rundowns, updateRundown, deleteRundown, createRundown };
 }

@@ -832,5 +832,46 @@
             "showPreview": "Live preview",
             "overlapZone": "Overlap / blend zone"
         }
+    },
+    "undo": {
+        "undid": "Undid: {{label}}",
+        "redid": "Redid: {{label}}",
+        "nothingToUndo": "Nothing to undo",
+        "nothingToRedo": "Nothing to redo",
+        "barrier": "Can't undo: {{label}} was permanent. Press again to undo the previous action.",
+        "stale": "Can't undo: the config has changed since then",
+        "errors": {
+            "undoFailed": "Undo failed",
+            "redoFailed": "Redo failed",
+            "undoFailedDropped": "Undo failed repeatedly and was given up on",
+            "redoFailedDropped": "Redo failed repeatedly and was given up on"
+        },
+        "labels": {
+            "entryCreate": "add \"{{title}}\"",
+            "entryUpdate": "edit \"{{title}}\"",
+            "entryDelete": "delete \"{{title}}\"",
+            "reorder": "reorder items",
+            "rundownRename": "rename rundown to \"{{name}}\"",
+            "quickRename": "rename quick action to \"{{name}}\"",
+            "rundownCreate": "create rundown \"{{name}}\"",
+            "quickCreate": "create quick action \"{{name}}\"",
+            "rundownDelete": "delete \"{{name}}\"",
+            "mediaDelete": "delete \"{{name}}\"",
+            "mediaDeleteMany": "delete {{files}} file(s)",
+            "mediaUpload": "upload \"{{name}}\"",
+            "mediaUploadMany": "upload {{files}} file(s)",
+            "mediaRename": "rename to \"{{name}}\"",
+            "mediaMove": "move \"{{name}}\"",
+            "folderCreate": "create folder \"{{name}}\"",
+            "folderRename": "rename folder to \"{{name}}\"",
+            "folderDelete": "delete folder \"{{name}}\"",
+            "configSave": "save config",
+            "routeCreate": "create route \"{{name}}\"",
+            "routeUpdate": "update route \"{{name}}\"",
+            "routeDelete": "delete route \"{{name}}\"",
+            "routeEnable": "enable route \"{{name}}\"",
+            "routeDisable": "disable route \"{{name}}\"",
+            "unknown": "an action"
+        }
     }
 }

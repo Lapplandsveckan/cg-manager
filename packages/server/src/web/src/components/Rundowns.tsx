@@ -34,8 +34,11 @@ import { UploadModal, useFileUpload } from './Upload';
 import { useToast } from './ToastProvider';
 import { useContextMenu } from './ContextMenuProvider';
 import { useEntryClipboard } from './EntryClipboardProvider';
+import { record } from '../lib/undo/undoStore';
+import { request, requestOk, rundownScope } from '../lib/undo/tools';
+import { useLatest } from '../lib/hooks/useLatest';
+import { type ManagerApi } from '../lib/api/api';
 
-/** Mirrors the server's RundownFileMatchResult — keep them in sync. */
 interface RundownFileMatchResult {
     actionId: string;
     payload: RundownItemDragPayload;
@@ -47,6 +50,22 @@ interface RundownFileMatchResult {
 function isFileDrag(dt: DataTransfer | null): boolean {
     if (!dt) return false;
     return Array.from(dt.types).includes('Files');
+}
+
+function reorderById<T extends { id: string }>(
+    items: T[],
+    order: string[],
+): T[] {
+    const byId = new Map(items.map(item => [item.id, item]));
+    const reordered: T[] = [];
+    for (const id of order) {
+        const item = byId.get(id);
+        if (!item) continue;
+        reordered.push(item);
+        byId.delete(id);
+    }
+    for (const item of byId.values()) reordered.push(item);
+    return reordered;
 }
 
 export { EditIndicator, LiveIndicator, ModeToggle } from './RundownChrome';
@@ -64,6 +83,8 @@ export function useRundownEntries(rundown: string) {
     const conn = useSocket();
     const [entries, setEntries] = useState<RundownEntry[]>([]);
     const [name, setName] = useState<string>('');
+    const entriesRef = useLatest(entries);
+    const rundownRef = useLatest(rundown);
 
     useEffect(() => {
         if (!rundown) {
@@ -187,51 +208,181 @@ export function useRundownEntries(rundown: string) {
         };
     }, [rundown]);
 
-    const createEntry = (entry: RundownEntry, index?: number) => {
-        const payload = typeof index === 'number' ? { entry, index } : entry;
-        conn.rawRequest(`/api/rundown/${rundown}/entry`, 'CREATE', payload);
-        setEntries(prev => {
-            if (typeof index !== 'number') return [...prev, entry];
-            const next = [...prev];
+    const applyEntryUpdate = (entry: RundownEntry) =>
+        setEntries(entries =>
+            entries.map(item => (item.id === entry.id ? entry : item)),
+        );
+    const applyEntryDelete = (id: string) =>
+        setEntries(entries => entries.filter(v => v.id !== id));
+    const applyEntryCreate = (entry: RundownEntry, index?: number) =>
+        setEntries(entries => {
+            if (typeof index !== 'number') return [...entries, entry];
+            const next = [...entries];
             next.splice(Math.max(0, Math.min(next.length, index)), 0, entry);
             return next;
         });
+
+    // Guard against applying a stale rundown's undo/redo to whatever rundown
+    // this hook instance currently displays — the hook is reused across
+    // selection changes (e.g. switching quick-action tabs), so the target
+    // rundown recorded at undo-stack-push time may no longer be the one shown.
+    const entryApply =
+        (method: string, data: unknown, apply: () => void) =>
+        async (api: ManagerApi) => {
+            await request(api, {
+                path: `/api/rundown/${rundown}/entry`,
+                method,
+                data,
+            });
+            if (rundownRef.current === rundown) apply();
+        };
+
+    const createEntry = async (entry: RundownEntry, index?: number) => {
+        const insertIndex =
+            typeof index === 'number' ? index : entriesRef.current.length;
+        const ok = await requestOk(
+            conn,
+            `/api/rundown/${rundown}/entry`,
+            'CREATE',
+            typeof index === 'number' ? { entry, index } : entry,
+        );
+        if (!ok) return;
+
+        applyEntryCreate(entry, index);
+        record<RundownEntry | null>({
+            label: { key: 'entryCreate', params: { title: entry.title } },
+            scopes: [rundownScope(rundown, `entry:${entry.id}`)],
+            prev: null,
+            next: entry,
+            apply: (state, { api }) =>
+                state
+                    ? entryApply(
+                          'CREATE',
+                          { entry: state, index: insertIndex },
+                          () => applyEntryCreate(state, insertIndex),
+                      )(api)
+                    : entryApply('DELETE', entry.id, () =>
+                          applyEntryDelete(entry.id),
+                      )(api),
+        });
     };
 
-    const updateEntry = (entry: RundownEntry) => {
-        conn.rawRequest(`/api/rundown/${rundown}/entry`, 'UPDATE', entry);
-        setEntries(entries.map(v => (v.id === entry.id ? entry : v)));
+    const updateEntry = async (entry: RundownEntry) => {
+        const ok = await requestOk(
+            conn,
+            `/api/rundown/${rundown}/entry`,
+            'UPDATE',
+            entry,
+        );
+        if (!ok) return;
+
+        const before = entriesRef.current.find(v => v.id === entry.id);
+        if (!before) return;
+
+        applyEntryUpdate(entry);
+        record({
+            label: { key: 'entryUpdate', params: { title: entry.title } },
+            scopes: [rundownScope(rundown, `entry:${entry.id}`)],
+            prev: before,
+            next: entry,
+            apply: (state, { api }) =>
+                entryApply('UPDATE', state, () => applyEntryUpdate(state))(api),
+        });
     };
 
-    const deleteEntry = (entry: RundownEntry) => {
-        conn.rawRequest(`/api/rundown/${rundown}/entry`, 'DELETE', entry.id);
-        setEntries(entries.filter(v => v.id !== entry.id));
+    const deleteEntry = async (entry: RundownEntry) => {
+        const ok = await requestOk(
+            conn,
+            `/api/rundown/${rundown}/entry`,
+            'DELETE',
+            entry.id,
+        );
+        if (!ok) return;
+
+        const index = entriesRef.current.findIndex(v => v.id === entry.id);
+        if (index < 0) return;
+
+        applyEntryDelete(entry.id);
+        record<RundownEntry | null>({
+            label: { key: 'entryDelete', params: { title: entry.title } },
+            scopes: [rundownScope(rundown, `entry:${entry.id}`)],
+            prev: entry,
+            next: null,
+            apply: (state, { api }) =>
+                state
+                    ? entryApply('CREATE', { entry: state, index }, () =>
+                          applyEntryCreate(state, index),
+                      )(api)
+                    : entryApply('DELETE', entry.id, () =>
+                          applyEntryDelete(entry.id),
+                      )(api),
+        });
     };
 
-    const renameRundown = (newName: string) => {
+    const renameRundown = async (newName: string) => {
         const trimmed = newName.trim();
         if (!trimmed || trimmed === name) return;
-        conn.rawRequest(`/api/rundown/${rundown}`, 'UPDATE', trimmed);
+
+        const before = name;
+        const ok = await requestOk(
+            conn,
+            `/api/rundown/${rundown}`,
+            'UPDATE',
+            trimmed,
+        );
+        if (!ok) return;
+
         setName(trimmed);
+        record({
+            label: { key: 'rundownRename', params: { name: trimmed } },
+            scopes: [rundownScope(rundown, 'name')],
+            prev: before,
+            next: trimmed,
+            apply: async (value, { api }) => {
+                await request(api, {
+                    path: `/api/rundown/${rundown}`,
+                    method: 'UPDATE',
+                    data: value,
+                });
+                if (rundownRef.current === rundown) setName(value);
+            },
+        });
     };
 
-    const reorderEntries = (orderedIds: string[]) => {
-        const byId = new Map(entries.map(item => [item.id, item]));
-        const reordered: RundownEntry[] = [];
-        for (const id of orderedIds) {
-            const item = byId.get(id);
-            if (!item) continue;
-            reordered.push(item);
-            byId.delete(id);
-        }
-        for (const item of byId.values()) reordered.push(item);
+    const reorderEntries = async (orderedIds: string[]) => {
+        const before = entriesRef.current.map(item => item.id);
+        if (
+            before.length === orderedIds.length &&
+            before.every((id, i) => id === orderedIds[i])
+        )
+            return;
 
-        setEntries(reordered);
-        conn.rawRequest(
+        const reordered = reorderById(entriesRef.current, orderedIds);
+        const after = reordered.map(item => item.id);
+        const ok = await requestOk(
+            conn,
             `/api/rundown/${rundown}/order`,
             'ACTION',
-            reordered.map(item => item.id),
+            after,
         );
+        if (!ok) return;
+
+        setEntries(reordered);
+        record({
+            label: { key: 'reorder' },
+            scopes: [rundownScope(rundown, 'order')],
+            prev: before,
+            next: after,
+            apply: async (order, { api }) => {
+                await request(api, {
+                    path: `/api/rundown/${rundown}/order`,
+                    method: 'ACTION',
+                    data: order,
+                });
+                if (rundownRef.current === rundown)
+                    setEntries(entries => reorderById(entries, order));
+            },
+        });
     };
 
     return {
@@ -670,7 +821,12 @@ export const Rundowns: React.FC<RundownsProps> = ({
     // when this effect runs.
     const { phase: uploadPhase } = uploadCtrl.state;
     useEffect(() => {
-        if (uploadPhase !== 'done' && uploadPhase !== 'error') return;
+        if (
+            uploadPhase !== 'done' &&
+            uploadPhase !== 'error' &&
+            uploadPhase !== 'canceled'
+        )
+            return;
 
         let offset = 0;
         for (const result of uploadCtrl.state.completed) {

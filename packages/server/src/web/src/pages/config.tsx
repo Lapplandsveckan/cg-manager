@@ -22,6 +22,9 @@ import { ConsumerTypePicker } from '../components/config/ConsumerTypePicker';
 import { type ConsumerType } from '../components/config/fields';
 import { useToast } from '../components/ToastProvider';
 import { useCapabilities } from '../lib/hooks/useCapabilities';
+import { record } from '../lib/undo/undoStore';
+import { CONFIG_SCOPE, UndoStaleError } from '../lib/undo/tools';
+import { useLatest } from '../lib/hooks/useLatest';
 
 type Channel = CasparConfig['channels'][number];
 type Consumer = Channel['consumers'][number];
@@ -126,25 +129,60 @@ const Page = () => {
         if (!original || !draft) return false;
         return stableStringify(original) !== stableStringify(draft);
     }, [original, draft]);
+    const dirtyRef = useLatest(dirty);
+
+    // Ctrl+Z is a global shortcut, so it fires while the user has unsaved
+    // edits open in front of them. Re-baseline what the server holds, but
+    // never overwrite their draft with it — they keep their edits and the
+    // Save button stays live.
+    const applyConfig = (cfg: CasparConfig) => {
+        setOriginal(cfg);
+        if (!dirtyRef.current) setDraft(cfg);
+    };
 
     const save = async () => {
         if (!draft || saving) return;
+
         setSaving(true);
         setError(null);
         const [err, saved] = await noTryAsync(() =>
             socket.caspar.updateConfig(draft),
         );
-        if (!err && saved) {
-            setOriginal(saved);
-            setDraft(saved);
-            notify(t('config.success.saved'), 'success');
-        } else if (err) {
+        if (err) {
             notify(
                 (err as any)?.message ?? t('config.errors.saveFailed'),
                 'error',
             );
+            setSaving(false);
+            return;
         }
+        if (!saved) {
+            setSaving(false);
+            return;
+        }
+
+        const before = original;
+        setOriginal(saved);
+        setDraft(saved);
+        notify(t('config.success.saved'), 'success');
         setSaving(false);
+        if (!before) return;
+
+        record({
+            label: { key: 'configSave' },
+            scopes: [CONFIG_SCOPE],
+            prev: before,
+            next: saved,
+            apply: async (cfg, { api, direction }) => {
+                if (direction === 'undo') {
+                    const current = await api.caspar.getConfig();
+                    if (stableStringify(current) !== stableStringify(saved))
+                        throw new UndoStaleError();
+                }
+                await api.caspar.updateConfig(cfg);
+                applyConfig(cfg);
+            },
+        });
     };
 
     const discard = () => {

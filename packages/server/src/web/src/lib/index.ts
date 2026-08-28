@@ -39,3 +39,26 @@ export { ChannelPreview } from '../components/ChannelPreview';
 // slot machinery the host uses to render plugin UI into its own zones.
 export { Injections, Injection, UI_INJECTION_ZONE } from './api/inject';
 export type { UI_INJECTION_ZONE_KEY } from './api/inject';
+// Plugin-facing undo/redo — see the "Plugin -> undo/redo contract" section
+// in CLAUDE.md.
+export { createPluginUndo } from './undo/pluginUndo';
+export type { PluginUndoAPI } from './undo/pluginUndo';
+export type {
+    UndoLabel,
+    UndoEntry,
+    UndoApply,
+    UndoContext,
+} from './undo/types';
+export {
+    request,
+    requestOk,
+    okData,
+    omitId,
+    rekeyId,
+    UndoStaleError,
+} from './undo/tools';
+// `rekeyId` only updates the undo stack's bookkeeping — callers must also
+// resolve `liveId(id)` at every subsequent use of an id that may have been
+// through a temp-id -> server-id rekey (see the routes page's create flow
+// for the canonical pattern).
+export { liveId } from './undo/undoStore';

@@ -22,10 +22,14 @@ import { RundownModals } from './RundownModals';
 import { type RundownEntry, Rundowns, useRundownEntries } from './Rundowns';
 import { useStoredString } from '../lib/hooks/useStoredString';
 import { useRundownDropEditor } from '../lib/hooks/useRundownDropEditor';
+import { record, recordBarrier } from '../lib/undo/undoStore';
+import { okData, request, requestOk, rundownScope } from '../lib/undo/tools';
+import { useLatest } from '../lib/hooks/useLatest';
 
 function useQuickActions() {
     const conn = useSocket();
     const [quickActions, setQuickActions] = useState<Rundown[]>([]);
+    const quickActionsRef = useLatest(quickActions);
 
     useEffect(() => {
         conn.rawRequest('/api/rundown/quick', 'GET', {}).then(quickActions =>
@@ -76,27 +80,65 @@ function useQuickActions() {
         };
     }, []);
 
-    const updateQuickAction = (entry: Rundown) => {
-        conn.rawRequest(`/api/rundown/${entry.id}`, 'UPDATE', entry.name);
-        setQuickActions(
-            quickActions.map(v =>
-                v.id === entry.id ? { ...v, name: entry.name } : v,
-            ),
+    const updateQuickAction = async (entry: Rundown) => {
+        const ok = await requestOk(
+            conn,
+            `/api/rundown/${entry.id}`,
+            'UPDATE',
+            entry.name,
         );
+        if (!ok) return;
+
+        const before = quickActionsRef.current.find(v => v.id === entry.id);
+        if (!before) return;
+
+        setQuickActions(prev =>
+            prev.map(v => (v.id === entry.id ? { ...v, name: entry.name } : v)),
+        );
+        record({
+            label: { key: 'quickRename', params: { name: entry.name } },
+            scopes: [rundownScope(entry.id, 'name')],
+            prev: before.name,
+            next: entry.name,
+            apply: async (name, { api }) => {
+                await request(api, {
+                    path: `/api/rundown/${entry.id}`,
+                    method: 'UPDATE',
+                    data: name,
+                });
+                setQuickActions(prev =>
+                    prev.map(v => (v.id === entry.id ? { ...v, name } : v)),
+                );
+            },
+        });
     };
 
-    const deleteQuickAction = (entry: Rundown) => {
-        conn.rawRequest(`/api/rundown/${entry.id}`, 'DELETE', null);
-        setQuickActions(quickActions.filter(v => v.id !== entry.id));
+    const deleteQuickAction = async (entry: Rundown) => {
+        const ok = await requestOk(
+            conn,
+            `/api/rundown/${entry.id}`,
+            'DELETE',
+            null,
+        );
+        if (!ok) return;
+
+        setQuickActions(prev => prev.filter(v => v.id !== entry.id));
+        recordBarrier({ key: 'rundownDelete', params: { name: entry.name } }, [
+            rundownScope(entry.id),
+        ]);
     };
 
     const createQuickAction = (name: string): Promise<Rundown | null> =>
-        conn
-            .rawRequest('/api/rundown/quick', 'CREATE', name)
-            .then(({ data }) => {
-                setQuickActions([...quickActions, data]);
-                return data as Rundown;
-            });
+        conn.rawRequest('/api/rundown/quick', 'CREATE', name).then(res => {
+            const data = okData<Rundown>(res);
+            if (!data) return null;
+
+            setQuickActions(prev => [...prev, data]);
+            recordBarrier({ key: 'quickCreate', params: { name: data.name } }, [
+                rundownScope(data.id),
+            ]);
+            return data;
+        });
 
     return {
         quickActions,

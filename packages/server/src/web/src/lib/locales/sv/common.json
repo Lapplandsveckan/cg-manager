@@ -832,5 +832,46 @@
             "showPreview": "Live-förhandsgranskning",
             "overlapZone": "Överlappnings- / blandningszon"
         }
+    },
+    "undo": {
+        "undid": "Ångrade: {{label}}",
+        "redid": "Gjorde om: {{label}}",
+        "nothingToUndo": "Inget att ångra",
+        "nothingToRedo": "Inget att göra om",
+        "barrier": "Kan inte ångras: {{label}} var permanent. Tryck igen för att ångra föregående åtgärd.",
+        "stale": "Kan inte ångras: konfigurationen har ändrats sedan dess",
+        "errors": {
+            "undoFailed": "Det gick inte att ångra",
+            "redoFailed": "Det gick inte att göra om",
+            "undoFailedDropped": "Det gick inte att ångra efter flera försök och åtgärden gavs upp",
+            "redoFailedDropped": "Det gick inte att göra om efter flera försök och åtgärden gavs upp"
+        },
+        "labels": {
+            "entryCreate": "lägg till \"{{title}}\"",
+            "entryUpdate": "redigera \"{{title}}\"",
+            "entryDelete": "ta bort \"{{title}}\"",
+            "reorder": "ändra ordning på objekt",
+            "rundownRename": "byt namn på körschema till \"{{name}}\"",
+            "quickRename": "byt namn på snabbåtgärd till \"{{name}}\"",
+            "rundownCreate": "skapa körschema \"{{name}}\"",
+            "quickCreate": "skapa snabbåtgärd \"{{name}}\"",
+            "rundownDelete": "ta bort \"{{name}}\"",
+            "mediaDelete": "ta bort \"{{name}}\"",
+            "mediaDeleteMany": "ta bort {{files}} fil(er)",
+            "mediaUpload": "ladda upp \"{{name}}\"",
+            "mediaUploadMany": "ladda upp {{files}} fil(er)",
+            "mediaRename": "byt namn till \"{{name}}\"",
+            "mediaMove": "flytta \"{{name}}\"",
+            "folderCreate": "skapa mapp \"{{name}}\"",
+            "folderRename": "byt namn på mapp till \"{{name}}\"",
+            "folderDelete": "ta bort mapp \"{{name}}\"",
+            "configSave": "spara konfiguration",
+            "routeCreate": "skapa rutt \"{{name}}\"",
+            "routeUpdate": "uppdatera rutt \"{{name}}\"",
+            "routeDelete": "ta bort rutt \"{{name}}\"",
+            "routeEnable": "aktivera rutt \"{{name}}\"",
+            "routeDisable": "inaktivera rutt \"{{name}}\"",
+            "unknown": "en åtgärd"
+        }
     }
 }
