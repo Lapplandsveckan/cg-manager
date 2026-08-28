@@ -146,10 +146,11 @@ export class CasparManager extends EventEmitter {
         this.rundowns.stopAutosave();
         await this.rundowns.saveAllRundowns();
 
-        await this.preview.disposeAll();
-        this.routes.disposeAll();
         this.executor.stopCompaction();
         this.executor.disconnect();
+
+        await this.preview.disposeAll();
+        this.routes.disposeAll();
 
         await this.scanner.stop();
         await this.caspar.stop();
