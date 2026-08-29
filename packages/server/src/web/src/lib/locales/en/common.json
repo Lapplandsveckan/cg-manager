@@ -106,6 +106,13 @@
             "dragToReorder": "Drag to reorder",
             "orphanedTooltip": "This item's plugin is no longer available — delete it to clean up"
         },
+        "errors": {
+            "createFailed": "Failed to add item",
+            "updateFailed": "Failed to update item",
+            "deleteFailed": "Failed to delete item",
+            "reorderFailed": "Failed to reorder items",
+            "renameFailed": "Failed to rename rundown"
+        },
         "deleteEntryDialog": {
             "title": "Delete item",
             "body": "\"{{title}}\" (type: {{type}}) will be permanently removed from the rundown."

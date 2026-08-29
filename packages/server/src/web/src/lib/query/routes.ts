@@ -3,7 +3,7 @@ import type { VideoRoute } from '../api/videoRoutes';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
 import { qk, qm } from './keys';
-import { defineMutation } from './mutations';
+import { defineMutation, type Rollback } from './mutations';
 import { useWsBroadcast } from './useWsBroadcast';
 
 export function useRoutesQuery() {
@@ -23,8 +23,12 @@ function healIfUnfetched(): boolean {
     return true;
 }
 
-export function mergeRouteInCache(route: VideoRoute): void {
-    if (healIfUnfetched()) return;
+/** Upsert; returns the `Rollback` to whatever was there before (a prior
+ *  version of the route, or removal entirely if this was an insert) — same
+ *  reasoning as `insertEntryInCache` et al. */
+export function mergeRouteInCache(route: VideoRoute): Rollback | void {
+    if (healIfUnfetched()) return undefined;
+    const before = cachedRoute(route.id);
     queryClient.setQueryData<VideoRoute[]>(qk.routes, prev => {
         if (!prev) return prev;
         const exists = prev.some(r => r.id === route.id);
@@ -32,6 +36,9 @@ export function mergeRouteInCache(route: VideoRoute): void {
             ? prev.map(r => (r.id === route.id ? route : r))
             : [...prev, route];
     });
+    return before
+        ? () => mergeRouteInCache(before)
+        : () => removeRouteFromCache(route.id);
 }
 
 /** Replace-only, for UPDATE broadcasts: after we delete a route locally, a
@@ -43,37 +50,64 @@ function replaceRouteInCache(route: VideoRoute): void {
     );
 }
 
-export function removeRouteFromCache(id: string): void {
-    if (healIfUnfetched()) return;
+export function removeRouteFromCache(id: string): Rollback | void {
+    if (healIfUnfetched()) return undefined;
+    const before = cachedRoute(id);
     queryClient.setQueryData<VideoRoute[]>(qk.routes, prev =>
         prev?.filter(r => r.id !== id),
     );
+    if (!before) return undefined;
+    return () => mergeRouteInCache(before);
 }
 
-/** See `MutationSpec` for why these exist. */
+const routeKeys = () => [qk.routes] as const;
+
+function cachedRoute(id: string): VideoRoute | undefined {
+    return queryClient
+        .getQueryData<VideoRoute[]>(qk.routes)
+        ?.find(r => r.id === id);
+}
+
+/** See `MutationSpec` for why these exist. `routeCreate` is skipped —
+ *  the id is server-assigned, so an optimistic entry would need a
+ *  temp-id → real-id remap on the happy path for no real win. */
 export const routeCreate = defineMutation({
     key: qm.routeCreate,
     run: (api, vars: Omit<VideoRoute, 'id'>) => api.videoRoutes.create(vars),
     patch: mergeRouteInCache,
 });
 
+/** Optimistic merge of `vars.data`; `patch` then reconciles with whatever
+ *  the server actually stored (e.g. defaults it filled in). */
 export const routeUpdate = defineMutation({
     key: qm.routeUpdate,
+    keys: routeKeys,
     run: (api, vars: { id: string; data: Partial<VideoRoute> }) =>
         api.videoRoutes.update(vars.id, vars.data),
+    optimistic: vars => {
+        const current = cachedRoute(vars.id);
+        if (current) return mergeRouteInCache({ ...current, ...vars.data });
+    },
     patch: mergeRouteInCache,
 });
 
 export const routeDelete = defineMutation({
     key: qm.routeDelete,
+    keys: routeKeys,
     run: (api, vars: { id: string }) => api.videoRoutes.delete(vars.id),
-    patch: (_result, vars) => removeRouteFromCache(vars.id),
+    optimistic: vars => removeRouteFromCache(vars.id),
 });
 
 export const routeSetEnabled = defineMutation({
     key: qm.routeSetEnabled,
+    keys: routeKeys,
     run: (api, vars: { id: string; enabled: boolean }) =>
         api.videoRoutes.setEnabled(vars.id, vars.enabled),
+    optimistic: vars => {
+        const current = cachedRoute(vars.id);
+        if (current)
+            return mergeRouteInCache({ ...current, enabled: vars.enabled });
+    },
     patch: mergeRouteInCache,
 });
 

@@ -106,6 +106,13 @@
             "dragToReorder": "Dra för att ordna om",
             "orphanedTooltip": "Det här objektets plugin är inte längre tillgängligt — ta bort det för att städa upp"
         },
+        "errors": {
+            "createFailed": "Det gick inte att lägga till objektet",
+            "updateFailed": "Det gick inte att uppdatera objektet",
+            "deleteFailed": "Det gick inte att ta bort objektet",
+            "reorderFailed": "Det gick inte att ordna om objekten",
+            "renameFailed": "Det gick inte att byta namn på rundown"
+        },
         "deleteEntryDialog": {
             "title": "Ta bort objekt",
             "body": "\"{{title}}\" (typ: {{type}}) kommer att tas bort permanent från rundown."

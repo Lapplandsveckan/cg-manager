@@ -1,5 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { noTryAsync } from 'no-try';
+import { useTranslation } from 'next-i18next';
+import { useToast } from '../../components/ToastProvider';
 import { type ManagerApi } from '../api/api';
 import type { Rundown, RundownItem } from '../api/rundowns';
 import { useSocket } from '../hooks/useSocket';
@@ -7,7 +9,12 @@ import { record, recordBarrier } from '../undo/undoStore';
 import { rundownScope } from '../undo/tools';
 import { queryClient } from './client';
 import { qk, qm } from './keys';
-import { defineMutation, runMutation, useMutationSpec } from './mutations';
+import {
+    defineMutation,
+    runMutation,
+    useMutationSpec,
+    type Rollback,
+} from './mutations';
 import { useWsBroadcast } from './useWsBroadcast';
 
 export type { Rundown, RundownItem };
@@ -63,29 +70,52 @@ export function upsertRundownInCache(rundown: Rundown): void {
 
 /** Renames in the list AND in the per-rundown entries cache, so the open
  *  rundown view and the list can never disagree on the name. Replace-only in
- *  both — a late UPDATE broadcast must not resurrect a deleted rundown. */
-export function renameRundownInCache(id: string, name: string): void {
+ *  both — a late UPDATE broadcast must not resurrect a deleted rundown.
+ *  Returns the `Rollback` to the pre-rename name (from whichever key still
+ *  had it), for the same reason as `insertEntryInCache` et al. */
+export function renameRundownInCache(
+    id: string,
+    name: string,
+): Rollback | void {
+    const beforeList = queryClient
+        .getQueryData<Rundown[]>(qk.rundowns)
+        ?.find(r => r.id === id)?.name;
     if (!healIfUnfetched())
         queryClient.setQueryData<Rundown[]>(qk.rundowns, prev =>
             prev?.map(r => (r.id === id ? { ...r, name } : r)),
         );
 
     const entriesKey = qk.rundownEntries(id);
-    if (queryClient.getQueryData(entriesKey) === undefined) {
+    const beforeEntries = queryClient.getQueryData<Rundown>(entriesKey)?.name;
+    if (beforeEntries === undefined) {
         void queryClient.invalidateQueries({ queryKey: entriesKey });
-        return;
+    } else {
+        queryClient.setQueryData<Rundown>(entriesKey, prev =>
+            prev ? { ...prev, name } : prev,
+        );
     }
-    queryClient.setQueryData<Rundown>(entriesKey, prev =>
-        prev ? { ...prev, name } : prev,
+
+    const before = beforeList ?? beforeEntries;
+    if (before === undefined) return undefined;
+    return () => renameRundownInCache(id, before);
+}
+
+/** List-only removal — the `Rundown` it removed, so a caller (an optimistic
+ *  rollback) can hand it straight to `upsertRundownInCache` to put it back. */
+function removeRundownFromList(id: string): Rundown | undefined {
+    if (healIfUnfetched()) return undefined;
+    const removed = queryClient
+        .getQueryData<Rundown[]>(qk.rundowns)
+        ?.find(r => r.id === id);
+    queryClient.setQueryData<Rundown[]>(qk.rundowns, prev =>
+        prev?.filter(r => r.id !== id),
     );
+    return removed;
 }
 
 export function removeRundownFromCache(id: string): void {
     queryClient.removeQueries({ queryKey: qk.rundownEntries(id) });
-    if (healIfUnfetched()) return;
-    queryClient.setQueryData<Rundown[]>(qk.rundowns, prev =>
-        prev?.filter(r => r.id !== id),
-    );
+    removeRundownFromList(id);
 }
 
 /** Mounted once in QuerySync. The server excludes the originating client from
@@ -111,17 +141,39 @@ export function useRundownsSync(): void {
     });
 }
 
+const rundownKeys = (id: string) =>
+    [qk.rundowns, qk.rundownEntries(id)] as const;
+
+interface RundownRenameVars {
+    id: string;
+    name: string;
+}
+interface RundownDeleteVars {
+    id: string;
+}
+
 /** See `MutationSpec` for why these exist. */
-export const rundownRename = defineMutation({
+export const rundownRename = defineMutation<RundownRenameVars, Rundown>({
     key: qm.rundownRename,
-    run: (api, vars: { id: string; name: string }) =>
-        api.rundowns.rename(vars.id, vars.name),
-    patch: (_result, vars) => renameRundownInCache(vars.id, vars.name),
+    keys: vars => rundownKeys(vars.id),
+    run: (api, vars) => api.rundowns.rename(vars.id, vars.name),
+    optimistic: vars => renameRundownInCache(vars.id, vars.name),
 });
 
-export const rundownDelete = defineMutation({
+export const rundownDelete = defineMutation<RundownDeleteVars, void>({
     key: qm.rundownDelete,
-    run: (api, vars: { id: string }) => api.rundowns.delete(vars.id),
+    keys: vars => rundownKeys(vars.id),
+    run: (api, vars) => api.rundowns.delete(vars.id),
+    // Filter the list only — `removeQueries` on `rundownEntries(id)` has to
+    // wait for `patch` (server-confirmed): with an active observer on that
+    // key (e.g. QuickActions viewing the doomed rundown), removing it
+    // optimistically triggers an immediate refetch that still succeeds
+    // pre-delete and repopulates the cache with nothing left to clean it up.
+    optimistic: vars => {
+        const removed = removeRundownFromList(vars.id);
+        if (!removed) return undefined;
+        return () => upsertRundownInCache(removed);
+    },
     patch: (_result, vars) => removeRundownFromCache(vars.id),
 });
 
@@ -137,9 +189,14 @@ export const rundownCreate = defineMutation({
 /** Create/rename/delete for whole rundowns. `type` selects the quick-action
  *  variants (create path and undo labels); rename/delete are shared. */
 export function useRundownMutations(type: 'rundown' | 'quick') {
+    const { t } = useTranslation('common');
+    const notify = useToast();
     const rename = useMutationSpec(rundownRename);
     const deleteMut = useMutationSpec(rundownDelete);
     const create = useMutationSpec(rundownCreate);
+
+    const notifyFailure = (err: unknown, fallbackKey: string) =>
+        notify((err as Error)?.message ?? t(fallbackKey), 'error');
 
     const updateRundown = async (entry: Rundown) => {
         const rundowns = queryClient.getQueryData<Rundown[]>(qk.rundowns);
@@ -148,7 +205,10 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
         const [err] = await noTryAsync(() =>
             rename.mutateAsync({ id: entry.id, name: entry.name }),
         );
-        if (err) return;
+        if (err) {
+            notifyFailure(err, 'rundown.errors.renameFailed');
+            return;
+        }
 
         if (!before) return;
         record({
@@ -168,7 +228,10 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
         const [err] = await noTryAsync(() =>
             deleteMut.mutateAsync({ id: entry.id }),
         );
-        if (err) return;
+        if (err) {
+            notifyFailure(err, 'rundown.errors.deleteFailed');
+            return;
+        }
 
         recordBarrier({ key: 'rundownDelete', params: { name: entry.name } }, [
             rundownScope(entry.id),

@@ -1,11 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 import { noTryAsync } from 'no-try';
+import { useTranslation } from 'next-i18next';
+import { useToast } from '../../components/ToastProvider';
 import { useSocket } from '../hooks/useSocket';
 import { record } from '../undo/undoStore';
 import { rundownScope } from '../undo/tools';
 import { queryClient } from './client';
 import { qk, qm } from './keys';
-import { defineMutation, runMutation, useMutationSpec } from './mutations';
+import {
+    defineMutation,
+    runMutation,
+    useMutationSpec,
+    type Rollback,
+} from './mutations';
 import { rundownRename, type Rundown, type RundownItem } from './rundowns';
 import { useWsBroadcast } from './useWsBroadcast';
 
@@ -46,6 +53,9 @@ function healIfUnfetched(id: string): boolean {
     return true;
 }
 
+const cachedItems = (id: string): RundownEntry[] =>
+    queryClient.getQueryData<Rundown>(qk.rundownEntries(id))?.items ?? [];
+
 function patchItems(
     id: string,
     update: (items: RundownEntry[]) => RundownEntry[],
@@ -65,17 +75,22 @@ function patchItems(
     );
 }
 
+/** Every cache-patch function below returns the `Rollback` that undoes
+ *  exactly what it just did, scoped to the one item/order it touched (not
+ *  a whole-key snapshot) — so two of these in flight at once on the same
+ *  rundown roll back independently instead of clobbering each other. */
 export function insertEntryInCache(
     id: string,
     entry: RundownEntry,
     index?: number,
-): void {
+): Rollback {
     patchItems(id, items => {
         if (typeof index !== 'number') return [...items, entry];
         const next = [...items];
         next.splice(Math.max(0, Math.min(next.length, index)), 0, entry);
         return next;
     });
+    return () => removeEntryFromCache(id, entry.id);
 }
 
 /** Replace-only, single entry or array batch: after an entry is deleted
@@ -83,55 +98,97 @@ export function insertEntryInCache(
 export function updateEntriesInCache(
     id: string,
     entry: RundownEntry | RundownEntry[],
-): void {
+): Rollback | void {
     if (Array.isArray(entry)) {
+        const before = cachedItems(id);
+        const beforeById = new Map(before.map(item => [item.id, item]));
         const updates = new Map(entry.map(item => [item.id, item]));
         patchItems(id, items =>
             items.map(item => updates.get(item.id) ?? item),
         );
-        return;
+        return () => {
+            const prevEntries = entry
+                .map(item => beforeById.get(item.id))
+                .filter((item): item is RundownEntry => !!item);
+            if (prevEntries.length) updateEntriesInCache(id, prevEntries);
+        };
     }
+    const before = cachedItems(id).find(item => item.id === entry.id);
     patchItems(id, items =>
         items.map(item => (item.id === entry.id ? entry : item)),
     );
+    if (!before) return undefined;
+    return () => updateEntriesInCache(id, before);
 }
 
-export function removeEntryFromCache(id: string, entryId: string): void {
+export function removeEntryFromCache(
+    id: string,
+    entryId: string,
+): Rollback | void {
+    const before = cachedItems(id).find(item => item.id === entryId);
+    const index = cachedItems(id).findIndex(item => item.id === entryId);
     patchItems(id, items => items.filter(item => item.id !== entryId));
+    if (!before) return undefined;
+    return () => insertEntryInCache(id, before, index);
 }
 
-export function reorderEntriesInCache(id: string, order: string[]): void {
+export function reorderEntriesInCache(id: string, order: string[]): Rollback {
+    const before = cachedItems(id).map(item => item.id);
     patchItems(id, items => reorderById(items, order));
+    return () => reorderEntriesInCache(id, before);
 }
 
-/** See `MutationSpec` for why these exist. */
-export const entryCreate = defineMutation({
+const entryKeys = (id: string) => [qk.rundowns, qk.rundownEntries(id)] as const;
+
+interface EntryCreateVars {
+    id: string;
+    entry: RundownEntry;
+    index?: number;
+}
+interface EntryUpdateVars {
+    id: string;
+    entry: RundownEntry;
+}
+interface EntryDeleteVars {
+    id: string;
+    entryId: string;
+}
+interface EntriesReorderVars {
+    id: string;
+    order: string[];
+}
+
+/** See `MutationSpec` for why these exist. `optimistic` applies the same
+ *  cache patch as the old `patch` did, just before the request instead of
+ *  after — entry ids are client-generated, so nothing here waits on the
+ *  server. */
+export const entryCreate = defineMutation<EntryCreateVars, void>({
     key: qm.entryCreate,
-    run: (api, vars: { id: string; entry: RundownEntry; index?: number }) =>
+    keys: vars => entryKeys(vars.id),
+    run: (api, vars) =>
         api.rundowns.createEntry(vars.id, vars.entry, vars.index),
-    patch: (_result, vars) =>
-        insertEntryInCache(vars.id, vars.entry, vars.index),
+    optimistic: vars => insertEntryInCache(vars.id, vars.entry, vars.index),
 });
 
-export const entryUpdate = defineMutation({
+export const entryUpdate = defineMutation<EntryUpdateVars, void>({
     key: qm.entryUpdate,
-    run: (api, vars: { id: string; entry: RundownEntry }) =>
-        api.rundowns.updateEntry(vars.id, vars.entry),
-    patch: (_result, vars) => updateEntriesInCache(vars.id, vars.entry),
+    keys: vars => entryKeys(vars.id),
+    run: (api, vars) => api.rundowns.updateEntry(vars.id, vars.entry),
+    optimistic: vars => updateEntriesInCache(vars.id, vars.entry),
 });
 
-export const entryDelete = defineMutation({
+export const entryDelete = defineMutation<EntryDeleteVars, void>({
     key: qm.entryDelete,
-    run: (api, vars: { id: string; entryId: string }) =>
-        api.rundowns.deleteEntry(vars.id, vars.entryId),
-    patch: (_result, vars) => removeEntryFromCache(vars.id, vars.entryId),
+    keys: vars => entryKeys(vars.id),
+    run: (api, vars) => api.rundowns.deleteEntry(vars.id, vars.entryId),
+    optimistic: vars => removeEntryFromCache(vars.id, vars.entryId),
 });
 
-export const entriesReorder = defineMutation({
+export const entriesReorder = defineMutation<EntriesReorderVars, void>({
     key: qm.entriesReorder,
-    run: (api, vars: { id: string; order: string[] }) =>
-        api.rundowns.reorderEntries(vars.id, vars.order),
-    patch: (_result, vars) => reorderEntriesInCache(vars.id, vars.order),
+    keys: vars => entryKeys(vars.id),
+    run: (api, vars) => api.rundowns.reorderEntries(vars.id, vars.order),
+    optimistic: vars => reorderEntriesInCache(vars.id, vars.order),
 });
 
 /** Mounted once in QuerySync — global listeners addressed per rundown key, so
@@ -172,13 +229,12 @@ export function useRundownEntriesSync(): void {
     });
 }
 
-const cachedItems = (id: string): RundownEntry[] =>
-    queryClient.getQueryData<Rundown>(qk.rundownEntries(id))?.items ?? [];
-
 /** Entry-level data + mutations for one rundown. Undo `apply` closures write
  *  through the queryClient singleton addressed by rundown id, so they stay
  *  correct after unmount or after the view switches to another rundown. */
 export function useRundownEntries(rundownId: string | null | undefined) {
+    const { t } = useTranslation('common');
+    const notify = useToast();
     const { data } = useRundownEntriesQuery(rundownId);
     const create = useMutationSpec(entryCreate);
     const update = useMutationSpec(entryUpdate);
@@ -189,6 +245,9 @@ export function useRundownEntries(rundownId: string | null | undefined) {
     const name = data?.name ?? '';
     const entries = data?.items ?? [];
 
+    const notifyFailure = (err: unknown, fallbackKey: string) =>
+        notify((err as Error)?.message ?? t(fallbackKey), 'error');
+
     const createEntry = async (entry: RundownEntry, index?: number) => {
         if (!rundownId) return;
         const id = rundownId;
@@ -197,7 +256,10 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const [err] = await noTryAsync(() =>
             create.mutateAsync({ id, entry, index }),
         );
-        if (err) return;
+        if (err) {
+            notifyFailure(err, 'rundown.errors.createFailed');
+            return;
+        }
 
         record<RundownEntry | null>({
             label: { key: 'entryCreate', params: { title: entry.title } },
@@ -224,7 +286,10 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const before = cachedItems(id).find(v => v.id === entry.id);
 
         const [err] = await noTryAsync(() => update.mutateAsync({ id, entry }));
-        if (err) return;
+        if (err) {
+            notifyFailure(err, 'rundown.errors.updateFailed');
+            return;
+        }
         if (!before) return;
 
         record({
@@ -245,7 +310,10 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const [err] = await noTryAsync(() =>
             deleteMut.mutateAsync({ id, entryId: entry.id }),
         );
-        if (err) return;
+        if (err) {
+            notifyFailure(err, 'rundown.errors.deleteFailed');
+            return;
+        }
         if (index < 0) return;
 
         record<RundownEntry | null>({
@@ -279,7 +347,10 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const [err] = await noTryAsync(() =>
             rename.mutateAsync({ id, name: trimmed }),
         );
-        if (err) return;
+        if (err) {
+            notifyFailure(err, 'rundown.errors.renameFailed');
+            return;
+        }
 
         record({
             label: { key: 'rundownRename', params: { name: trimmed } },
@@ -306,7 +377,10 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const [err] = await noTryAsync(() =>
             reorder.mutateAsync({ id, order: after }),
         );
-        if (err) return;
+        if (err) {
+            notifyFailure(err, 'rundown.errors.reorderFailed');
+            return;
+        }
 
         record({
             label: { key: 'reorder' },
