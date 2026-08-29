@@ -2,26 +2,16 @@
  * Licenced under Eliyah Enterprises Ltd Inc.
  * All credit goes to Eliyah.
  */
-import { REPClient } from 'rest-exchange-protocol-client';
 import { CasparServerApi } from './caspar';
 import { PluginInjectionAPI } from './inject';
 import { PluginApi } from './plugin';
+import { CheckedRepClient } from './repClient';
 import { VideoRoutesApi } from './videoRoutes';
 
-/** The REP websocket transport resolves every reply, success or failure —
- *  it never rejects the request promise. A failed request comes back as
- *  `{status, error}` instead of `{status: 200, data}`. Carries `.status`
- *  so callers can branch on the code (e.g. a 409 "folder not empty"). */
-export class RequestError extends Error {
-    status: number;
-    constructor(message: string, status: number) {
-        super(message);
-        this.status = status;
-    }
-}
+export { RequestError } from './repClient';
 
 export class ManagerApi {
-    private socket: REPClient;
+    private socket: CheckedRepClient;
 
     public caspar: CasparServerApi;
     public injects: PluginInjectionAPI;
@@ -49,7 +39,7 @@ export class ManagerApi {
     constructor(host: string) {
         ManagerApi.instance = this;
 
-        this.socket = new REPClient({
+        this.socket = new CheckedRepClient({
             host,
         });
 
@@ -64,10 +54,7 @@ export class ManagerApi {
     }
 
     public async rawRequest<T>(path: string, method: string, data: T) {
-        const res = await this.socket.request(path, method, data);
-        if (res && typeof res.status === 'number' && res.status >= 400)
-            throw new RequestError(res.error ?? 'Request failed', res.status);
-        return res;
+        return this.socket.request(path, method, data);
     }
 
     public async connect() {

@@ -15,4 +15,5 @@ export const qk = {
     casparRunningConfig: ['caspar', 'running-config'] as const,
     capabilities: ['caspar', 'capabilities'] as const,
     plugins: ['plugins'] as const,
+    version: ['version'] as const,
 };
