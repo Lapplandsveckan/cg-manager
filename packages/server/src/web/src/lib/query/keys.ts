@@ -15,6 +15,7 @@ export const qk = {
     casparRunningConfig: ['caspar', 'running-config'] as const,
     capabilities: ['caspar', 'capabilities'] as const,
     plugins: ['plugins'] as const,
+    pluginInjections: ['plugin-injections'] as const,
     version: ['version'] as const,
 };
 
@@ -35,5 +36,9 @@ export const qm = {
     entryDelete: ['rundown-entry', 'delete'] as const,
     entriesReorder: ['rundown-entry', 'reorder'] as const,
     casparConfigUpdate: ['caspar', 'config', 'update'] as const,
+    pluginSetEnabled: ['plugin', 'setEnabled'] as const,
+    pluginUninstall: ['plugin', 'uninstall'] as const,
+    pluginSetVersion: ['plugin', 'setVersion'] as const,
+    pluginDeleteVersion: ['plugin', 'deleteVersion'] as const,
     undo: ['undo'] as const,
 };

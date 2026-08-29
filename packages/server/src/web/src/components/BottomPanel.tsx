@@ -16,10 +16,10 @@ import { useStoredBoolean } from '../lib/hooks/useStoredBoolean';
 import { useStoredNumber } from '../lib/hooks/useStoredNumber';
 import { useStoredString } from '../lib/hooks/useStoredString';
 import {
-    type Injection,
     Injection as InjectionView,
     UI_INJECTION_ZONE,
 } from '../lib/api/inject';
+import { useInjectionsByZone } from '../lib/query/pluginInjections';
 
 const DEFAULT_HEIGHT = 280;
 const MIN_HEIGHT = 160;
@@ -114,7 +114,9 @@ const VerticalResizeHandle: React.FC<ResizeProps> = ({
 export const BottomPanel: React.FC = () => {
     const { t } = useTranslation('common');
     const socket = useSocket();
-    const [injections, setInjections] = useState<Injection[] | null>(null);
+    const injections = useInjectionsByZone(
+        UI_INJECTION_ZONE.RUNDOWN_BOTTOM_PANEL,
+    );
 
     const [height, setHeight] = useStoredNumber(
         HEIGHT_KEY,
@@ -125,32 +127,17 @@ export const BottomPanel: React.FC = () => {
 
     const [activeId, setActiveId] = useStoredString(ACTIVE_TAB_KEY, null);
 
-    useEffect(() => {
-        if (!socket) return;
-        let mounted = true;
-        socket.injects
-            .getInjectsByZone(UI_INJECTION_ZONE.RUNDOWN_BOTTOM_PANEL)
-            .then(list => {
-                if (mounted) setInjections(list);
-            })
-            .catch(() => {
-                if (mounted) setInjections([]);
-            });
-        return () => {
-            mounted = false;
-        };
-    }, [socket]);
-
     // One tab per injection. The label is either the zone suffix after the first
     // dot (the per-tab convention), or the plugin name for legacy bare-zone registrations.
-    const tabs = useMemo(() => {
-        if (!injections) return [];
-        return injections.map(inj => {
-            const dot = inj.zone.indexOf('.');
-            const label = dot === -1 ? inj.plugin : inj.zone.slice(dot + 1);
-            return { id: inj.id, label };
-        });
-    }, [injections]);
+    const tabs = useMemo(
+        () =>
+            injections.map(inj => {
+                const dot = inj.zone.indexOf('.');
+                const label = dot === -1 ? inj.plugin : inj.zone.slice(dot + 1);
+                return { id: inj.id, label };
+            }),
+        [injections],
+    );
 
     useEffect(() => {
         if (tabs.length === 0) {
@@ -167,16 +154,15 @@ export const BottomPanel: React.FC = () => {
     // addResourceBundle side-effects. Wait for all to settle before rendering
     // labels to avoid flashing raw i18n keys.
     useEffect(() => {
-        if (!socket || tabs.length === 0) return;
+        if (tabs.length === 0) return;
         setBundlesReady(false);
         Promise.all(
             tabs.map(tab => socket.injects.import(tab.id).catch(() => {})),
         ).then(() => setBundlesReady(true));
     }, [tabs, socket]);
 
-    // While injections are still loading, render nothing. Once we know there
-    // are zero contributions, also render nothing — no plugins = no panel.
-    if (!injections || tabs.length === 0) return null;
+    // No plugin contributions (yet, or ever) — no panel.
+    if (tabs.length === 0) return null;
 
     return (
         <Stack

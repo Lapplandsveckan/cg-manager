@@ -5,7 +5,6 @@ import { noTryAsync } from 'no-try';
 import { useTranslation } from 'next-i18next';
 import { useSocket } from '../../lib/hooks/useSocket';
 import { DefaultContentLayout } from '../../components/DefaultContentLayout';
-import { type Plugin } from '../../lib/api/plugin';
 import { UI_INJECTION_ZONE } from '../../lib/api/inject';
 import {
     Dropzone,
@@ -16,11 +15,12 @@ import {
 import { PluginCard } from '../../components/PluginCard';
 import { PluginModals } from '../../components/PluginModals';
 import { useToast } from '../../components/ToastProvider';
-import { useLatest } from '../../lib/hooks/useLatest';
 import {
     setCasparConfigInCache,
     useCasparConfigQuery,
 } from '../../lib/query/caspar';
+import { usePluginMutations, usePluginsQuery } from '../../lib/query/plugins';
+import { useInjectionsForZone } from '../../lib/query/pluginInjections';
 
 interface ChannelInfo {
     name: string;
@@ -34,12 +34,15 @@ const Page = () => {
     const router = useRouter();
     const notify = useToast();
 
-    const [plugins, setPlugins] = useState<Plugin[] | null>(null);
-    const [pluginsWithUi, setPluginsWithUi] = useState<Set<string>>(new Set());
+    const { data: plugins, error } = usePluginsQuery();
+    const pluginInjections = useInjectionsForZone(
+        UI_INJECTION_ZONE.PLUGIN_PAGE,
+    );
+    const pluginsWithUi = new Set(pluginInjections.map(i => i.plugin));
+    const { setEnabled, uninstall, setActiveVersion, deleteVersion } =
+        usePluginMutations();
     const { data: config } = useCasparConfigQuery();
-    const configRef = useLatest(config);
     const channelCount = config?.channels.length ?? 0;
-    const [error, setError] = useState<string | null>(null);
     const [uninstalling, setUninstalling] = useState<string | null>(null);
     const [deletingVersion, setDeletingVersion] = useState<{
         name: string;
@@ -55,110 +58,48 @@ const Page = () => {
     const [showRestartPrompt, setShowRestartPrompt] = useState(false);
     const [addingChannels, setAddingChannels] = useState(false);
     const [restarting, setRestarting] = useState(false);
-    const prevPluginNamesRef = useRef<Set<string>>(new Set());
+    const prevPluginNamesRef = useRef<Set<string> | null>(null);
 
     const uploadCtrl = useFileUpload({
         createUpload: file => socket.plugin.uploadPlugin(file),
     });
 
+    // Detect newly installed plugins that need more channels than available,
+    // by diffing consecutive broadcast payloads against the previous list.
+    // Skip the check while the config hasn't resolved: a count of 0 would
+    // prompt for every plugin with a channel requirement.
     useEffect(() => {
-        if (!socket) return;
-        let mounted = true;
-
-        Promise.all([
-            socket.plugin.getPlugins(),
-            socket.injects.getInjects(UI_INJECTION_ZONE.PLUGIN_PAGE),
-        ])
-            .then(([list, injects]) => {
-                if (!mounted) return;
-                setPlugins(list);
-                setPluginsWithUi(new Set(injects.map(i => i.plugin)));
-                prevPluginNamesRef.current = new Set(list.map(p => p.name));
-            })
-            .catch(
-                e =>
-                    mounted &&
-                    setError(e?.message ?? t('pluginsPage.loadError')),
-            );
-
-        // Live updates pushed from the server after install / uninstall /
-        // enable / disable. Re-resolve the UI-injection set too so a freshly
-        // installed plugin gets its config affordance without a reload.
-        const onPluginChange = (list: Plugin[]) => {
-            if (!mounted) return;
-            // Detect newly installed plugins that need more channels than
-            // available. The count comes from the config query, which
-            // useCasparSync keeps fresh — no refetch needed. Skip the check
-            // while the query hasn't resolved: a count of 0 would prompt
-            // for every plugin with a channel requirement.
-            const cfg = configRef.current;
-            const currentCount = cfg?.channels.length;
-            const prev = prevPluginNamesRef.current;
-            if (currentCount !== undefined) {
-                for (const p of list) {
-                    if (
-                        !prev.has(p.name) &&
-                        p.minChannels > 0 &&
-                        p.minChannels > currentCount
-                    ) {
-                        setChannelPrompt({
-                            name: p.name,
-                            need: p.minChannels,
-                            have: currentCount,
-                        });
-                        break;
-                    }
+        if (!plugins) return;
+        const prev = prevPluginNamesRef.current;
+        const currentCount = config?.channels.length;
+        if (prev && currentCount !== undefined) {
+            for (const p of plugins) {
+                if (
+                    !prev.has(p.name) &&
+                    p.minChannels > 0 &&
+                    p.minChannels > currentCount
+                ) {
+                    setChannelPrompt({
+                        name: p.name,
+                        need: p.minChannels,
+                        have: currentCount,
+                    });
+                    break;
                 }
             }
-            prevPluginNamesRef.current = new Set(list.map(p => p.name));
-            setPlugins(list);
-            socket.injects
-                .getInjects(UI_INJECTION_ZONE.PLUGIN_PAGE)
-                .then(injects => {
-                    if (mounted)
-                        setPluginsWithUi(new Set(injects.map(i => i.plugin)));
-                })
-                .catch(() => {});
-        };
-        socket.plugin.on('change', onPluginChange);
+        }
+        prevPluginNamesRef.current = new Set(plugins.map(p => p.name));
+    }, [plugins, config]);
 
-        return () => {
-            mounted = false;
-            socket.plugin.off('change', onPluginChange);
-        };
-    }, [socket]);
-
+    const setEnabledAsync = setEnabled.mutateAsync;
     const applyToggle = useCallback(
         async (name: string, next: boolean) => {
-            if (!socket) return;
-            setPlugins(
-                prev =>
-                    prev?.map(p =>
-                        p.name === name ? { ...p, enabled: next } : p,
-                    ) ?? prev,
+            const [err] = await noTryAsync(() =>
+                setEnabledAsync({ name, enabled: next }),
             );
-            const [err, confirmed] = await noTryAsync(async () =>
-                socket.plugin.setEnabled(name, next),
-            );
-            if (err) {
-                setPlugins(
-                    prev =>
-                        prev?.map(p =>
-                            p.name === name ? { ...p, enabled: !next } : p,
-                        ) ?? prev,
-                );
-                notify(t('pluginsPage.toggle.error'), 'error');
-                return;
-            }
-            const settled = typeof confirmed === 'boolean' ? confirmed : next;
-            setPlugins(
-                prev =>
-                    prev?.map(p =>
-                        p.name === name ? { ...p, enabled: settled } : p,
-                    ) ?? prev,
-            );
+            if (err) notify(t('pluginsPage.toggle.error'), 'error');
         },
-        [socket],
+        [setEnabledAsync, notify, t],
     );
 
     const togglePlugin = useCallback(
@@ -182,7 +123,6 @@ const Page = () => {
     );
 
     const addChannels = async (need: number) => {
-        if (!socket) return;
         setAddingChannels(true);
         // Fetch fresh rather than trusting the cache — this is a mutation
         // pre-read and another client may have just saved.
@@ -226,26 +166,18 @@ const Page = () => {
         setShowRestartPrompt(true);
     };
 
+    const setActiveVersionAsync = setActiveVersion.mutateAsync;
     const selectVersion = useCallback(
         async (name: string, version: string) => {
-            if (!socket) return;
-            const [err, updated] = await noTryAsync(() =>
-                socket.plugin.setActiveVersion(name, version),
+            // The `plugins` broadcast reconciles the cache either way — no
+            // patch needed here, including the case where the version bump
+            // renamed the plugin's pluginName.
+            const [err] = await noTryAsync(() =>
+                setActiveVersionAsync({ name, version }),
             );
-            if (err) {
-                notify(t('pluginsPage.versions.switchError'), 'error');
-                return;
-            }
-            // `updated` can be null if the version bump renamed the plugin's
-            // pluginName (server looks it up by the old name). Skip the
-            // optimistic patch in that case — the `plugins` broadcast reconciles.
-            if (updated)
-                setPlugins(
-                    prev =>
-                        prev?.map(p => (p.name === name ? updated : p)) ?? prev,
-                );
+            if (err) notify(t('pluginsPage.versions.switchError'), 'error');
         },
-        [socket],
+        [setActiveVersionAsync, notify, t],
     );
 
     const requestDeleteVersion = useCallback(
@@ -261,37 +193,37 @@ const Page = () => {
     );
 
     const confirmDeleteVersion = async () => {
-        if (!deletingVersion || !socket) return;
+        if (!deletingVersion) return;
         const { name, version } = deletingVersion;
         setDeletingVersion(null);
         const [err] = await noTryAsync(() =>
-            socket.plugin.deleteVersion(name, version),
+            deleteVersion.mutateAsync({ name, version }),
         );
         if (err) notify(t('pluginsPage.versions.deleteError'), 'error');
-        // The server-pushed `plugins` broadcast (onPluginChange) refreshes
-        // the list — including dropping the plugin entirely if this was its
-        // last version.
+        // The server-pushed `plugins` broadcast refreshes the list —
+        // including dropping the plugin entirely if this was its last version.
     };
 
     const confirmUninstall = async () => {
-        if (!uninstalling || !socket) return;
+        if (!uninstalling) return;
         const name = uninstalling;
         setUninstalling(null);
-        const [err] = await noTryAsync(() => socket.plugin.uninstall(name));
-        if (err) {
-            notify(err.message ?? t('pluginsPage.uninstall.error'), 'error');
-        } else {
-            setPlugins(prev => prev?.filter(p => p.name !== name) ?? prev);
-            notify(t('pluginsPage.uninstall.success'), 'success');
-        }
+        const [err] = await noTryAsync(() => uninstall.mutateAsync(name));
+        if (err)
+            notify(err.message || t('pluginsPage.uninstall.error'), 'error');
+        else notify(t('pluginsPage.uninstall.success'), 'success');
     };
 
     const handleRestart = useCallback(async () => {
         setRestarting(true);
-        await noTryAsync(() => socket!.caspar.restart());
+        await noTryAsync(() => socket.caspar.restart());
         setRestarting(false);
         setShowRestartPrompt(false);
     }, [socket]);
+
+    const errorMessage = error
+        ? error.message || t('pluginsPage.loadError')
+        : null;
 
     return (
         <DefaultContentLayout>
@@ -338,7 +270,7 @@ const Page = () => {
                     />
                 </Stack>
 
-                {error && (
+                {errorMessage && (
                     <Card
                         sx={theme => ({
                             p: 2,
@@ -347,12 +279,12 @@ const Page = () => {
                         })}
                     >
                         <Typography variant="body1" color="error">
-                            {error}
+                            {errorMessage}
                         </Typography>
                     </Card>
                 )}
 
-                {plugins === null && !error && (
+                {plugins === undefined && !errorMessage && (
                     <Typography
                         variant="body2"
                         sx={{ color: 'text.secondary' }}

@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import { type CheckedRepClient } from './repClient';
 import { getChunkCount } from './upload';
 
@@ -17,38 +16,16 @@ export interface Plugin {
     versions?: string[];
 }
 
-export class PluginApi extends EventEmitter {
+export class PluginApi {
     private socket: CheckedRepClient;
-    private plugins = [] as Plugin[];
 
     constructor(socket: CheckedRepClient) {
-        super();
         this.socket = socket;
-
-        // Listen for server-pushed plugin list updates (install / uninstall /
-        // enable / disable). Replace the local cache and notify listeners.
-        socket.routes.register({
-            path: 'plugins',
-            method: 'ACTION',
-            handler: request => {
-                const list = request.getData() as Plugin[];
-                if (Array.isArray(list)) {
-                    this.plugins = list;
-                    this.emit('change', list);
-                }
-            },
-        });
     }
 
     public async getPlugins(): Promise<Plugin[]> {
         const res = await this.socket.request('api/plugins', 'GET', {});
-        this.plugins = res.data as Plugin[];
-        return this.plugins;
-    }
-
-    /** Force a fresh fetch and update the local cache. */
-    public async refresh(): Promise<Plugin[]> {
-        return this.getPlugins();
+        return res.data as Plugin[];
     }
 
     public async setEnabled(name: string, enabled: boolean): Promise<boolean> {

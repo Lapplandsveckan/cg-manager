@@ -9,7 +9,8 @@ import ExtensionIcon from '@mui/icons-material/Extension';
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
 import { useSocket } from '../../lib/hooks/useSocket';
-import { UI_INJECTION_ZONE, type Injection } from '../../lib/api/inject';
+import { UI_INJECTION_ZONE } from '../../lib/api/inject';
+import { useInjectionsByZone } from '../../lib/query/pluginInjections';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type NavIcon = OverridableComponent<SvgIconTypeMap<{}, 'svg'>>;
@@ -43,54 +44,46 @@ function zoneSuffix(zone: string): string | null {
 // page-key / plugin name and a default icon.
 export function usePluginNavItems(): NavItem[] {
     const socket = useSocket();
+    const injections = useInjectionsByZone(UI_INJECTION_ZONE.NAVBAR_PAGE);
+    const ids = injections.map(i => i.id).join(',');
     const [items, setItems] = useState<NavItem[]>([]);
 
     useEffect(() => {
-        if (!socket) return;
         let mounted = true;
 
-        const resolve = async () => {
-            const injections = await socket.injects
-                .getInjectsByZone(UI_INJECTION_ZONE.NAVBAR_PAGE)
-                .catch(() => [] as Injection[]);
-            if (!mounted) return;
+        Promise.all(
+            injections.map(async inj => {
+                const pageKey = zoneSuffix(inj.zone);
+                const meta = await socket.injects
+                    .meta(inj.id)
+                    .catch(() => null);
+                const href = pageKey
+                    ? `/ext/${inj.plugin}/${pageKey}`
+                    : `/ext/${inj.plugin}`;
 
-            const resolved = await Promise.all(
-                injections.map(async inj => {
-                    const pageKey = zoneSuffix(inj.zone);
-                    const meta = await socket.injects
-                        .meta(inj.id)
-                        .catch(() => null);
-                    const href = pageKey
-                        ? `/ext/${inj.plugin}/${pageKey}`
-                        : `/ext/${inj.plugin}`;
-
-                    return {
-                        href,
-                        labelKey: meta?.label ?? pageKey ?? inj.plugin,
-                        icon: (meta?.icon ?? ExtensionIcon) as NavIcon,
-                        match: (_path: string, query: ParsedUrlQuery) => {
-                            if (query.plugin !== inj.plugin) return false;
-                            const slug = query.slug;
-                            const activeKey = Array.isArray(slug)
-                                ? (slug[0] ?? null)
-                                : null;
-                            return activeKey === pageKey;
-                        },
-                    } satisfies NavItem;
-                }),
-            );
-
+                return {
+                    href,
+                    labelKey: meta?.label ?? pageKey ?? inj.plugin,
+                    icon: (meta?.icon ?? ExtensionIcon) as NavIcon,
+                    match: (_path: string, query: ParsedUrlQuery) => {
+                        if (query.plugin !== inj.plugin) return false;
+                        const slug = query.slug;
+                        const activeKey = Array.isArray(slug)
+                            ? (slug[0] ?? null)
+                            : null;
+                        return activeKey === pageKey;
+                    },
+                } satisfies NavItem;
+            }),
+        ).then(resolved => {
             if (mounted) setItems(resolved);
-        };
+        });
 
-        resolve();
-        socket.injects.on('change', resolve);
         return () => {
             mounted = false;
-            socket.injects.off('change', resolve);
         };
-    }, [socket]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [socket, ids]);
 
     return items;
 }

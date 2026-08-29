@@ -1,4 +1,3 @@
-import EventEmitter from 'events';
 import React, {
     type ComponentType,
     createElement,
@@ -12,6 +11,11 @@ import { useSocket } from '../hooks/useSocket';
 import * as weblib from '../';
 import i18n from '../i18n';
 import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
+import {
+    useInjectedComponents,
+    useInjectionsForZone,
+    usePluginInjectionsQuery,
+} from '../query/pluginInjections';
 import { type CheckedRepClient } from './repClient';
 
 if (typeof window !== 'undefined') {
@@ -71,42 +75,17 @@ export interface Injection {
     id: string;
 }
 
-export class PluginInjectionAPI extends EventEmitter {
+export class PluginInjectionAPI {
     private _modules = new Map<string, any | Promise<any>>();
-    private _plugins = new Map<string, Injection>();
-    private _pluginPromise: Promise<Map<string, Injection>>;
     private socket: CheckedRepClient;
 
     constructor(socket: CheckedRepClient) {
-        super();
         this.socket = socket;
-
-        this._pluginPromise = this.requestPlugins();
-        this._pluginPromise
-            .then(() => (this._pluginPromise = null))
-            .catch(e => console.error('Failed to get plugins', e));
     }
 
-    public refresh() {
-        this._pluginPromise = this.requestPlugins();
-        this._pluginPromise
-            .then(() => {
-                this._pluginPromise = null;
-                this.emit('change');
-            })
-            .catch(e =>
-                console.error('Failed to refresh plugin injections', e),
-            );
-    }
-
-    private async requestPlugins() {
+    public async list(): Promise<Injection[]> {
         const res = await this.socket.request('api/plugins/inject', 'GET', {});
-        this._plugins.clear();
-
-        const plugins = res.data as Injection[];
-        for (const plugin of plugins) this._plugins.set(plugin.id, plugin);
-
-        return this._plugins;
+        return res.data as Injection[];
     }
 
     private async _importModule(id: string) {
@@ -156,40 +135,6 @@ export class PluginInjectionAPI extends EventEmitter {
         const module = await this.moduleOf(id);
         return module?.meta ?? null;
     }
-
-    public async getInjects(
-        zone: UI_INJECTION_ZONE_KEY,
-        plugin: string | null = null,
-    ): Promise<Injection[]> {
-        await this._pluginPromise;
-        return Array.from(this._plugins.values()).filter(
-            p => p.zone === zone && (!plugin || p.plugin === plugin),
-        );
-    }
-
-    // Returns all injections whose zone exactly equals baseZone OR whose zone
-    // starts with `${baseZone}.` (the per-tab dotted-subzone convention).
-    public async getInjectsByZone(
-        baseZone: UI_INJECTION_ZONE_KEY,
-    ): Promise<Injection[]> {
-        await this._pluginPromise;
-        const prefix = `${baseZone}.`;
-        return Array.from(this._plugins.values()).filter(
-            p => p.zone === baseZone || p.zone.startsWith(prefix),
-        );
-    }
-
-    public async inject(
-        zone: UI_INJECTION_ZONE_KEY,
-        plugin: string | null = null,
-    ) {
-        const injects = await this.getInjects(zone, plugin);
-        return await Promise.all(
-            injects.map(i =>
-                this.import(i.id).then(component => ({ id: i.id, component })),
-            ),
-        );
-    }
 }
 
 interface InjectionProps {
@@ -205,15 +150,9 @@ export const Injection: React.FC<InjectionProps> = ({ id, props }) => {
 
     useEffect(() => {
         let mounted = true;
-        const resolve = () =>
-            socket.injects
-                .import(id)
-                .then(c => mounted && setComponent(() => c));
-        resolve();
-        socket.injects.on('change', resolve);
+        socket.injects.import(id).then(c => mounted && setComponent(() => c));
         return () => {
             mounted = false;
-            socket.injects.off('change', resolve);
         };
     }, [id, socket]);
 
@@ -239,34 +178,12 @@ export const Injections: React.FC<InjectionsProps> = ({
     props,
     fallback,
 }) => {
-    const [components, setComponents] = useState<
-        { id: string; component: ComponentType }[]
-    >([]);
-    const [loaded, setLoaded] = useState(false);
-    const socket = useSocket();
-
-    useEffect(() => {
-        let mounted = true;
-
-        setLoaded(false);
-        setComponents([]);
-
-        const resolve = () => {
-            socket.injects.inject(zone, plugin).then(components => {
-                if (!mounted) return;
-                setComponents(components);
-                setLoaded(true);
-            });
-        };
-
-        resolve();
-        socket.injects.on('change', resolve);
-
-        return () => {
-            mounted = false;
-            socket.injects.off('change', resolve);
-        };
-    }, [zone, plugin]);
+    const { isPending: injectionsPending } = usePluginInjectionsQuery();
+    const injections = useInjectionsForZone(zone, plugin ?? null);
+    const { components, loaded } = useInjectedComponents(
+        injections,
+        injectionsPending,
+    );
 
     if (loaded && components.length === 0 && fallback) {
         return createElement(

@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
     Box,
     Button,
@@ -12,11 +12,15 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { noTryAsync } from 'no-try';
 import { useTranslation } from 'next-i18next';
-import { type Plugin } from '../../../../lib/api/plugin';
 import { Injections, UI_INJECTION_ZONE } from '../../../../lib/api/inject';
-import { useSocket } from '../../../../lib';
 import { DefaultContentLayout } from '../../../../components/DefaultContentLayout';
 import { useToast } from '../../../../components/ToastProvider';
+import {
+    usePluginMutations,
+    usePluginQuery,
+    usePluginsQuery,
+} from '../../../../lib/query/plugins';
+import { useInjectionsForZone } from '../../../../lib/query/pluginInjections';
 
 const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
     const { t } = useTranslation('common');
@@ -59,54 +63,33 @@ const StatusPill: React.FC<{ enabled: boolean }> = ({ enabled }) => {
 const Page = () => {
     const { t } = useTranslation('common');
     const router = useRouter();
-    const socket = useSocket();
     const notify = useToast();
     const { id, slug } = router.query;
     const pluginId = typeof id === 'string' ? id : undefined;
 
-    const [plugin, setPlugin] = useState<Plugin | null | undefined>(undefined);
-    const [hasUi, setHasUi] = useState(false);
+    const { error } = usePluginsQuery();
+    const plugin = usePluginQuery(pluginId);
+    const injections = useInjectionsForZone(
+        UI_INJECTION_ZONE.PLUGIN_PAGE,
+        pluginId ?? null,
+    );
+    const hasUi = injections.length > 0;
+    const { setEnabled } = usePluginMutations();
 
     useEffect(() => {
-        if (!socket || !pluginId) return;
-        let mounted = true;
+        if (error) notify(error.message || t('pluginsPage.loadError'), 'error');
+    }, [error, notify, t]);
 
-        Promise.all([
-            socket.plugin.getPlugins(),
-            socket.injects.getInjects(UI_INJECTION_ZONE.PLUGIN_PAGE, pluginId),
-        ])
-            .then(([plugins, injects]) => {
-                if (!mounted) return;
-                setPlugin(plugins.find(p => p.name === pluginId) ?? null);
-                setHasUi(injects.length > 0);
-            })
-            .catch(e => {
-                if (mounted)
-                    notify(e?.message ?? t('pluginsPage.loadError'), 'error');
-            });
-
-        return () => {
-            mounted = false;
-        };
-    }, [socket, pluginId]);
-
+    const setEnabledAsync = setEnabled.mutateAsync;
     const togglePlugin = useCallback(
         async (next: boolean) => {
-            if (!socket || !pluginId) return;
-            setPlugin(prev => (prev ? { ...prev, enabled: next } : prev));
-            const [err, confirmed] = await noTryAsync(async () =>
-                socket.plugin.setEnabled(pluginId, next),
+            if (!pluginId) return;
+            const [err] = await noTryAsync(() =>
+                setEnabledAsync({ name: pluginId, enabled: next }),
             );
-            if (err) {
-                setPlugin(prev => (prev ? { ...prev, enabled: !next } : prev));
-                notify(t('pluginsPage.toggle.error'), 'error');
-                return;
-            }
-
-            const settled = typeof confirmed === 'boolean' ? confirmed : next;
-            setPlugin(prev => (prev ? { ...prev, enabled: settled } : prev));
+            if (err) notify(t('pluginsPage.toggle.error'), 'error');
         },
-        [socket, pluginId],
+        [pluginId, setEnabledAsync, notify, t],
     );
 
     return (

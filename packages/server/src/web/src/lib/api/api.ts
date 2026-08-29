@@ -50,10 +50,6 @@ export class ManagerApi {
         this.plugin = new PluginApi(this.socket);
         this.videoRoutes = new VideoRoutesApi(this.socket);
         this.rundowns = new RundownsApi(this.socket);
-
-        // Refresh the injection manifest whenever the plugin list changes so
-        // newly installed plugin UI appears live without a reload.
-        this.plugin.on('change', () => this.injects.refresh());
     }
 
     public async rawRequest<T>(path: string, method: string, data: T) {

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
@@ -29,19 +28,12 @@ const invalidateMeta = () =>
 /** Mounted once in QuerySync. Both signals mean the registered action set may
  *  have changed: CasparCG restarts make plugins re-register their actions,
  *  and plugin enable/disable unregisters actions by owner. Signal-only, so
- *  invalidate rather than patch. Status comes through the shared broadcast
- *  dispatcher (alongside useCasparSync's cache write); plugin change is
- *  still an EventEmitter signal until PR 5. */
+ *  invalidate rather than patch. Both come through the shared broadcast
+ *  dispatcher (alongside useCasparSync's and usePluginsSync's cache writes on
+ *  the same topics). */
 export function useRundownMetaSync(): void {
     const conn = useSocket();
 
     useWsBroadcast(conn, 'caspar/status', 'ACTION', invalidateMeta);
-
-    useEffect(() => {
-        if (!conn) return;
-        conn.plugin.on('change', invalidateMeta);
-        return () => {
-            conn.plugin.off('change', invalidateMeta);
-        };
-    }, [conn]);
+    useWsBroadcast(conn, 'plugins', 'ACTION', invalidateMeta);
 }
