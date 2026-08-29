@@ -21,6 +21,7 @@ import CreateFolderModal from '../components/media/CreateFolderModal';
 import RenameMediaModal from '../components/media/RenameMediaModal';
 import RenameFolderModal from '../components/media/RenameFolderModal';
 import { useMediaHandlers } from '../lib/media/useMediaHandlers';
+import { useRundownActionsQuery } from '../lib/query/rundownMeta';
 import MediaPlayModal from '../components/MediaPlayModal';
 import MediaInspectorModal from '../components/media/MediaInspectorModal';
 import { type RundownEntry } from '../components/Rundowns';
@@ -42,7 +43,6 @@ const Page = () => {
     const notify = useToast();
 
     const [path, setPath] = useState<string>('');
-    const [canPlay, setCanPlay] = useState(false);
     const [playEntry, setPlayEntry] = useState<RundownEntry | null>(null);
     const [deleting, setDeleting] = useState<MediaDoc | null>(null);
     const [bulkDeleting, setBulkDeleting] = useState<MediaDoc[] | null>(null);
@@ -59,14 +59,8 @@ const Page = () => {
     const handlers = useMediaHandlers(path);
     const { busy, error, clearError } = handlers;
 
-    useEffect(() => {
-        socket.rundowns
-            .getActions()
-            .then(descriptors =>
-                setCanPlay(descriptors.some(d => d.acceptsFiles)),
-            )
-            .catch(() => setCanPlay(false));
-    }, []);
+    const { data: rundownActions } = useRundownActionsQuery();
+    const canPlay = rundownActions?.some(d => d.acceptsFiles) ?? false;
 
     const handlePlay = async (clip: MediaDoc) => {
         const name = clip.id.split('/').pop() ?? clip.id;

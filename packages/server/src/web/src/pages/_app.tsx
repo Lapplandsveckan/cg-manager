@@ -58,26 +58,26 @@ function App({ Component, pageProps }: AppProps) {
             </Head>
             <ThemeProvider theme={theme}>
                 <CssBaseline />
-                {isLogin ? (
-                    <ErrorBoundary
-                        fallback={appCrashFallback}
-                        onError={(e, i) => {
-                            console.error('[app:login]', e, i);
-                            const err = e as Error;
-                            reportClientError({
-                                source: 'app:login',
-                                message: err.message,
-                                stack: err.stack,
-                                componentStack: i.componentStack,
-                            });
-                        }}
-                    >
-                        <Component {...pageProps} />
-                    </ErrorBoundary>
-                ) : (
-                    <AuthGate>
-                        <SocketProvider>
-                            <QueryClientProvider client={queryClient}>
+                <QueryClientProvider client={queryClient}>
+                    {isLogin ? (
+                        <ErrorBoundary
+                            fallback={appCrashFallback}
+                            onError={(e, i) => {
+                                console.error('[app:login]', e, i);
+                                const err = e as Error;
+                                reportClientError({
+                                    source: 'app:login',
+                                    message: err.message,
+                                    stack: err.stack,
+                                    componentStack: i.componentStack,
+                                });
+                            }}
+                        >
+                            <Component {...pageProps} />
+                        </ErrorBoundary>
+                    ) : (
+                        <AuthGate>
+                            <SocketProvider>
                                 <ConnectionProvider>
                                     <QuerySync />
                                     <ToastProvider>
@@ -138,10 +138,10 @@ function App({ Component, pageProps }: AppProps) {
                                         </UndoProvider>
                                     </ToastProvider>
                                 </ConnectionProvider>
-                            </QueryClientProvider>
-                        </SocketProvider>
-                    </AuthGate>
-                )}
+                            </SocketProvider>
+                        </AuthGate>
+                    )}
+                </QueryClientProvider>
             </ThemeProvider>
         </>
     );

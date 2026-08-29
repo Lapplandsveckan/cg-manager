@@ -16,9 +16,11 @@ import { PluginCard } from '../../components/PluginCard';
 import { PluginModals } from '../../components/PluginModals';
 import { useToast } from '../../components/ToastProvider';
 import {
+    casparConfigUpdate,
     setCasparConfigInCache,
     useCasparConfigQuery,
 } from '../../lib/query/caspar';
+import { useMutationSpec } from '../../lib/query/mutations';
 import { usePluginMutations, usePluginsQuery } from '../../lib/query/plugins';
 import { useInjectionsForZone } from '../../lib/query/pluginInjections';
 
@@ -41,6 +43,7 @@ const Page = () => {
     const pluginsWithUi = new Set(pluginInjections.map(i => i.plugin));
     const { setEnabled, uninstall, setActiveVersion, deleteVersion } =
         usePluginMutations();
+    const updateConfig = useMutationSpec(casparConfigUpdate);
     const { data: config } = useCasparConfigQuery();
     const channelCount = config?.channels.length ?? 0;
     const [uninstalling, setUninstalling] = useState<string | null>(null);
@@ -147,8 +150,8 @@ const Page = () => {
                     })),
                 ],
             };
-            const [saveErr, saved] = await noTryAsync(() =>
-                socket.caspar.updateConfig(updated),
+            const [saveErr] = await noTryAsync(() =>
+                updateConfig.mutateAsync(updated),
             );
             if (saveErr) {
                 notify(
@@ -159,7 +162,6 @@ const Page = () => {
                 setAddingChannels(false);
                 return;
             }
-            setCasparConfigInCache(saved);
         }
         setAddingChannels(false);
         setChannelPrompt(null);

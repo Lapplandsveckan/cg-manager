@@ -9,10 +9,9 @@ import {
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { useRouter } from 'next/router';
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'next-i18next';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
-import { checkAuth } from '../lib/auth';
+import { useAuthQuery } from '../lib/query/auth';
 import { useVersion } from '../lib/hooks/useVersion';
 import { useStoredBoolean } from '../lib/hooks/useStoredBoolean';
 import {
@@ -34,18 +33,9 @@ export const Navbar = () => {
     const statusLabel = t(`casparStatus.${status.key}`);
     const [collapsed, setCollapsed] = useStoredBoolean(STORAGE_KEY, false);
     const toggleCollapsed = () => setCollapsed(v => !v);
-    const [authEnabled, setAuthEnabled] = useState(false);
+    const { data: authStatus } = useAuthQuery();
+    const authEnabled = !!authStatus?.enabled;
     const pluginNavItems = usePluginNavItems();
-
-    useEffect(() => {
-        let cancelled = false;
-        checkAuth().then(status => {
-            if (!cancelled && status?.enabled) setAuthEnabled(true);
-        });
-        return () => {
-            cancelled = true;
-        };
-    }, []);
 
     const isActive = (item: NavItem) =>
         item.match

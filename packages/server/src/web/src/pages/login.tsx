@@ -12,58 +12,40 @@ import {
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import { useTranslation } from 'next-i18next';
 import { noTryAsync } from 'no-try';
-import { checkAuth } from '../lib/auth';
+import { useAuthQuery, useLoginMutation } from '../lib/query/auth';
 
 const Page = () => {
     const { t } = useTranslation('common');
     const router = useRouter();
     const [password, setPassword] = useState('');
-    const [busy, setBusy] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const login = useLoginMutation();
+    const busy = login.isPending;
 
     // If auth isn't actually enabled (no password configured), the user
     // shouldn't be on this page — bounce them to wherever they were going.
     // Also bounce if they're already signed in.
+    const { data: status } = useAuthQuery();
     useEffect(() => {
         // `router.query` isn't populated until isReady on statically
         // optimized pages — without this guard we'd read `from=undefined`
         // on first paint and bounce the user to `/` even when they had a
         // valid return URL.
-        if (!router.isReady) return;
-
-        let cancelled = false;
-        checkAuth().then(status => {
-            if (cancelled || !status) return;
-            if (!status.enabled || status.authenticated) {
-                const from =
-                    typeof router.query.from === 'string'
-                        ? router.query.from
-                        : '/';
-                router.replace(from);
-            }
-        });
-        return () => {
-            cancelled = true;
-        };
-    }, [router, router.isReady]);
+        if (!router.isReady || !status) return;
+        if (!status.enabled || status.authenticated) {
+            const from =
+                typeof router.query.from === 'string' ? router.query.from : '/';
+            router.replace(from);
+        }
+    }, [router, router.isReady, status]);
 
     const submit = async () => {
         if (busy || !password) return;
-        setBusy(true);
         setError(null);
 
-        const [err, resp] = await noTryAsync(() =>
-            fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({ password }),
-            }),
-        );
+        const [err, ok] = await noTryAsync(() => login.mutateAsync(password));
 
-        setBusy(false);
-
-        if (err || !resp.ok) {
+        if (err || !ok) {
             setError(t('login.wrongPassword'));
             setPassword('');
             return;

@@ -3,7 +3,7 @@ import { useRouter } from 'next/router';
 import type { NextRouter } from 'next/router';
 import { noTryAsync } from 'no-try';
 import type { ManagerApi } from '../api/api';
-import { checkAuth } from '../auth';
+import { refreshAuthStatus } from '../query/auth';
 import { useLatest } from './useLatest';
 
 export type ConnectionState = 'connected' | 'reconnecting' | 'disconnected';
@@ -23,7 +23,7 @@ const DISCONNECTED_THRESHOLD = 3;
 const WS_REDIAL_TICKS = 2;
 
 async function checkAuthExpired(): Promise<boolean> {
-    const status = await checkAuth();
+    const status = await refreshAuthStatus();
     return !!status && status.enabled && !status.authenticated;
 }
 

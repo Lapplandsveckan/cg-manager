@@ -17,6 +17,7 @@ export const qk = {
     plugins: ['plugins'] as const,
     pluginInjections: ['plugin-injections'] as const,
     version: ['version'] as const,
+    auth: ['auth'] as const,
 };
 
 /** Mutation-key registry, one entry per operation — lets
@@ -41,4 +42,5 @@ export const qm = {
     pluginSetVersion: ['plugin', 'setVersion'] as const,
     pluginDeleteVersion: ['plugin', 'deleteVersion'] as const,
     undo: ['undo'] as const,
+    login: ['auth', 'login'] as const,
 };

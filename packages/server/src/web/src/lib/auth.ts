@@ -14,3 +14,15 @@ export async function checkAuth(): Promise<AuthStatus | null> {
     if (jsonErr || !json) return null;
     return json as AuthStatus;
 }
+
+export async function submitLogin(password: string): Promise<boolean> {
+    const [fetchErr, resp] = await noTryAsync(() =>
+        fetch('/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ password }),
+        }),
+    );
+    return !fetchErr && resp.ok;
+}

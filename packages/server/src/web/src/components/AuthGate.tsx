@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { Box, CircularProgress } from '@mui/material';
-import { type AuthStatus, checkAuth } from '../lib/auth';
+import { useAuthQuery } from '../lib/query/auth';
 
 /**
  * Gate the app behind the server's auth status. On mount, hits
@@ -19,17 +19,7 @@ export const AuthGate: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
     const router = useRouter();
-    const [status, setStatus] = useState<AuthStatus | null>(null);
-
-    useEffect(() => {
-        let cancelled = false;
-        checkAuth().then(s => {
-            if (!cancelled) setStatus(s);
-        });
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+    const { data: status } = useAuthQuery();
 
     useEffect(() => {
         if (!status) return;
