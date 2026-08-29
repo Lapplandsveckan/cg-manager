@@ -14,6 +14,7 @@ import { queryClient } from '../lib/query/client';
 import { SocketProvider } from '../components/SocketProvider';
 import { ConnectionProvider } from '../components/ConnectionProvider';
 import { QuerySync } from '../components/QuerySync';
+import { UndoInvalidationSync } from '../components/UndoInvalidationSync';
 import { ConnectionBanner } from '../components/ConnectionBanner';
 import { ToastProvider } from '../components/ToastProvider';
 import { UndoProvider } from '../components/UndoProvider';
@@ -81,6 +82,7 @@ function App({ Component, pageProps }: AppProps) {
                                     <QuerySync />
                                     <ToastProvider>
                                         <UndoProvider>
+                                            <UndoInvalidationSync />
                                             <ContextMenuProvider>
                                                 <PluginContextMenuMounts />
                                                 <EntryClipboardProvider>

@@ -8,14 +8,12 @@ import React, {
 } from 'react';
 import { noTryAsync } from 'no-try';
 import { useTranslation } from 'next-i18next';
-import { useSocket } from '../lib/hooks/useSocket';
 import { useConnection } from './ConnectionProvider';
 import { useToast } from './ToastProvider';
 import {
     clearAll,
     getRedoStack,
     getUndoStack,
-    invalidate,
     popRedo,
     popUndo,
     pushRedo,
@@ -28,11 +26,10 @@ import {
     type UndoEntry,
     type UndoLabel,
 } from '../lib/undo/types';
-import { UndoStaleError, routeScope, rundownScope } from '../lib/undo/tools';
+import { UndoStaleError } from '../lib/undo/tools';
 import { queryClient } from '../lib/query/client';
 import { qm } from '../lib/query/keys';
 import { defineMutation, useMutationSpec } from '../lib/query/mutations';
-import { useWsBroadcast } from '../lib/query/useWsBroadcast';
 
 interface UndoContextValue {
     undo: () => void;
@@ -82,7 +79,6 @@ export const UndoProvider: React.FC<{ children: React.ReactNode }> = ({
     children,
 }) => {
     const { t } = useTranslation('common');
-    const conn = useSocket();
     const notify = useToast();
     const { state: connectionState } = useConnection();
     const runEntry = useMutationSpec(runUndoEntry);
@@ -213,48 +209,6 @@ export const UndoProvider: React.FC<{ children: React.ReactNode }> = ({
         window.addEventListener('keydown', handler);
         return () => window.removeEventListener('keydown', handler);
     }, [undo, redo]);
-
-    useWsBroadcast(conn, 'rundown/entry', 'UPDATE', data => {
-        const { id, entry } = data as { id: string; entry: unknown };
-        const entries = Array.isArray(entry) ? entry : [entry];
-        invalidate(
-            entries
-                .filter((e): e is { id: string } =>
-                    Boolean((e as { id?: string })?.id),
-                )
-                .map(e => rundownScope(id, `entry:${e.id}`)),
-        );
-    });
-
-    useWsBroadcast(conn, 'rundown/entry', 'DELETE', data => {
-        const { id, entry } = data as { id: string; entry: string };
-        invalidate([rundownScope(id, `entry:${entry}`)]);
-    });
-
-    useWsBroadcast(conn, 'rundown/order', 'ACTION', data => {
-        const { id } = data as { id: string };
-        invalidate([rundownScope(id, 'order')]);
-    });
-
-    useWsBroadcast(conn, 'rundown', 'UPDATE', data => {
-        const { id } = data as { id: string };
-        invalidate([rundownScope(id, 'name')]);
-    });
-
-    useWsBroadcast(conn, 'rundown', 'DELETE', data => {
-        if (typeof data === 'string') invalidate([rundownScope(data)]);
-    });
-
-    useWsBroadcast(conn, 'routes', 'UPDATE', data => {
-        const route = data as { id?: string };
-        if (!route?.id) return;
-        invalidate([routeScope(route.id)]);
-    });
-
-    useWsBroadcast(conn, 'routes', 'DELETE', data => {
-        if (typeof data !== 'string') return;
-        invalidate([routeScope(data)]);
-    });
 
     return (
         <UndoContext.Provider
