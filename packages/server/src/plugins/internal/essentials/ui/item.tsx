@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, Typography } from '@mui/material';
-import { useSocket } from '@web-lib';
+import { Method, topic, useBroadcast, useSocket } from '@web-lib';
 import { useTranslation } from 'react-i18next';
 
 interface VideoRoute {
@@ -8,6 +8,18 @@ interface VideoRoute {
     name: string;
     enabled: boolean;
 }
+
+const routeUpdated = topic(
+    'routes',
+    Method.UPDATE,
+    (data): data is VideoRoute => typeof (data as VideoRoute)?.id === 'string',
+);
+
+const routeDeleted = topic(
+    'routes',
+    Method.DELETE,
+    (data): data is string => typeof data === 'string',
+);
 
 interface Props {
     entry: {
@@ -46,34 +58,22 @@ const ToggleVideoRouteItem: React.FC<Props> = ({ entry }) => {
             })
             .catch(() => mounted && setMissing(true));
 
-        const updateListener = {
-            path: 'routes',
-            method: 'UPDATE' as const,
-            handler: (req: any) => {
-                const data = req.getData();
-                if (data?.id !== routeId) return;
-                setRoute(data as VideoRoute);
-                setMissing(false);
-            },
-        };
-        const deleteListener = {
-            path: 'routes',
-            method: 'DELETE' as const,
-            handler: (req: any) => {
-                if (req.getData() !== routeId) return;
-                setRoute(null);
-                setMissing(true);
-            },
-        };
-        conn.routes.register(updateListener);
-        conn.routes.register(deleteListener);
-
         return () => {
             mounted = false;
-            conn.routes.unregister(updateListener);
-            conn.routes.unregister(deleteListener);
         };
     }, [routeId, conn]);
+
+    useBroadcast(routeUpdated, data => {
+        if (data.id !== routeId) return;
+        setRoute(data);
+        setMissing(false);
+    });
+
+    useBroadcast(routeDeleted, id => {
+        if (id !== routeId) return;
+        setRoute(null);
+        setMissing(true);
+    });
 
     if (!routeId)
         return (

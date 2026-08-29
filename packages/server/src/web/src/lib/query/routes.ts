@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
+import { routeCreated, routeDeleted, routeUpdated } from '../api/broadcasts';
 import type { VideoRoute } from '../api/videoRoutes';
+import { useBroadcast } from '../hooks/useBroadcast';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
 import { qk, qm } from './keys';
 import { defineMutation, type Rollback } from './mutations';
-import { useWsBroadcast } from './useWsBroadcast';
 
 export function useRoutesQuery() {
     const conn = useSocket();
@@ -115,22 +116,7 @@ export const routeSetEnabled = defineMutation({
  *  these broadcasts, so they only ever describe another client's mutation —
  *  our own writes patch the cache directly in the mutation flow. */
 export function useRoutesSync(): void {
-    const conn = useSocket();
-
-    useWsBroadcast(conn, 'routes', 'CREATE', data => {
-        const route = data as VideoRoute;
-        if (!route?.id) return;
-        mergeRouteInCache(route);
-    });
-
-    useWsBroadcast(conn, 'routes', 'UPDATE', data => {
-        const route = data as VideoRoute;
-        if (!route?.id) return;
-        replaceRouteInCache(route);
-    });
-
-    useWsBroadcast(conn, 'routes', 'DELETE', data => {
-        if (typeof data !== 'string') return;
-        removeRouteFromCache(data);
-    });
+    useBroadcast(routeCreated, mergeRouteInCache);
+    useBroadcast(routeUpdated, replaceRouteInCache);
+    useBroadcast(routeDeleted, removeRouteFromCache);
 }

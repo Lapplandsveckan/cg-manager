@@ -1,4 +1,6 @@
 import EventEmitter from 'events';
+import { type BroadcastDispatcher } from './broadcastDispatcher';
+import { casparLogs } from './broadcasts';
 import { type CheckedRepClient } from './repClient';
 import { getChunkCount } from './upload';
 import type { Config as CasparConfig } from '../../../../manager/caspar/config/types';
@@ -112,14 +114,13 @@ export class CasparServerApi extends EventEmitter {
 
     private logs: string = '';
 
-    constructor(socket: CheckedRepClient) {
+    constructor(socket: CheckedRepClient, broadcasts: BroadcastDispatcher) {
         super();
         this.socket = socket;
 
-        this.socket.routes.action('caspar/logs', async request => {
-            const logs = request.data as string;
-            this.logs = clampLogs(this.logs + logs);
-
+        broadcasts.subscribe(casparLogs.path, casparLogs.method, data => {
+            if (!casparLogs.isValid(data)) return;
+            this.logs = clampLogs(this.logs + data);
             this.emit('logs', this.logs);
         });
     }

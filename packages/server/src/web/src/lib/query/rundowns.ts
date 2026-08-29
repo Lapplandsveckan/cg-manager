@@ -4,6 +4,12 @@ import { useTranslation } from 'next-i18next';
 import { useToast } from '../../components/ToastProvider';
 import { type ManagerApi } from '../api/api';
 import type { Rundown, RundownItem } from '../api/rundowns';
+import {
+    rundownCreated,
+    rundownDeleted,
+    rundownRenamed,
+} from '../api/broadcasts';
+import { useBroadcast } from '../hooks/useBroadcast';
 import { useSocket } from '../hooks/useSocket';
 import { record, recordBarrier } from '../undo/undoStore';
 import { rundownScope } from '../undo/tools';
@@ -15,7 +21,6 @@ import {
     useMutationSpec,
     type Rollback,
 } from './mutations';
-import { useWsBroadcast } from './useWsBroadcast';
 
 export type { Rundown, RundownItem };
 
@@ -121,24 +126,11 @@ export function removeRundownFromCache(id: string): void {
 /** Mounted once in QuerySync. The server excludes the originating client from
  *  these broadcasts, so they only ever describe another client's mutation. */
 export function useRundownsSync(): void {
-    const conn = useSocket();
-
-    useWsBroadcast(conn, 'rundown', 'CREATE', data => {
-        const rundown = data as Rundown;
-        if (!rundown?.id) return;
-        upsertRundownInCache(rundown);
-    });
-
-    useWsBroadcast(conn, 'rundown', 'UPDATE', data => {
-        const { id, name } = data as { id?: string; name?: string };
-        if (!id || typeof name !== 'string') return;
-        renameRundownInCache(id, name);
-    });
-
-    useWsBroadcast(conn, 'rundown', 'DELETE', data => {
-        if (typeof data !== 'string') return;
-        removeRundownFromCache(data);
-    });
+    useBroadcast(rundownCreated, upsertRundownInCache);
+    useBroadcast(rundownRenamed, ({ id, name }) =>
+        renameRundownInCache(id, name),
+    );
+    useBroadcast(rundownDeleted, removeRundownFromCache);
 }
 
 const rundownKeys = (id: string) =>

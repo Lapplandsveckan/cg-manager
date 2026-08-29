@@ -1,10 +1,11 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { type ManagerApi } from '../api/api';
+import { mediaChanged, mediaFolders } from '../api/broadcasts';
 import { type MediaDoc } from '../api/caspar';
+import { useBroadcast } from '../hooks/useBroadcast';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
 import { qk } from './keys';
-import { useWsBroadcast } from './useWsBroadcast';
 
 async function fetchMedia(conn: ManagerApi): Promise<Record<string, MediaDoc>> {
     const docs = await conn.caspar.getAllMedia();
@@ -137,26 +138,14 @@ export function useMediaMutations() {
 
 /** Mounted once in QuerySync. `caspar/media` goes to ALL clients (originator
  *  included) — the scanner is the source of truth and the per-key set is
- *  idempotent, so there's no echo problem. This topic is only reachable
- *  because CasparServerApi no longer registers a raw REP route for it —
- *  REP dispatches to the first match, so don't reintroduce one there. */
+ *  idempotent, so there's no echo problem. */
 export function useMediaSync(): void {
-    const conn = useSocket();
-
-    useWsBroadcast(conn, 'caspar/media', 'ACTION', data => {
-        const { key, value } = data as {
-            key?: string;
-            value?: MediaDoc | null;
-        };
-        if (!key) return;
+    useBroadcast(mediaChanged, ({ key, value }) => {
         setMediaInCache(key, value ?? null);
         // A media change can imply a folder-set change too (uploads mkdir
         // implicitly; deletes can empty a dir) — re-list while observed.
         refreshFolders();
     });
 
-    useWsBroadcast(conn, 'caspar/media/folder', 'ACTION', data => {
-        if (!Array.isArray(data)) return;
-        setFoldersInCache(data as string[]);
-    });
+    useBroadcast(mediaFolders, setFoldersInCache);
 }

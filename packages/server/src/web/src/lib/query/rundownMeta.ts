@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
+import { casparStatus, pluginsChanged } from '../api/broadcasts';
+import { useBroadcast } from '../hooks/useBroadcast';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
 import { qk } from './keys';
-import { useWsBroadcast } from './useWsBroadcast';
 
 export type { RundownActionDescriptor } from '../api/rundowns';
 
@@ -32,8 +33,6 @@ const invalidateMeta = () =>
  *  dispatcher (alongside useCasparSync's and usePluginsSync's cache writes on
  *  the same topics). */
 export function useRundownMetaSync(): void {
-    const conn = useSocket();
-
-    useWsBroadcast(conn, 'caspar/status', 'ACTION', invalidateMeta);
-    useWsBroadcast(conn, 'plugins', 'ACTION', invalidateMeta);
+    useBroadcast(casparStatus, invalidateMeta);
+    useBroadcast(pluginsChanged, invalidateMeta);
 }

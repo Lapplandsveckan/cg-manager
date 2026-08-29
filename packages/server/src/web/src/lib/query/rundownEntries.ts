@@ -2,6 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { noTryAsync } from 'no-try';
 import { useTranslation } from 'next-i18next';
 import { useToast } from '../../components/ToastProvider';
+import {
+    entriesReordered,
+    entryCreated,
+    entryDeleted,
+    entryUpdated,
+} from '../api/broadcasts';
+import { useBroadcast } from '../hooks/useBroadcast';
 import { useSocket } from '../hooks/useSocket';
 import { record } from '../undo/undoStore';
 import { rundownScope } from '../undo/tools';
@@ -14,7 +21,6 @@ import {
     type Rollback,
 } from './mutations';
 import { rundownRename, type Rundown, type RundownItem } from './rundowns';
-import { useWsBroadcast } from './useWsBroadcast';
 
 export type RundownEntry = RundownItem;
 
@@ -195,38 +201,21 @@ export const entriesReorder = defineMutation<EntriesReorderVars, void>({
  *  background rundowns stay in sync too. The server excludes the originating
  *  client, so these only ever describe another client's mutation. */
 export function useRundownEntriesSync(): void {
-    const conn = useSocket();
+    useBroadcast(entryCreated, ({ id, entry, index }) =>
+        insertEntryInCache(id, entry, index),
+    );
 
-    useWsBroadcast(conn, 'rundown/entry', 'CREATE', data => {
-        const { id, entry, index } = data as {
-            id?: string;
-            entry?: RundownEntry;
-            index?: number;
-        };
-        if (!id || !entry?.id) return;
-        insertEntryInCache(id, entry, index);
-    });
+    useBroadcast(entryUpdated, ({ id, entry }) =>
+        updateEntriesInCache(id, entry),
+    );
 
-    useWsBroadcast(conn, 'rundown/entry', 'UPDATE', data => {
-        const { id, entry } = data as {
-            id?: string;
-            entry?: RundownEntry | RundownEntry[];
-        };
-        if (!id || !entry) return;
-        updateEntriesInCache(id, entry);
-    });
+    useBroadcast(entryDeleted, ({ id, entry }) =>
+        removeEntryFromCache(id, entry),
+    );
 
-    useWsBroadcast(conn, 'rundown/entry', 'DELETE', data => {
-        const { id, entry } = data as { id?: string; entry?: string };
-        if (!id || typeof entry !== 'string') return;
-        removeEntryFromCache(id, entry);
-    });
-
-    useWsBroadcast(conn, 'rundown/order', 'ACTION', data => {
-        const { id, order } = data as { id?: string; order?: string[] };
-        if (!id || !Array.isArray(order)) return;
-        reorderEntriesInCache(id, order);
-    });
+    useBroadcast(entriesReordered, ({ id, order }) =>
+        reorderEntriesInCache(id, order),
+    );
 }
 
 /** Entry-level data + mutations for one rundown. Undo `apply` closures write

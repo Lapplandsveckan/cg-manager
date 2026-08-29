@@ -1,10 +1,11 @@
 import { useMemo } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { pluginsChanged } from '../api/broadcasts';
 import { type Plugin } from '../api/plugin';
+import { useBroadcast } from '../hooks/useBroadcast';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
 import { qk, qm } from './keys';
-import { useWsBroadcast } from './useWsBroadcast';
 
 export function usePluginsQuery() {
     const conn = useSocket();
@@ -66,15 +67,10 @@ export function usePluginMutations() {
 
 /** Mounted once in QuerySync. `plugins` goes to ALL clients (originator
  *  included) — replaces both the `PluginApi` EventEmitter and the
- *  `api.ts` `plugin.on('change') -> injects.refresh()` bridge. This topic is
- *  only reachable because `PluginApi` no longer registers a raw REP route
- *  for it — REP dispatches to the first match, so don't reintroduce one. */
+ *  `api.ts` `plugin.on('change') -> injects.refresh()` bridge. */
 export function usePluginsSync(): void {
-    const conn = useSocket();
-
-    useWsBroadcast(conn, 'plugins', 'ACTION', data => {
-        if (!Array.isArray(data)) return;
-        setPluginsInCache(data as Plugin[]);
+    useBroadcast(pluginsChanged, list => {
+        setPluginsInCache(list);
         void queryClient.invalidateQueries({ queryKey: qk.pluginInjections });
     });
 }

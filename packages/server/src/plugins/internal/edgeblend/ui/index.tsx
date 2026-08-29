@@ -12,7 +12,7 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import { useSocket } from '@web-lib';
+import { Method, topic, useBroadcast, useSocket } from '@web-lib';
 import { useTranslation } from 'react-i18next';
 import LayoutEditor, {
     type StoredLayout,
@@ -25,7 +25,12 @@ import LayoutDiagram from './LayoutDiagram';
 
 const PLUGIN = 'edgeblend';
 const API_ROOT = `/api/plugin/${PLUGIN}`;
-const BROADCAST_PATH = `plugin/${PLUGIN}/layouts`;
+
+const layoutsUpdated = topic(
+    `plugin/${PLUGIN}/layouts`,
+    Method.UPDATE,
+    (data): data is StoredLayout[] => Array.isArray(data),
+);
 
 const EdgeblendPage: React.FC = () => {
     const conn = useSocket();
@@ -63,22 +68,12 @@ const EdgeblendPage: React.FC = () => {
             })
             .catch(() => mounted && setLayouts([]));
 
-        const listener = {
-            path: BROADCAST_PATH,
-            method: 'UPDATE',
-            handler: (req: unknown) => {
-                const data = (
-                    req as { getData: () => StoredLayout[] }
-                ).getData();
-                if (Array.isArray(data)) setLayouts(data);
-            },
-        };
-        conn.routes.register(listener);
         return () => {
             mounted = false;
-            conn.routes.unregister(listener);
         };
     }, [conn]);
+
+    useBroadcast(layoutsUpdated, setLayouts);
 
     const selectLayout = useCallback((layout: StoredLayout) => {
         setSelected(layout.id);

@@ -1,12 +1,17 @@
 import { useMemo } from 'react';
 import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import { type ManagerApi } from '../api/api';
-import { type CasparConfig, type CasparStatus } from '../api/caspar';
+import { type CasparConfig } from '../api/caspar';
+import {
+    casparConfig,
+    casparRunningConfig,
+    casparStatus,
+} from '../api/broadcasts';
+import { useBroadcast } from '../hooks/useBroadcast';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
 import { qk, qm } from './keys';
 import { defineMutation } from './mutations';
-import { useWsBroadcast } from './useWsBroadcast';
 
 export function useCasparStatusQuery() {
     const conn = useSocket();
@@ -111,24 +116,17 @@ export function useLiveChannels(): number[] | null {
 /** Mounted once in QuerySync. All three payloads are full objects, so plain
  *  setQueryData (idempotent, safe on never-fetched keys). Status and
  *  running-config go to ALL clients; `caspar/config` excludes the saver,
- *  which self-patches via setCasparConfigInCache. These topics are only
- *  reachable because CasparServerApi no longer registers raw REP routes for
- *  them — REP dispatches to the first match, so don't reintroduce one there. */
+ *  which self-patches via setCasparConfigInCache. */
 export function useCasparSync(): void {
-    const conn = useSocket();
+    useBroadcast(casparStatus, data =>
+        queryClient.setQueryData(qk.casparStatus, data),
+    );
 
-    useWsBroadcast(conn, 'caspar/status', 'ACTION', data => {
-        queryClient.setQueryData(qk.casparStatus, data as CasparStatus);
-    });
+    useBroadcast(casparRunningConfig, data =>
+        queryClient.setQueryData(qk.casparRunningConfig, data),
+    );
 
-    useWsBroadcast(conn, 'caspar/running-config', 'ACTION', data => {
-        queryClient.setQueryData(
-            qk.casparRunningConfig,
-            (data as CasparConfig | null) ?? null,
-        );
-    });
-
-    useWsBroadcast(conn, 'caspar/config', 'UPDATE', data => {
-        queryClient.setQueryData(qk.casparConfig, data as CasparConfig);
-    });
+    useBroadcast(casparConfig, data =>
+        queryClient.setQueryData(qk.casparConfig, data),
+    );
 }
