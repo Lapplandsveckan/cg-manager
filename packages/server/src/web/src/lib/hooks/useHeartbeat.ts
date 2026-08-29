@@ -70,7 +70,14 @@ class HeartbeatTracker {
     recordWsDown(): boolean {
         this.wsDownTicks += 1;
         const shouldRedial = this.wsDownTicks >= WS_REDIAL_TICKS;
-        if (shouldRedial) this.fails += 1;
+        if (shouldRedial) {
+            this.fails += 1;
+            // Give the freshly-kicked-off connection a full grace window
+            // before considering another redial — otherwise a handshake
+            // that takes longer than one retry tick gets torn down and
+            // restarted forever, never able to complete.
+            this.wsDownTicks = 0;
+        }
         return shouldRedial;
     }
 
