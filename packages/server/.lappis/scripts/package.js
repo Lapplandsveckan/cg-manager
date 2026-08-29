@@ -169,8 +169,12 @@ async function patchVmCallSites() {
     // our vm-patch can intercept it. Replace it with a Promise that returns null
     // so the cache falls back to os.tmpdir() — harmless since cacheDirectory is
     // not set in our webpack config and the cache function is never actually called.
+    // @lappis/cg-manager and @cg-manager/server depend on incompatible babel-loader
+    // majors, so yarn can't hoist a single copy to the workspace root — resolve
+    // via Node's own algorithm from `root` to find the copy this package's
+    // webpack build actually uses, wherever yarn nested it.
     await applyPatch(
-        path.join(modulesRoot, 'babel-loader', 'lib', 'cache.js'),
+        require.resolve('babel-loader/lib/cache.js', { paths: [root] }),
         'const findCacheDirP = import("find-cache-dir");',
         'const findCacheDirP = Promise.resolve({ default: () => null }); // find-cache-dir is ESM-only; fall back to os.tmpdir()',
         'babel-loader cache.js',
