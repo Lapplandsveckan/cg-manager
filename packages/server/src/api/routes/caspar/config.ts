@@ -26,9 +26,17 @@ export default {
             throw new WebError('Invalid config payload', 400);
 
         const saved = await configuration.set(payload);
-        CasparManager.getManager()
-            .getPlugins()
-            .updateChannelCount(saved.channels.length);
+        const manager = CasparManager.getManager();
+        manager.getPlugins().updateChannelCount(saved.channels.length);
+
+        // Other clients viewing the config page re-baseline live; the
+        // originator already holds `saved` from this reply.
+        manager.server.broadcast(
+            'caspar/config',
+            'UPDATE',
+            saved,
+            request.getClient(),
+        );
         return saved;
     },
 } satisfies RouteExport;

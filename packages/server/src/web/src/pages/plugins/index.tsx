@@ -16,6 +16,11 @@ import {
 import { PluginCard } from '../../components/PluginCard';
 import { PluginModals } from '../../components/PluginModals';
 import { useToast } from '../../components/ToastProvider';
+import { useLatest } from '../../lib/hooks/useLatest';
+import {
+    setCasparConfigInCache,
+    useCasparConfigQuery,
+} from '../../lib/query/caspar';
 
 interface ChannelInfo {
     name: string;
@@ -31,7 +36,9 @@ const Page = () => {
 
     const [plugins, setPlugins] = useState<Plugin[] | null>(null);
     const [pluginsWithUi, setPluginsWithUi] = useState<Set<string>>(new Set());
-    const [channelCount, setChannelCount] = useState(0);
+    const { data: config } = useCasparConfigQuery();
+    const configRef = useLatest(config);
+    const channelCount = config?.channels.length ?? 0;
     const [error, setError] = useState<string | null>(null);
     const [uninstalling, setUninstalling] = useState<string | null>(null);
     const [deletingVersion, setDeletingVersion] = useState<{
@@ -61,13 +68,11 @@ const Page = () => {
         Promise.all([
             socket.plugin.getPlugins(),
             socket.injects.getInjects(UI_INJECTION_ZONE.PLUGIN_PAGE),
-            socket.caspar.getConfig(),
         ])
-            .then(([list, injects, cfg]) => {
+            .then(([list, injects]) => {
                 if (!mounted) return;
                 setPlugins(list);
                 setPluginsWithUi(new Set(injects.map(i => i.plugin)));
-                setChannelCount(cfg.channels.length);
                 prevPluginNamesRef.current = new Set(list.map(p => p.name));
             })
             .catch(
@@ -81,31 +86,31 @@ const Page = () => {
         // installed plugin gets its config affordance without a reload.
         const onPluginChange = (list: Plugin[]) => {
             if (!mounted) return;
-            // Detect newly installed plugins that need more channels than available.
-            socket.caspar
-                .getConfig()
-                .then(cfg => {
-                    if (!mounted) return;
-                    const currentCount = cfg.channels.length;
-                    setChannelCount(currentCount);
-                    const prev = prevPluginNamesRef.current;
-                    for (const p of list) {
-                        if (
-                            !prev.has(p.name) &&
-                            p.minChannels > 0 &&
-                            p.minChannels > currentCount
-                        ) {
-                            setChannelPrompt({
-                                name: p.name,
-                                need: p.minChannels,
-                                have: currentCount,
-                            });
-                            break;
-                        }
+            // Detect newly installed plugins that need more channels than
+            // available. The count comes from the config query, which
+            // useCasparSync keeps fresh — no refetch needed. Skip the check
+            // while the query hasn't resolved: a count of 0 would prompt
+            // for every plugin with a channel requirement.
+            const cfg = configRef.current;
+            const currentCount = cfg?.channels.length;
+            const prev = prevPluginNamesRef.current;
+            if (currentCount !== undefined) {
+                for (const p of list) {
+                    if (
+                        !prev.has(p.name) &&
+                        p.minChannels > 0 &&
+                        p.minChannels > currentCount
+                    ) {
+                        setChannelPrompt({
+                            name: p.name,
+                            need: p.minChannels,
+                            have: currentCount,
+                        });
+                        break;
                     }
-                    prevPluginNamesRef.current = new Set(list.map(p => p.name));
-                })
-                .catch(() => {});
+                }
+            }
+            prevPluginNamesRef.current = new Set(list.map(p => p.name));
             setPlugins(list);
             socket.injects
                 .getInjects(UI_INJECTION_ZONE.PLUGIN_PAGE)
@@ -179,11 +184,15 @@ const Page = () => {
     const addChannels = async (need: number) => {
         if (!socket) return;
         setAddingChannels(true);
+        // Fetch fresh rather than trusting the cache — this is a mutation
+        // pre-read and another client may have just saved.
         const [err, cfg] = await noTryAsync(() => socket.caspar.getConfig());
         if (err || !cfg) {
             setAddingChannels(false);
             return;
         }
+        setCasparConfigInCache(cfg);
+
         const defaultMode = cfg.videoModes[0]?.id ?? '1920x1080p5000';
         const toAdd = need - cfg.channels.length;
         if (toAdd > 0) {
@@ -198,7 +207,19 @@ const Page = () => {
                     })),
                 ],
             };
-            await noTryAsync(() => socket.caspar.updateConfig(updated));
+            const [saveErr, saved] = await noTryAsync(() =>
+                socket.caspar.updateConfig(updated),
+            );
+            if (saveErr) {
+                notify(
+                    (saveErr as Error)?.message ??
+                        t('config.errors.saveFailed'),
+                    'error',
+                );
+                setAddingChannels(false);
+                return;
+            }
+            setCasparConfigInCache(saved);
         }
         setAddingChannels(false);
         setChannelPrompt(null);

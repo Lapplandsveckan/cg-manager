@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { useSocket } from './useSocket';
 import { type Capabilities, type CapabilitiesResponse } from '../api/caspar';
+import { useCapabilitiesQuery } from '../query/caspar';
 
 const DEFAULT: CapabilitiesResponse = {
     profile: 'upstream',
@@ -8,18 +7,8 @@ const DEFAULT: CapabilitiesResponse = {
 };
 
 export function useCapabilities(): CapabilitiesResponse {
-    const [data, setData] = useState<CapabilitiesResponse>(DEFAULT);
-    const conn = useSocket();
-
-    useEffect(() => {
-        if (!conn) return;
-        conn.caspar
-            .getCapabilities()
-            .then(setData)
-            .catch(() => {});
-    }, [conn]);
-
-    return data;
+    const { data } = useCapabilitiesQuery();
+    return data ?? DEFAULT;
 }
 
 export type { Capabilities };

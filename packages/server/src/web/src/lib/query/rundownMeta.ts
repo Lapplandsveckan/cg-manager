@@ -5,6 +5,7 @@ import { assertOk } from '../api/caspar';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
 import { qk } from './keys';
+import { useWsBroadcast } from './useWsBroadcast';
 
 export interface RundownActionDescriptor {
     id: string;
@@ -52,18 +53,18 @@ const invalidateMeta = () =>
 /** Mounted once in QuerySync. Both signals mean the registered action set may
  *  have changed: CasparCG restarts make plugins re-register their actions,
  *  and plugin enable/disable unregisters actions by owner. Signal-only, so
- *  invalidate rather than patch. Status must come via CasparServerApi's
- *  EventEmitter, not useWsBroadcast — the api constructor registers the raw
- *  'caspar/status' REP route first, which would shadow a dispatcher route. */
+ *  invalidate rather than patch. Status comes through the shared broadcast
+ *  dispatcher (alongside useCasparSync's cache write); plugin change is
+ *  still an EventEmitter signal until PR 5. */
 export function useRundownMetaSync(): void {
     const conn = useSocket();
 
+    useWsBroadcast(conn, 'caspar/status', 'ACTION', invalidateMeta);
+
     useEffect(() => {
         if (!conn) return;
-        conn.caspar.on('status', invalidateMeta);
         conn.plugin.on('change', invalidateMeta);
         return () => {
-            conn.caspar.off('status', invalidateMeta);
             conn.plugin.off('change', invalidateMeta);
         };
     }, [conn]);

@@ -25,6 +25,11 @@ import { useCapabilities } from '../lib/hooks/useCapabilities';
 import { record } from '../lib/undo/undoStore';
 import { CONFIG_SCOPE, UndoStaleError } from '../lib/undo/tools';
 import { useLatest } from '../lib/hooks/useLatest';
+import {
+    setCasparConfigInCache,
+    useCasparConfigQuery,
+    useRunningConfigQuery,
+} from '../lib/query/caspar';
 
 type Channel = CasparConfig['channels'][number];
 type Consumer = Channel['consumers'][number];
@@ -55,11 +60,17 @@ const Page = () => {
     const socket = useSocket();
     const notify = useToast();
     const { capabilities } = useCapabilities();
-    const [original, setOriginal] = useState<CasparConfig | null>(null);
+    const configQuery = useCasparConfigQuery();
+    const original = configQuery.data ?? null;
+    // Running snapshot — used only to detect drift. When CasparCG is off
+    // there's nothing to drift from, so we suppress the banner in that case.
+    const { data: runningData } = useRunningConfigQuery();
+    const running = runningData ?? null;
     const [draft, setDraft] = useState<CasparConfig | null>(null);
-    const [running, setRunning] = useState<CasparConfig | null>(null);
-    const [error, setError] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const error = configQuery.error
+        ? configQuery.error.message || t('config.errors.loadFailed')
+        : null;
     const [restarting, setRestarting] = useState(false);
     const [editingConsumer, setEditingConsumer] =
         useState<EditingConsumer | null>(null);
@@ -69,51 +80,6 @@ const Page = () => {
     const [pickingForChannel, setPickingForChannel] = useState<number | null>(
         null,
     );
-
-    useEffect(() => {
-        if (!socket) return;
-        let cancelled = false;
-        setError(null);
-        socket.caspar
-            .getConfig()
-            .then(data => {
-                if (!cancelled) {
-                    setOriginal(data);
-                    setDraft(data);
-                }
-            })
-            .catch(err => {
-                if (!cancelled)
-                    setError(err?.message ?? t('config.errors.loadFailed'));
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [socket]);
-
-    // Running snapshot — used only to detect drift. When CasparCG is off
-    // there's nothing to drift from, so we suppress the banner in that case.
-    useEffect(() => {
-        if (!socket) return;
-        let cancelled = false;
-        socket.caspar
-            .getRunningConfig()
-            .then(r => {
-                if (!cancelled) setRunning(r);
-            })
-            .catch(() => {
-                if (!cancelled) setRunning(null);
-            });
-
-        const listener = (cfg: CasparConfig | null) => {
-            if (!cancelled) setRunning(cfg);
-        };
-        socket.caspar.on('running-config', listener);
-        return () => {
-            cancelled = true;
-            socket.caspar.off('running-config', listener);
-        };
-    }, [socket]);
 
     // Drift = saved config differs from what's actually running. Compare
     // against `original` (last save) so the banner only shows when the
@@ -131,20 +97,20 @@ const Page = () => {
     }, [original, draft]);
     const dirtyRef = useLatest(dirty);
 
-    // Ctrl+Z is a global shortcut, so it fires while the user has unsaved
-    // edits open in front of them. Re-baseline what the server holds, but
-    // never overwrite their draft with it — they keep their edits and the
-    // Save button stays live.
-    const applyConfig = (cfg: CasparConfig) => {
-        setOriginal(cfg);
-        if (!dirtyRef.current) setDraft(cfg);
-    };
+    // `original` can change under the user at any time — a remote client's
+    // save (via the `caspar/config` broadcast) or a Ctrl+Z undo apply, both
+    // of which write the cache. Follow it into the draft only while the user
+    // has no unsaved edits — a dirty draft is theirs to keep, and the Save
+    // button stays live.
+    useEffect(() => {
+        if (!original) return;
+        if (!dirtyRef.current) setDraft(original);
+    }, [original, dirtyRef]);
 
     const save = async () => {
         if (!draft || saving) return;
 
         setSaving(true);
-        setError(null);
         const [err, saved] = await noTryAsync(() =>
             socket.caspar.updateConfig(draft),
         );
@@ -162,7 +128,7 @@ const Page = () => {
         }
 
         const before = original;
-        setOriginal(saved);
+        setCasparConfigInCache(saved);
         setDraft(saved);
         notify(t('config.success.saved'), 'success');
         setSaving(false);
@@ -175,12 +141,14 @@ const Page = () => {
             next: saved,
             apply: async (cfg, { api, direction }) => {
                 if (direction === 'undo') {
+                    // Staleness pre-check hits the server, not the cache —
+                    // the cache may lag a save this client never saw.
                     const current = await api.caspar.getConfig();
                     if (stableStringify(current) !== stableStringify(saved))
                         throw new UndoStaleError();
                 }
                 await api.caspar.updateConfig(cfg);
-                applyConfig(cfg);
+                setCasparConfigInCache(cfg);
             },
         });
     };

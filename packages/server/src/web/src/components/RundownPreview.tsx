@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Box,
     ButtonBase,
@@ -11,7 +11,7 @@ import {
 import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { useTranslation } from 'next-i18next';
-import { useSocket } from '../lib/hooks/useSocket';
+import { useLiveChannels } from '../lib/query/caspar';
 import {
     getStorageItem,
     removeStorageItem,
@@ -33,59 +33,35 @@ const STORAGE_KEY = 'rundown-preview-channel';
  */
 export const RundownPreview: React.FC = () => {
     const { t } = useTranslation('common');
-    const socket = useSocket();
-    const [channels, setChannels] = useState<number[] | null>(null);
+    // *Live* channels — what CasparCG is actually serving right now, not
+    // what's on disk. The chip list shrinks/grows when CasparCG is started
+    // or restarted with a different config. Empty when CasparCG is stopped,
+    // so the operator can't try to preview something that physically isn't
+    // running.
+    const channels = useLiveChannels();
     const [selected, setSelected] = useState<number | null>(null);
+    const hydratedRef = useRef(false);
 
-    // Track *live* channels — what CasparCG is actually serving right now,
-    // not what's on disk. The chip list shrinks/grows when CasparCG is
-    // started or restarted with a different config. Empty when CasparCG
-    // is stopped, so the operator can't try to preview something that
-    // physically isn't running.
     useEffect(() => {
-        if (!socket) return;
-        let cancelled = false;
-        let hydrated = false;
+        if (!channels) return;
 
-        const applyConfig = (
-            cfg: { channels: { videoMode: string }[] } | null,
-        ) => {
-            if (cancelled) return;
-            const list = cfg ? cfg.channels.map((_, i) => i + 1) : [];
-            setChannels(list);
+        if (!hydratedRef.current) {
+            // First channel list arriving — restore the operator's last pick
+            // if it's still valid. Doing this here (not on mount) means we
+            // never momentarily open a WHEP session for a channel that no
+            // longer exists.
+            hydratedRef.current = true;
+            const raw = getStorageItem(STORAGE_KEY);
+            const stored = raw ? Number(raw) : NaN;
+            if (Number.isInteger(stored) && channels.includes(stored))
+                setSelected(stored);
+            return;
+        }
 
-            if (!hydrated) {
-                // First config arriving — restore the operator's last pick
-                // if it's still valid. Doing this here (not on mount) means
-                // we never momentarily open a WHEP session for a channel
-                // that no longer exists.
-                hydrated = true;
-                const raw = getStorageItem(STORAGE_KEY);
-                const stored = raw ? Number(raw) : NaN;
-                if (Number.isInteger(stored) && list.includes(stored))
-                    setSelected(stored);
-                return;
-            }
-
-            setSelected(current =>
-                current != null && !list.includes(current) ? null : current,
-            );
-        };
-
-        socket.caspar
-            .getRunningConfig()
-            .then(applyConfig)
-            .catch(() => applyConfig(null));
-
-        const listener = (cfg: { channels: { videoMode: string }[] } | null) =>
-            applyConfig(cfg);
-        socket.caspar.on('running-config', listener);
-
-        return () => {
-            cancelled = true;
-            socket.caspar.off('running-config', listener);
-        };
-    }, [socket]);
+        setSelected(current =>
+            current != null && !channels.includes(current) ? null : current,
+        );
+    }, [channels]);
 
     const updateSelected = (next: number | null) => {
         setSelected(next);

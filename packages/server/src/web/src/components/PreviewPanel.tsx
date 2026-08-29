@@ -13,8 +13,7 @@ import {
 import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import { useTranslation } from 'next-i18next';
-import { useSocket } from '../lib/hooks/useSocket';
-import { type CasparStatus } from '../lib/api/caspar';
+import { useCasparStatusQuery, useLiveChannels } from '../lib/query/caspar';
 
 interface PreviewCardProps {
     channel: number;
@@ -326,50 +325,12 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
 
 export const PreviewPanel: React.FC = () => {
     const { t } = useTranslation('common');
-    const socket = useSocket();
-    const [channels, setChannels] = useState<number[] | null>(null);
-    const [running, setRunning] = useState(false);
-
-    useEffect(() => {
-        if (!socket) return;
-        let cancelled = false;
-
-        // Track live (running) channels rather than the saved config — if
-        // CasparCG is off or starts with a different channel set we don't
-        // want to render preview cards for things that physically aren't
-        // there.
-        const apply = (cfg: { channels: { videoMode: string }[] } | null) => {
-            if (cancelled) return;
-            setChannels(cfg ? cfg.channels.map((_, i) => i + 1) : []);
-        };
-
-        socket.caspar
-            .getRunningConfig()
-            .then(apply)
-            .catch(() => apply(null));
-
-        const listener = (cfg: { channels: { videoMode: string }[] } | null) =>
-            apply(cfg);
-        socket.caspar.on('running-config', listener);
-
-        return () => {
-            cancelled = true;
-            socket.caspar.off('running-config', listener);
-        };
-    }, [socket]);
-
-    useEffect(() => {
-        if (!socket) return;
-        const listener = (s: CasparStatus) => setRunning(Boolean(s.running));
-        socket.caspar.on('status', listener);
-        socket.caspar
-            .getStatus()
-            .then(listener)
-            .catch(() => setRunning(false));
-        return () => {
-            socket.caspar.off('status', listener);
-        };
-    }, [socket]);
+    // Live (running) channels rather than the saved config — if CasparCG is
+    // off or starts with a different channel set we don't want to render
+    // preview cards for things that physically aren't there.
+    const channels = useLiveChannels();
+    const { data: status } = useCasparStatusQuery();
+    const running = Boolean(status?.running);
 
     // null = initial fetch hasn't resolved yet (avoid a brief empty flash).
     // []   = CasparCG is off OR has no channels — render the panel chrome

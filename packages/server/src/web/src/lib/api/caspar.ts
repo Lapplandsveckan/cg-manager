@@ -126,12 +126,6 @@ export function assertOk(res: { status?: number; error?: string } | undefined) {
 
 export class CasparServerApi extends EventEmitter {
     private socket: REPClient;
-    private status: CasparStatus = {
-        running: false,
-        supported: true,
-        lastError: null,
-    };
-    private runningConfig: CasparConfig | null = null;
 
     private logs: string = '';
 
@@ -139,29 +133,11 @@ export class CasparServerApi extends EventEmitter {
         super();
         this.socket = socket;
 
-        this.socket.routes.action('caspar/status', async request => {
-            const status = request.data as CasparStatus;
-            this.status = status;
-
-            this.emit('status', status);
-        });
-
         this.socket.routes.action('caspar/logs', async request => {
             const logs = request.data as string;
             this.logs = clampLogs(this.logs + logs);
 
             this.emit('logs', this.logs);
-        });
-
-        // No 'caspar/media' route here — that topic belongs to the TanStack
-        // cache (lib/query/media.ts, via useWsBroadcast). REP dispatches to
-        // the first registered match, so registering it in this constructor
-        // would permanently shadow the dispatcher's subscription.
-        this.socket.routes.action('caspar/running-config', async request => {
-            // Server emits null when CasparCG is stopped — keep that as the
-            // signal so consumers can hide live-only UI without polling.
-            this.runningConfig = (request.data as CasparConfig | null) ?? null;
-            this.emit('running-config', this.runningConfig);
         });
     }
 
@@ -177,13 +153,9 @@ export class CasparServerApi extends EventEmitter {
         await this.socket.request('api/caspar/restart', 'ACTION', {});
     }
 
-    public async getStatus() {
-        this.status = await this.socket
-            .request('api/caspar/status', 'GET', {})
-            .then(v => v.data);
-        this.emit('status', this.status);
-
-        return this.status;
+    public async getStatus(): Promise<CasparStatus> {
+        const res = await this.socket.request('api/caspar/status', 'GET', {});
+        return res.data as CasparStatus;
     }
 
     public async getLogs() {
@@ -220,23 +192,17 @@ export class CasparServerApi extends EventEmitter {
     }
 
     /** Snapshot of the config CasparCG was started with. `null` when the
-     *  process isn't running, or when no snapshot has arrived yet. Pair
-     *  with the 'running-config' event for live updates — the snapshot
-     *  refreshes whenever CasparCG starts or stops. */
+     *  process isn't running, or when no snapshot has arrived yet. React
+     *  consumers should use useRunningConfigQuery (lib/query/caspar.ts)
+     *  instead — the snapshot refreshes there whenever CasparCG starts or
+     *  stops, via the 'caspar/running-config' broadcast. */
     public async getRunningConfig(): Promise<CasparConfig | null> {
         const res = await this.socket.request(
             'api/caspar/running-config',
             'GET',
             {},
         );
-        this.runningConfig = (res.data as CasparConfig | null) ?? null;
-        return this.runningConfig;
-    }
-
-    /** Cheap synchronous read of the last snapshot we have. Returns the
-     *  same value as the most recent 'running-config' event (or null). */
-    public getCachedRunningConfig(): CasparConfig | null {
-        return this.runningConfig;
+        return (res.data as CasparConfig | null) ?? null;
     }
 
     public async cancelUpload(id: string) {

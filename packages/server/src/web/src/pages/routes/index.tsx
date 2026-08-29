@@ -1,6 +1,6 @@
 import { Button, Card, Stack, Typography } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { noTryAsync } from 'no-try';
 import { useTranslation } from 'next-i18next';
 import type { VideoRoute } from '../../lib/api/videoRoutes';
@@ -22,6 +22,7 @@ import {
     removeRouteFromCache,
     useRoutesQuery,
 } from '../../lib/query/routes';
+import { useChannelInfo } from '../../lib/query/caspar';
 
 const Page = () => {
     const { t } = useTranslation('common');
@@ -29,51 +30,13 @@ const Page = () => {
     const notify = useToast();
 
     const { data: routes, error: routesError } = useRoutesQuery();
-    const [channels, setChannels] = useState<number[]>([]);
-    const [videoModes, setVideoModes] = useState<string[]>([]);
-    const [channelSizes, setChannelSizes] = useState<
-        Record<number, { width: number; height: number }>
-    >({});
+    const { channels, videoModes, channelSizes } = useChannelInfo();
     const [deleting, setDeleting] = useState<VideoRoute | null>(null);
     const [busy, setBusy] = useState(false);
 
     const [picking, setPicking] = useState(false);
     const [editing, setEditing] = useState<VideoRoute | null>(null);
     const [newType, setNewType] = useState<SourceType | null>(null);
-
-    useEffect(() => {
-        if (!socket) return;
-        let cancelled = false;
-        socket.caspar
-            .getConfig()
-            .then(cfg => {
-                if (cancelled) return;
-                setChannels(cfg.channels.map((_, i) => i + 1));
-                setVideoModes(cfg.videoModes.map(m => m.id).filter(Boolean));
-                const sizes: Record<number, { width: number; height: number }> =
-                    {};
-                for (let i = 0; i < cfg.channels.length; i++) {
-                    const mode = cfg.videoModes.find(
-                        m => m.id === cfg.channels[i].videoMode,
-                    );
-                    if (mode)
-                        sizes[i + 1] = {
-                            width: mode.width,
-                            height: mode.height,
-                        };
-                }
-                setChannelSizes(sizes);
-            })
-            .catch(() => {
-                if (cancelled) return;
-                setChannels([]);
-                setVideoModes([]);
-                setChannelSizes({});
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [socket]);
 
     const toggle = useCallback(
         async (id: string, next: boolean) => {

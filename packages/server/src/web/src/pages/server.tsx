@@ -21,6 +21,7 @@ import type { TFunction } from 'i18next';
 import { useSocket } from '../lib/hooks/useSocket';
 import { DefaultContentLayout } from '../components/DefaultContentLayout';
 import { type CasparStatus } from '../lib/api/caspar';
+import { useCasparStatusQuery } from '../lib/query/caspar';
 import { PreviewPanel } from '../components/PreviewPanel';
 import { useToast } from '../components/ToastProvider';
 import { SlotErrorBoundary } from '../components/SlotErrorBoundary';
@@ -303,30 +304,24 @@ const Page = () => {
     const { t } = useTranslation('common');
     const socket = useSocket();
     const notify = useToast();
-    const [status, setStatus] = useState<CasparStatus | null>(null);
+    const { data: statusData } = useCasparStatusQuery();
+    const status = statusData ?? null;
     const [logs, setLogs] = useState<string>('');
     const [busy, setBusy] = useState<string | null>(null);
 
+    // Logs stay an EventEmitter stream — an append-only clamped string is
+    // not cacheable state, so it never moves into the query cache.
     useEffect(() => {
         if (!socket) return;
 
-        const statusListener = (s: CasparStatus) => setStatus(s);
         const logListener = (l: string) => setLogs(l);
-
-        socket.caspar.on('status', statusListener);
         socket.caspar.on('logs', logListener);
-
-        socket.caspar
-            .getStatus()
-            .then(statusListener)
-            .catch(() => setStatus(null));
         socket.caspar
             .getLogs()
             .then(logListener)
             .catch(() => setLogs(''));
 
         return () => {
-            socket.caspar.off('status', statusListener);
             socket.caspar.off('logs', logListener);
         };
     }, [socket]);
