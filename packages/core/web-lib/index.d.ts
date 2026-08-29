@@ -8,9 +8,8 @@
  * webpack external. Plugins resolve this file through a tsconfig `paths`
  * alias: `"@web-lib": ["node_modules/@lappis/cg-manager/web-lib"]`.
  *
- * A drift guard in cg-manager (`src/web/src/lib/__typecheck__.ts`) fails the
- * build if these declarations diverge from the real exports — keep them in
- * sync there, not by guessing here.
+ * Keep this in sync with `src/web/src/lib/index.ts` by hand — there is no
+ * automated drift guard.
  */
 
 import type * as React from 'react';
@@ -90,41 +89,68 @@ export interface MediaDoc {
 }
 
 // ---------------------------------------------------------------------------
-// Socket / ManagerApi
+// Socket / ManagerApi / broadcasts
 //
-// The real `ManagerApi` (cg-manager `src/web/src/lib/api/api.ts`) is large and
-// pulls in the rest-exchange-protocol client transitively. We declare the
-// members plugins actually reach for; the rest stay broad on purpose. Tighten
-// here as plugin usage grows.
+// The real `ManagerApi` (cg-manager `src/web/src/lib/api/api.ts`) is large.
+// We declare the members plugins actually reach for; the rest stay broad
+// (`any`) on purpose. Tighten here as plugin usage grows.
 // ---------------------------------------------------------------------------
+
+export enum Method {
+    GET = 'GET',
+    CREATE = 'CREATE',
+    DELETE = 'DELETE',
+    UPDATE = 'UPDATE',
+    ACTION = 'ACTION',
+}
 
 export interface CasparServerApi {
     on(event: string, listener: (...args: any[]) => void): this;
     off(event: string, listener: (...args: any[]) => void): this;
-    getMedia(): Promise<Map<string, MediaDoc>>;
+    getAllMedia(): Promise<MediaDoc[]>;
     deleteMedia(id: string): Promise<void>;
     renameMedia(id: string, newName: string): Promise<void>;
 }
 
-export interface RoutesApi {
-    register(...args: any[]): any;
-    unregister(...args: any[]): any;
-}
-
 export interface ManagerApi {
     caspar: CasparServerApi;
-    routes: RoutesApi;
     videoRoutes: any;
+    rundowns: any;
     injects: any;
     plugin: any;
+
+    /** True while the websocket transport is actually open; requests fall
+     *  back to HTTP when it drops, so a successful request does not imply
+     *  broadcasts are alive. */
+    readonly wsConnected: boolean;
 
     rawRequest(path: string, method: string, data: any): Promise<any>;
     connect(): Promise<void>;
     disconnect(): Promise<void>;
-    getApiVersion(): Promise<any>;
+    getApiVersion(): Promise<string>;
+
+    /** Internal — use `useBroadcast` instead of calling this directly. */
+    subscribe(
+        path: string,
+        method: Method,
+        handler: (data: unknown) => void,
+    ): () => void;
 }
 
-export function useSocket(): ManagerApi | null | undefined;
+/** Throws `NoSocketError` if called outside a connected `SocketProvider`. */
+export function useSocket(): ManagerApi;
+
+export interface BroadcastTopic<T> {
+    path: string;
+    method: Method;
+    isValid: (data: unknown) => data is T;
+}
+
+/** Subscribe to a server broadcast topic while mounted. */
+export function useBroadcast<T>(
+    topic: BroadcastTopic<T>,
+    handler: (data: T) => void,
+): void;
 
 // ---------------------------------------------------------------------------
 // Rundown
@@ -216,6 +242,24 @@ export interface MediaDropZoneProps {
 }
 
 export const MediaDropZone: React.FC<MediaDropZoneProps>;
+
+// ---------------------------------------------------------------------------
+// Channel preview
+// ---------------------------------------------------------------------------
+
+export interface ChannelPreviewProps {
+    /** 1-based CasparCG channel number. Disabled when undefined/null. */
+    channel: number | null | undefined;
+    /** How the video fills its parent. `cover` for stage backdrops, `contain`
+     *  for preview cards that need to show the whole frame. */
+    objectFit?: 'contain' | 'cover';
+    /** Called once when the first frame arrives. Useful for hiding spinners. */
+    onReady?: () => void;
+    /** Called with a message on WHEP/SDP/ICE failures. */
+    onError?: (msg: string) => void;
+}
+
+export const ChannelPreview: React.FC<ChannelPreviewProps>;
 
 // ---------------------------------------------------------------------------
 // Upload primitives
@@ -402,3 +446,140 @@ export function useRegisterContextMenuItems<T>(
     surface: ContextMenuSurface,
     provider: ContextMenuItemProvider<T>,
 ): void;
+
+// ---------------------------------------------------------------------------
+// UI injection zones
+//
+// Lets a plugin render a zone that another plugin injects into — the same
+// slot machinery the host uses to render plugin UI into its own zones. See
+// the "Plugin -> bottom-panel tab contract" section in CLAUDE.md.
+// ---------------------------------------------------------------------------
+
+export const UI_INJECTION_ZONE: {
+    PLUGIN_PAGE: 'plugin-page';
+    NAVBAR_PAGE: 'navbar-page';
+    RUNDOWN_ITEM: 'rundown-item';
+    RUNDOWN_EDITOR: 'rundown-editor';
+    RUNDOWN_SIDE: 'rundown-side';
+    RUNDOWN_BOTTOM_PANEL: 'rundown-bottom-panel';
+    UPLOAD_OPTIONS: 'upload-options';
+    CONTEXT_MENU: 'context-menu';
+};
+
+export type UI_INJECTION_ZONE =
+    (typeof UI_INJECTION_ZONE)[keyof typeof UI_INJECTION_ZONE];
+
+// A plugin can also define its own zone for other plugins to extend, in the
+// form `plugin:<owner-defined-name>`.
+export type UI_INJECTION_ZONE_KEY =
+    | UI_INJECTION_ZONE
+    | `${UI_INJECTION_ZONE}.${string}`
+    | `plugin:${string}`;
+
+export interface Injection {
+    zone: UI_INJECTION_ZONE_KEY;
+    file: string;
+    plugin: string;
+    id: string;
+}
+
+export interface InjectionProps {
+    id: string;
+    props?: any;
+}
+
+/** Renders a single injection by id. */
+export const Injection: React.FC<InjectionProps>;
+
+export interface InjectionsProps {
+    zone: UI_INJECTION_ZONE_KEY;
+    plugin?: string | null;
+    props?: any;
+    fallback?: React.ReactNode;
+}
+
+/** Renders every registered injection for a zone. */
+export const Injections: React.FC<InjectionsProps>;
+
+// ---------------------------------------------------------------------------
+// Undo / redo
+//
+// See the "Plugin -> undo/redo contract" section in CLAUDE.md. There is one
+// global undo/redo stack shared by the host and every plugin — `apply`
+// closures must be self-contained (read/write through `ctx.api`, never
+// component state that can go stale after unmount).
+// ---------------------------------------------------------------------------
+
+// Either an i18n key (bare host key, prefixed with `undo.labels.`, or a
+// `namespace:key` plugin key resolved via i18next directly) with optional
+// interpolation params, or a raw `text` string shown verbatim.
+export type UndoLabel =
+    | { key: string; params?: Record<string, string | number>; text?: never }
+    | { key?: never; params?: never; text: string };
+
+export interface UndoContext {
+    api: ManagerApi;
+    direction: 'undo' | 'redo';
+    entry: UndoEntry;
+}
+
+export type UndoApply<T = unknown> = (
+    state: T,
+    ctx: UndoContext,
+) => Promise<unknown> | void;
+
+export interface UndoEntry<T = unknown> {
+    label: UndoLabel;
+    scopes: string[];
+    prev: T;
+    next: T;
+    apply: UndoApply<T>;
+    ts: number;
+    failCount?: number;
+}
+
+// `scopes`/`invalidateKeys`/`keys` below are always plain, unscoped keys
+// (e.g. `slide:${id}`, not `plugin:my-plugin:slide:${id}`) — the wrapper
+// applies the `plugin:<pluginName>:` prefix itself.
+export interface PluginUndoAPI {
+    /** Namespaces a plugin-owned key under `plugin:<pluginName>:`. */
+    scope(key: string): string;
+    record<T>(entry: Omit<UndoEntry<T>, 'ts'>): void;
+    recordBarrier(label: UndoLabel, invalidateKeys: string[]): void;
+    /** Drops any of this plugin's stack entries touching these keys — call
+     *  from a listener on the plugin's own broadcast topic when another
+     *  client's write changes state an entry depends on. */
+    invalidate(keys: string[]): void;
+}
+
+export function createPluginUndo(pluginName: string): PluginUndoAPI;
+
+export class UndoStaleError extends Error {}
+
+export function omitId<T extends { id: string }>(obj: T): Omit<T, 'id'>;
+
+export function request(
+    conn: ManagerApi,
+    opts: { path: string; method: string; data: unknown },
+): Promise<void>;
+
+export function requestOk(
+    conn: ManagerApi,
+    path: string,
+    method: string,
+    data: unknown,
+): Promise<boolean>;
+
+export function okData<T>(
+    res: { status?: number; data?: unknown } | undefined,
+): T | null;
+
+export function rekeyId(
+    oldId: string,
+    newId: string,
+    scope: (id: string) => string,
+    entry?: UndoEntry,
+): void;
+
+/** Resolves a possibly-stale (temp) id through the undo store's id-alias map. */
+export function liveId(id: string): string;
