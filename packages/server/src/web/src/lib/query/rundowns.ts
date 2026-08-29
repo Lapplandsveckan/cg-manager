@@ -6,7 +6,8 @@ import { useSocket } from '../hooks/useSocket';
 import { record, recordBarrier } from '../undo/undoStore';
 import { rundownScope } from '../undo/tools';
 import { queryClient } from './client';
-import { qk } from './keys';
+import { qk, qm } from './keys';
+import { defineMutation, runMutation, useMutationSpec } from './mutations';
 import { useWsBroadcast } from './useWsBroadcast';
 
 export type { Rundown, RundownItem };
@@ -110,21 +111,45 @@ export function useRundownsSync(): void {
     });
 }
 
+/** See `MutationSpec` for why these exist. */
+export const rundownRename = defineMutation({
+    key: qm.rundownRename,
+    run: (api, vars: { id: string; name: string }) =>
+        api.rundowns.rename(vars.id, vars.name),
+    patch: (_result, vars) => renameRundownInCache(vars.id, vars.name),
+});
+
+export const rundownDelete = defineMutation({
+    key: qm.rundownDelete,
+    run: (api, vars: { id: string }) => api.rundowns.delete(vars.id),
+    patch: (_result, vars) => removeRundownFromCache(vars.id),
+});
+
+export const rundownCreate = defineMutation({
+    key: qm.rundownCreate,
+    run: (api, vars: { name: string; type: 'rundown' | 'quick' }) =>
+        vars.type === 'quick'
+            ? api.rundowns.createQuick(vars.name)
+            : api.rundowns.create(vars.name),
+    patch: result => upsertRundownInCache(result),
+});
+
 /** Create/rename/delete for whole rundowns. `type` selects the quick-action
  *  variants (create path and undo labels); rename/delete are shared. */
 export function useRundownMutations(type: 'rundown' | 'quick') {
-    const conn = useSocket();
+    const rename = useMutationSpec(rundownRename);
+    const deleteMut = useMutationSpec(rundownDelete);
+    const create = useMutationSpec(rundownCreate);
 
     const updateRundown = async (entry: Rundown) => {
         const rundowns = queryClient.getQueryData<Rundown[]>(qk.rundowns);
         const before = rundowns?.find(v => v.id === entry.id);
 
         const [err] = await noTryAsync(() =>
-            conn.rundowns.rename(entry.id, entry.name),
+            rename.mutateAsync({ id: entry.id, name: entry.name }),
         );
         if (err) return;
 
-        renameRundownInCache(entry.id, entry.name);
         if (!before) return;
         record({
             label: {
@@ -134,18 +159,17 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
             scopes: [rundownScope(entry.id, 'name')],
             prev: before.name,
             next: entry.name,
-            apply: async (name, { api }) => {
-                await api.rundowns.rename(entry.id, name);
-                renameRundownInCache(entry.id, name);
-            },
+            apply: (name, { api }) =>
+                runMutation(rundownRename, api, { id: entry.id, name }),
         });
     };
 
     const deleteRundown = async (entry: Rundown) => {
-        const [err] = await noTryAsync(() => conn.rundowns.delete(entry.id));
+        const [err] = await noTryAsync(() =>
+            deleteMut.mutateAsync({ id: entry.id }),
+        );
         if (err) return;
 
-        removeRundownFromCache(entry.id);
         recordBarrier({ key: 'rundownDelete', params: { name: entry.name } }, [
             rundownScope(entry.id),
         ]);
@@ -153,13 +177,10 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
 
     const createRundown = async (name: string): Promise<Rundown | null> => {
         const [err, data] = await noTryAsync(() =>
-            type === 'quick'
-                ? conn.rundowns.createQuick(name)
-                : conn.rundowns.create(name),
+            create.mutateAsync({ name, type }),
         );
         if (err || !data) return null;
 
-        upsertRundownInCache(data);
         recordBarrier(
             {
                 key: type === 'quick' ? 'quickCreate' : 'rundownCreate',

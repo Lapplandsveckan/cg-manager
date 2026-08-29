@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
+import { type ManagerApi } from '../api/api';
 import { type CasparConfig, type CasparStatus } from '../api/caspar';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
-import { qk } from './keys';
+import { qk, qm } from './keys';
+import { defineMutation } from './mutations';
 import { useWsBroadcast } from './useWsBroadcast';
 
 export function useCasparStatusQuery() {
@@ -14,12 +16,20 @@ export function useCasparStatusQuery() {
     });
 }
 
+/** Shared between `useCasparConfigQuery` and the undo staleness pre-check in
+ *  pages/config.tsx, which needs the same queryFn but forces a fresh read. */
+export function casparConfigQueryOptions(
+    api: ManagerApi,
+): UseQueryOptions<CasparConfig> {
+    return {
+        queryKey: qk.casparConfig,
+        queryFn: () => api.caspar.getConfig(),
+    };
+}
+
 export function useCasparConfigQuery() {
     const conn = useSocket();
-    return useQuery({
-        queryKey: qk.casparConfig,
-        queryFn: () => conn.caspar.getConfig(),
-    });
+    return useQuery(casparConfigQueryOptions(conn));
 }
 
 export function useRunningConfigQuery() {
@@ -42,6 +52,12 @@ export function useCapabilitiesQuery() {
  *  broadcast excludes it, so it re-baselines from the save reply itself. */
 export const setCasparConfigInCache = (cfg: CasparConfig) =>
     queryClient.setQueryData(qk.casparConfig, cfg);
+
+export const casparConfigUpdate = defineMutation({
+    key: qm.casparConfigUpdate,
+    run: (api, vars: CasparConfig) => api.caspar.updateConfig(vars),
+    patch: result => setCasparConfigInCache(result),
+});
 
 export interface ChannelInfo {
     channels: number[];

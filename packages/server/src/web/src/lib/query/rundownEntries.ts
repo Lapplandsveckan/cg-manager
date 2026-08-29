@@ -4,12 +4,9 @@ import { useSocket } from '../hooks/useSocket';
 import { record } from '../undo/undoStore';
 import { rundownScope } from '../undo/tools';
 import { queryClient } from './client';
-import { qk } from './keys';
-import {
-    renameRundownInCache,
-    type Rundown,
-    type RundownItem,
-} from './rundowns';
+import { qk, qm } from './keys';
+import { defineMutation, runMutation, useMutationSpec } from './mutations';
+import { rundownRename, type Rundown, type RundownItem } from './rundowns';
 import { useWsBroadcast } from './useWsBroadcast';
 
 export type RundownEntry = RundownItem;
@@ -107,6 +104,36 @@ export function reorderEntriesInCache(id: string, order: string[]): void {
     patchItems(id, items => reorderById(items, order));
 }
 
+/** See `MutationSpec` for why these exist. */
+export const entryCreate = defineMutation({
+    key: qm.entryCreate,
+    run: (api, vars: { id: string; entry: RundownEntry; index?: number }) =>
+        api.rundowns.createEntry(vars.id, vars.entry, vars.index),
+    patch: (_result, vars) =>
+        insertEntryInCache(vars.id, vars.entry, vars.index),
+});
+
+export const entryUpdate = defineMutation({
+    key: qm.entryUpdate,
+    run: (api, vars: { id: string; entry: RundownEntry }) =>
+        api.rundowns.updateEntry(vars.id, vars.entry),
+    patch: (_result, vars) => updateEntriesInCache(vars.id, vars.entry),
+});
+
+export const entryDelete = defineMutation({
+    key: qm.entryDelete,
+    run: (api, vars: { id: string; entryId: string }) =>
+        api.rundowns.deleteEntry(vars.id, vars.entryId),
+    patch: (_result, vars) => removeEntryFromCache(vars.id, vars.entryId),
+});
+
+export const entriesReorder = defineMutation({
+    key: qm.entriesReorder,
+    run: (api, vars: { id: string; order: string[] }) =>
+        api.rundowns.reorderEntries(vars.id, vars.order),
+    patch: (_result, vars) => reorderEntriesInCache(vars.id, vars.order),
+});
+
 /** Mounted once in QuerySync — global listeners addressed per rundown key, so
  *  background rundowns stay in sync too. The server excludes the originating
  *  client, so these only ever describe another client's mutation. */
@@ -152,8 +179,12 @@ const cachedItems = (id: string): RundownEntry[] =>
  *  through the queryClient singleton addressed by rundown id, so they stay
  *  correct after unmount or after the view switches to another rundown. */
 export function useRundownEntries(rundownId: string | null | undefined) {
-    const conn = useSocket();
     const { data } = useRundownEntriesQuery(rundownId);
+    const create = useMutationSpec(entryCreate);
+    const update = useMutationSpec(entryUpdate);
+    const deleteMut = useMutationSpec(entryDelete);
+    const rename = useMutationSpec(rundownRename);
+    const reorder = useMutationSpec(entriesReorder);
 
     const name = data?.name ?? '';
     const entries = data?.items ?? [];
@@ -164,25 +195,26 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const insertIndex =
             typeof index === 'number' ? index : cachedItems(id).length;
         const [err] = await noTryAsync(() =>
-            conn.rundowns.createEntry(id, entry, index),
+            create.mutateAsync({ id, entry, index }),
         );
         if (err) return;
 
-        insertEntryInCache(id, entry, index);
         record<RundownEntry | null>({
             label: { key: 'entryCreate', params: { title: entry.title } },
             scopes: [rundownScope(id, `entry:${entry.id}`)],
             prev: null,
             next: entry,
-            apply: async (state, { api }) => {
-                if (state) {
-                    await api.rundowns.createEntry(id, state, insertIndex);
-                    insertEntryInCache(id, state, insertIndex);
-                    return;
-                }
-                await api.rundowns.deleteEntry(id, entry.id);
-                removeEntryFromCache(id, entry.id);
-            },
+            apply: (state, { api }) =>
+                state
+                    ? runMutation(entryCreate, api, {
+                          id,
+                          entry: state,
+                          index: insertIndex,
+                      })
+                    : runMutation(entryDelete, api, {
+                          id,
+                          entryId: entry.id,
+                      }),
         });
     };
 
@@ -191,22 +223,17 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const id = rundownId;
         const before = cachedItems(id).find(v => v.id === entry.id);
 
-        const [err] = await noTryAsync(() =>
-            conn.rundowns.updateEntry(id, entry),
-        );
+        const [err] = await noTryAsync(() => update.mutateAsync({ id, entry }));
         if (err) return;
-
-        updateEntriesInCache(id, entry);
         if (!before) return;
+
         record({
             label: { key: 'entryUpdate', params: { title: entry.title } },
             scopes: [rundownScope(id, `entry:${entry.id}`)],
             prev: before,
             next: entry,
-            apply: async (state, { api }) => {
-                await api.rundowns.updateEntry(id, state);
-                updateEntriesInCache(id, state);
-            },
+            apply: (state, { api }) =>
+                runMutation(entryUpdate, api, { id, entry: state }),
         });
     };
 
@@ -216,26 +243,27 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const index = cachedItems(id).findIndex(v => v.id === entry.id);
 
         const [err] = await noTryAsync(() =>
-            conn.rundowns.deleteEntry(id, entry.id),
+            deleteMut.mutateAsync({ id, entryId: entry.id }),
         );
         if (err) return;
         if (index < 0) return;
 
-        removeEntryFromCache(id, entry.id);
         record<RundownEntry | null>({
             label: { key: 'entryDelete', params: { title: entry.title } },
             scopes: [rundownScope(id, `entry:${entry.id}`)],
             prev: entry,
             next: null,
-            apply: async (state, { api }) => {
-                if (state) {
-                    await api.rundowns.createEntry(id, state, index);
-                    insertEntryInCache(id, state, index);
-                    return;
-                }
-                await api.rundowns.deleteEntry(id, entry.id);
-                removeEntryFromCache(id, entry.id);
-            },
+            apply: (state, { api }) =>
+                state
+                    ? runMutation(entryCreate, api, {
+                          id,
+                          entry: state,
+                          index,
+                      })
+                    : runMutation(entryDelete, api, {
+                          id,
+                          entryId: entry.id,
+                      }),
         });
     };
 
@@ -248,19 +276,18 @@ export function useRundownEntries(rundownId: string | null | undefined) {
             '';
         if (!trimmed || trimmed === before) return;
 
-        const [err] = await noTryAsync(() => conn.rundowns.rename(id, trimmed));
+        const [err] = await noTryAsync(() =>
+            rename.mutateAsync({ id, name: trimmed }),
+        );
         if (err) return;
 
-        renameRundownInCache(id, trimmed);
         record({
             label: { key: 'rundownRename', params: { name: trimmed } },
             scopes: [rundownScope(id, 'name')],
             prev: before,
             next: trimmed,
-            apply: async (value, { api }) => {
-                await api.rundowns.rename(id, value);
-                renameRundownInCache(id, value);
-            },
+            apply: (value, { api }) =>
+                runMutation(rundownRename, api, { id, name: value }),
         });
     };
 
@@ -277,20 +304,17 @@ export function useRundownEntries(rundownId: string | null | undefined) {
 
         const after = reorderById(current, orderedIds).map(item => item.id);
         const [err] = await noTryAsync(() =>
-            conn.rundowns.reorderEntries(id, after),
+            reorder.mutateAsync({ id, order: after }),
         );
         if (err) return;
 
-        reorderEntriesInCache(id, after);
         record({
             label: { key: 'reorder' },
             scopes: [rundownScope(id, 'order')],
             prev: before,
             next: after,
-            apply: async (order, { api }) => {
-                await api.rundowns.reorderEntries(id, order);
-                reorderEntriesInCache(id, order);
-            },
+            apply: (order, { api }) =>
+                runMutation(entriesReorder, api, { id, order }),
         });
     };
 

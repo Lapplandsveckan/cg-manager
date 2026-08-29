@@ -17,3 +17,23 @@ export const qk = {
     plugins: ['plugins'] as const,
     version: ['version'] as const,
 };
+
+/** Mutation-key registry, one entry per operation — lets
+ *  `queryClient.isMutating({ mutationKey })` target one of them (the undo
+ *  re-entrancy guard uses `qm.undo`). A separate namespace from `qk`, not a
+ *  cache-addressing one. */
+export const qm = {
+    routeCreate: ['route', 'create'] as const,
+    routeUpdate: ['route', 'update'] as const,
+    routeDelete: ['route', 'delete'] as const,
+    routeSetEnabled: ['route', 'setEnabled'] as const,
+    rundownCreate: ['rundown', 'create'] as const,
+    rundownRename: ['rundown', 'rename'] as const,
+    rundownDelete: ['rundown', 'delete'] as const,
+    entryCreate: ['rundown-entry', 'create'] as const,
+    entryUpdate: ['rundown-entry', 'update'] as const,
+    entryDelete: ['rundown-entry', 'delete'] as const,
+    entriesReorder: ['rundown-entry', 'reorder'] as const,
+    casparConfigUpdate: ['caspar', 'config', 'update'] as const,
+    undo: ['undo'] as const,
+};

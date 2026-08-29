@@ -9,7 +9,6 @@ import {
     type SourceType,
 } from '../../components/routes/RouteSourceTypePicker';
 import { RouteModal } from '../../components/routes/RouteModal';
-import { useSocket } from '../../lib/hooks/useSocket';
 import { DefaultContentLayout } from '../../components/DefaultContentLayout';
 import { RouteCard } from '../../components/routes/RouteCard';
 import { DeleteRouteModal } from '../../components/routes/DeleteRouteModal';
@@ -17,22 +16,27 @@ import { useToast } from '../../components/ToastProvider';
 import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
 import { liveId, record } from '../../lib/undo/undoStore';
 import { omitId, rekeyId, routeScope } from '../../lib/undo/tools';
+import { runMutation, useMutationSpec } from '../../lib/query/mutations';
 import {
-    mergeRouteInCache,
-    removeRouteFromCache,
+    routeCreate,
+    routeDelete,
+    routeSetEnabled,
+    routeUpdate,
     useRoutesQuery,
 } from '../../lib/query/routes';
 import { useChannelInfo } from '../../lib/query/caspar';
 
 const Page = () => {
     const { t } = useTranslation('common');
-    const socket = useSocket();
     const notify = useToast();
 
     const { data: routes, error: routesError } = useRoutesQuery();
     const { channels, videoModes, channelSizes } = useChannelInfo();
+    const setEnabled = useMutationSpec(routeSetEnabled);
+    const create = useMutationSpec(routeCreate);
+    const update = useMutationSpec(routeUpdate);
+    const deleteMut = useMutationSpec(routeDelete);
     const [deleting, setDeleting] = useState<VideoRoute | null>(null);
-    const [busy, setBusy] = useState(false);
 
     const [picking, setPicking] = useState(false);
     const [editing, setEditing] = useState<VideoRoute | null>(null);
@@ -40,9 +44,8 @@ const Page = () => {
 
     const toggle = useCallback(
         async (id: string, next: boolean) => {
-            if (!socket) return;
-            const [err, updated] = await noTryAsync(async () =>
-                socket.videoRoutes.setEnabled(id, next),
+            const [err, updated] = await noTryAsync(() =>
+                setEnabled.mutateAsync({ id, enabled: next }),
             );
             if (err) {
                 notify(
@@ -53,7 +56,6 @@ const Page = () => {
                 return;
             }
 
-            mergeRouteInCache(updated);
             record({
                 label: {
                     key: next ? 'routeEnable' : 'routeDisable',
@@ -62,24 +64,21 @@ const Page = () => {
                 scopes: [routeScope(id)],
                 prev: !next,
                 next,
-                apply: async (enabled, { api }) => {
-                    const applied = await api.videoRoutes.setEnabled(
-                        liveId(id),
+                apply: (enabled, { api }) =>
+                    runMutation(routeSetEnabled, api, {
+                        id: liveId(id),
                         enabled,
-                    );
-                    mergeRouteInCache(applied);
-                },
+                    }),
             });
         },
-        [socket],
+        [setEnabled.mutateAsync],
     );
 
     const confirmDelete = async () => {
-        if (!socket || !deleting) return;
-        setBusy(true);
+        if (!deleting) return;
 
-        const [err] = await noTryAsync(async () =>
-            socket.videoRoutes.delete(deleting.id),
+        const [err] = await noTryAsync(() =>
+            deleteMut.mutateAsync({ id: deleting.id }),
         );
         if (err) {
             notify(
@@ -87,7 +86,6 @@ const Page = () => {
                 'error',
             );
         } else {
-            removeRouteFromCache(deleting.id);
             const deleted = deleting;
             setDeleting(null);
             notify(t('videoRoutes.success.deleted'), 'success');
@@ -98,33 +96,30 @@ const Page = () => {
                 next: null,
                 apply: async (route, { api, entry }) => {
                     if (route) {
-                        const created = await api.videoRoutes.create(
+                        const created = await runMutation(
+                            routeCreate,
+                            api,
                             omitId(route),
                         );
                         rekeyId(route.id, created.id, routeScope, entry);
-                        mergeRouteInCache(created);
                         return;
                     }
-                    const id = liveId(deleted.id);
-                    await api.videoRoutes.delete(id);
-                    removeRouteFromCache(id);
+                    await runMutation(routeDelete, api, {
+                        id: liveId(deleted.id),
+                    });
                 },
             });
         }
-
-        setBusy(false);
     };
 
     const saveRoute = async (data: Omit<VideoRoute, 'id'>) => {
-        if (!socket) return;
         const [err] = await noTryAsync(async () => {
             if (editing) {
                 const before = editing;
-                const updated = await socket.videoRoutes.update(
-                    editing.id,
+                const updated = await update.mutateAsync({
+                    id: editing.id,
                     data,
-                );
-                mergeRouteInCache(updated);
+                });
                 record({
                     label: {
                         key: 'routeUpdate',
@@ -133,18 +128,14 @@ const Page = () => {
                     scopes: [routeScope(updated.id)],
                     prev: before,
                     next: updated,
-                    apply: async (route, { api }) => {
-                        const id = liveId(updated.id);
-                        const applied = await api.videoRoutes.update(
-                            id,
-                            omitId(route),
-                        );
-                        mergeRouteInCache(applied);
-                    },
+                    apply: (route, { api }) =>
+                        runMutation(routeUpdate, api, {
+                            id: liveId(updated.id),
+                            data: omitId(route),
+                        }),
                 });
             } else {
-                const created = await socket.videoRoutes.create(data);
-                mergeRouteInCache(created);
+                const created = await create.mutateAsync(data);
                 record<VideoRoute | null>({
                     label: {
                         key: 'routeCreate',
@@ -155,7 +146,9 @@ const Page = () => {
                     next: created,
                     apply: async (route, { api, entry }) => {
                         if (route) {
-                            const recreated = await api.videoRoutes.create(
+                            const recreated = await runMutation(
+                                routeCreate,
+                                api,
                                 omitId(route),
                             );
                             rekeyId(
@@ -164,12 +157,11 @@ const Page = () => {
                                 routeScope,
                                 entry,
                             );
-                            mergeRouteInCache(recreated);
                             return;
                         }
-                        const id = liveId(created.id);
-                        await api.videoRoutes.delete(id);
-                        removeRouteFromCache(id);
+                        await runMutation(routeDelete, api, {
+                            id: liveId(created.id),
+                        });
                     },
                 });
             }
@@ -292,7 +284,7 @@ const Page = () => {
 
             <DeleteRouteModal
                 deleting={deleting}
-                busy={busy}
+                busy={deleteMut.isPending}
                 onClose={() => setDeleting(null)}
                 onConfirm={confirmDelete}
             />

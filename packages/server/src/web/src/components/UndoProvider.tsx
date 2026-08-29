@@ -22,8 +22,16 @@ import {
     pushUndo,
     subscribe,
 } from '../lib/undo/undoStore';
-import { isBarrierEntry, type UndoLabel } from '../lib/undo/types';
+import {
+    isBarrierEntry,
+    type UndoContext as UndoApplyContext,
+    type UndoEntry,
+    type UndoLabel,
+} from '../lib/undo/types';
 import { UndoStaleError, routeScope, rundownScope } from '../lib/undo/tools';
+import { queryClient } from '../lib/query/client';
+import { qm } from '../lib/query/keys';
+import { defineMutation, useMutationSpec } from '../lib/query/mutations';
 import { useWsBroadcast } from '../lib/query/useWsBroadcast';
 
 interface UndoContextValue {
@@ -31,6 +39,7 @@ interface UndoContextValue {
     redo: () => void;
     canUndo: boolean;
     canRedo: boolean;
+    isBusy: boolean;
 }
 
 const UndoContext = createContext<UndoContextValue>({
@@ -38,11 +47,29 @@ const UndoContext = createContext<UndoContextValue>({
     redo: () => undefined,
     canUndo: false,
     canRedo: false,
+    isBusy: false,
 });
 
 export const useUndo = (): UndoContextValue => useContext(UndoContext);
 
 const MAX_UNDO_ATTEMPTS = 2;
+
+interface RunEntryVars {
+    entry: UndoEntry;
+    direction: UndoApplyContext['direction'];
+}
+
+const runUndoEntry = defineMutation({
+    key: qm.undo,
+    run: (api, { entry, direction }: RunEntryVars) =>
+        Promise.resolve(
+            entry.apply(direction === 'undo' ? entry.prev : entry.next, {
+                api,
+                direction,
+                entry,
+            }),
+        ),
+});
 
 function isEditableTarget(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) return false;
@@ -58,7 +85,7 @@ export const UndoProvider: React.FC<{ children: React.ReactNode }> = ({
     const conn = useSocket();
     const notify = useToast();
     const { state: connectionState } = useConnection();
-    const busyRef = useRef(false);
+    const runEntry = useMutationSpec(runUndoEntry);
 
     const undoStack = useSyncExternalStore(
         subscribe,
@@ -83,7 +110,10 @@ export const UndoProvider: React.FC<{ children: React.ReactNode }> = ({
     );
 
     const undo = useCallback(async () => {
-        if (!conn || busyRef.current) return;
+        // Synchronous re-entrancy guard — the mutation cache updates
+        // synchronously on `mutateAsync`, unlike `isPending` (a render-time
+        // value), so two Cmd+Z presses in one tick still can't overlap.
+        if (queryClient.isMutating({ mutationKey: qm.undo })) return;
         const entry = popUndo();
         if (!entry) {
             notify(t('undo.nothingToUndo'), 'info');
@@ -97,11 +127,9 @@ export const UndoProvider: React.FC<{ children: React.ReactNode }> = ({
             return;
         }
 
-        busyRef.current = true;
-        const [err] = await noTryAsync(async () =>
-            entry.apply(entry.prev, { api: conn, direction: 'undo', entry }),
+        const [err] = await noTryAsync(() =>
+            runEntry.mutateAsync({ entry, direction: 'undo' }),
         );
-        busyRef.current = false;
 
         if (!err) {
             pushRedo(entry.failCount ? { ...entry, failCount: 0 } : entry);
@@ -122,21 +150,19 @@ export const UndoProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         pushUndo({ ...entry, failCount });
         notify(t('undo.errors.undoFailed'), 'error');
-    }, [conn, notify, t, labelText]);
+    }, [notify, t, labelText, runEntry.mutateAsync]);
 
     const redo = useCallback(async () => {
-        if (!conn || busyRef.current) return;
+        if (queryClient.isMutating({ mutationKey: qm.undo })) return;
         const entry = popRedo();
         if (!entry) {
             notify(t('undo.nothingToRedo'), 'info');
             return;
         }
 
-        busyRef.current = true;
-        const [err] = await noTryAsync(async () =>
-            entry.apply(entry.next, { api: conn, direction: 'redo', entry }),
+        const [err] = await noTryAsync(() =>
+            runEntry.mutateAsync({ entry, direction: 'redo' }),
         );
-        busyRef.current = false;
 
         if (!err) {
             pushUndo(entry.failCount ? { ...entry, failCount: 0 } : entry);
@@ -153,7 +179,7 @@ export const UndoProvider: React.FC<{ children: React.ReactNode }> = ({
         }
         pushRedo({ ...entry, failCount });
         notify(t('undo.errors.redoFailed'), 'error');
-    }, [conn, notify, t, labelText]);
+    }, [notify, t, labelText, runEntry.mutateAsync]);
 
     const wasConnectedRef = useRef(connectionState === 'connected');
     useEffect(() => {
@@ -237,6 +263,7 @@ export const UndoProvider: React.FC<{ children: React.ReactNode }> = ({
                 redo: () => void redo(),
                 canUndo: undoStack.length > 0,
                 canRedo: redoStack.length > 0,
+                isBusy: runEntry.isPending,
             }}
         >
             {children}

@@ -25,7 +25,9 @@ import { useCapabilities } from '../lib/hooks/useCapabilities';
 import { record } from '../lib/undo/undoStore';
 import { CONFIG_SCOPE, UndoStaleError } from '../lib/undo/tools';
 import { useLatest } from '../lib/hooks/useLatest';
+import { useMutationSpec, runMutation } from '../lib/query/mutations';
 import {
+    casparConfigUpdate,
     setCasparConfigInCache,
     useCasparConfigQuery,
     useRunningConfigQuery,
@@ -67,7 +69,8 @@ const Page = () => {
     const { data: runningData } = useRunningConfigQuery();
     const running = runningData ?? null;
     const [draft, setDraft] = useState<CasparConfig | null>(null);
-    const [saving, setSaving] = useState(false);
+    const saveConfig = useMutationSpec(casparConfigUpdate);
+    const saving = saveConfig.isPending;
     const error = configQuery.error
         ? configQuery.error.message || t('config.errors.loadFailed')
         : null;
@@ -110,28 +113,21 @@ const Page = () => {
     const save = async () => {
         if (!draft || saving) return;
 
-        setSaving(true);
         const [err, saved] = await noTryAsync(() =>
-            socket.caspar.updateConfig(draft),
+            saveConfig.mutateAsync(draft),
         );
         if (err) {
             notify(
                 (err as any)?.message ?? t('config.errors.saveFailed'),
                 'error',
             );
-            setSaving(false);
             return;
         }
-        if (!saved) {
-            setSaving(false);
-            return;
-        }
+        if (!saved) return;
 
         const before = original;
-        setCasparConfigInCache(saved);
         setDraft(saved);
         notify(t('config.success.saved'), 'success');
-        setSaving(false);
         if (!before) return;
 
         record({
@@ -141,14 +137,18 @@ const Page = () => {
             next: saved,
             apply: async (cfg, { api, direction }) => {
                 if (direction === 'undo') {
-                    // Staleness pre-check hits the server, not the cache —
-                    // the cache may lag a save this client never saw.
+                    // Staleness pre-check hits the server directly, not
+                    // `queryClient.fetchQuery` — that would dedupe against
+                    // an in-flight background refetch and compare against a
+                    // response older than "now", defeating the check. Still
+                    // write the fresh read through the cache as a side
+                    // effect, same as the mutation's own patch would.
                     const current = await api.caspar.getConfig();
+                    setCasparConfigInCache(current);
                     if (stableStringify(current) !== stableStringify(saved))
                         throw new UndoStaleError();
                 }
-                await api.caspar.updateConfig(cfg);
-                setCasparConfigInCache(cfg);
+                await runMutation(casparConfigUpdate, api, cfg);
             },
         });
     };

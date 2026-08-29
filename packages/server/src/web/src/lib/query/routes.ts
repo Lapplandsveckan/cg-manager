@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { VideoRoute } from '../api/videoRoutes';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
-import { qk } from './keys';
+import { qk, qm } from './keys';
+import { defineMutation } from './mutations';
 import { useWsBroadcast } from './useWsBroadcast';
 
 export function useRoutesQuery() {
@@ -48,6 +49,33 @@ export function removeRouteFromCache(id: string): void {
         prev?.filter(r => r.id !== id),
     );
 }
+
+/** See `MutationSpec` for why these exist. */
+export const routeCreate = defineMutation({
+    key: qm.routeCreate,
+    run: (api, vars: Omit<VideoRoute, 'id'>) => api.videoRoutes.create(vars),
+    patch: mergeRouteInCache,
+});
+
+export const routeUpdate = defineMutation({
+    key: qm.routeUpdate,
+    run: (api, vars: { id: string; data: Partial<VideoRoute> }) =>
+        api.videoRoutes.update(vars.id, vars.data),
+    patch: mergeRouteInCache,
+});
+
+export const routeDelete = defineMutation({
+    key: qm.routeDelete,
+    run: (api, vars: { id: string }) => api.videoRoutes.delete(vars.id),
+    patch: (_result, vars) => removeRouteFromCache(vars.id),
+});
+
+export const routeSetEnabled = defineMutation({
+    key: qm.routeSetEnabled,
+    run: (api, vars: { id: string; enabled: boolean }) =>
+        api.videoRoutes.setEnabled(vars.id, vars.enabled),
+    patch: mergeRouteInCache,
+});
 
 /** Mounted once in QuerySync. The server excludes the originating client from
  *  these broadcasts, so they only ever describe another client's mutation —
