@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
+import { noTryAsync } from 'no-try';
 import { type ManagerApi } from '../api/api';
 import { useSocket } from '../hooks/useSocket';
 import { record } from '../undo/undoStore';
-import { request, requestOk, rundownScope } from '../undo/tools';
+import { rundownScope } from '../undo/tools';
 import { queryClient } from './client';
 import { qk } from './keys';
 import {
@@ -14,19 +15,12 @@ import { useWsBroadcast } from './useWsBroadcast';
 
 export type RundownEntry = RundownItem;
 
-async function fetchRundown(conn: ManagerApi, id: string): Promise<Rundown> {
-    const res = await conn.rawRequest(`/api/rundown/${id}`, 'GET', {});
-    // The server replies 200 with a null body for an unknown id; TanStack
-    // rejects undefined query data, so degrade to an empty rundown instead.
-    return (res.data as Rundown) ?? { id, name: '', items: [] };
-}
-
 export function useRundownEntriesQuery(id: string | null | undefined) {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.rundownEntries(id ?? ''),
         enabled: !!conn && !!id,
-        queryFn: () => fetchRundown(conn as ManagerApi, id as string),
+        queryFn: () => (conn as ManagerApi).rundowns.get(id as string),
     });
 }
 
@@ -170,13 +164,10 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const id = rundownId;
         const insertIndex =
             typeof index === 'number' ? index : cachedItems(id).length;
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${id}/entry`,
-            'CREATE',
-            typeof index === 'number' ? { entry, index } : entry,
+        const [err] = await noTryAsync(() =>
+            conn.rundowns.createEntry(id, entry, index),
         );
-        if (!ok) return;
+        if (err) return;
 
         insertEntryInCache(id, entry, index);
         record<RundownEntry | null>({
@@ -186,19 +177,11 @@ export function useRundownEntries(rundownId: string | null | undefined) {
             next: entry,
             apply: async (state, { api }) => {
                 if (state) {
-                    await request(api, {
-                        path: `/api/rundown/${id}/entry`,
-                        method: 'CREATE',
-                        data: { entry: state, index: insertIndex },
-                    });
+                    await api.rundowns.createEntry(id, state, insertIndex);
                     insertEntryInCache(id, state, insertIndex);
                     return;
                 }
-                await request(api, {
-                    path: `/api/rundown/${id}/entry`,
-                    method: 'DELETE',
-                    data: entry.id,
-                });
+                await api.rundowns.deleteEntry(id, entry.id);
                 removeEntryFromCache(id, entry.id);
             },
         });
@@ -209,13 +192,10 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const id = rundownId;
         const before = cachedItems(id).find(v => v.id === entry.id);
 
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${id}/entry`,
-            'UPDATE',
-            entry,
+        const [err] = await noTryAsync(() =>
+            conn.rundowns.updateEntry(id, entry),
         );
-        if (!ok) return;
+        if (err) return;
 
         updateEntriesInCache(id, entry);
         if (!before) return;
@@ -225,11 +205,7 @@ export function useRundownEntries(rundownId: string | null | undefined) {
             prev: before,
             next: entry,
             apply: async (state, { api }) => {
-                await request(api, {
-                    path: `/api/rundown/${id}/entry`,
-                    method: 'UPDATE',
-                    data: state,
-                });
+                await api.rundowns.updateEntry(id, state);
                 updateEntriesInCache(id, state);
             },
         });
@@ -240,13 +216,10 @@ export function useRundownEntries(rundownId: string | null | undefined) {
         const id = rundownId;
         const index = cachedItems(id).findIndex(v => v.id === entry.id);
 
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${id}/entry`,
-            'DELETE',
-            entry.id,
+        const [err] = await noTryAsync(() =>
+            conn.rundowns.deleteEntry(id, entry.id),
         );
-        if (!ok) return;
+        if (err) return;
         if (index < 0) return;
 
         removeEntryFromCache(id, entry.id);
@@ -257,19 +230,11 @@ export function useRundownEntries(rundownId: string | null | undefined) {
             next: null,
             apply: async (state, { api }) => {
                 if (state) {
-                    await request(api, {
-                        path: `/api/rundown/${id}/entry`,
-                        method: 'CREATE',
-                        data: { entry: state, index },
-                    });
+                    await api.rundowns.createEntry(id, state, index);
                     insertEntryInCache(id, state, index);
                     return;
                 }
-                await request(api, {
-                    path: `/api/rundown/${id}/entry`,
-                    method: 'DELETE',
-                    data: entry.id,
-                });
+                await api.rundowns.deleteEntry(id, entry.id);
                 removeEntryFromCache(id, entry.id);
             },
         });
@@ -284,13 +249,8 @@ export function useRundownEntries(rundownId: string | null | undefined) {
             '';
         if (!trimmed || trimmed === before) return;
 
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${id}`,
-            'UPDATE',
-            trimmed,
-        );
-        if (!ok) return;
+        const [err] = await noTryAsync(() => conn.rundowns.rename(id, trimmed));
+        if (err) return;
 
         renameRundownInCache(id, trimmed);
         record({
@@ -299,11 +259,7 @@ export function useRundownEntries(rundownId: string | null | undefined) {
             prev: before,
             next: trimmed,
             apply: async (value, { api }) => {
-                await request(api, {
-                    path: `/api/rundown/${id}`,
-                    method: 'UPDATE',
-                    data: value,
-                });
+                await api.rundowns.rename(id, value);
                 renameRundownInCache(id, value);
             },
         });
@@ -321,13 +277,10 @@ export function useRundownEntries(rundownId: string | null | undefined) {
             return;
 
         const after = reorderById(current, orderedIds).map(item => item.id);
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${id}/order`,
-            'ACTION',
-            after,
+        const [err] = await noTryAsync(() =>
+            conn.rundowns.reorderEntries(id, after),
         );
-        if (!ok) return;
+        if (err) return;
 
         reorderEntriesInCache(id, after);
         record({
@@ -336,11 +289,7 @@ export function useRundownEntries(rundownId: string | null | undefined) {
             prev: before,
             next: after,
             apply: async (order, { api }) => {
-                await request(api, {
-                    path: `/api/rundown/${id}/order`,
-                    method: 'ACTION',
-                    data: order,
-                });
+                await api.rundowns.reorderEntries(id, order);
                 reorderEntriesInCache(id, order);
             },
         });

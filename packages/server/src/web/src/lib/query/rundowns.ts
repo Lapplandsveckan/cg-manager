@@ -1,42 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
+import { noTryAsync } from 'no-try';
 import { type ManagerApi } from '../api/api';
+import type { Rundown, RundownItem } from '../api/rundowns';
 import { useSocket } from '../hooks/useSocket';
 import { record, recordBarrier } from '../undo/undoStore';
-import { okData, request, requestOk, rundownScope } from '../undo/tools';
+import { rundownScope } from '../undo/tools';
 import { queryClient } from './client';
 import { qk } from './keys';
 import { useWsBroadcast } from './useWsBroadcast';
 
-export interface RundownItem {
-    id: string;
-    title: string;
-    data: any;
-    /** Registered action type. Always set for stored items; optional so
-     *  client-side drafts (editor pre-fill, drag payloads) share the shape. */
-    type?: string;
-    metadata?: { autoNext?: boolean };
-}
-
-export interface Rundown {
-    id: string;
-    name: string;
-    items: RundownItem[];
-    type?: 'rundown' | 'quick';
-    /** Read straight off the rundown's file on disk — not user-editable. */
-    createdAt?: number;
-}
+export type { Rundown, RundownItem };
 
 /** The server splits the GET endpoints by type; the cache holds ALL rundowns
  *  under one key and the list hooks below filter via select. */
 async function fetchRundowns(conn: ManagerApi): Promise<Rundown[]> {
     const [main, quick] = await Promise.all([
-        conn.rawRequest('/api/rundown', 'GET', {}),
-        conn.rawRequest('/api/rundown/quick', 'GET', {}),
+        conn.rundowns.list(),
+        conn.rundowns.listQuick(),
     ]);
-    return [
-        ...((main.data as Rundown[]) ?? []),
-        ...((quick.data as Rundown[]) ?? []),
-    ];
+    return [...main, ...quick];
 }
 
 const isQuick = (rundown: Rundown) => rundown.type === 'quick';
@@ -139,13 +121,10 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
         const rundowns = queryClient.getQueryData<Rundown[]>(qk.rundowns);
         const before = rundowns?.find(v => v.id === entry.id);
 
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${entry.id}`,
-            'UPDATE',
-            entry.name,
+        const [err] = await noTryAsync(() =>
+            conn.rundowns.rename(entry.id, entry.name),
         );
-        if (!ok) return;
+        if (err) return;
 
         renameRundownInCache(entry.id, entry.name);
         if (!before) return;
@@ -158,11 +137,7 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
             prev: before.name,
             next: entry.name,
             apply: async (name, { api }) => {
-                await request(api, {
-                    path: `/api/rundown/${entry.id}`,
-                    method: 'UPDATE',
-                    data: name,
-                });
+                await api.rundowns.rename(entry.id, name);
                 renameRundownInCache(entry.id, name);
             },
         });
@@ -170,13 +145,8 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
 
     const deleteRundown = async (entry: Rundown) => {
         if (!conn) return;
-        const ok = await requestOk(
-            conn,
-            `/api/rundown/${entry.id}`,
-            'DELETE',
-            null,
-        );
-        if (!ok) return;
+        const [err] = await noTryAsync(() => conn.rundowns.delete(entry.id));
+        if (err) return;
 
         removeRundownFromCache(entry.id);
         recordBarrier({ key: 'rundownDelete', params: { name: entry.name } }, [
@@ -186,10 +156,12 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
 
     const createRundown = async (name: string): Promise<Rundown | null> => {
         if (!conn) return null;
-        const path = type === 'quick' ? '/api/rundown/quick' : '/api/rundown';
-        const res = await conn.rawRequest(path, 'CREATE', name);
-        const data = okData<Rundown>(res);
-        if (!data) return null;
+        const [err, data] = await noTryAsync(() =>
+            type === 'quick'
+                ? conn.rundowns.createQuick(name)
+                : conn.rundowns.create(name),
+        );
+        if (err || !data) return null;
 
         upsertRundownInCache(data);
         recordBarrier(

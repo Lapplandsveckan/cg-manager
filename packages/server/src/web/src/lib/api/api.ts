@@ -6,6 +6,7 @@ import { CasparServerApi } from './caspar';
 import { PluginInjectionAPI } from './inject';
 import { PluginApi } from './plugin';
 import { CheckedRepClient } from './repClient';
+import { RundownsApi } from './rundowns';
 import { VideoRoutesApi } from './videoRoutes';
 
 export { RequestError } from './repClient';
@@ -17,6 +18,7 @@ export class ManagerApi {
     public injects: PluginInjectionAPI;
     public plugin: PluginApi;
     public videoRoutes: VideoRoutesApi;
+    public rundowns: RundownsApi;
 
     private static instance: ManagerApi;
     public static getConnection() {
@@ -47,6 +49,7 @@ export class ManagerApi {
         this.injects = new PluginInjectionAPI(this.socket);
         this.plugin = new PluginApi(this.socket);
         this.videoRoutes = new VideoRoutesApi(this.socket);
+        this.rundowns = new RundownsApi(this.socket);
 
         // Refresh the injection manifest whenever the plugin list changes so
         // newly installed plugin UI appears live without a reload.
@@ -65,7 +68,13 @@ export class ManagerApi {
         this.socket.disconnect();
     }
 
-    public async getApiVersion() {
-        return await this.socket.request('api/version', 'GET', {});
+    public async getApiVersion(): Promise<string> {
+        const res = await this.socket.request('api/version', 'GET', {});
+        return res.data as string;
+    }
+
+    /** Fire-and-forget: caller (reportClientError) swallows the rejection. */
+    public async logClientError(report: unknown): Promise<void> {
+        await this.socket.request('api/log/client', 'ACTION', report);
     }
 }

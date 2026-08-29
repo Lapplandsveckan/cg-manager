@@ -6,32 +6,14 @@ import { queryClient } from './client';
 import { qk } from './keys';
 import { useWsBroadcast } from './useWsBroadcast';
 
-export interface RundownActionDescriptor {
-    id: string;
-    hasStop: boolean;
-    acceptsFiles?: boolean;
-    fileTypes?: string[];
-    destination?: string;
-}
-
-async function fetchTypes(conn: ManagerApi): Promise<string[]> {
-    const res = await conn.rawRequest('/api/rundown/types', 'GET', {});
-    return (res.data as string[]) ?? [];
-}
-
-async function fetchActions(
-    conn: ManagerApi,
-): Promise<RundownActionDescriptor[]> {
-    const res = await conn.rawRequest('/api/rundown/actions', 'GET', {});
-    return (res.data as RundownActionDescriptor[]) ?? [];
-}
+export type { RundownActionDescriptor } from '../api/rundowns';
 
 export function useRundownTypesQuery() {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.rundownTypes,
         enabled: !!conn,
-        queryFn: () => fetchTypes(conn as ManagerApi),
+        queryFn: () => (conn as ManagerApi).rundowns.getTypes(),
     });
 }
 
@@ -40,7 +22,7 @@ export function useRundownActionsQuery() {
     return useQuery({
         queryKey: qk.rundownActions,
         enabled: !!conn,
-        queryFn: () => fetchActions(conn as ManagerApi),
+        queryFn: () => (conn as ManagerApi).rundowns.getActions(),
     });
 }
 

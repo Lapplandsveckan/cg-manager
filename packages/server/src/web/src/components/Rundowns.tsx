@@ -485,8 +485,8 @@ export const Rundowns: React.FC<RundownsProps> = ({
         // Run matches in parallel; they don't depend on each other.
         const matchResults = await Promise.all(
             files.map(async file => {
-                const [err, res] = await noTryAsync(() =>
-                    conn.rawRequest('/api/rundown/actions/match', 'ACTION', {
+                const [err, matches] = await noTryAsync(() =>
+                    conn.rundowns.matchActions<RundownFileMatchResult>({
                         name: file.name,
                         type: file.type,
                         size: file.size,
@@ -494,10 +494,7 @@ export const Rundowns: React.FC<RundownsProps> = ({
                 );
                 if (err)
                     return { file, matches: [] as RundownFileMatchResult[] };
-                return {
-                    file,
-                    matches: (res?.data as RundownFileMatchResult[]) ?? [],
-                };
+                return { file, matches };
             }),
         );
 

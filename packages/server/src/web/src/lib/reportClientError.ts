@@ -18,7 +18,7 @@ export interface ClientErrorReport {
 export const reportClientError = (report: ClientErrorReport) => {
     if (!client) return;
     client
-        .rawRequest('/api/log/client', 'ACTION', {
+        .logClientError({
             ...report,
             url:
                 typeof window !== 'undefined'

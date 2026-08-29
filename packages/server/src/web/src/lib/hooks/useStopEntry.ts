@@ -18,9 +18,9 @@ export function useStopEntry(): (entry: RundownEntry) => void {
                 notify(t('rundown.stop.offline'), 'warning');
                 return;
             }
-            conn?.rawRequest('/api/rundown/stop', 'ACTION', { entry }).catch(
-                () => notify(t('rundown.stop.failed'), 'error'),
-            );
+            conn?.rundowns
+                .stop(entry)
+                .catch(() => notify(t('rundown.stop.failed'), 'error'));
         },
         [t, conn, online, notify],
     );

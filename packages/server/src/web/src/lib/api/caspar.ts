@@ -143,9 +143,52 @@ export class CasparServerApi extends EventEmitter {
         return this.logs;
     }
 
+    public async getStatus(): Promise<CasparStatus> {
+        const res = await this.socket.request('api/caspar/status', 'GET', {});
+        return res.data as CasparStatus;
+    }
+
     public async getConfig(): Promise<CasparConfig> {
         const res = await this.socket.request('api/caspar/config', 'GET', {});
         return res.data as CasparConfig;
+    }
+
+    /** `null` = CasparCG is not running (or no snapshot yet) — a real value
+     *  the server sends, distinct from `undefined` (query not resolved). */
+    public async getRunningConfig(): Promise<CasparConfig | null> {
+        const res = await this.socket.request(
+            'api/caspar/running-config',
+            'GET',
+            {},
+        );
+        return (res.data as CasparConfig | null) ?? null;
+    }
+
+    public async getCapabilities(): Promise<CapabilitiesResponse> {
+        const res = await this.socket.request(
+            'api/caspar/capabilities',
+            'GET',
+            {},
+        );
+        return res.data as CapabilitiesResponse;
+    }
+
+    public async getAllMedia(): Promise<MediaDoc[]> {
+        const res = await this.socket.request(
+            'api/caspar/media/all',
+            'GET',
+            {},
+        );
+        return (res.data as MediaDoc[]) ?? [];
+    }
+
+    public async getFolders(): Promise<string[]> {
+        const res = await this.socket.request(
+            'api/caspar/media/folder',
+            'GET',
+            {},
+        );
+        return (res.data as { folders?: string[] })?.folders ?? [];
     }
 
     public async updateConfig(config: CasparConfig): Promise<CasparConfig> {

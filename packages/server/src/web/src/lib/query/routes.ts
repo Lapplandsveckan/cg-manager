@@ -6,19 +6,12 @@ import { queryClient } from './client';
 import { qk } from './keys';
 import { useWsBroadcast } from './useWsBroadcast';
 
-/** Not VideoRoutesApi.list() — that swallows errors as []. TanStack needs the
- *  real error, so go through rawRequest (throws on a non-ok status). */
-async function fetchRoutes(conn: ManagerApi): Promise<VideoRoute[]> {
-    const res = await conn.rawRequest('api/routes', 'GET', {});
-    return (res.data as VideoRoute[]) ?? [];
-}
-
 export function useRoutesQuery() {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.routes,
         enabled: !!conn,
-        queryFn: () => fetchRoutes(conn as ManagerApi),
+        queryFn: () => (conn as ManagerApi).videoRoutes.list(),
     });
 }
 

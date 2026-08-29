@@ -37,7 +37,7 @@ async function pingOnce(socket: ManagerApi): Promise<string | null> {
     const [err, res] = await noTryAsync(() =>
         Promise.race([socket.getApiVersion(), timeoutPromise]),
     );
-    return err ? null : (res as { data: string }).data;
+    return err ? null : res;
 }
 
 class HeartbeatTracker {

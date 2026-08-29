@@ -26,11 +26,6 @@ import MediaInspectorModal from '../components/media/MediaInspectorModal';
 import { type RundownEntry } from '../components/Rundowns';
 import { useToast } from '../components/ToastProvider';
 
-interface RundownActionDescriptor {
-    id: string;
-    acceptsFiles: boolean;
-}
-
 interface RundownFileMatchResult {
     actionId: string;
     payload: { type: string; data?: unknown; title?: string };
@@ -65,12 +60,11 @@ const Page = () => {
     const { busy, error, clearError } = handlers;
 
     useEffect(() => {
-        socket
-            .rawRequest('/api/rundown/actions', 'GET', {})
-            .then(res => {
-                const descriptors: RundownActionDescriptor[] = res.data ?? [];
-                setCanPlay(descriptors.some(d => d.acceptsFiles));
-            })
+        socket.rundowns
+            .getActions()
+            .then(descriptors =>
+                setCanPlay(descriptors.some(d => d.acceptsFiles)),
+            )
             .catch(() => setCanPlay(false));
     }, []);
 
@@ -85,8 +79,8 @@ const Page = () => {
               ? 'audio/*'
               : 'image/*';
 
-        const [err, res] = await noTryAsync(() =>
-            socket.rawRequest('/api/rundown/actions/match-media', 'ACTION', {
+        const [err, matches] = await noTryAsync(() =>
+            socket.rundowns.matchMediaActions<RundownFileMatchResult>({
                 mediaId: clip.id,
                 name,
                 type: mimeType,
@@ -97,7 +91,6 @@ const Page = () => {
             return;
         }
 
-        const matches: RundownFileMatchResult[] = res?.data ?? [];
         if (!matches.length) {
             notify(t('media.play.noAction'), 'warning');
             return;

@@ -7,15 +7,8 @@ import { qk } from './keys';
 import { useWsBroadcast } from './useWsBroadcast';
 
 async function fetchMedia(conn: ManagerApi): Promise<Record<string, MediaDoc>> {
-    const res = await conn.rawRequest('/api/caspar/media/all', 'GET', {});
-
-    const docs = (res.data as MediaDoc[]) ?? [];
+    const docs = await conn.caspar.getAllMedia();
     return Object.fromEntries(docs.map(doc => [doc.id, doc]));
-}
-
-async function fetchFolders(conn: ManagerApi): Promise<string[]> {
-    const res = await conn.rawRequest('/api/caspar/media/folder', 'GET', {});
-    return (res.data as { folders?: string[] })?.folders ?? [];
 }
 
 export function useMediaDocsQuery(enabled = true) {
@@ -36,7 +29,7 @@ export function useFoldersQuery() {
     return useQuery({
         queryKey: qk.mediaFolders,
         enabled: !!conn,
-        queryFn: () => fetchFolders(conn as ManagerApi),
+        queryFn: () => (conn as ManagerApi).caspar.getFolders(),
     });
 }
 
