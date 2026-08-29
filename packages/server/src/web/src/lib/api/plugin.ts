@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import { type REPClient } from 'rest-exchange-protocol-client';
+import { type ManagerApi } from './api';
 import { getChunkCount } from './upload';
 
 export interface Plugin {
@@ -18,16 +18,16 @@ export interface Plugin {
 }
 
 export class PluginApi extends EventEmitter {
-    private socket: REPClient;
+    private conn: ManagerApi;
     private plugins = [] as Plugin[];
 
-    constructor(socket: REPClient) {
+    constructor(conn: ManagerApi) {
         super();
-        this.socket = socket;
+        this.conn = conn;
 
         // Listen for server-pushed plugin list updates (install / uninstall /
         // enable / disable). Replace the local cache and notify listeners.
-        socket.routes.register({
+        conn.routes.register({
             path: 'plugins',
             method: 'ACTION',
             handler: request => {
@@ -41,7 +41,7 @@ export class PluginApi extends EventEmitter {
     }
 
     public async getPlugins(): Promise<Plugin[]> {
-        const res = await this.socket.request('api/plugins', 'GET', {});
+        const res = await this.conn.rawRequest('api/plugins', 'GET', {});
         this.plugins = res.data as Plugin[];
         return this.plugins;
     }
@@ -52,7 +52,7 @@ export class PluginApi extends EventEmitter {
     }
 
     public async setEnabled(name: string, enabled: boolean): Promise<boolean> {
-        const res = await this.socket.request(
+        const res = await this.conn.rawRequest(
             `api/plugins/${encodeURIComponent(name)}/status`,
             'ACTION',
             { enabled },
@@ -68,7 +68,7 @@ export class PluginApi extends EventEmitter {
      *  Pass the file directly; chunk count is computed here. */
     public async uploadPlugin(file: File): Promise<string> {
         const chunks = getChunkCount(file);
-        const res = await this.socket.request('api/plugins/upload', 'ACTION', {
+        const res = await this.conn.rawRequest('api/plugins/upload', 'ACTION', {
             filename: file.name,
             chunks,
         });
@@ -76,7 +76,7 @@ export class PluginApi extends EventEmitter {
     }
 
     public async uninstall(name: string) {
-        await this.socket.request(
+        await this.conn.rawRequest(
             `api/plugins/${encodeURIComponent(name)}`,
             'DELETE',
             {},
@@ -87,7 +87,7 @@ export class PluginApi extends EventEmitter {
         name: string,
         version: string,
     ): Promise<Plugin> {
-        const res = await this.socket.request(
+        const res = await this.conn.rawRequest(
             `api/plugins/${encodeURIComponent(name)}/version`,
             'ACTION',
             { version },
@@ -96,7 +96,7 @@ export class PluginApi extends EventEmitter {
     }
 
     public async deleteVersion(name: string, version: string): Promise<void> {
-        await this.socket.request(
+        await this.conn.rawRequest(
             `api/plugins/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}`,
             'DELETE',
             {},

@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { type ManagerApi } from '../api/api';
-import { assertOk } from '../api/caspar';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
 import { qk } from './keys';
@@ -17,7 +16,6 @@ export interface RundownActionDescriptor {
 
 async function fetchTypes(conn: ManagerApi): Promise<string[]> {
     const res = await conn.rawRequest('/api/rundown/types', 'GET', {});
-    assertOk(res);
     return (res.data as string[]) ?? [];
 }
 
@@ -25,7 +23,6 @@ async function fetchActions(
     conn: ManagerApi,
 ): Promise<RundownActionDescriptor[]> {
     const res = await conn.rawRequest('/api/rundown/actions', 'GET', {});
-    assertOk(res);
     return (res.data as RundownActionDescriptor[]) ?? [];
 }
 

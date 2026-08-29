@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { type ManagerApi } from '../api/api';
-import { assertOk, type MediaDoc } from '../api/caspar';
+import { type MediaDoc } from '../api/caspar';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
 import { qk } from './keys';
@@ -8,7 +8,6 @@ import { useWsBroadcast } from './useWsBroadcast';
 
 async function fetchMedia(conn: ManagerApi): Promise<Record<string, MediaDoc>> {
     const res = await conn.rawRequest('/api/caspar/media/all', 'GET', {});
-    assertOk(res);
 
     const docs = (res.data as MediaDoc[]) ?? [];
     return Object.fromEntries(docs.map(doc => [doc.id, doc]));
@@ -16,7 +15,6 @@ async function fetchMedia(conn: ManagerApi): Promise<Record<string, MediaDoc>> {
 
 async function fetchFolders(conn: ManagerApi): Promise<string[]> {
     const res = await conn.rawRequest('/api/caspar/media/folder', 'GET', {});
-    assertOk(res);
     return (res.data as { folders?: string[] })?.folders ?? [];
 }
 

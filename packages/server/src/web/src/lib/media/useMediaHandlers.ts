@@ -1,6 +1,7 @@
 import { useTranslation } from 'next-i18next';
 import { useToast } from '../../components/ToastProvider';
-import { type MediaDoc, RequestError } from '../api/caspar';
+import { RequestError } from '../api/api';
+import { type MediaDoc } from '../api/caspar';
 import { useSocket } from '../hooks/useSocket';
 import { BulkDeleteError, useMediaMutations } from '../query/media';
 

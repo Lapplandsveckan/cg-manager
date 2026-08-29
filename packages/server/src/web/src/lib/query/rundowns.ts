@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { type ManagerApi } from '../api/api';
-import { assertOk } from '../api/caspar';
 import { useSocket } from '../hooks/useSocket';
 import { record, recordBarrier } from '../undo/undoStore';
 import { okData, request, requestOk, rundownScope } from '../undo/tools';
@@ -34,8 +33,6 @@ async function fetchRundowns(conn: ManagerApi): Promise<Rundown[]> {
         conn.rawRequest('/api/rundown', 'GET', {}),
         conn.rawRequest('/api/rundown/quick', 'GET', {}),
     ]);
-    assertOk(main);
-    assertOk(quick);
     return [
         ...((main.data as Rundown[]) ?? []),
         ...((quick.data as Rundown[]) ?? []),

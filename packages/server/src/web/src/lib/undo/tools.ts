@@ -1,6 +1,5 @@
 import { noTryAsync } from 'no-try';
 import { type ManagerApi } from '../api/api';
-import { assertOk } from '../api/caspar';
 import type { UndoEntry } from './types';
 import { aliasId, liveId, rekeyScope } from './undoStore';
 
@@ -19,7 +18,7 @@ export async function request(
     conn: ManagerApi,
     opts: { path: string; method: string; data: unknown },
 ): Promise<void> {
-    assertOk(await conn.rawRequest(opts.path, opts.method, opts.data));
+    await conn.rawRequest(opts.path, opts.method, opts.data);
 }
 
 export async function requestOk(
@@ -28,9 +27,7 @@ export async function requestOk(
     method: string,
     data: unknown,
 ): Promise<boolean> {
-    const [err] = await noTryAsync(async () =>
-        assertOk(await conn.rawRequest(path, method, data)),
-    );
+    const [err] = await noTryAsync(() => conn.rawRequest(path, method, data));
     return !err;
 }
 

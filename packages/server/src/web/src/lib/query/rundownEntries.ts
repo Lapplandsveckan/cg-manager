@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { type ManagerApi } from '../api/api';
-import { assertOk } from '../api/caspar';
 import { useSocket } from '../hooks/useSocket';
 import { record } from '../undo/undoStore';
 import { request, requestOk, rundownScope } from '../undo/tools';
@@ -17,7 +16,6 @@ export type RundownEntry = RundownItem;
 
 async function fetchRundown(conn: ManagerApi, id: string): Promise<Rundown> {
     const res = await conn.rawRequest(`/api/rundown/${id}`, 'GET', {});
-    assertOk(res);
     // The server replies 200 with a null body for an unknown id; TanStack
     // rejects undefined query data, so degrade to an empty rundown instead.
     return (res.data as Rundown) ?? { id, name: '', items: [] };

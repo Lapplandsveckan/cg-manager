@@ -1,5 +1,4 @@
-import { type REPClient } from 'rest-exchange-protocol-client';
-import { assertOk } from './caspar';
+import { type ManagerApi } from './api';
 
 export interface DecklinkSource {
     type: 'decklink';
@@ -51,25 +50,24 @@ export interface VideoRoute {
 }
 
 export class VideoRoutesApi {
-    private socket: REPClient;
+    private conn: ManagerApi;
 
-    constructor(socket: REPClient) {
-        this.socket = socket;
+    constructor(conn: ManagerApi) {
+        this.conn = conn;
     }
 
     public async list(): Promise<VideoRoute[]> {
-        const res = await this.socket.request('api/routes', 'GET', {});
+        const res = await this.conn.rawRequest('api/routes', 'GET', {});
         return (res.data as VideoRoute[]) ?? [];
     }
 
     public async create(data: Omit<VideoRoute, 'id'>): Promise<VideoRoute> {
-        const res = await this.socket.request('api/routes', 'CREATE', data);
-        assertOk(res);
+        const res = await this.conn.rawRequest('api/routes', 'CREATE', data);
         return res.data as VideoRoute;
     }
 
     public async get(id: string): Promise<VideoRoute> {
-        const res = await this.socket.request(
+        const res = await this.conn.rawRequest(
             `api/routes/${encodeURIComponent(id)}`,
             'GET',
             {},
@@ -78,12 +76,10 @@ export class VideoRoutesApi {
     }
 
     public async delete(id: string): Promise<void> {
-        assertOk(
-            await this.socket.request(
-                `api/routes/${encodeURIComponent(id)}`,
-                'DELETE',
-                {},
-            ),
+        await this.conn.rawRequest(
+            `api/routes/${encodeURIComponent(id)}`,
+            'DELETE',
+            {},
         );
     }
 
@@ -93,23 +89,21 @@ export class VideoRoutesApi {
         id: string,
         patch: Partial<VideoRoute>,
     ): Promise<VideoRoute> {
-        const res = await this.socket.request(
+        const res = await this.conn.rawRequest(
             `api/routes/${encodeURIComponent(id)}`,
             'UPDATE',
             patch,
         );
-        assertOk(res);
         return res.data as VideoRoute;
     }
 
     public async setEnabled(id: string, enabled: boolean): Promise<VideoRoute> {
         const action = enabled ? 'enable' : 'disable';
-        const res = await this.socket.request(
+        const res = await this.conn.rawRequest(
             `api/routes/${encodeURIComponent(id)}/${action}`,
             'ACTION',
             {},
         );
-        assertOk(res);
         return res.data as VideoRoute;
     }
 }

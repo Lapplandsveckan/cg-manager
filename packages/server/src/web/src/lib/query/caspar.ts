@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { type ManagerApi } from '../api/api';
 import {
-    assertOk,
     type CapabilitiesResponse,
     type CasparConfig,
     type CasparStatus,
@@ -14,13 +13,11 @@ import { useWsBroadcast } from './useWsBroadcast';
 
 async function fetchStatus(conn: ManagerApi): Promise<CasparStatus> {
     const res = await conn.rawRequest('/api/caspar/status', 'GET', {});
-    assertOk(res);
     return res.data as CasparStatus;
 }
 
 async function fetchConfig(conn: ManagerApi): Promise<CasparConfig> {
     const res = await conn.rawRequest('/api/caspar/config', 'GET', {});
-    assertOk(res);
     return res.data as CasparConfig;
 }
 
@@ -30,7 +27,6 @@ async function fetchRunningConfig(
     conn: ManagerApi,
 ): Promise<CasparConfig | null> {
     const res = await conn.rawRequest('/api/caspar/running-config', 'GET', {});
-    assertOk(res);
     return (res.data as CasparConfig | null) ?? null;
 }
 
@@ -38,7 +34,6 @@ async function fetchCapabilities(
     conn: ManagerApi,
 ): Promise<CapabilitiesResponse> {
     const res = await conn.rawRequest('/api/caspar/capabilities', 'GET', {});
-    assertOk(res);
     return res.data as CapabilitiesResponse;
 }
 

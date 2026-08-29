@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { type ManagerApi } from '../api/api';
-import { assertOk } from '../api/caspar';
 import type { VideoRoute } from '../api/videoRoutes';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
@@ -8,10 +7,9 @@ import { qk } from './keys';
 import { useWsBroadcast } from './useWsBroadcast';
 
 /** Not VideoRoutesApi.list() — that swallows errors as []. TanStack needs the
- *  real error, so go through rawRequest + assertOk. */
+ *  real error, so go through rawRequest (throws on a non-ok status). */
 async function fetchRoutes(conn: ManagerApi): Promise<VideoRoute[]> {
     const res = await conn.rawRequest('api/routes', 'GET', {});
-    assertOk(res);
     return (res.data as VideoRoute[]) ?? [];
 }
 
