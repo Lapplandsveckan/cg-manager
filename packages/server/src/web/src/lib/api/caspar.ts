@@ -1,5 +1,5 @@
 import EventEmitter from 'events';
-import { type ManagerApi } from './api';
+import { type CheckedRepClient } from './repClient';
 import { getChunkCount } from './upload';
 import type { Config as CasparConfig } from '../../../../manager/caspar/config/types';
 import type { Capabilities } from '../../../../manager/caspar/config/profiles';
@@ -108,15 +108,15 @@ function clampLogs(buf: string): string {
 }
 
 export class CasparServerApi extends EventEmitter {
-    private conn: ManagerApi;
+    private socket: CheckedRepClient;
 
     private logs: string = '';
 
-    constructor(conn: ManagerApi) {
+    constructor(socket: CheckedRepClient) {
         super();
-        this.conn = conn;
+        this.socket = socket;
 
-        this.conn.routes.action('caspar/logs', async request => {
+        this.socket.routes.action('caspar/logs', async request => {
             const logs = request.data as string;
             this.logs = clampLogs(this.logs + logs);
 
@@ -125,31 +125,31 @@ export class CasparServerApi extends EventEmitter {
     }
 
     public async start() {
-        await this.conn.rawRequest('api/caspar/start', 'ACTION', {});
+        await this.socket.request('api/caspar/start', 'ACTION', {});
     }
 
     public async stop() {
-        await this.conn.rawRequest('api/caspar/stop', 'ACTION', {});
+        await this.socket.request('api/caspar/stop', 'ACTION', {});
     }
 
     public async restart() {
-        await this.conn.rawRequest('api/caspar/restart', 'ACTION', {});
+        await this.socket.request('api/caspar/restart', 'ACTION', {});
     }
 
     public async getLogs() {
-        const res = await this.conn.rawRequest('api/caspar/logs', 'GET', {});
+        const res = await this.socket.request('api/caspar/logs', 'GET', {});
         this.logs = clampLogs((res.data as string) ?? '');
 
         return this.logs;
     }
 
     public async getConfig(): Promise<CasparConfig> {
-        const res = await this.conn.rawRequest('api/caspar/config', 'GET', {});
+        const res = await this.socket.request('api/caspar/config', 'GET', {});
         return res.data as CasparConfig;
     }
 
     public async updateConfig(config: CasparConfig): Promise<CasparConfig> {
-        const res = await this.conn.rawRequest(
+        const res = await this.socket.request(
             'api/caspar/config',
             'UPDATE',
             config,
@@ -158,7 +158,7 @@ export class CasparServerApi extends EventEmitter {
     }
 
     public async cancelUpload(id: string) {
-        await this.conn.rawRequest('api/caspar/media/upload/cancel', 'ACTION', {
+        await this.socket.request('api/caspar/media/upload/cancel', 'ACTION', {
             id,
         });
     }
@@ -166,7 +166,7 @@ export class CasparServerApi extends EventEmitter {
     public async uploadMedia(path: string, chunks: number | File) {
         if (typeof chunks !== 'number') chunks = getChunkCount(chunks);
 
-        const res = await this.conn.rawRequest(
+        const res = await this.socket.request(
             'api/caspar/media/upload',
             'ACTION',
             {
@@ -178,7 +178,7 @@ export class CasparServerApi extends EventEmitter {
     }
 
     public async deleteMedia(id: string): Promise<void> {
-        await this.conn.rawRequest(
+        await this.socket.request(
             `api/caspar/media/${encodeURIComponent(id)}`,
             'DELETE',
             {},
@@ -186,7 +186,7 @@ export class CasparServerApi extends EventEmitter {
     }
 
     public async renameMedia(id: string, newName: string): Promise<void> {
-        await this.conn.rawRequest(
+        await this.socket.request(
             `api/caspar/media/${encodeURIComponent(id)}`,
             'UPDATE',
             {
@@ -200,7 +200,7 @@ export class CasparServerApi extends EventEmitter {
      *  file's extension is preserved). Use to drag media into a folder, or
      *  drop it onto a breadcrumb to move it back up the tree. */
     public async moveMedia(id: string, newPath: string): Promise<void> {
-        await this.conn.rawRequest(
+        await this.socket.request(
             `api/caspar/media/${encodeURIComponent(id)}`,
             'UPDATE',
             {
@@ -213,7 +213,7 @@ export class CasparServerApi extends EventEmitter {
      *  relative to the root (e.g. `intro/concerts/2026`). Server drops a
      *  `.cgkeep` placeholder so the dir survives without media inside it. */
     public async createFolder(folderPath: string): Promise<{ path: string }> {
-        const res = await this.conn.rawRequest(
+        const res = await this.socket.request(
             'api/caspar/media/folder',
             'CREATE',
             {
@@ -231,7 +231,7 @@ export class CasparServerApi extends EventEmitter {
         folderPath: string,
         recursive = false,
     ): Promise<void> {
-        await this.conn.rawRequest('api/caspar/media/folder', 'DELETE', {
+        await this.socket.request('api/caspar/media/folder', 'DELETE', {
             path: folderPath,
             recursive,
         });
@@ -245,7 +245,7 @@ export class CasparServerApi extends EventEmitter {
         from: string,
         to: string,
     ): Promise<{ path: string }> {
-        const res = await this.conn.rawRequest(
+        const res = await this.socket.request(
             'api/caspar/media/folder',
             'UPDATE',
             { from, to },

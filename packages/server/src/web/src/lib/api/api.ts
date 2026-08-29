@@ -43,10 +43,10 @@ export class ManagerApi {
             host,
         });
 
-        this.caspar = new CasparServerApi(this);
-        this.injects = new PluginInjectionAPI(this);
-        this.plugin = new PluginApi(this);
-        this.videoRoutes = new VideoRoutesApi(this);
+        this.caspar = new CasparServerApi(this.socket);
+        this.injects = new PluginInjectionAPI(this.socket);
+        this.plugin = new PluginApi(this.socket);
+        this.videoRoutes = new VideoRoutesApi(this.socket);
 
         // Refresh the injection manifest whenever the plugin list changes so
         // newly installed plugin UI appears live without a reload.

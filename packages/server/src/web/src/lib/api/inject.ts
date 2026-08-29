@@ -12,7 +12,7 @@ import { useSocket } from '../hooks/useSocket';
 import * as weblib from '../';
 import i18n from '../i18n';
 import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
-import { type ManagerApi } from './api';
+import { type CheckedRepClient } from './repClient';
 
 if (typeof window !== 'undefined') {
     window['React'] = React;
@@ -75,11 +75,11 @@ export class PluginInjectionAPI extends EventEmitter {
     private _modules = new Map<string, any | Promise<any>>();
     private _plugins = new Map<string, Injection>();
     private _pluginPromise: Promise<Map<string, Injection>>;
-    private conn: ManagerApi;
+    private socket: CheckedRepClient;
 
-    constructor(conn: ManagerApi) {
+    constructor(socket: CheckedRepClient) {
         super();
-        this.conn = conn;
+        this.socket = socket;
 
         this._pluginPromise = this.requestPlugins();
         this._pluginPromise
@@ -100,7 +100,7 @@ export class PluginInjectionAPI extends EventEmitter {
     }
 
     private async requestPlugins() {
-        const res = await this.conn.rawRequest('api/plugins/inject', 'GET', {});
+        const res = await this.socket.request('api/plugins/inject', 'GET', {});
         this._plugins.clear();
 
         const plugins = res.data as Injection[];
@@ -110,7 +110,7 @@ export class PluginInjectionAPI extends EventEmitter {
     }
 
     private async _importModule(id: string) {
-        const data = await this.conn.rawRequest(
+        const data = await this.socket.request(
             `api/plugins/inject/${id}`,
             'GET',
             {},

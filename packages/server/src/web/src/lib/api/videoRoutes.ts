@@ -1,4 +1,4 @@
-import { type ManagerApi } from './api';
+import { type CheckedRepClient } from './repClient';
 
 export interface DecklinkSource {
     type: 'decklink';
@@ -50,24 +50,24 @@ export interface VideoRoute {
 }
 
 export class VideoRoutesApi {
-    private conn: ManagerApi;
+    private socket: CheckedRepClient;
 
-    constructor(conn: ManagerApi) {
-        this.conn = conn;
+    constructor(socket: CheckedRepClient) {
+        this.socket = socket;
     }
 
     public async list(): Promise<VideoRoute[]> {
-        const res = await this.conn.rawRequest('api/routes', 'GET', {});
+        const res = await this.socket.request('api/routes', 'GET', {});
         return (res.data as VideoRoute[]) ?? [];
     }
 
     public async create(data: Omit<VideoRoute, 'id'>): Promise<VideoRoute> {
-        const res = await this.conn.rawRequest('api/routes', 'CREATE', data);
+        const res = await this.socket.request('api/routes', 'CREATE', data);
         return res.data as VideoRoute;
     }
 
     public async get(id: string): Promise<VideoRoute> {
-        const res = await this.conn.rawRequest(
+        const res = await this.socket.request(
             `api/routes/${encodeURIComponent(id)}`,
             'GET',
             {},
@@ -76,7 +76,7 @@ export class VideoRoutesApi {
     }
 
     public async delete(id: string): Promise<void> {
-        await this.conn.rawRequest(
+        await this.socket.request(
             `api/routes/${encodeURIComponent(id)}`,
             'DELETE',
             {},
@@ -89,7 +89,7 @@ export class VideoRoutesApi {
         id: string,
         patch: Partial<VideoRoute>,
     ): Promise<VideoRoute> {
-        const res = await this.conn.rawRequest(
+        const res = await this.socket.request(
             `api/routes/${encodeURIComponent(id)}`,
             'UPDATE',
             patch,
@@ -99,7 +99,7 @@ export class VideoRoutesApi {
 
     public async setEnabled(id: string, enabled: boolean): Promise<VideoRoute> {
         const action = enabled ? 'enable' : 'disable';
-        const res = await this.conn.rawRequest(
+        const res = await this.socket.request(
             `api/routes/${encodeURIComponent(id)}/${action}`,
             'ACTION',
             {},
