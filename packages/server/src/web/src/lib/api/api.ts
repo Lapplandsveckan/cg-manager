@@ -10,6 +10,7 @@ import { PluginApi } from './plugin';
 import { CheckedRepClient } from './repClient';
 import { RundownsApi } from './rundowns';
 import { VideoRoutesApi } from './videoRoutes';
+import { CLIENT_ERROR_PATH } from '../reportClientError';
 
 export { RequestError } from './repClient';
 
@@ -82,6 +83,6 @@ export class ManagerApi {
 
     /** Fire-and-forget: caller (reportClientError) swallows the rejection. */
     public async logClientError(report: unknown): Promise<void> {
-        await this.socket.request('api/log/client', 'ACTION', report);
+        await this.socket.request(CLIENT_ERROR_PATH, 'ACTION', report);
     }
 }
