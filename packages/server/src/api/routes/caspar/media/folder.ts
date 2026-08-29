@@ -1,8 +1,9 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { WebError } from 'rest-exchange-protocol';
+import { type Client, WebError } from 'rest-exchange-protocol';
 import { noTry, noTryAsync } from 'no-try';
 import { type RouteExport } from '../../../route';
+import { CasparManager } from '../../../../manager';
 import scannerConfig from '../../../../manager/scanner/config';
 import {
     resolveSafePath,
@@ -50,6 +51,20 @@ function validatePath(folderPath: string): string[] {
     return segments;
 }
 
+async function broadcastFolders(exclude?: Client): Promise<void> {
+    const [err, folders] = await noTryAsync(() =>
+        listAllFolders(scannerConfig.paths.media),
+    );
+    if (err || !folders) return;
+
+    CasparManager.getManager().server.broadcast(
+        'caspar/media/folder',
+        'ACTION',
+        folders,
+        exclude,
+    );
+}
+
 export default {
     GET: async () => ({
         folders: await listAllFolders(scannerConfig.paths.media),
@@ -71,6 +86,7 @@ export default {
         const placeholder = path.join(target, PLACEHOLDER_NAME);
         await noTryAsync(() => fs.writeFile(placeholder, '', { flag: 'a' }));
 
+        await broadcastFolders(request.getClient());
         return {
             ok: true,
             path: `${segments.map(s => s.toUpperCase()).join('/')}/`,
@@ -97,6 +113,7 @@ export default {
             const [err] = await noTryAsync(() => removeFolderRecursive(target));
             if (err)
                 throw new WebError(`Failed to delete: ${err.message}`, 500);
+            await broadcastFolders(request.getClient());
             return { ok: true };
         }
 
@@ -110,6 +127,7 @@ export default {
             throw new WebError(`Failed to delete: ${err.message}`, 500);
         }
 
+        await broadcastFolders(request.getClient());
         return { ok: true };
     },
 
@@ -154,6 +172,7 @@ export default {
             throw new WebError(`Failed to rename: ${renameErr.message}`, 500);
         }
 
+        await broadcastFolders(request.getClient());
         return {
             ok: true,
             path: `${toSegments.map(s => s.toUpperCase()).join('/')}/`,

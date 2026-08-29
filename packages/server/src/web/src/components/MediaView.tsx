@@ -1,9 +1,10 @@
 import { Button, Grid, Stack, Typography, alpha } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'next-i18next';
-import { useSocket } from '../lib/hooks/useSocket';
 import { SlotErrorBoundary } from './SlotErrorBoundary';
 import { type MediaDoc } from '../lib/api/caspar';
+import { useFoldersQuery, useMediaDocsQuery } from '../lib/query/media';
+import { useLatest } from '../lib/hooks/useLatest';
 import { MediaCard } from '../components/MediaCard';
 import { MediaFolder } from '../components/MediaFolder';
 import { useToast } from '../components/ToastProvider';
@@ -61,17 +62,31 @@ export const MediaView: React.FC<MediaViewProps> = ({
     onBulkDelete,
 }) => {
     const { t } = useTranslation('common');
-    const socket = useSocket();
     const notify = useToast();
-    const [media, setMedia] = useState<MediaDoc[]>([]);
     const selectionActive = Boolean(enableSelection && onBulkDelete);
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [anchorIndex, setAnchorIndex] = useState<number | null>(null);
-    // Folders are tracked separately from the media listing because the
-    // scanner only indexes files — an empty folder created by the user
-    // would otherwise be invisible. Server returns upper-cased prefixes
-    // with trailing slashes (e.g. `INTRO/CONCERTS/`).
-    const [serverFolders, setServerFolders] = useState<string[]>([]);
+
+    const mediaQuery = useMediaDocsQuery();
+    const foldersQuery = useFoldersQuery();
+    const media = useMemo(
+        () => Object.values(mediaQuery.data ?? {}),
+        [mediaQuery.data],
+    );
+    const serverFolders = useMemo(
+        () => foldersQuery.data ?? [],
+        [foldersQuery.data],
+    );
+
+    // Toast once per failure transition — notify/t go through refs so the
+    // effect doesn't refire on their identity changes.
+    const notifyRef = useLatest(notify);
+    const tRef = useLatest(t);
+    const loadFailed = mediaQuery.isError || foldersQuery.isError;
+    useEffect(() => {
+        if (loadFailed)
+            notifyRef.current(tRef.current('media.errors.loadFailed'), 'error');
+    }, [loadFailed, notifyRef, tRef]);
 
     const folders = useMemo(() => {
         const set = new Set<string>();
@@ -167,38 +182,6 @@ export const MediaView: React.FC<MediaViewProps> = ({
         setAnchorIndex(null);
         onClipSelect?.(clip);
     };
-
-    useEffect(() => {
-        const loadMedia = () =>
-            socket.caspar
-                .getMedia()
-                .then(media => setMedia([...media.values()]))
-                .catch(() => notify(t('media.errors.loadFailed'), 'error'));
-
-        const loadFolders = () =>
-            socket.caspar
-                .getFolders()
-                .then(setServerFolders)
-                .catch(() => notify(t('media.errors.loadFailed'), 'error'));
-
-        loadMedia();
-        loadFolders();
-
-        // Media updates also probably implies new folders (uploads create
-        // directories implicitly); refresh both on the broadcast.
-        const onMedia = () => {
-            loadMedia();
-            loadFolders();
-        };
-        const onFolders = () => loadFolders();
-        socket.caspar.on('media', onMedia);
-        socket.caspar.on('folders', onFolders);
-
-        return () => {
-            socket.caspar.off('media', onMedia);
-            socket.caspar.off('folders', onFolders);
-        };
-    }, []);
 
     return (
         <Stack>

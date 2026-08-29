@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
     Autocomplete,
     FormControl,
@@ -10,9 +10,9 @@ import {
 } from '@mui/material';
 import { MuiColorInput } from 'mui-color-input';
 import { useTranslation } from 'next-i18next';
-import { useSocket } from '../../lib/hooks/useSocket';
 import { type VideoRouteSource } from '../../lib/api/videoRoutes';
 import { type MediaDoc } from '../../lib/api/caspar';
+import { useMediaDocsQuery } from '../../lib/query/media';
 import { MediaSelect } from '../MediaSelectPicker';
 import { BUILTIN_VIDEO_MODES } from '../../lib/videoModes';
 import type { SourceType } from './RouteSourceTypePicker';
@@ -106,39 +106,19 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({
     setDraft,
 }) => {
     const { t } = useTranslation('common');
-    const socket = useSocket();
-    const [videoClip, setVideoClip] = useState<MediaDoc | null>(null);
+    // Only fetch the media library when a video source actually needs it —
+    // decklink/channel/color routes shouldn't pull every doc over the wire.
+    const { data: mediaRecord } = useMediaDocsQuery(draft.type === 'video');
     const videoId = draft.type === 'video' ? draft.video : '';
 
     // For the video source, resolve the persisted media id to a full MediaDoc
     // so MediaSelect can render the thumbnail card. Falls back to a stub doc
     // (just the id) if we can't find a match — picker still works, the
     // preview just won't have a thumb.
-    useEffect(() => {
-        if (!socket) return;
-        if (draft.type !== 'video') {
-            setVideoClip(null);
-            return;
-        }
-        if (!videoId) {
-            setVideoClip(null);
-            return;
-        }
-        let cancelled = false;
-        socket.caspar
-            .getMedia()
-            .then(m => {
-                if (cancelled) return;
-                const match = m.get(videoId);
-                setVideoClip(match ?? ({ id: videoId } as MediaDoc));
-            })
-            .catch(() => {
-                if (!cancelled) setVideoClip({ id: videoId } as MediaDoc);
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [socket, draft.type, videoId]);
+    const videoClip = useMemo<MediaDoc | null>(() => {
+        if (!videoId) return null;
+        return mediaRecord?.[videoId] ?? ({ id: videoId } as MediaDoc);
+    }, [mediaRecord, videoId]);
 
     // Type-guarded functional update: only patches the draft if the *current*
     // type still matches. Prevents stale callbacks (e.g. Autocomplete's

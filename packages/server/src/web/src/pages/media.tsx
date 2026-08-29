@@ -20,7 +20,7 @@ import DeleteFolderModal from '../components/media/DeleteFolderModal';
 import CreateFolderModal from '../components/media/CreateFolderModal';
 import RenameMediaModal from '../components/media/RenameMediaModal';
 import RenameFolderModal from '../components/media/RenameFolderModal';
-import { createMediaHandlers } from '../lib/media/mediaHandlers';
+import { useMediaHandlers } from '../lib/media/useMediaHandlers';
 import MediaPlayModal from '../components/MediaPlayModal';
 import MediaInspectorModal from '../components/media/MediaInspectorModal';
 import { type RundownEntry } from '../components/Rundowns';
@@ -60,17 +60,9 @@ const Page = () => {
     const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
     const [folderRenameValue, setFolderRenameValue] = useState('');
     const [inspecting, setInspecting] = useState<MediaDoc | null>(null);
-    const [busy, setBusy] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
-    const handlers = createMediaHandlers({
-        socket,
-        path,
-        t,
-        setBusy,
-        setError,
-        notify,
-    });
+    const handlers = useMediaHandlers(path);
+    const { busy, error, clearError } = handlers;
 
     useEffect(() => {
         socket
@@ -118,30 +110,6 @@ const Page = () => {
             type: payload.type,
             data: payload.data ?? {},
         });
-    };
-
-    const handleMediaMove = async (clipId: string, folderFullPath: string) => {
-        if (!socket) return;
-
-        const basename = clipId.split('/').pop();
-        if (!basename) return;
-
-        const newPath = folderFullPath
-            ? `${folderFullPath}/${basename}`
-            : basename;
-        if (newPath === clipId) return;
-
-        const [err] = await noTryAsync(() =>
-            socket.caspar.moveMedia(clipId, newPath),
-        );
-        if (err) {
-            return notify(
-                (err as Error)?.message ?? t('media.errors.moveFailed'),
-                'error',
-            );
-        }
-
-        notify(t('media.success.moved'), 'success');
     };
 
     const navigate = (next: string) => {
@@ -205,7 +173,7 @@ const Page = () => {
                             color="inherit"
                             startIcon={<CreateNewFolderRoundedIcon />}
                             onClick={() => {
-                                setError(null);
+                                clearError();
                                 setFolderName('');
                                 setCreatingFolder(true);
                             }}
@@ -238,7 +206,7 @@ const Page = () => {
                     <PathBreadcrumb
                         path={path}
                         onNavigate={navigate}
-                        onMediaDrop={handleMediaMove}
+                        onMediaDrop={handlers.moveClip}
                     />
                 </Card>
 
@@ -249,27 +217,27 @@ const Page = () => {
                     onClipSelect={clip => setInspecting(clip)}
                     onClipPlay={canPlay ? handlePlay : undefined}
                     onClipDelete={clip => {
-                        setError(null);
+                        clearError();
                         setDeleting(clip);
                     }}
                     onClipRename={clip => {
-                        setError(null);
+                        clearError();
                         setRenaming(clip);
                     }}
                     onFolderDelete={folder => {
-                        setError(null);
+                        clearError();
                         setFolderNotEmpty(false);
                         setDeletingFolder(folder);
                     }}
                     onFolderRename={folder => {
-                        setError(null);
+                        clearError();
                         setRenamingFolder(folder);
                         setFolderRenameValue(folder);
                     }}
-                    onClipMoveToFolder={handleMediaMove}
+                    onClipMoveToFolder={handlers.moveClip}
                     enableSelection
                     onBulkDelete={docs => {
-                        setError(null);
+                        clearError();
                         setBulkDeleting(docs);
                     }}
                 />

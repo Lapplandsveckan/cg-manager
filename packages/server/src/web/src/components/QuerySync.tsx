@@ -5,6 +5,7 @@ import { useRoutesSync } from '../lib/query/routes';
 import { useRundownsSync } from '../lib/query/rundowns';
 import { useRundownEntriesSync } from '../lib/query/rundownEntries';
 import { useRundownMetaSync } from '../lib/query/rundownMeta';
+import { useMediaSync } from '../lib/query/media';
 import { useConnection } from './ConnectionProvider';
 
 /** Renderless mount point for the per-domain cache sync hooks. Also refetches
@@ -17,6 +18,7 @@ export const QuerySync: React.FC = () => {
     useRundownsSync();
     useRundownEntriesSync();
     useRundownMetaSync();
+    useMediaSync();
 
     const wasConnectedRef = useRef(state === 'connected');
     useEffect(() => {

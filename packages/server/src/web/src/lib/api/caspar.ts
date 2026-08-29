@@ -131,11 +131,9 @@ export class CasparServerApi extends EventEmitter {
         supported: true,
         lastError: null,
     };
-    private media = new Map<string, MediaDoc>();
     private runningConfig: CasparConfig | null = null;
 
     private logs: string = '';
-    private _mediaPromise: Promise<Map<string, MediaDoc>>;
 
     constructor(socket: REPClient) {
         super();
@@ -155,48 +153,16 @@ export class CasparServerApi extends EventEmitter {
             this.emit('logs', this.logs);
         });
 
-        this.socket.routes.action('caspar/media', async request => {
-            const { key, value } = request.data as {
-                key: string;
-                value: MediaDoc;
-            };
-
-            this.media.set(key, value);
-            if (value === null) this.media.delete(key);
-
-            this.emit('media', key, value);
-        });
-
+        // No 'caspar/media' route here — that topic belongs to the TanStack
+        // cache (lib/query/media.ts, via useWsBroadcast). REP dispatches to
+        // the first registered match, so registering it in this constructor
+        // would permanently shadow the dispatcher's subscription.
         this.socket.routes.action('caspar/running-config', async request => {
             // Server emits null when CasparCG is stopped — keep that as the
             // signal so consumers can hide live-only UI without polling.
             this.runningConfig = (request.data as CasparConfig | null) ?? null;
             this.emit('running-config', this.runningConfig);
         });
-
-        this._mediaPromise = this.requestMedia();
-        this._mediaPromise
-            .then(() => (this._mediaPromise = null))
-            .catch(e => console.error('Failed to get media', e));
-    }
-
-    private async requestMedia() {
-        const res = await this.socket.request('api/caspar/media', 'GET', {});
-        this.media.clear();
-
-        const ids = res.data as string[];
-        for (const id of ids) {
-            const media = await this.socket
-                .request(
-                    `api/caspar/media/${encodeURIComponent(id)}`,
-                    'GET',
-                    {},
-                )
-                .then(v => v.data as MediaDoc);
-            this.media.set(id, media);
-        }
-
-        return this.media;
     }
 
     public async start() {
@@ -293,11 +259,6 @@ export class CasparServerApi extends EventEmitter {
         return res.data.id;
     }
 
-    public async getMedia() {
-        if (this._mediaPromise) return this._mediaPromise;
-        return this.media;
-    }
-
     public async deleteMedia(id: string): Promise<void> {
         assertOk(
             await this.socket.request(
@@ -352,8 +313,7 @@ export class CasparServerApi extends EventEmitter {
 
     /** Create a folder under the media root. `path` is slash-separated and
      *  relative to the root (e.g. `intro/concerts/2026`). Server drops a
-     *  `.cgkeep` placeholder so the dir survives without media inside it.
-     *  Emits `folders` locally so any MediaView in the same tab refetches. */
+     *  `.cgkeep` placeholder so the dir survives without media inside it. */
     public async createFolder(folderPath: string): Promise<{ path: string }> {
         const res = await this.socket.request(
             'api/caspar/media/folder',
@@ -363,7 +323,6 @@ export class CasparServerApi extends EventEmitter {
             },
         );
         assertOk(res);
-        this.emit('folders');
         return { path: (res?.data as { path: string }).path };
     }
 
@@ -381,8 +340,6 @@ export class CasparServerApi extends EventEmitter {
                 recursive,
             }),
         );
-        this.emit('folders');
-        if (recursive) this.emit('media');
     }
 
     /** Rename a folder. Both paths are slash-separated and relative to the
@@ -399,7 +356,6 @@ export class CasparServerApi extends EventEmitter {
             { from, to },
         );
         assertOk(res);
-        this.emit('folders');
         return { path: (res?.data as { path: string }).path };
     }
 }
