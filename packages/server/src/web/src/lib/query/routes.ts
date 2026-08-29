@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import { type ManagerApi } from '../api/api';
 import type { VideoRoute } from '../api/videoRoutes';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
@@ -10,8 +9,7 @@ export function useRoutesQuery() {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.routes,
-        enabled: !!conn,
-        queryFn: () => (conn as ManagerApi).videoRoutes.list(),
+        queryFn: () => conn.videoRoutes.list(),
     });
 }
 

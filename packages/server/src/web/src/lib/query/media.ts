@@ -15,8 +15,8 @@ export function useMediaDocsQuery(enabled = true) {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.media,
-        enabled: !!conn && enabled,
-        queryFn: () => fetchMedia(conn as ManagerApi),
+        enabled,
+        queryFn: () => fetchMedia(conn),
     });
 }
 
@@ -28,8 +28,7 @@ export function useFoldersQuery() {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.mediaFolders,
-        enabled: !!conn,
-        queryFn: () => (conn as ManagerApi).caspar.getFolders(),
+        queryFn: () => conn.caspar.getFolders(),
     });
 }
 
@@ -82,10 +81,7 @@ export class BulkDeleteError extends Error {
  *  per key to every client, originator included. */
 export function useMediaMutations() {
     const conn = useSocket();
-    const caspar = () => {
-        if (!conn) throw new Error('not connected');
-        return conn.caspar;
-    };
+    const caspar = () => conn.caspar;
 
     const deleteMedia = useMutation({
         mutationFn: (id: string) => caspar().deleteMedia(id),

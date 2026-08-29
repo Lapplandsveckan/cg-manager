@@ -204,7 +204,6 @@ export const Injection: React.FC<InjectionProps> = ({ id, props }) => {
     const socket = useSocket();
 
     useEffect(() => {
-        if (!socket) return;
         let mounted = true;
         const resolve = () =>
             socket.injects

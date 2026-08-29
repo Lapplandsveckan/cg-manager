@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { type ManagerApi } from '../api/api';
 import { type CasparConfig, type CasparStatus } from '../api/caspar';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
@@ -11,8 +10,7 @@ export function useCasparStatusQuery() {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.casparStatus,
-        enabled: !!conn,
-        queryFn: () => (conn as ManagerApi).caspar.getStatus(),
+        queryFn: () => conn.caspar.getStatus(),
     });
 }
 
@@ -20,8 +18,7 @@ export function useCasparConfigQuery() {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.casparConfig,
-        enabled: !!conn,
-        queryFn: () => (conn as ManagerApi).caspar.getConfig(),
+        queryFn: () => conn.caspar.getConfig(),
     });
 }
 
@@ -29,8 +26,7 @@ export function useRunningConfigQuery() {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.casparRunningConfig,
-        enabled: !!conn,
-        queryFn: () => (conn as ManagerApi).caspar.getRunningConfig(),
+        queryFn: () => conn.caspar.getRunningConfig(),
     });
 }
 
@@ -38,8 +34,7 @@ export function useCapabilitiesQuery() {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.capabilities,
-        enabled: !!conn,
-        queryFn: () => (conn as ManagerApi).caspar.getCapabilities(),
+        queryFn: () => conn.caspar.getCapabilities(),
     });
 }
 

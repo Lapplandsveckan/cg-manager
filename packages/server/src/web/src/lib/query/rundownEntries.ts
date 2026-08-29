@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { noTryAsync } from 'no-try';
-import { type ManagerApi } from '../api/api';
 import { useSocket } from '../hooks/useSocket';
 import { record } from '../undo/undoStore';
 import { rundownScope } from '../undo/tools';
@@ -19,8 +18,8 @@ export function useRundownEntriesQuery(id: string | null | undefined) {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.rundownEntries(id ?? ''),
-        enabled: !!conn && !!id,
-        queryFn: () => (conn as ManagerApi).rundowns.get(id as string),
+        enabled: !!id,
+        queryFn: () => conn.rundowns.get(id as string),
     });
 }
 
@@ -160,7 +159,7 @@ export function useRundownEntries(rundownId: string | null | undefined) {
     const entries = data?.items ?? [];
 
     const createEntry = async (entry: RundownEntry, index?: number) => {
-        if (!conn || !rundownId) return;
+        if (!rundownId) return;
         const id = rundownId;
         const insertIndex =
             typeof index === 'number' ? index : cachedItems(id).length;
@@ -188,7 +187,7 @@ export function useRundownEntries(rundownId: string | null | undefined) {
     };
 
     const updateEntry = async (entry: RundownEntry) => {
-        if (!conn || !rundownId) return;
+        if (!rundownId) return;
         const id = rundownId;
         const before = cachedItems(id).find(v => v.id === entry.id);
 
@@ -212,7 +211,7 @@ export function useRundownEntries(rundownId: string | null | undefined) {
     };
 
     const deleteEntry = async (entry: RundownEntry) => {
-        if (!conn || !rundownId) return;
+        if (!rundownId) return;
         const id = rundownId;
         const index = cachedItems(id).findIndex(v => v.id === entry.id);
 
@@ -241,7 +240,7 @@ export function useRundownEntries(rundownId: string | null | undefined) {
     };
 
     const renameRundown = async (newName: string) => {
-        if (!conn || !rundownId) return;
+        if (!rundownId) return;
         const id = rundownId;
         const trimmed = newName.trim();
         const before =
@@ -266,7 +265,7 @@ export function useRundownEntries(rundownId: string | null | undefined) {
     };
 
     const reorderEntries = async (orderedIds: string[]) => {
-        if (!conn || !rundownId) return;
+        if (!rundownId) return;
         const id = rundownId;
         const current = cachedItems(id);
         const before = current.map(item => item.id);

@@ -30,8 +30,7 @@ function useRundownsQueryWith(select?: (rundowns: Rundown[]) => Rundown[]) {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.rundowns,
-        enabled: !!conn,
-        queryFn: () => fetchRundowns(conn as ManagerApi),
+        queryFn: () => fetchRundowns(conn),
         select,
     });
 }
@@ -117,7 +116,6 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
     const conn = useSocket();
 
     const updateRundown = async (entry: Rundown) => {
-        if (!conn) return;
         const rundowns = queryClient.getQueryData<Rundown[]>(qk.rundowns);
         const before = rundowns?.find(v => v.id === entry.id);
 
@@ -144,7 +142,6 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
     };
 
     const deleteRundown = async (entry: Rundown) => {
-        if (!conn) return;
         const [err] = await noTryAsync(() => conn.rundowns.delete(entry.id));
         if (err) return;
 
@@ -155,7 +152,6 @@ export function useRundownMutations(type: 'rundown' | 'quick') {
     };
 
     const createRundown = async (name: string): Promise<Rundown | null> => {
-        if (!conn) return null;
         const [err, data] = await noTryAsync(() =>
             type === 'quick'
                 ? conn.rundowns.createQuick(name)

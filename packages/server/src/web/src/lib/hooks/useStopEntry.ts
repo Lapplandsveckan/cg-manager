@@ -18,7 +18,7 @@ export function useStopEntry(): (entry: RundownEntry) => void {
                 notify(t('rundown.stop.offline'), 'warning');
                 return;
             }
-            conn?.rundowns
+            conn.rundowns
                 .stop(entry)
                 .catch(() => notify(t('rundown.stop.failed'), 'error'));
         },

@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { type ManagerApi } from '../api/api';
 import { useSocket } from '../hooks/useSocket';
 import { queryClient } from './client';
 import { qk } from './keys';
@@ -12,8 +11,7 @@ export function useRundownTypesQuery() {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.rundownTypes,
-        enabled: !!conn,
-        queryFn: () => (conn as ManagerApi).rundowns.getTypes(),
+        queryFn: () => conn.rundowns.getTypes(),
     });
 }
 
@@ -21,8 +19,7 @@ export function useRundownActionsQuery() {
     const conn = useSocket();
     return useQuery({
         queryKey: qk.rundownActions,
-        enabled: !!conn,
-        queryFn: () => (conn as ManagerApi).rundowns.getActions(),
+        queryFn: () => conn.rundowns.getActions(),
     });
 }
 

@@ -79,17 +79,18 @@ function subscribeBroadcast(
  *  through a ref so callers can pass inline closures without re-registering
  *  on every render. */
 export function useWsBroadcast(
-    conn: ManagerApi | null | undefined,
+    conn: ManagerApi,
     path: string,
     method: string,
     handler: (data: unknown) => void,
 ): void {
     const handlerRef = useLatest(handler);
 
-    useEffect(() => {
-        if (!conn) return;
-        return subscribeBroadcast(conn, path, method, data =>
-            handlerRef.current(data),
-        );
-    }, [conn, path, method, handlerRef]);
+    useEffect(
+        () =>
+            subscribeBroadcast(conn, path, method, data =>
+                handlerRef.current(data),
+            ),
+        [conn, path, method, handlerRef],
+    );
 }

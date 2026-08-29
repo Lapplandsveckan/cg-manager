@@ -18,7 +18,7 @@ export function usePlayEntry(): (entry: RundownEntry) => void {
                 notify(t('rundown.play.offline'), 'warning');
                 return;
             }
-            conn?.rundowns
+            conn.rundowns
                 .execute(entry)
                 .catch(() => notify(t('rundown.play.failed'), 'error'));
         },
