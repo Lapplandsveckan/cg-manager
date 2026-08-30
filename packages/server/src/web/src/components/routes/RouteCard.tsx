@@ -33,9 +33,9 @@ export const RouteCard: React.FC<RouteCardProps> = ({
 }) => {
     const { t } = useTranslation('common');
     const { openSurfaceMenu } = useContextMenu();
-    // CardActionArea wraps the whole card so clicking anywhere opens the
-    // editor — except for the inline controls (Switch / Delete) which stop
-    // propagation so they don't double-fire as "edit this".
+    // component="div" so the click surface isn't a real <button> — Switch
+    // and IconButton below render actual <button> elements, and nesting a
+    // <button> inside a <button> is invalid HTML (breaks hydration).
     const stop = (e: React.MouseEvent | React.SyntheticEvent) =>
         e.stopPropagation();
 
@@ -71,6 +71,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
             }
         >
             <CardActionArea
+                component="div"
                 onClick={onEdit}
                 sx={{ p: 2.5, alignItems: 'stretch' }}
             >
