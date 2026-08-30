@@ -26,7 +26,10 @@ function createTopic(path: string, method: string): Topic {
     return {
         subscriptions,
         route: {
-            path,
+            // rest-exchange-protocol-client's Gateway.findRoute strips a leading
+            // path segment unconditionally, so a route must have a leading `/`
+            // to match against an incoming URL that never has one.
+            path: path.startsWith('/') ? path : `/${path}`,
             method,
             handler: request => {
                 const data = request.getData();
