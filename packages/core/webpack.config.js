@@ -1,6 +1,7 @@
 const path = require('path');
 
 module.exports = {
+    target: 'node',
     entry: path.resolve(__dirname, 'src', 'index.ts'),
     module: {
         rules: [
@@ -19,7 +20,7 @@ module.exports = {
         ],
     },
     resolve: {
-        extensions: ['.ts'],
+        extensions: ['.ts', '...'],
     },
     output: {
         filename: 'index.js',

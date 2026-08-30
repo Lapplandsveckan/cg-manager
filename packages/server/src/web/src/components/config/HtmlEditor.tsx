@@ -8,7 +8,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { type CasparConfig } from '../../lib/api/caspar';
 
 interface HtmlEditorProps {

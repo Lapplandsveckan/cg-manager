@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, CircularProgress, Stack, Typography } from '@mui/material';
 import { noTry, noTryAsync } from 'no-try';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 
 interface ChannelPreviewProps {
     /** 1-based CasparCG channel number. Disabled when undefined/null. */

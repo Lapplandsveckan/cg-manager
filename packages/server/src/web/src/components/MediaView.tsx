@@ -1,6 +1,6 @@
 import { Button, Grid, Stack, Typography, alpha } from '@mui/material';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { SlotErrorBoundary } from './SlotErrorBoundary';
 import { type MediaDoc } from '../lib/api/caspar';
 import { useFoldersQuery, useMediaDocsQuery } from '../lib/query/media';

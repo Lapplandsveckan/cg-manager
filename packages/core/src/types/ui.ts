@@ -31,9 +31,7 @@ export type UI_INJECTION_ZONE =
 // form `plugin:<owner-defined-name>` (e.g. `plugin:edgeblend.sidebar`) — the
 // same rendering machinery works for host zones and plugin zones alike.
 export type UI_INJECTION_ZONE_KEY =
-    | UI_INJECTION_ZONE
-    | `${UI_INJECTION_ZONE}.${string}`
-    | `plugin:${string}`;
+    UI_INJECTION_ZONE | `${UI_INJECTION_ZONE}.${string}` | `plugin:${string}`;
 
 export interface Injection {
     zone: UI_INJECTION_ZONE_KEY;

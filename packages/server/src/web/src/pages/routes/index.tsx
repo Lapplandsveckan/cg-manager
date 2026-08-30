@@ -2,7 +2,7 @@ import { Button, Card, Stack, Typography } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { useCallback, useState } from 'react';
 import { noTryAsync } from 'no-try';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import type { VideoRoute } from '../../lib/api/videoRoutes';
 import {
     RouteSourceTypePicker,

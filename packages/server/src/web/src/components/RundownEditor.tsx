@@ -2,7 +2,7 @@ import React, { createContext, useContext } from 'react';
 import { Box, Button, IconButton, Stack, Tooltip } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 
 /** When true, `RundownEditorActionBar` relabels Save → Play and hides the
  *  delete button. Wrap the plugin editor injection in a Provider to activate

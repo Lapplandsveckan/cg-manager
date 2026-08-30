@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import { v4 as uuid } from 'uuid';
+import { randomUUID as uuid } from 'crypto';
 import lnk from 'lnk';
 
 export interface InternalMediaData {

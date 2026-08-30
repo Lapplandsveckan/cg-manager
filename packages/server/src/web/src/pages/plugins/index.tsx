@@ -2,7 +2,7 @@ import { Card, Stack, Typography } from '@mui/material';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import { noTryAsync } from 'no-try';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { useSocket } from '../../lib/hooks/useSocket';
 import { DefaultContentLayout } from '../../components/DefaultContentLayout';
 import { UI_INJECTION_ZONE } from '../../lib/api/inject';

@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import { keyframes } from '@mui/system';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 
 const LIVE_RED = '#e0463a';
 

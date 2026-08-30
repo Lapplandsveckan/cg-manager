@@ -1,4 +1,4 @@
-/** @type {import('next-i18next').UserConfig} */
+/** @type {import('next-i18next/pages').UserConfig} */
 // All pages here are client-rendered (no getServerSideProps / getStaticProps),
 // so instead of wiring serverSideTranslations into each page we let i18next
 // fetch /locales/{{lng}}/{{ns}}.json at runtime via i18next-http-backend.

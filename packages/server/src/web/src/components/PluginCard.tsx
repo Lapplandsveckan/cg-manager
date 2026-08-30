@@ -20,7 +20,7 @@ import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import HistoryRoundedIcon from '@mui/icons-material/HistoryRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { type Plugin } from '../lib/api/plugin';
 import { useContextMenu } from './ContextMenuProvider';
 

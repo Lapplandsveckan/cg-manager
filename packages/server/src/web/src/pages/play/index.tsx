@@ -12,7 +12,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { DefaultContentLayout } from '../../components/DefaultContentLayout';
 import { useRundownList, useRundownMutations } from '../../lib/query/rundowns';
 import { RundownCard } from '../../components/play/RundownCard';

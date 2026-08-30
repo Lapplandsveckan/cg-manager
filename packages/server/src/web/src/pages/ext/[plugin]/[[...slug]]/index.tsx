@@ -1,7 +1,7 @@
 import { useRouter } from 'next/router';
 import { useMemo } from 'react';
 import { Card, Typography } from '@mui/material';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { Injection, UI_INJECTION_ZONE } from '../../../../lib/api/inject';
 import { DefaultContentLayout } from '../../../../components/DefaultContentLayout';
 import {

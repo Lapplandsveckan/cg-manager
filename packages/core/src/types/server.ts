@@ -4,8 +4,8 @@ import {
     type Middleware,
     type TypedClient,
     type WebsocketOutboundMethod,
+    type Route,
 } from 'rest-exchange-protocol';
-import { type Route } from 'rest-exchange-protocol/dist/route';
 import { type CasparManager } from './manager';
 
 export type CGClient = TypedClient<object>;

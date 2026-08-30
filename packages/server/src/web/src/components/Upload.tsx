@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@mui/material';
 import { CloudUploadRounded } from '@mui/icons-material';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { pickFiles, type PickFilesOptions } from '../lib/filePicker';
 import { UploadModal } from './upload/UploadModal';
 import { useFileUpload } from '../hooks/useFileUpload';

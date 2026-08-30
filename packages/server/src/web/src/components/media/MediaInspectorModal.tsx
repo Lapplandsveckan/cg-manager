@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import BrokenImageOutlinedIcon from '@mui/icons-material/BrokenImageOutlined';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { type MediaDoc } from '../../lib/api/caspar';
 
 interface Props {

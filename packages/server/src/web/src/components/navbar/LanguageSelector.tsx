@@ -1,6 +1,6 @@
 import { Box, IconButton, Menu, MenuItem, Tooltip } from '@mui/material';
 import { useState } from 'react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import LanguageIcon from '@mui/icons-material/Language';
 import {
     SUPPORTED_LANGUAGES,

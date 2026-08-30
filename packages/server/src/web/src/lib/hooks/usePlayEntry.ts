@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import type { RundownEntry } from '../../components/Rundowns';
 import { useSocket } from './useSocket';
 import { useCasparOnline } from './useCasparOnline';

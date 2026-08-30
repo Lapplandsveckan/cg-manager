@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Box, Stack, Typography, alpha } from '@mui/material';
 import { CloudUploadRounded } from '@mui/icons-material';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 
 interface DropzoneProps {
     /** Called with the dropped File list (already filtered + multiple-applied). */

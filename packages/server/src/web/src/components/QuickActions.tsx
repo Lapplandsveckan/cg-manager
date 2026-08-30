@@ -12,7 +12,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { useContextMenu } from './ContextMenuProvider';
 import { usePlayEntry } from '../lib/hooks/usePlayEntry';
 import { useStopEntry } from '../lib/hooks/useStopEntry';

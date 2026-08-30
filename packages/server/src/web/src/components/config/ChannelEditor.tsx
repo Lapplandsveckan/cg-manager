@@ -16,7 +16,7 @@ import {
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { type CasparConfig } from '../../lib/api/caspar';
 import { BUILTIN_VIDEO_MODES } from '../../lib/videoModes';
 import { formatConsumerType } from './fields';

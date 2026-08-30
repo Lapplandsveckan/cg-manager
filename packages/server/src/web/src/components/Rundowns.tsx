@@ -24,7 +24,7 @@ import React, {
     useRef,
     useState,
 } from 'react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { noTry, noTryAsync } from 'no-try';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
 import { SlotErrorBoundary } from './SlotErrorBoundary';

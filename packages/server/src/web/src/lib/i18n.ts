@@ -9,6 +9,11 @@ import svCommon from './locales/sv/common.json';
 // To add a locale: drop a folder under src/web/src/lib/locales, import its
 // common.json below, add it to `resources`, and extend `supportedLngs` here
 // + the `locales` array in next-i18next.config.js (Next routing).
+//
+// Passing `resources` inline is also what makes init synchronous — i18next only
+// defers to a setTimeout when resources have to be fetched. Swap to a backend
+// loader and the first SSR render emits raw keys ("brand.name" instead of
+// "CG Manager"), which shows up as a hydration mismatch.
 if (!i18n.isInitialized)
     i18n.use(initReactI18next).init({
         fallbackLng: 'en',
@@ -25,9 +30,6 @@ if (!i18n.isInitialized)
         react: {
             useSuspense: false,
         },
-        // Synchronous init so translations are ready during SSR, preventing
-        // key-vs-value hydration mismatches (e.g. "brand.name" vs "CG Manager").
-        initImmediate: false,
     });
 
 export default i18n;

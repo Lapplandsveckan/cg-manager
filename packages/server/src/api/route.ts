@@ -1,5 +1,4 @@
-import { type Method } from 'rest-exchange-protocol';
-import { type Route } from 'rest-exchange-protocol/dist/route';
+import { type Method, type Route } from 'rest-exchange-protocol';
 import { noTry } from 'no-try';
 import { Logger } from '../util/log';
 import files from './_routes';

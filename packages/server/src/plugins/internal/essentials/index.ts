@@ -1,7 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { CasparPlugin, UI_INJECTION_ZONE } from '@lappis/cg-manager';
-import { type RundownItem } from '@lappis/cg-manager/dist/types/rundown';
+import {
+    CasparPlugin,
+    UI_INJECTION_ZONE,
+    type RundownItem,
+} from '@lappis/cg-manager';
 
 const TOGGLE_VIDEO_ROUTE = 'toggle-video-route';
 

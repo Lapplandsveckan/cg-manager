@@ -11,7 +11,7 @@ import {
     Tabs,
     Typography,
 } from '@mui/material';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { useStoredBoolean } from '../../lib/hooks/useStoredBoolean';
 import { GeometryStage } from './GeometryStage';
 import type { EdgeBlendInsets, NormRect, Perspective } from './GeometryHandles';

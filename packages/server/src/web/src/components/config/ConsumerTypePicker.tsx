@@ -8,7 +8,7 @@ import {
     Typography,
     alpha,
 } from '@mui/material';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import {
     CONSUMER_TYPES,
     type ConsumerType,

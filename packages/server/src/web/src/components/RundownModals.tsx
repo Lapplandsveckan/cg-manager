@@ -1,6 +1,6 @@
 import { Card, Modal, Stack, Typography, alpha } from '@mui/material';
 import React from 'react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
 import { type RundownEntry } from './Rundowns';
 import { useRundownTypesQuery } from '../lib/query/rundownMeta';

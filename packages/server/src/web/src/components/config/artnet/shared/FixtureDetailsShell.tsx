@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { ScalarField } from '../../fields';
 import { buildSharedFixtureFields } from './fixtureFields';
 import { type BaseFixture } from '../types';

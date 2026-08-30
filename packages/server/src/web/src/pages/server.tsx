@@ -15,7 +15,7 @@ import RestartAltRoundedIcon from '@mui/icons-material/RestartAltRounded';
 import VerticalAlignBottomRoundedIcon from '@mui/icons-material/VerticalAlignBottomRounded';
 import DeleteSweepRoundedIcon from '@mui/icons-material/DeleteSweepRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { noTryAsync } from 'no-try';
 import type { TFunction } from 'i18next';
 import { useSocket } from '../lib/hooks/useSocket';

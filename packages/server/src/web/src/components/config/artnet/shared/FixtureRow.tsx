@@ -8,7 +8,7 @@ import {
     alpha,
 } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { useContextMenu } from '../../../ContextMenuProvider';
 
 interface FixtureRowProps {

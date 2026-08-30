@@ -1,6 +1,6 @@
 import { Stack, TextField, Typography } from '@mui/material';
 import React, { useState } from 'react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { noTry } from 'no-try';
 import { RundownEditorActionBar } from './RundownEditor';
 import { type RundownEntry } from './Rundowns';

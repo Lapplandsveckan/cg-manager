@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    // TypeScript 6 turns `strict` on by default. The codebase predates that and
+    // isn't clean under it yet, so pin the old behaviour explicitly rather than
+    // let the upgrade flip it. Removing this line is the migration.
+    "strict": false,
     "module": "commonjs",
     "target": "esnext",
     "esModuleInterop": true,

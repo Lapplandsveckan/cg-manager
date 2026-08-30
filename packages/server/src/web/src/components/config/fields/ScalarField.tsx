@@ -8,7 +8,7 @@ import {
     Switch,
     TextField,
 } from '@mui/material';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import type { FieldDef } from '../fields';
 
 interface ScalarFieldProps {

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { Box, Stack, Tooltip, Typography } from '@mui/material';
 import { useRouter } from 'next/router';
 import { noTry } from 'no-try';

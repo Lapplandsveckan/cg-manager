@@ -35,12 +35,7 @@ export interface ConfigVideoMode {
 }
 
 export type LogLevel =
-    | 'trace'
-    | 'debug'
-    | 'info'
-    | 'warning'
-    | 'error'
-    | 'fatal';
+    'trace' | 'debug' | 'info' | 'warning' | 'error' | 'fatal';
 
 export interface Config {
     version: string;

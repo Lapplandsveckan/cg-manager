@@ -1,5 +1,5 @@
 import { EventEmitter } from 'events';
-import { v4 as uuid } from 'uuid';
+import { randomUUID as uuid } from 'crypto';
 import { type Transform } from './transform';
 import { type EffectGroup, type Layer } from './layers';
 import { type Command } from './command';

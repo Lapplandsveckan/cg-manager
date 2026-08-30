@@ -23,10 +23,7 @@ export interface ColorSource {
 }
 
 export type VideoRouteSource =
-    | DecklinkSource
-    | VideoSource
-    | ChannelSource
-    | ColorSource;
+    DecklinkSource | VideoSource | ChannelSource | ColorSource;
 
 export interface VideoRouteDestination {
     type: 'effect-group';

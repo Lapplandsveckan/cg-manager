@@ -1,7 +1,7 @@
 import { Stack, Box, Typography } from '@mui/material';
 import React from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { Navbar } from './Navbar';
 import { reportClientError } from '../lib/reportClientError';
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Stack, Typography, CircularProgress } from '@mui/material';
 import WifiOffRoundedIcon from '@mui/icons-material/WifiOffRounded';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { useConnection } from './ConnectionProvider';
 
 export const ConnectionBanner: React.FC = () => {

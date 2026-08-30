@@ -2,5 +2,6 @@ node_modules
 packages/*/dist
 packages/*/out
 packages/*/src/web/.next
+packages/*/src/web/next-env.d.ts
 packages/*/src/web/tsconfig.tsbuildinfo
 packages/server/test

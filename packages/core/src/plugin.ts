@@ -3,8 +3,8 @@ import { noTry } from 'no-try';
 import {
     type Method,
     type WebsocketOutboundMethod,
+    type Route,
 } from 'rest-exchange-protocol';
-import { type Route } from 'rest-exchange-protocol/dist/route';
 import { type Effect, type EffectConstructor } from './effect';
 import { type Channel } from './layers';
 import { type Logger, type CasparManager } from './types';

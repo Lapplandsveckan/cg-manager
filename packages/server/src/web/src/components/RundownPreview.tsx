@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { useLiveChannels } from '../lib/query/caspar';
 import {
     getStorageItem,

@@ -163,22 +163,10 @@ async function patchVmCallSites() {
         'next.js config.js loadConfig',
     );
 
-    // babel-loader/lib/cache.js has a top-level `import("find-cache-dir")` (an
-    // ESM-only package). pkg's bootstrap Module._compile has no
-    // importModuleDynamically callback, so this throws at module load time before
-    // our vm-patch can intercept it. Replace it with a Promise that returns null
-    // so the cache falls back to os.tmpdir() — harmless since cacheDirectory is
-    // not set in our webpack config and the cache function is never actually called.
-    // @lappis/cg-manager and @cg-manager/server depend on incompatible babel-loader
-    // majors, so yarn can't hoist a single copy to the workspace root — resolve
-    // via Node's own algorithm from `root` to find the copy this package's
-    // webpack build actually uses, wherever yarn nested it.
-    await applyPatch(
-        require.resolve('babel-loader/lib/cache.js', { paths: [root] }),
-        'const findCacheDirP = import("find-cache-dir");',
-        'const findCacheDirP = Promise.resolve({ default: () => null }); // find-cache-dir is ESM-only; fall back to os.tmpdir()',
-        'babel-loader cache.js',
-    );
+    // babel-loader used to need a patch here: its lib/cache.js had a top-level
+    // `import("find-cache-dir")` that threw inside the pkg snapshot. babel-loader 10
+    // resolves the cache dir through a plain `require("find-up")`, so the patch is
+    // gone — if a future bump reintroduces a dynamic import, add it back.
 }
 
 async function package() {

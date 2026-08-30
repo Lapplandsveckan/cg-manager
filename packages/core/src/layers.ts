@@ -1,4 +1,4 @@
-import { v4 as uuid } from 'uuid';
+import { randomUUID as uuid } from 'crypto';
 import { type Effect } from './effect';
 import { CommandGroup } from './command';
 import { ClearCommand } from './commands/clear';

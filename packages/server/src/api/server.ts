@@ -7,8 +7,8 @@ import {
     type TypedClient,
     WebsocketClient,
     WebsocketOutboundMethod,
+    type Route,
 } from 'rest-exchange-protocol';
-import { type Route } from 'rest-exchange-protocol/dist/route';
 import { noTry, noTryAsync } from 'no-try';
 import { loadRoutes } from './route';
 import { type CasparManager } from '../manager';

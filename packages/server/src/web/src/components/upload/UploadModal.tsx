@@ -8,7 +8,7 @@ import {
     Stack,
     Typography,
 } from '@mui/material';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { Injections, UI_INJECTION_ZONE } from '../../lib/api/inject';
 import { PhaseIcon } from './PhaseIcon';
 import type { FileUploadState } from './types';

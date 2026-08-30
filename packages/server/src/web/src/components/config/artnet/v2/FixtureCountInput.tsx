@@ -1,6 +1,6 @@
 import React from 'react';
 import { Stack, TextField } from '@mui/material';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { parseCount, formatCount } from './v2Fixture';
 
 interface FixtureCountInputProps {

@@ -8,7 +8,7 @@ import {
     Typography,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { noTryAsync } from 'no-try';
 import { DefaultContentLayout } from '../components/DefaultContentLayout';
 import { useSocket } from '../lib/hooks/useSocket';

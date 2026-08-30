@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from 'react';
 import { noTryAsync } from 'no-try';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { useToast } from '../../components/ToastProvider';
 import {
     getRedoStack,

@@ -347,7 +347,9 @@ function createWatcher(
                 pollInterval: 1000,
             },
         })
-        .on('error', err => logger.error(err))
+        .on('error', err =>
+            logger.error(err instanceof Error ? err : String(err)),
+        )
         .on('add', (path, stat) => callback([path, stat]))
         .on('change', (path, stat) => callback([path, stat]))
         .on('unlink', path => callback([path]));

@@ -1,8 +1,8 @@
 import path from 'path';
-import { v4 as uuid } from 'uuid';
+import { randomUUID as uuid } from 'crypto';
 import webpack from 'webpack';
-import MemoryFS from 'memory-fs';
-import { noTryAsync } from 'no-try';
+import { Volume, createFsFromVolume } from 'memfs';
+import { noTry, noTryAsync } from 'no-try';
 import { Logger } from '../../util/log';
 export const UI_INJECTION_ZONE = {
     PLUGIN_PAGE: 'plugin-page',
@@ -40,9 +40,7 @@ export type UI_INJECTION_ZONE =
 // form `plugin:<owner-defined-name>` — mirrors @lappis/cg-manager's
 // types/ui.ts, keep both in sync.
 export type UI_INJECTION_ZONE_KEY =
-    | UI_INJECTION_ZONE
-    | `${UI_INJECTION_ZONE}.${string}`
-    | `plugin:${string}`;
+    UI_INJECTION_ZONE | `${UI_INJECTION_ZONE}.${string}` | `plugin:${string}`;
 
 export interface Injection {
     zone: UI_INJECTION_ZONE_KEY;
@@ -93,15 +91,17 @@ export class UIInjector {
         const path = this._injections.get(id)?.file;
         if (!path) return null;
 
-        const promise = bundleFile(path).catch(e => {
-            Logger.scope('UIInjector').error(`Failed to bundle ${path} - ${e}`);
-            this.bundledComponents.delete(id);
-            return '';
-        });
+        const promise = bundleFile(path);
         this.bundledComponents.set(id, promise);
 
         const [err, file] = await noTryAsync(() => promise);
-        if (err) return null;
+        if (err) {
+            Logger.scope('UIInjector').error(
+                `Failed to bundle ${path} - ${err}`,
+            );
+            this.bundledComponents.delete(id);
+            return null;
+        }
 
         this.bundledComponents.set(id, file);
         Logger.scope('UIInjector').debug(`Bundled ${path}`);
@@ -126,6 +126,13 @@ function getConfig(entry: string) {
         // which the entrypoint chdirs to CASPAR_DIR at startup.
         context: path.resolve(__dirname, '../../../'),
         entry,
+        // Webpack 5.110's default production minimizer set now reaches into
+        // its experimental CSS/HTML minifiers even for a pure-JS entry, and
+        // that lazy `require('webpack').css/html.syntax` blows up under the
+        // concurrency of bundling many plugin UI files at once. Skip
+        // minification entirely (Terser included) rather than fight it —
+        // these bundles are small since React/MUI/@web-lib are externals.
+        optimization: { minimize: false },
         output: {
             libraryTarget: 'module',
             path: '/',
@@ -171,6 +178,10 @@ function getConfig(entry: string) {
         externalsType: 'window',
         externals: {
             react: 'React',
+            'react/jsx-runtime': 'ReactJSXRuntime',
+            'react/jsx-dev-runtime': 'ReactJSXDevRuntime',
+            'react-dom': 'ReactDOM',
+            'react-dom/client': 'ReactDOMClient',
             '@mui/material': 'MaterialUI',
             'mui-color-input': 'MUIColorInput',
             '@web-lib': 'WebLib',
@@ -184,24 +195,35 @@ function getConfig(entry: string) {
 }
 
 function bundleFile(file: string) {
-    const memfs = new MemoryFS();
+    const memfs = createFsFromVolume(new Volume());
 
     const config = getConfig(file);
     const compiler = webpack(config);
-    compiler.outputFileSystem = memfs;
+    // memfs's `readdir` overload signature differs from webpack's, but
+    // `output.clean` is off so it's never called — safe to cast.
+    compiler.outputFileSystem = memfs as unknown as webpack.OutputFileSystem;
 
     return new Promise<string>((resolve, reject) => {
         compiler.run((err, stats) => {
             // Capture result before closing so we don't read memfs after
             // the compiler potentially clears its internal state.
+            const [readErr, bundle] =
+                err || !stats || stats.hasErrors()
+                    ? [null, undefined]
+                    : noTry(() => memfs.readFileSync('/bundle.js').toString());
+
             const result =
-                err || stats.hasErrors()
+                err || !stats || stats.hasErrors() || readErr
                     ? {
-                          err: stats.hasErrors()
+                          err: stats?.hasErrors()
                               ? stats.compilation.errors
-                              : err,
+                              : (err ??
+                                readErr ??
+                                new Error(
+                                    'webpack compiler.run() returned no stats',
+                                )),
                       }
-                    : { bundle: memfs.readFileSync('/bundle.js').toString() };
+                    : { bundle: bundle as string };
 
             // Always close the compiler so webpack releases its input-fs
             // file handles — on Windows these can lock plugin source files.

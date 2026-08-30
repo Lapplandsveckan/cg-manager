@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import type { UndoLabel } from './types';
 
 export function useUndoLabel(): (label: UndoLabel) => string {

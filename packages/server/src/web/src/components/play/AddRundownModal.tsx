@@ -1,6 +1,6 @@
 import { TextField, Typography } from '@mui/material';
 import React, { useState } from 'react';
-import { useTranslation } from 'next-i18next';
+import { useTranslation } from 'next-i18next/pages';
 import { RundownEditorActionBar } from '../../lib';
 
 interface AddRundownModalProps {
