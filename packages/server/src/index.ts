@@ -124,8 +124,7 @@ async function main() {
             Logger.info('Exiting...');
         });
 
-        const stop = await start();
-        stopHandler = stop;
+        stopHandler = await start();
 
         const signals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM'];
         signals.forEach(signal => {
