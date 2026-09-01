@@ -5,7 +5,7 @@
     },
     "author": "firecraftgaming <eliyah@sundstroem.com>",
     "license": "MIT",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "publishConfig": {
         "access": "public"
     },
@@ -25,13 +25,17 @@
     },
     "peerDependencies": {
         "@types/react": "^18.0.0 || ^19.0.0",
-        "react": "^18.0.0 || ^19.0.0"
+        "react": "^18.0.0 || ^19.0.0",
+        "rest-exchange-protocol-client": "^0.0.13"
     },
     "peerDependenciesMeta": {
         "@types/react": {
             "optional": true
         },
         "react": {
+            "optional": true
+        },
+        "rest-exchange-protocol-client": {
             "optional": true
         }
     },
@@ -66,6 +70,7 @@
     "scripts": {
         "tsc": "tsc --noEmit",
         "build": "webpack && tsc --emitDeclarationOnly",
+        "prepack": "node ../server/.lappis/scripts/generate-web-lib-types.js",
         "watch": "webpack --watch",
         "test": "mocha 'test/**/*.test.ts'",
         "test:coverage": "nyc mocha 'test/**/*.test.ts'",

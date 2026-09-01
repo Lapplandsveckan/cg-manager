@@ -39,6 +39,10 @@ export { MediaDropZone } from '../components/MediaDropZone';
 export type { MediaDropZoneProps } from '../components/MediaDropZone';
 export { useRundownLive, RundownLiveProvider } from '../hooks/useRundownLive';
 export { ChannelPreview } from '../components/ChannelPreview';
+// Plugins commonly need to annotate variables holding a media record (e.g.
+// from ManagerApi.caspar.getAllMedia()) without going through the socket API
+// module directly.
+export type { MediaDoc } from './api/caspar';
 // Lets a plugin render a zone that another plugin injects into — the same
 // slot machinery the host uses to render plugin UI into its own zones.
 export { Injections, Injection, UI_INJECTION_ZONE } from './api/inject';

@@ -1,6 +1,7 @@
 node_modules
 packages/*/dist
 packages/*/out
+packages/core/web-lib/generated
 packages/*/src/web/.next
 packages/*/src/web/next-env.d.ts
 packages/*/src/web/tsconfig.tsbuildinfo

@@ -9,7 +9,11 @@ import {
     Typography,
 } from '@mui/material';
 import { useTranslation } from 'next-i18next/pages';
-import { Injections, UI_INJECTION_ZONE } from '../../lib/api/inject';
+import {
+    Injections,
+    UI_INJECTION_ZONE,
+    type UI_INJECTION_ZONE_KEY,
+} from '../../lib/api/inject';
 import { PhaseIcon } from './PhaseIcon';
 import type { FileUploadState } from './types';
 
@@ -21,7 +25,7 @@ interface UploadModalProps {
     targetPathFor?: (file: File) => string;
     /** Zone to render plugin-injected options in the review phase.
      *  Pass `null` to suppress injected options entirely (e.g. plugin install). */
-    optionsZone?: UI_INJECTION_ZONE | null;
+    optionsZone?: UI_INJECTION_ZONE_KEY | null;
 }
 
 export const UploadModal: React.FC<UploadModalProps> = ({
@@ -72,7 +76,7 @@ interface UploadModalContentProps {
     onClose: () => void;
     onConfirm?: () => void;
     targetPathFor?: (file: File) => string;
-    optionsZone?: UI_INJECTION_ZONE | null;
+    optionsZone?: UI_INJECTION_ZONE_KEY | null;
 }
 
 const UploadModalContent: React.FC<UploadModalContentProps> = ({

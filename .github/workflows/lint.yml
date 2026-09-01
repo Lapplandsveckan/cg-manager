@@ -21,3 +21,6 @@ jobs:
 
         - name: Lint
           run: yarn lint
+
+        - name: Generate @web-lib types
+          run: yarn gen:web-lib-types

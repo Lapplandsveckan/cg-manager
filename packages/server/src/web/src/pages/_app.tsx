@@ -25,6 +25,7 @@ import { AuthGate } from '../components/AuthGate';
 import { theme } from '../lib/theme';
 import i18n from '../lib/i18n';
 import { detectLanguage } from '../lib/detectLanguage';
+import '../lib/api/globals';
 
 const appCrashFallback = (
     <div style={{ padding: 32 }}>

@@ -17,7 +17,7 @@ export type {
 export { UploadModal } from './upload/UploadModal';
 
 interface UploadButtonProps {
-    types: PickFilesOptions['types'];
+    types?: PickFilesOptions['types'];
     createUpload?: (file: File) => Promise<string>;
     controller?: FileUploadController;
     multiple?: boolean;

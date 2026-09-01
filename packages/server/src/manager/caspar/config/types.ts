@@ -47,3 +47,11 @@ export interface Config {
         enableGpu?: boolean;
     };
 }
+
+export interface Capabilities {
+    artnet: 'legacy' | 'v2';
+    // Native CasparCG edgeblend config support (gated on capability flag for
+    // when the CasparCG edgeblend PR lands). The route-effect edgeblend in
+    // src/plugins/internal/edgeblend/ is unrelated and always available.
+    edgeblend: boolean;
+}

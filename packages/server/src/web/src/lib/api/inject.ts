@@ -1,19 +1,12 @@
-import React, {
+import {
     type ComponentType,
     createElement,
     Fragment,
     useEffect,
     useState,
 } from 'react';
-import * as ReactDOM from 'react-dom';
-import * as ReactDOMClient from 'react-dom/client';
-import * as ReactJSXRuntime from 'react/jsx-runtime';
-import * as ReactJSXDevRuntime from 'react/jsx-dev-runtime';
-import * as material from '@mui/material';
-import * as ReactI18next from 'react-i18next';
+import type React from 'react';
 import { useSocket } from '../hooks/useSocket';
-import * as weblib from '../';
-import i18n from '../i18n';
 import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
 import {
     useInjectedComponents,
@@ -21,27 +14,6 @@ import {
     usePluginInjectionsQuery,
 } from '../query/pluginInjections';
 import { type CheckedRepClient } from './repClient';
-
-if (typeof window !== 'undefined') {
-    window['React'] = React;
-    window['ReactDOM'] = ReactDOM;
-    window['MaterialUI'] = material;
-    window['WebLib'] = weblib;
-    window['i18n'] = i18n;
-    window['ReactI18next'] = ReactI18next;
-
-    // Submodule specifiers webpack won't externalize on its own: pre-built
-    // dependencies (e.g. @mui/icons-material) import the automatic JSX runtime
-    // directly rather than going through the 'react' entry point externalized
-    // above, and plugins reach for 'react-dom/client' to mount their own roots.
-    // Without these it'd bundle whatever 'react' happens to resolve on disk in
-    // that dependency's own node_modules and call into its real internals,
-    // which only line up if that's the same React version/instance as
-    // `window.React`.
-    window['ReactJSXRuntime'] = ReactJSXRuntime;
-    window['ReactJSXDevRuntime'] = ReactJSXDevRuntime;
-    window['ReactDOMClient'] = ReactDOMClient;
-}
 
 export const UI_INJECTION_ZONE = {
     PLUGIN_PAGE: 'plugin-page',

@@ -1,12 +1,13 @@
 {
   "private": true,
-  "version": "2.35.4",
+  "version": "2.36.0",
   "name": "@cg-manager/server",
   "engines": {
     "node": ">=22.12"
   },
   "scripts": {
     "package": "node .lappis/scripts/package.js",
+    "gen:web-lib-types": "node .lappis/scripts/generate-web-lib-types.js",
     "start": "cd test && ts-node ../src/index.ts",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",

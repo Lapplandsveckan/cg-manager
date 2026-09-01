@@ -1,10 +1,11 @@
-import EventEmitter from 'events';
 import { type BroadcastDispatcher } from './broadcastDispatcher';
 import { casparLogs } from './broadcasts';
 import { type CheckedRepClient } from './repClient';
 import { getChunkCount } from './upload';
-import type { Config as CasparConfig } from '../../../../manager/caspar/config/types';
-import type { Capabilities } from '../../../../manager/caspar/config/profiles';
+import type {
+    Config as CasparConfig,
+    Capabilities,
+} from '../../../../manager/caspar/config/types';
 
 export type { CasparConfig };
 export type { Capabilities };
@@ -90,7 +91,7 @@ export interface MediaDoc {
     _attachments?: {
         'thumb.png': {
             content_type: string;
-            data: Buffer;
+            data: Uint8Array;
         };
     };
 }
@@ -109,20 +110,34 @@ function clampLogs(buf: string): string {
         : buf;
 }
 
-export class CasparServerApi extends EventEmitter {
+type LogsListener = (logs: string) => void;
+
+export class CasparServerApi {
     private socket: CheckedRepClient;
 
     private logs: string = '';
+    private logsListeners = new Set<LogsListener>();
 
     constructor(socket: CheckedRepClient, broadcasts: BroadcastDispatcher) {
-        super();
         this.socket = socket;
 
         broadcasts.subscribe(casparLogs.path, casparLogs.method, data => {
             if (!casparLogs.isValid(data)) return;
             this.logs = clampLogs(this.logs + data);
-            this.emit('logs', this.logs);
+            this.logsListeners.forEach(listener => listener(this.logs));
         });
+    }
+
+    public on(event: 'logs', listener: LogsListener): this {
+        if (event !== 'logs') return this;
+        this.logsListeners.add(listener);
+        return this;
+    }
+
+    public off(event: 'logs', listener: LogsListener): this {
+        if (event !== 'logs') return this;
+        this.logsListeners.delete(listener);
+        return this;
     }
 
     public async start() {

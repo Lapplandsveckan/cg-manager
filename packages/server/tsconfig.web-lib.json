@@ -1,0 +1,20 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "noEmit": false,
+        "declaration": true,
+        "emitDeclarationOnly": true,
+        "rootDir": "./src",
+        "outDir": "../core/web-lib/generated",
+        "declarationDir": "../core/web-lib/generated",
+        "jsx": "react-jsx",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "lib": ["dom", "dom.iterable", "esnext"],
+        "resolveJsonModule": true,
+        "skipLibCheck": true,
+        "types": ["react"]
+    },
+    "include": ["src/web/src/lib/index.ts", "src/web/src/lib/theme.ts"],
+    "exclude": ["node_modules", "src/web/.next"]
+}

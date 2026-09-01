@@ -10,6 +10,7 @@
   "scripts": {
     "build": "yarn workspace @lappis/cg-manager build",
     "package": "yarn workspace @lappis/cg-manager build && yarn workspace @cg-manager/server package",
+    "gen:web-lib-types": "yarn workspace @cg-manager/server gen:web-lib-types",
     "start": "yarn workspace @lappis/cg-manager build && yarn workspace @cg-manager/server start",
     "lint": "yarn workspaces run lint",
     "lint:fix": "yarn workspaces run lint:fix",
