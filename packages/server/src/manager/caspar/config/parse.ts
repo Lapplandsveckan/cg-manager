@@ -1,5 +1,5 @@
 import * as xml2js from 'xml2js';
-import { type Config, type LogLevel } from './types';
+import { type Config, type LogLevel, type XmlNode } from './types';
 import { transforms } from './transforms';
 
 const LOG_LEVELS: ReadonlySet<LogLevel> = new Set<LogLevel>([
@@ -22,20 +22,20 @@ export class ConfigParser {
         return ConfigParser.header(this.config);
     }
 
-    private parseChannel(channel: any) {
-        const values = Object.entries(
-            typeof channel.consumers?.[0] === 'object'
-                ? channel.consumers[0]
-                : {},
-        )
+    private parseChannel(channel: XmlNode) {
+        const rawConsumers = channel.consumers?.[0];
+        const consumers: XmlNode =
+            typeof rawConsumers === 'object' ? rawConsumers : {};
+
+        const values = Object.entries(consumers)
             .map(([k, v]) =>
-                (v as any).map((v: any) => ({
+                v.map(v => ({
                     type: k,
                     data: typeof v === 'object' ? v : {},
                 })),
             )
             .flat()
-            .map((consumer: any) => {
+            .map(consumer => {
                 const transform = transforms[consumer.type];
                 if (!transform) return consumer;
 
@@ -46,25 +46,27 @@ export class ConfigParser {
             });
 
         return {
-            videoMode: channel['video-mode'][0],
+            videoMode: channel['video-mode'][0] as string,
             consumers: values,
         };
     }
 
-    private parseVideoMode(videoMode: any) {
+    private parseVideoMode(videoMode: XmlNode) {
         return {
-            id: videoMode.id[0],
-            width: parseInt(videoMode.width[0]),
-            height: parseInt(videoMode.height[0]),
-            timeScale: parseInt(videoMode['time-scale'][0]),
-            duration: parseInt(videoMode.duration[0]),
-            cadence: parseInt(videoMode.cadence[0]),
+            id: videoMode.id[0] as string,
+            width: parseInt(videoMode.width[0] as string),
+            height: parseInt(videoMode.height[0] as string),
+            timeScale: parseInt(videoMode['time-scale'][0] as string),
+            duration: parseInt(videoMode.duration[0] as string),
+            cadence: parseInt(videoMode.cadence[0] as string),
         };
     }
 
     public async parse() {
         if (!this.config || !this.header) return null;
-        const xml = await xml2js.parseStringPromise(this.config);
+        const xml = (await xml2js.parseStringPromise(
+            this.config,
+        )) as XmlNode & { configuration: XmlNode };
 
         const config: Partial<Config> = {};
         const header = this.header;
@@ -78,22 +80,27 @@ export class ConfigParser {
             config.logLevel = rawLogLevel as LogLevel;
 
         if (xml.configuration.html?.[0]) {
-            const html = xml.configuration.html[0];
+            const html = xml.configuration.html[0] as XmlNode;
             config.html = {};
 
             const remoteDebuggingPort = html['remote-debugging-port']?.[0];
             if (remoteDebuggingPort)
-                config.html.remoteDebuggingPort = parseInt(remoteDebuggingPort);
+                config.html.remoteDebuggingPort = parseInt(
+                    remoteDebuggingPort as string,
+                );
 
             const enableGpu = html['enable-gpu']?.[0];
             if (enableGpu) config.html.enableGpu = enableGpu === 'true';
         }
 
-        config.videoModes = xml.configuration['video-modes'][0][
-            'video-mode'
-        ].map(this.parseVideoMode);
-        config.channels = xml.configuration.channels[0].channel.map(
-            this.parseChannel,
+        const videoModesNode = xml.configuration['video-modes'][0] as XmlNode;
+        config.videoModes = (videoModesNode['video-mode'] as XmlNode[]).map(
+            videoMode => this.parseVideoMode(videoMode),
+        );
+
+        const channelsNode = xml.configuration.channels[0] as XmlNode;
+        config.channels = (channelsNode.channel as XmlNode[]).map(channel =>
+            this.parseChannel(channel),
         );
 
         return config as Config;

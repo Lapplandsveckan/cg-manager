@@ -10,5 +10,5 @@ export declare class PluginManager {
     public get plugins(): CasparPlugin[];
     public get enabled(): boolean;
 
-    public broadcast(event: string, ...args: any[]): void;
+    public broadcast(event: string, ...args: unknown[]): void;
 }

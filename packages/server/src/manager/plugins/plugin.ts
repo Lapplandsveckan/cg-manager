@@ -155,8 +155,7 @@ export class PluginManager {
         builtin = false,
     ) {
         const loaderLogger = Logger.scope('Plugin Loader');
-        const pluginLabel =
-            (plugin as any).pluginName ?? plugin.name ?? 'unknown';
+        const pluginLabel = plugin.pluginName ?? plugin.name ?? 'unknown';
 
         const [instErr, _plugin] = noTry(() => new plugin());
         if (instErr) {
@@ -169,7 +168,12 @@ export class PluginManager {
         const pluginLogger = loaderLogger.scope(_plugin.pluginName);
 
         const [apiErr] = noTry(
-            () => new PluginAPI(CasparManager.getManager() as any, _plugin),
+            () =>
+                // `CasparManager` diverges structurally from the manager shape
+                // core's `PluginAPI` expects; needs core to export the
+                // interface it actually consumes before this can be typed.
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                new PluginAPI(CasparManager.getManager() as any, _plugin),
         );
         if (apiErr) {
             pluginLogger.error(
@@ -188,12 +192,12 @@ export class PluginManager {
             this._folderNames.set(_plugin.pluginName, folderName);
             this.refreshVersions(folderName);
         }
-        const minCh = (plugin as any).minChannels ?? 0;
+        const minCh = plugin.minChannels ?? 0;
         this._minChannels.set(_plugin.pluginName, minCh);
         this._deps.capture(
             _plugin.pluginName,
-            ((plugin as any).dependencies ?? []) as string[],
-            ((plugin as any).optionalDependencies ?? []) as string[],
+            plugin.dependencies ?? [],
+            plugin.optionalDependencies ?? [],
         );
         pluginLogger.debug('Loaded');
 
@@ -370,7 +374,7 @@ export class PluginManager {
     /** Install/version lifecycle for external (uploaded) plugins. */
     public versions = new PluginVersionManager(this);
 
-    public broadcast(event: string, ...args: any[]) {
+    public broadcast(event: string, ...args: unknown[]) {
         for (const plugin of this._plugins) plugin['_api'].emit(event, ...args);
     }
 }

@@ -33,11 +33,15 @@ export class CasparPlugin {
     private _enabled: boolean = false;
     protected logger: Logger;
 
-    // Optional static hooks, read reflectively by the host (like
-    // `minChannels` — not declared here so plugins aren't forced to extend a
-    // constructor):
-    //   static dependencies = ['other-plugin'];          // hard: gates enable
+    // Optional static hooks, read reflectively by the host. Left undeclared
+    // (rather than fields on the base class) since plugins aren't forced to
+    // set them:
+    //   static minChannels = 2;                           // gates enable on channel count
+    //   static dependencies = ['other-plugin'];           // hard: gates enable
     //   static optionalDependencies = ['nice-to-have'];   // soft: orders only
+    public static readonly minChannels?: number;
+    public static readonly dependencies?: string[];
+    public static readonly optionalDependencies?: string[];
 
     public static get pluginName() {
         return this.name;
@@ -181,7 +185,12 @@ export class PluginAPI extends EventEmitter {
     public broadcast(
         target: string,
         method: WebsocketOutboundMethod,
-        data: any,
+        data: unknown,
+        // Stays `any` rather than `Client`: a plugin author's own copy of
+        // `rest-exchange-protocol` (if it resolves separately from the
+        // host's) would make a nominally-typed `Client` param a breaking
+        // change for a value that is structurally identical.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         exclude?: any,
     ) {
         this._manager.server.broadcast(
@@ -256,6 +265,10 @@ export class PluginAPI extends EventEmitter {
         this._manager.ui.unregister(id);
     }
 
+    // `options` mirrors `EffectRegistry.create`'s `Record<string, any>` (effect.ts)
+    // — each effect type defines its own options shape, so tightening this
+    // needs that coupling untangled first, not a local fix.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public createEffect<T = Effect>(name: string, group: string, options: any) {
         const effectGroup = this._manager.executor.getEffectGroup(group);
         return this._manager.effects.create(name, effectGroup, options) as T;

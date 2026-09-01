@@ -1,3 +1,4 @@
+import type { Readable } from 'stream';
 import {
     type Client,
     type Method,
@@ -287,9 +288,8 @@ export class CGServer {
         };
     }
 
-    /** Buffer a JSON request body up to a sane cap. Returns null on parse
-     *  failure or empty body so handlers can early-out cleanly. */
-    private async readJsonBody(request: any): Promise<unknown> {
+    /** Buffer a JSON request body up to a sane cap; null on parse failure. */
+    private async readJsonBody(request: Readable): Promise<unknown> {
         const chunks: Buffer[] = [];
         await new Promise<void>((resolve, reject) => {
             request.on('data', (chunk: Buffer) => chunks.push(chunk));

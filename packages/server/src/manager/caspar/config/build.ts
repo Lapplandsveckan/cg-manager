@@ -13,7 +13,7 @@ export class ConfigBuilder {
     }
 
     private buildConfigChannel(channel: ConfigChannel) {
-        const consumers: Record<string, any> = {};
+        const consumers: Record<string, unknown[]> = {};
         for (const consumer of channel.consumers) {
             if (!consumers[consumer.type]) consumers[consumer.type] = [];
 
@@ -52,12 +52,12 @@ export class ConfigBuilder {
                     'template-path': 'template/',
                 },
                 'video-modes': {
-                    'video-mode': this.config.videoModes.map((videoMode: any) =>
+                    'video-mode': this.config.videoModes.map(videoMode =>
                         this.buildConfigVideoMode(videoMode),
                     ),
                 },
                 channels: {
-                    channel: this.config.channels.map((channel: any) =>
+                    channel: this.config.channels.map(channel =>
                         this.buildConfigChannel(channel),
                     ),
                 },

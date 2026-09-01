@@ -1,8 +1,32 @@
 import { type schemas, type ArtnetData } from './schemas';
 
+// xml2js parses every element as `{ [tag]: child[] }`, with the child list
+// always an array even for a singular element — hence the `[0]` indexing
+// throughout parse.ts/build.ts.
+export type XmlValue = string | XmlNode;
+export type XmlNode = { [key: string]: XmlValue[] };
+
+// `schema.array()` tags the array it returns with the wrapper element name
+// (see schemas.ts) so the parse/serialize round-trip knows what to call it.
+// An interface (rather than `T[] & {...}`) so it can appear in the recursive
+// `SchemaNode` union below without TypeScript rejecting the self-reference.
+export interface NamedArray<T> extends Array<T> {
+    _name: string;
+}
+
+// The shape of a `schemas.ts` schema descriptor: primitives are sentinel
+// values (`1`, `'string'`, `true`) indicating what to parse a leaf as, nested
+// objects mirror the config shape, and arrays are always `NamedArray`s.
+export type SchemaNode =
+    | string
+    | number
+    | boolean
+    | { [key: string]: SchemaNode }
+    | NamedArray<SchemaNode>;
+
 export interface Transform<T> {
-    parse: (value: any) => T;
-    serialize: (value: T) => any;
+    parse: (value: unknown) => T;
+    serialize: (value: T) => unknown;
 }
 
 export interface Consumers {

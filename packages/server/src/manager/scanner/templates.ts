@@ -12,7 +12,7 @@ export interface TemplateInfo {
     path: string;
     type: string;
 
-    gdd?: any;
+    gdd?: unknown;
     error?: string;
 }
 

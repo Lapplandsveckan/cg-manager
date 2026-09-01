@@ -108,5 +108,12 @@ export default tseslint.config(
             }],
         },
     },
+    // CLI subcommands print their results to stdout — console IS the output.
+    {
+        files: ['packages/*/src/cli/**'],
+        rules: {
+            'no-console': 'off',
+        },
+    },
     prettierConfig,
 );

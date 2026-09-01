@@ -72,7 +72,9 @@ export function useConfigDraft() {
         );
         if (err) {
             notify(
-                (err as any)?.message ?? t('config.errors.saveFailed'),
+                err instanceof Error
+                    ? err.message
+                    : t('config.errors.saveFailed'),
                 'error',
             );
             return;

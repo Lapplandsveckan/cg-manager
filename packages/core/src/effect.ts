@@ -46,6 +46,10 @@ export abstract class Effect extends EventEmitter {
         this.group.addEffect(this);
     }
 
+    // Return type stays `any` (not `boolean`, though every implementation
+    // returns one): public API, and narrowing it would break a subclass that
+    // overrides with a different return type.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public activate(): any {
         if (this._disposed) return false;
         if (this.active) return false;
@@ -57,6 +61,7 @@ export abstract class Effect extends EventEmitter {
         return true;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public deactivate(): any {
         if (!this.active) return false;
         this._active = false;
@@ -129,8 +134,11 @@ export abstract class Effect extends EventEmitter {
     }
 }
 
+// `options` stays `Record<string, any>`: each effect type defines its own
+// options shape, so this is genuinely heterogeneous — not a missing type.
 export type EffectConstructor = (
     group: EffectGroup,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     options: Record<string, any>,
 ) => Effect;
 export class EffectRegistry {
@@ -151,6 +159,7 @@ export class EffectRegistry {
     public create(
         name: string,
         group: EffectGroup,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         options: Record<string, any>,
     ) {
         const effect = this.get(name);

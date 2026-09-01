@@ -2,14 +2,14 @@ import React from 'react';
 import { Card, IconButton, Stack, Tooltip, Typography } from '@mui/material';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { useTranslation } from 'react-i18next';
-import { ScalarField } from '../../fields';
+import { ScalarField, type FieldValue } from '../../fields';
 import { buildSharedFixtureFields } from './fixtureFields';
 import { type BaseFixture } from '../types';
 
 interface FixtureDetailsShellProps {
     index: number;
     fixture: BaseFixture;
-    onChange: (key: string, value: any) => void;
+    onChange: (key: string, value: FieldValue) => void;
     onDelete: () => void;
     children: React.ReactNode;
     /** When true, the startAddress + channelsPerFixture row is not rendered.
@@ -50,7 +50,7 @@ export const FixtureDetailsShell: React.FC<FixtureDetailsShellProps> = ({
                 </Stack>
 
                 <ScalarField
-                    def={F.TYPE_FIELD as any}
+                    def={F.TYPE_FIELD}
                     value={fixture.type}
                     onChange={v => onChange('type', v)}
                 />
@@ -58,12 +58,12 @@ export const FixtureDetailsShell: React.FC<FixtureDetailsShellProps> = ({
                 {!noAddressRow && (
                     <Stack direction="row" gap={1.5}>
                         <ScalarField
-                            def={F.START_ADDRESS_FIELD as any}
+                            def={F.START_ADDRESS_FIELD}
                             value={fixture.startAddress}
                             onChange={v => onChange('startAddress', v)}
                         />
                         <ScalarField
-                            def={F.CHANNELS_FIELD as any}
+                            def={F.CHANNELS_FIELD}
                             value={fixture.fixtureChannels}
                             onChange={v => onChange('fixtureChannels', v)}
                         />

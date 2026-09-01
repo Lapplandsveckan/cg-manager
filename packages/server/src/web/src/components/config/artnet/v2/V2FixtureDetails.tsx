@@ -8,7 +8,7 @@ import {
 } from '@mui/material';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import { useTranslation } from 'react-i18next';
-import { ScalarField } from '../../fields';
+import { ScalarField, type FieldValue } from '../../fields';
 import { FixtureDetailsShell } from '../shared/FixtureDetailsShell';
 import { buildSharedFixtureFields } from '../shared/fixtureFields';
 import { buildV2FixtureFields } from './v2Fixture';
@@ -18,7 +18,7 @@ import { type V2Fixture } from '../types';
 interface V2FixtureDetailsProps {
     index: number;
     fixture: V2Fixture;
-    onChange: (key: string, value: any) => void;
+    onChange: (key: string, value: FieldValue) => void;
     onDelete: () => void;
 }
 
@@ -33,11 +33,9 @@ export const V2FixtureDetails: React.FC<V2FixtureDetailsProps> = ({
     const V = buildV2FixtureFields(t);
     const flux = (fixture.flux ?? {}) as Record<string, number | undefined>;
 
-    const updateFlux = (k: string, v: any) => {
+    const updateFlux = (k: string, v: number | undefined) => {
         const next = { ...flux, [k]: v };
-        const isEmpty = Object.values(next).every(
-            x => x === undefined || x === '',
-        );
+        const isEmpty = Object.values(next).every(x => x === undefined);
         onChange('flux', isEmpty ? undefined : next);
     };
 
@@ -50,42 +48,42 @@ export const V2FixtureDetails: React.FC<V2FixtureDetailsProps> = ({
             noAddressRow
         >
             <ScalarField
-                def={V.HOST_FIELD as any}
+                def={V.HOST_FIELD}
                 value={fixture.host}
                 onChange={v => onChange('host', v)}
             />
             <Stack direction="row" gap={1.5}>
                 <ScalarField
-                    def={V.PORT_FIELD as any}
+                    def={V.PORT_FIELD}
                     value={fixture.port}
                     onChange={v => onChange('port', v)}
                 />
                 <ScalarField
-                    def={V.UNIVERSE_FIELD as any}
+                    def={V.UNIVERSE_FIELD}
                     value={fixture.universe}
                     onChange={v => onChange('universe', v)}
                 />
             </Stack>
             <Stack direction="row" gap={1.5}>
                 <ScalarField
-                    def={S.START_ADDRESS_FIELD as any}
+                    def={S.START_ADDRESS_FIELD}
                     value={fixture.startAddress}
                     onChange={v => onChange('startAddress', v)}
                 />
                 <ScalarField
-                    def={V.ROTATION_FIELD as any}
+                    def={V.ROTATION_FIELD}
                     value={fixture.rotation}
                     onChange={v => onChange('rotation', v)}
                 />
             </Stack>
             <Stack direction="row" gap={1.5}>
                 <ScalarField
-                    def={V.MIRROR_X_FIELD as any}
+                    def={V.MIRROR_X_FIELD}
                     value={fixture.mirrorX}
                     onChange={v => onChange('mirrorX', v)}
                 />
                 <ScalarField
-                    def={V.MIRROR_Y_FIELD as any}
+                    def={V.MIRROR_Y_FIELD}
                     value={fixture.mirrorY}
                     onChange={v => onChange('mirrorY', v)}
                 />
@@ -96,24 +94,24 @@ export const V2FixtureDetails: React.FC<V2FixtureDetailsProps> = ({
             />
             <Stack direction="row" gap={1.5}>
                 <ScalarField
-                    def={V.LEFT_FIELD as any}
+                    def={V.LEFT_FIELD}
                     value={fixture.left}
                     onChange={v => onChange('left', v)}
                 />
                 <ScalarField
-                    def={V.TOP_FIELD as any}
+                    def={V.TOP_FIELD}
                     value={fixture.top}
                     onChange={v => onChange('top', v)}
                 />
             </Stack>
             <Stack direction="row" gap={1.5}>
                 <ScalarField
-                    def={S.WIDTH_FIELD as any}
+                    def={S.WIDTH_FIELD}
                     value={fixture.width}
                     onChange={v => onChange('width', v)}
                 />
                 <ScalarField
-                    def={S.HEIGHT_FIELD as any}
+                    def={S.HEIGHT_FIELD}
                     value={fixture.height}
                     onChange={v => onChange('height', v)}
                 />
@@ -142,7 +140,7 @@ export const V2FixtureDetails: React.FC<V2FixtureDetailsProps> = ({
                 <AccordionDetails>
                     <Stack spacing={1.5}>
                         <ScalarField
-                            def={S.CHANNELS_FIELD as any}
+                            def={S.CHANNELS_FIELD}
                             value={fixture.fixtureChannels}
                             onChange={v => onChange('fixtureChannels', v)}
                         />
@@ -157,15 +155,22 @@ export const V2FixtureDetails: React.FC<V2FixtureDetailsProps> = ({
                                 {V.FLUX_FIELDS.map(def => (
                                     <ScalarField
                                         key={def.key}
-                                        def={def as any}
+                                        def={def}
                                         value={flux[def.key]}
-                                        onChange={v => updateFlux(def.key, v)}
+                                        onChange={v =>
+                                            updateFlux(
+                                                def.key,
+                                                typeof v === 'number'
+                                                    ? v
+                                                    : undefined,
+                                            )
+                                        }
                                     />
                                 ))}
                             </Stack>
                         </Stack>
                         <ScalarField
-                            def={V.BRIGHTNESS_FIELD as any}
+                            def={V.BRIGHTNESS_FIELD}
                             value={fixture.brightness}
                             onChange={v => onChange('brightness', v)}
                         />

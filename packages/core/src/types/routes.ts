@@ -45,6 +45,10 @@ export interface VideoRoute {
     destination: Destination;
 
     enabled: boolean;
+    // Stays `any`: narrowing to `unknown` breaks a plugin doing
+    // `route.metadata.foo.bar` or assigning a value into a typed slot
+    // without a cast — a source-breaking change to this published API.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     metadata?: Record<string, any>;
 }
 

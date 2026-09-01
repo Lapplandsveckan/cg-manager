@@ -78,7 +78,7 @@ export function mediaStreamMiddleware() {
                 log.error(`Stream error: ${(err as Error).message}`);
                 if (!data.response.writableEnded) data.response.destroy();
             });
-            stream.pipe(data.response as any);
+            stream.pipe(data.response as NodeJS.WritableStream);
         };
 
         const rangeHeader = data.request.headers['range'] as string | undefined;

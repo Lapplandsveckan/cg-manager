@@ -53,6 +53,7 @@ export const DefaultContentLayout = (props: { children: React.ReactNode }) => (
             <ErrorBoundary
                 FallbackComponent={ErrorFallback}
                 onError={(error, info) => {
+                    // eslint-disable-next-line no-console -- devtools half of the report; reportClientError below sends the other half
                     console.error(
                         'Unhandled error in DefaultContentLayout',
                         error,

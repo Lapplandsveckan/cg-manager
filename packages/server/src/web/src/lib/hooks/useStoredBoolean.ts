@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getStorageItem, setStorageItem } from '../storage';
 
 export function useStoredBoolean(
@@ -13,13 +13,16 @@ export function useStoredBoolean(
         else if (raw === '0') setValue(false);
     }, [key]);
 
-    const update = (next: boolean | ((prev: boolean) => boolean)) => {
-        setValue(prev => {
-            const val = typeof next === 'function' ? next(prev) : next;
-            setStorageItem(key, val ? '1' : '0');
-            return val;
-        });
-    };
+    const update = useCallback(
+        (next: boolean | ((prev: boolean) => boolean)) => {
+            setValue(prev => {
+                const val = typeof next === 'function' ? next(prev) : next;
+                setStorageItem(key, val ? '1' : '0');
+                return val;
+            });
+        },
+        [key],
+    );
 
     return [value, update];
 }

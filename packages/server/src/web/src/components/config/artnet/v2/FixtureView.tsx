@@ -74,9 +74,9 @@ export const FixtureView: React.FC<FixtureViewProps> = ({
     const count = fixture.fixtureCount ? ` × ${fixture.fixtureCount}` : '';
     const label = `${fixture.type ?? '—'}${count}`;
 
-    const rotation = (fixture as any).rotation ?? 0;
-    const mirrorX = (fixture as any).mirrorX ?? false;
-    const mirrorY = (fixture as any).mirrorY ?? false;
+    const rotation = fixture.rotation ?? 0;
+    const mirrorX = fixture.mirrorX ?? false;
+    const mirrorY = fixture.mirrorY ?? false;
 
     // Mirror is applied to the inner grid layer only — it affects the pixel
     // sampling direction, not the physical position of the fixture on stage.

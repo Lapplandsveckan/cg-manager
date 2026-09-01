@@ -11,8 +11,8 @@ import { Upload } from './upload';
 
 export class MediaScanner {
     private db: FileDatabase;
-    private server: any;
-    private scanner: any;
+    private server: ReturnType<ReturnType<typeof App>['listen']>;
+    private scanner: ReturnType<typeof Scanner>;
 
     public started: boolean = false;
 

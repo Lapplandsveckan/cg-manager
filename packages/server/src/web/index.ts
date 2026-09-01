@@ -1,5 +1,6 @@
 import '../util/vm-patch';
 import * as http from 'http';
+import type { Duplex } from 'stream';
 import next from 'next';
 import { noTry } from 'no-try';
 import { Logger } from '../util/log';
@@ -62,7 +63,7 @@ export function startWeb() {
 
 export async function onUpgrade(
     req: http.IncomingMessage,
-    socket: any,
+    socket: Duplex,
     head: Buffer,
 ) {
     if (!httpServer || !prepared) {

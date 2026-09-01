@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, Stack, Typography } from '@mui/material';
 import { useLabel } from './ScalarField';
 import { Fields } from '../fields';
-import type { FieldDef, RecordData } from '../fields';
+import type { FieldDef, RecordData, FieldValue } from '../fields';
 
 interface ObjectFieldProps {
     def: Extract<FieldDef, { type: 'object' }>;
@@ -17,7 +17,7 @@ export const ObjectField: React.FC<ObjectFieldProps> = ({
 }) => {
     const label = useLabel()(def.label);
     const data = value ?? {};
-    const update = (key: string, v: any) => {
+    const update = (key: string, v: FieldValue) => {
         const next = { ...data, [key]: v };
         const isEmpty = Object.values(next).every(
             x => x === undefined || x === '',

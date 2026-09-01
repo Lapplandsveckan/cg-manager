@@ -1,28 +1,41 @@
 import { WebError } from 'rest-exchange-protocol';
 import { type RouteExport } from '../../route';
 import { CasparManager } from '../../../manager';
+import { type Source, type Destination } from '../../../manager/routes/routes';
 
 const SOURCE_TYPES = ['decklink', 'video', 'channel', 'color'] as const;
 
-function validateSource(src: any): boolean {
+function validateSource(src: unknown): src is Source {
     if (!src || typeof src !== 'object') return false;
-    if (!SOURCE_TYPES.includes(src.type)) return false;
-    if (src.type === 'decklink')
-        return typeof src.device === 'number' && typeof src.format === 'string';
-    if (src.type === 'video')
-        return typeof src.video === 'string' && src.video.length > 0;
-    if (src.type === 'channel') return typeof src.channel === 'number';
-    if (src.type === 'color')
-        return typeof src.color === 'string' && src.color.length > 0;
+    const source = src as Record<string, unknown>;
+    if (!SOURCE_TYPES.includes(source.type as (typeof SOURCE_TYPES)[number]))
+        return false;
+    if (source.type === 'decklink')
+        return (
+            typeof source.device === 'number' &&
+            typeof source.format === 'string'
+        );
+    if (source.type === 'video')
+        return typeof source.video === 'string' && source.video.length > 0;
+    if (source.type === 'channel') return typeof source.channel === 'number';
+    if (source.type === 'color')
+        return typeof source.color === 'string' && source.color.length > 0;
     return false;
 }
 
-function validateDestination(dest: any): boolean {
+function validateDestination(dest: unknown): dest is Destination {
     if (!dest || typeof dest !== 'object') return false;
-    if (dest.type !== 'effect-group') return false;
-    if (typeof dest.effectLayer !== 'string' || dest.effectLayer.length === 0)
+    const destination = dest as Record<string, unknown>;
+    if (destination.type !== 'effect-group') return false;
+    if (
+        typeof destination.effectLayer !== 'string' ||
+        destination.effectLayer.length === 0
+    )
         return false;
-    if (dest.index !== undefined && typeof dest.index !== 'number')
+    if (
+        destination.index !== undefined &&
+        typeof destination.index !== 'number'
+    )
         return false;
     return true;
 }
@@ -34,7 +47,7 @@ export default {
         if (typeof data !== 'object' || data === null)
             throw new WebError('Request body must be an object', 400);
 
-        const payload = data as Record<string, any>;
+        const payload = data as Record<string, unknown>;
         if (typeof payload.name !== 'string')
             throw new WebError('`name` is required', 400);
         if (!validateSource(payload.source))
@@ -47,11 +60,12 @@ export default {
                 name: payload.name,
                 source: payload.source,
                 destination: payload.destination,
-                enabled: payload.enabled ?? true,
-                transform: payload.transform,
-                edgeblend: payload.edgeblend,
-                perspective: payload.perspective,
-                metadata: payload.metadata,
+                enabled: (payload.enabled as boolean | undefined) ?? true,
+                transform: payload.transform as number[] | undefined,
+                edgeblend: payload.edgeblend as number[] | undefined,
+                perspective: payload.perspective as number[] | undefined,
+                metadata: payload.metadata as
+                    Record<string, unknown> | undefined,
             },
             request.getClient()?.id,
         );

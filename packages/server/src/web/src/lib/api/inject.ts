@@ -62,8 +62,15 @@ export interface Injection {
     id: string;
 }
 
+// The ES module namespace loaded off an injection bundle. `meta` is a
+// navbar-page (or similar) convention — see `meta()` below.
+interface PluginModule {
+    default?: React.ComponentType;
+    meta?: { label?: string; icon?: string };
+}
+
 export class PluginInjectionAPI {
-    private _modules = new Map<string, any | Promise<any>>();
+    private _modules = new Map<string, PluginModule | Promise<PluginModule>>();
     private socket: CheckedRepClient;
 
     constructor(socket: CheckedRepClient) {
@@ -99,8 +106,9 @@ export class PluginInjectionAPI {
     // Loads (and caches) the full ES module namespace for an injection, so
     // both its default export (the component) and named exports (e.g. a
     // navbar page's `meta`) are reachable from one bundle fetch.
-    private async moduleOf(id: string): Promise<any> {
-        if (this._modules.has(id)) return this._modules.get(id);
+    private async moduleOf(id: string): Promise<PluginModule> {
+        const cached = this._modules.get(id);
+        if (cached) return cached;
 
         const promise = this._importModule(id);
         this._modules.set(id, promise);
@@ -113,12 +121,12 @@ export class PluginInjectionAPI {
 
     public async import(id: string): Promise<React.ComponentType> {
         const module = await this.moduleOf(id);
-        return module?.default;
+        return module?.default as React.ComponentType;
     }
 
     // Named `meta` export of a navbar-page (or similar) injection module —
     // e.g. `{ label, icon }`. Returns null if the module has none.
-    public async meta(id: string): Promise<any> {
+    public async meta(id: string) {
         const module = await this.moduleOf(id);
         return module?.meta ?? null;
     }
@@ -126,7 +134,7 @@ export class PluginInjectionAPI {
 
 interface InjectionProps {
     id: string;
-    props?: any;
+    props?: Record<string, unknown>;
 }
 
 // Renders a single injection by id. Use this when you need one specific
@@ -155,7 +163,7 @@ export const Injection: React.FC<InjectionProps> = ({ id, props }) => {
 interface InjectionsProps {
     zone: UI_INJECTION_ZONE_KEY;
     plugin?: string | null;
-    props?: any;
+    props?: Record<string, unknown>;
     fallback?: React.ReactNode;
 }
 

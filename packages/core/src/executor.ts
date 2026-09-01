@@ -10,6 +10,9 @@ export interface TemplateInfo {
     path: string;
     type: string;
 
+    // Arbitrary GDD JSON-schema object read off the template file; narrowing
+    // to `unknown` would break consumers doing `info.gdd.foo`.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     gdd?: any;
     error?: string;
 }

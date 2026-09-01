@@ -11,7 +11,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import { useTranslation } from 'react-i18next';
 import { Fields } from '../fields';
-import type { FieldDef, RecordData } from '../fields';
+import type { FieldDef, RecordData, FieldValue } from '../fields';
 
 interface ArrayFieldProps {
     def: Extract<FieldDef, { type: 'array' }>;
@@ -30,7 +30,7 @@ export const ArrayField: React.FC<ArrayFieldProps> = ({
     const itemLabel = tr(def.itemLabel);
     const items = value ?? [];
 
-    const updateItem = (i: number, key: string, v: any) =>
+    const updateItem = (i: number, key: string, v: FieldValue) =>
         onChange(
             items.map((item, idx) =>
                 idx === i ? { ...item, [key]: v } : item,

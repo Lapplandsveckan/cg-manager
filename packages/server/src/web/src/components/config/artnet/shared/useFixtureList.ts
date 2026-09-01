@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { type RecordData } from '../../fields';
+import { type RecordData, type FieldValue } from '../../fields';
 import { type BaseFixture } from '../types';
 
 interface UseFixtureListResult<T extends BaseFixture> {
@@ -9,7 +9,7 @@ interface UseFixtureListResult<T extends BaseFixture> {
     setSelected: (i: number | null) => void;
     addFixture: () => void;
     removeFixture: (i: number) => void;
-    updateFixture: (i: number, key: string, value: any) => void;
+    updateFixture: (i: number, key: string, value: FieldValue) => void;
     updateFixtures: (next: T[]) => void;
 }
 
@@ -34,7 +34,7 @@ export function useFixtureList<T extends BaseFixture>(
         else if (selected !== null && selected > i) setSelected(selected - 1);
     };
 
-    const updateFixture = (i: number, key: string, value: any) => {
+    const updateFixture = (i: number, key: string, value: FieldValue) => {
         const next = fixtures.map((f, idx) =>
             idx === i ? { ...f, [key]: value } : f,
         );

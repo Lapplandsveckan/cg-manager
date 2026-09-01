@@ -27,6 +27,10 @@ export interface MediaDoc {
                 type: string;
                 time_base: string;
                 tag_string: string;
+                // Stays `any`: ffprobe's actual encoding varies ("true"/"1"/1
+                // depending on build), and narrowing this published type is a
+                // source-breaking change for any consumer reading it.
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 is_avc: any;
             };
 

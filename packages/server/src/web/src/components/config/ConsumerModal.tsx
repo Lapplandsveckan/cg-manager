@@ -74,7 +74,7 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
         for (const [k, v] of Object.entries(data))
             if (v !== undefined && v !== '') cleaned[k] = v;
 
-        onSave({ type, data: cleaned as any });
+        onSave({ type, data: cleaned as Consumer['data'] });
         onClose();
     };
 

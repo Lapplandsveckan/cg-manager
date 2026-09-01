@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Box, CircularProgress, Stack, Typography } from '@mui/material';
 import { noTry, noTryAsync } from 'no-try';
 import { useTranslation } from 'react-i18next';
+import { useLatest } from '../lib/hooks/useLatest';
 
 interface ChannelPreviewProps {
     /** 1-based CasparCG channel number. Disabled when undefined/null. */
@@ -51,6 +52,10 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({
 }) => {
     const { t } = useTranslation('common');
     const videoRef = useRef<HTMLVideoElement | null>(null);
+    // Read via ref inside the WebRTC effect below so a language switch
+    // (which gives `t` a new identity) doesn't tear down and re-establish
+    // an already-live peer connection.
+    const tRef = useLatest(t);
     // Per-mount key; changing channel re-runs the effect cleanly. We also
     // include it in deps so the WebRTC session restarts when the prop flips.
     const [mountId] = useState(() => Math.random());
@@ -83,16 +88,22 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({
                     // worry about. noTry because older browsers don't ship
                     // this hint and the property assignment throws.
                     noTry(() => {
-                        (event.receiver as any).playoutDelayHint = 0;
+                        (
+                            event.receiver as RTCRtpReceiver & {
+                                playoutDelayHint?: number;
+                            }
+                        ).playoutDelayHint = 0;
                     });
                 };
 
                 pc.onconnectionstatechange = () => {
                     if (!pc || abort.signal.aborted) return;
                     if (pc.connectionState === 'failed')
-                        onError?.(t('media.preview.errors.failed'));
+                        onError?.(tRef.current('media.preview.errors.failed'));
                     if (pc.connectionState === 'disconnected')
-                        onError?.(t('media.preview.errors.disconnected'));
+                        onError?.(
+                            tRef.current('media.preview.errors.disconnected'),
+                        );
                 };
 
                 const offer = await pc.createOffer();
@@ -108,17 +119,24 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({
                 await pc.setRemoteDescription({ type: 'answer', sdp: answer });
             });
             if (err && !abort.signal.aborted)
-                onError?.(err.message ?? t('media.preview.errors.startFailed'));
+                onError?.(
+                    err.message ??
+                        tRef.current('media.preview.errors.startFailed'),
+                );
         })();
 
         return () => {
             abort.abort();
             if (pc) noTry(() => pc.close());
 
+            // Intentionally read at cleanup time, not hoisted from the effect
+            // body — we want whichever element is mounted at teardown so
+            // clearing srcObject actually releases its stream.
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             const video = videoRef.current;
             if (video) video.srcObject = null;
         };
-    }, [channel, mountId, onError, t]);
+    }, [channel, mountId, onError, tRef]);
 
     const active = channel != null && Number.isFinite(channel) && channel >= 1;
 

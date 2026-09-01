@@ -9,15 +9,12 @@ import {
     TextField,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import type { FieldDef } from '../fields';
+import type { ScalarFieldDef, ScalarValue } from '../fields';
 
 interface ScalarFieldProps {
-    def: Extract<
-        FieldDef,
-        { type: 'string' | 'number' | 'integer' | 'boolean' | 'enum' }
-    >;
-    value: any;
-    onChange: (value: any) => void;
+    def: ScalarFieldDef;
+    value: ScalarValue;
+    onChange: (value: ScalarValue) => void;
 }
 
 export const useLabel = () => {

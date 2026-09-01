@@ -9,11 +9,13 @@ export default {
             throw new WebError('No plugin id provided', 400);
 
         const data = request.getData();
-        if (
-            typeof data !== 'object' ||
-            typeof (data as any).version !== 'string'
-        )
+        const body =
+            typeof data === 'object' && data !== null
+                ? (data as Record<string, unknown>)
+                : {};
+        if (typeof body.version !== 'string')
             throw new WebError('Invalid version value', 400);
+        const version = body.version;
 
         const plugins = CasparManager.getManager().getPlugins();
         if (plugins.isBuiltin(request.params.id))
@@ -26,10 +28,7 @@ export default {
         if (!folderName) throw new WebError('Plugin not found', 404);
 
         const [err] = await noTryAsync(() =>
-            plugins.versions.setActiveVersion(
-                folderName,
-                (data as any).version,
-            ),
+            plugins.versions.setActiveVersion(folderName, version),
         );
         if (err)
             throw new WebError(err.message ?? 'Failed to switch version', 404);

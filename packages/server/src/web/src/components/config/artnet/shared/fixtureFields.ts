@@ -1,15 +1,15 @@
-import { type FieldDef } from '../../fields';
+import { type ScalarFieldDef } from '../../fields';
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
 
 export const buildSharedFixtureFields = (
     t: TFn,
 ): {
-    TYPE_FIELD: FieldDef;
-    START_ADDRESS_FIELD: FieldDef;
-    CHANNELS_FIELD: FieldDef;
-    WIDTH_FIELD: FieldDef;
-    HEIGHT_FIELD: FieldDef;
+    TYPE_FIELD: ScalarFieldDef;
+    START_ADDRESS_FIELD: ScalarFieldDef;
+    CHANNELS_FIELD: ScalarFieldDef;
+    WIDTH_FIELD: ScalarFieldDef;
+    HEIGHT_FIELD: ScalarFieldDef;
 } => ({
     TYPE_FIELD: {
         key: 'type',

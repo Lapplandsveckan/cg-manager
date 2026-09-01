@@ -21,8 +21,8 @@ export default function RundownItemProvider() {
         target => [
             target.type === 'toggle-video-route' && {
                 label: 'Inspect route',
-                // eslint-disable-next-line no-console
                 onClick: () =>
+                    // eslint-disable-next-line no-console
                     console.log('[essentials] Inspect route item:', target),
             },
         ],

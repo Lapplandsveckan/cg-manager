@@ -16,6 +16,9 @@ export interface RundownItem {
     title: string;
 
     type: string;
+    // Mirrors core's RundownItem.data — see the comment there. Narrowing
+    // breaks every plugin action doing `item.data.x`.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
 
     metadata: {

@@ -28,9 +28,8 @@ export interface ContextMenuItem {
 /** The four host surfaces that plugins can contribute items to. */
 export type ContextMenuSurface = 'rundown-item' | 'media' | 'route' | 'plugin';
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyProvider = (
-    target: any,
+    target: unknown,
 ) => (ContextMenuItem | false | null | undefined)[];
 
 /**

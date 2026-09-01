@@ -1,4 +1,4 @@
-import { type FieldDef } from '../../fields';
+import { type ScalarFieldDef } from '../../fields';
 import { type V2Fixture } from '../types';
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
@@ -45,16 +45,16 @@ export const newFixture = (
 export const buildV2FixtureFields = (
     t: TFn,
 ): {
-    HOST_FIELD: FieldDef;
-    PORT_FIELD: FieldDef;
-    UNIVERSE_FIELD: FieldDef;
-    LEFT_FIELD: FieldDef;
-    TOP_FIELD: FieldDef;
-    FLUX_FIELDS: FieldDef[];
-    BRIGHTNESS_FIELD: FieldDef;
-    ROTATION_FIELD: FieldDef;
-    MIRROR_X_FIELD: FieldDef;
-    MIRROR_Y_FIELD: FieldDef;
+    HOST_FIELD: ScalarFieldDef;
+    PORT_FIELD: ScalarFieldDef;
+    UNIVERSE_FIELD: ScalarFieldDef;
+    LEFT_FIELD: ScalarFieldDef;
+    TOP_FIELD: ScalarFieldDef;
+    FLUX_FIELDS: ScalarFieldDef[];
+    BRIGHTNESS_FIELD: ScalarFieldDef;
+    ROTATION_FIELD: ScalarFieldDef;
+    MIRROR_X_FIELD: ScalarFieldDef;
+    MIRROR_Y_FIELD: ScalarFieldDef;
 } => ({
     HOST_FIELD: {
         key: 'host',

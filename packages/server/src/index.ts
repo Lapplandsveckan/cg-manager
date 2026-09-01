@@ -150,6 +150,7 @@ if (require.main === module) {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { runPluginCli } = require('./cli/plugins');
         (runPluginCli(argv.slice(1)) as Promise<void>).catch((e: unknown) => {
+            // eslint-disable-next-line no-console -- CLI error output belongs on stderr, not the file logger
             console.error(e instanceof Error ? e.message : String(e));
             process.exit(1);
         });
@@ -157,6 +158,7 @@ if (require.main === module) {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { runConfigCli } = require('./cli/config');
         (runConfigCli(argv.slice(1)) as Promise<void>).catch((e: unknown) => {
+            // eslint-disable-next-line no-console -- CLI error output belongs on stderr, not the file logger
             console.error(e instanceof Error ? e.message : String(e));
             process.exit(1);
         });

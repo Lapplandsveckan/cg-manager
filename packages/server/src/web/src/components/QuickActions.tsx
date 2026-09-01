@@ -135,7 +135,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
             !quickActions.some(q => q.id === quickAction)
         )
             setQuickAction(null);
-    }, [quickActions, quickAction]);
+    }, [quickActions, quickAction, setQuickAction]);
 
     const selected = quickActions.find(q => q.id === quickAction) ?? null;
 

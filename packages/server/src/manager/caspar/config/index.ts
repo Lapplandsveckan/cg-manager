@@ -47,7 +47,7 @@ export class ConfigManager {
             this.path = path.join(this.path, 'casparcg.config');
     }
 
-    private loading: Promise<any>;
+    private loading: Promise<Config>;
     public get(force = false): Promise<Config> {
         if (!this.loading || force) this.loading = this.load();
         return this.loading;
@@ -68,7 +68,8 @@ export class ConfigManager {
             );
 
             if (error)
-                if ((error as any).code !== 'ENOENT') this.logger.error(error);
+                if ((error as NodeJS.ErrnoException).code !== 'ENOENT')
+                    this.logger.error(error);
 
             if (!error)
                 this.logger.warn('Invalid configuration file, moved to backup');

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getStorageItem, removeStorageItem, setStorageItem } from '../storage';
 
 export function useStoredString(
@@ -15,16 +15,17 @@ export function useStoredString(
         if (raw !== null) setValue(raw);
     }, [key]);
 
-    const update = (
-        next: string | null | ((prev: string | null) => string | null),
-    ) => {
-        setValue(prev => {
-            const val = typeof next === 'function' ? next(prev) : next;
-            if (val === null) removeStorageItem(key);
-            else setStorageItem(key, val);
-            return val;
-        });
-    };
+    const update = useCallback(
+        (next: string | null | ((prev: string | null) => string | null)) => {
+            setValue(prev => {
+                const val = typeof next === 'function' ? next(prev) : next;
+                if (val === null) removeStorageItem(key);
+                else setStorageItem(key, val);
+                return val;
+            });
+        },
+        [key],
+    );
 
     return [value, update];
 }

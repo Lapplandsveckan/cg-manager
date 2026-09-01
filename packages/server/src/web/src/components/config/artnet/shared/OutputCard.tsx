@@ -6,11 +6,12 @@ import {
     Fields,
     type FieldDef,
     type RecordData,
+    type FieldValue,
 } from '../../fields';
 
 interface OutputCardProps {
     data: RecordData;
-    onChange: (key: string, value: any) => void;
+    onChange: (key: string, value: FieldValue) => void;
     /** Override the default scalar fields (host/port/refreshRate). */
     fields?: FieldDef[];
     children?: React.ReactNode;

@@ -4,7 +4,17 @@ import { ScalarField } from './fields/ScalarField';
 import { ObjectField } from './fields/ObjectField';
 import { ArrayField } from './fields/ArrayField';
 
+// A recursive `ConfigValue` union is possible but has a wide blast radius
+// through ObjectField/ArrayField/useFixtureList/ConsumerModal and may fight
+// the `_name`-tagged arrays from the XML round-trip — left as `any` for now.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type RecordData = Record<string, any>;
+
+export type ScalarValue = string | number | boolean | undefined;
+
+// Nested `object`/`array` fields hand back a whole RecordData (or list of
+// them) instead of a scalar, so the shared onChange callback must accept both.
+export type FieldValue = ScalarValue | RecordData | RecordData[];
 
 export type FieldDef =
     | {
@@ -27,13 +37,28 @@ export type FieldDef =
           fields: FieldDef[];
       };
 
-const SCALAR_TYPES = ['string', 'number', 'integer', 'boolean', 'enum'];
-const isScalar = (def: FieldDef): boolean => SCALAR_TYPES.includes(def.type);
+export type ScalarFieldDef = Extract<
+    FieldDef,
+    { type: 'string' | 'number' | 'integer' | 'boolean' | 'enum' }
+>;
+
+// A `Record` keyed by ScalarFieldDef['type'] rather than a plain array so
+// adding a new scalar variant to FieldDef without listing it here is a
+// compile error — `isScalar` can't silently mis-narrow an unlisted type.
+const SCALAR_TYPES: Record<ScalarFieldDef['type'], true> = {
+    string: true,
+    number: true,
+    integer: true,
+    boolean: true,
+    enum: true,
+};
+const isScalar = (def: FieldDef): def is ScalarFieldDef =>
+    def.type in SCALAR_TYPES;
 
 const ScalarGrid: React.FC<{
-    fields: FieldDef[];
+    fields: ScalarFieldDef[];
     data: RecordData;
-    onChange: (key: string, value: any) => void;
+    onChange: (key: string, value: ScalarValue) => void;
 }> = ({ fields, data, onChange }) => (
     <Box
         sx={{
@@ -45,7 +70,7 @@ const ScalarGrid: React.FC<{
         {fields.map(def => (
             <ScalarField
                 key={def.key}
-                def={def as any}
+                def={def}
                 value={data[def.key]}
                 onChange={v => onChange(def.key, v)}
             />
@@ -56,7 +81,7 @@ const ScalarGrid: React.FC<{
 interface FieldsProps {
     fields: FieldDef[];
     data: RecordData;
-    onChange: (key: string, value: any) => void;
+    onChange: (key: string, value: FieldValue) => void;
 }
 
 export const Fields: React.FC<FieldsProps> = ({ fields, data, onChange }) => {

@@ -42,10 +42,11 @@ const Page = () => {
     const [editing, setEditing] = useState<VideoRoute | null>(null);
     const [newType, setNewType] = useState<SourceType | null>(null);
 
+    const setEnabledAsync = setEnabled.mutateAsync;
     const toggle = useCallback(
         async (id: string, next: boolean) => {
             const [err, updated] = await noTryAsync(() =>
-                setEnabled.mutateAsync({ id, enabled: next }),
+                setEnabledAsync({ id, enabled: next }),
             );
             if (err) {
                 notify(
@@ -71,7 +72,7 @@ const Page = () => {
                     }),
             });
         },
-        [setEnabled.mutateAsync],
+        [setEnabledAsync, notify, t],
     );
 
     const confirmDelete = async () => {

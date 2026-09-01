@@ -1,7 +1,10 @@
 import { CommandExecutor } from '@lappis/cg-manager';
 import { noTry } from 'no-try';
 import { Logger } from '../../util/log';
-import { getTemplatesWithContent } from '../scanner/templates';
+import {
+    getTemplatesWithContent,
+    type TemplateInfo,
+} from '../scanner/templates';
 import { AmcpSocket, type AmcpTransport } from './amcp-socket';
 
 // Circuit-breaker for bounce(): if AMCP errors keep firing — e.g. a route
@@ -32,7 +35,7 @@ export class CasparExecutor extends CommandExecutor {
     private reconnectListeners: Array<() => void> = [];
     private compactionTimer: NodeJS.Timeout | null = null;
 
-    protected _fetchTemplates(): Promise<any[]> {
+    protected _fetchTemplates(): Promise<TemplateInfo[]> {
         return getTemplatesWithContent();
     }
 

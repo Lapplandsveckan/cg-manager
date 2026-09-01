@@ -39,10 +39,10 @@ interface EffectGroupDestination {
     type: 'effect-group';
 }
 
-type Source = DecklinkSource | VideoSource | ChannelSource | ColorSource;
-type Destination = EffectGroupDestination;
+export type Source = DecklinkSource | VideoSource | ChannelSource | ColorSource;
+export type Destination = EffectGroupDestination;
 
-interface VideoRoute {
+export interface VideoRoute {
     id: string;
     name: string;
 
@@ -57,7 +57,7 @@ interface VideoRoute {
     destination: Destination;
 
     enabled: boolean;
-    metadata?: Record<string, any>;
+    metadata?: Record<string, unknown>;
 }
 
 interface StatefulVideoRoute {

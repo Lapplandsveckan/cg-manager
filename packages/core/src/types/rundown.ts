@@ -3,6 +3,10 @@ export interface RundownItem {
     title: string;
 
     type: string;
+    // Per-action-type payload. Narrowing this breaks every plugin doing
+    // `item.data.x`; the real fix is a `RundownItem<T = any>` generic
+    // (source-compatible), tracked with the rundown action metadata work.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
 
     metadata: {

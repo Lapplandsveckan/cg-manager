@@ -2,7 +2,7 @@ import React from 'react';
 import { FormControlLabel, Stack, Switch, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useStoredBoolean } from '../../../../lib/hooks/useStoredBoolean';
-import { ScalarField } from '../../fields';
+import { ScalarField, type ScalarFieldDef } from '../../fields';
 import { OutputCard } from '../shared/OutputCard';
 import { FixturePanel } from '../shared/FixturePanel';
 import { useFixtureList } from '../shared/useFixtureList';
@@ -85,9 +85,9 @@ export const LegacyArtnetEditor: React.FC<ArtnetVariantEditorProps> = ({
                             key: 'universe',
                             label: t('config.artnet.universe'),
                             type: 'integer',
-                        } as any
+                        } satisfies ScalarFieldDef
                     }
-                    value={(data as any).universe}
+                    value={data.universe}
                     onChange={v => onChange({ ...data, universe: v })}
                 />
             </OutputCard>

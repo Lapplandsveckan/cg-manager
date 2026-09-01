@@ -50,7 +50,7 @@ export function applyDrag(
         };
     }
 
-    const rotation = ((fixture as any).rotation ?? 0) as number;
+    const rotation = fixture.rotation ?? 0;
     const rad = (rotation * Math.PI) / 180;
     const cos = Math.cos(rad);
     const sin = Math.sin(rad);

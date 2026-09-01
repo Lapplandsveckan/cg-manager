@@ -14,6 +14,7 @@ import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import { useTranslation } from 'react-i18next';
 import { useCasparStatusQuery, useLiveChannels } from '../lib/query/caspar';
+import { useLatest } from '../lib/hooks/useLatest';
 
 interface PreviewCardProps {
     channel: number;
@@ -97,6 +98,10 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
     const [error, setError] = useState<string | null>(null);
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
+    // Read via ref inside the WebRTC effect below so a language switch
+    // (which gives `t` a new identity) doesn't tear down and re-establish
+    // an already-live peer connection.
+    const tRef = useLatest(t);
 
     // Server going offline mid-preview won't always close the PC instantly
     // (ICE has its own timeout). Auto-disable on caspar-status:false so the
@@ -135,9 +140,11 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
                 pc.onconnectionstatechange = () => {
                     if (!pc || abort.signal.aborted) return;
                     if (pc.connectionState === 'failed')
-                        setError(t('media.preview.errors.failed'));
+                        setError(tRef.current('media.preview.errors.failed'));
                     if (pc.connectionState === 'disconnected')
-                        setError(t('media.preview.errors.disconnected'));
+                        setError(
+                            tRef.current('media.preview.errors.disconnected'),
+                        );
                 };
 
                 const offer = await pc.createOffer();
@@ -161,7 +168,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
                 if (abort.signal.aborted) return;
                 setError(
                     (e as Error).message ??
-                        t('media.preview.errors.startFailed'),
+                        tRef.current('media.preview.errors.startFailed'),
                 );
             }
         })();
@@ -172,10 +179,14 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
                 noTry(() => pc.getSenders().forEach(s => s.track?.stop()));
                 noTry(() => pc.close());
             }
+            // Intentionally read at cleanup time, not hoisted from the effect
+            // body — we want whichever element is mounted at teardown so
+            // clearing srcObject actually releases its stream.
+            // eslint-disable-next-line react-hooks/exhaustive-deps
             const video = videoRef.current;
             if (video) video.srcObject = null;
         };
-    }, [live, channel, reloadKey]);
+    }, [live, channel, reloadKey, tRef]);
 
     const handleToggle = (next: boolean) => {
         setEnabled(next);

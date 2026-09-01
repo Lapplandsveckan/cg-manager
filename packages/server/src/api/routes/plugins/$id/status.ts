@@ -21,10 +21,11 @@ export default {
             throw new WebError('No plugin id provided', 400);
 
         const data = request.getData();
-        if (
-            typeof data !== 'object' ||
-            typeof (data as any).enabled !== 'boolean'
-        )
+        const body =
+            typeof data === 'object' && data !== null
+                ? (data as Record<string, unknown>)
+                : {};
+        if (typeof body.enabled !== 'boolean')
             throw new WebError('Invalid enabled value', 400);
 
         const plugins = CasparManager.getManager().getPlugins();
@@ -35,7 +36,7 @@ export default {
         if (!plugin) throw new WebError('Plugin not found', 404);
 
         const logger = Logger.scope('Plugin Loader').scope(plugin.pluginName);
-        if ((data as any).enabled) plugins.enablePlugin(plugin, logger);
+        if (body.enabled) plugins.enablePlugin(plugin, logger);
         else plugins.disablePlugin(plugin, logger);
 
         return plugin['_enabled'];

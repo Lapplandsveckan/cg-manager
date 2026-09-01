@@ -47,7 +47,7 @@ export interface MediaDoc {
                 type: string;
                 time_base: string;
                 tag_string: string;
-                is_avc: any;
+                is_avc: string | number | boolean;
             };
 
             // Video

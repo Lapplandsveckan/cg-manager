@@ -146,7 +146,7 @@ export const BottomPanel: React.FC = () => {
         }
         if (!activeId || !tabs.some(tab => tab.id === activeId))
             setActiveId(tabs[0].id);
-    }, [tabs, activeId]);
+    }, [tabs, activeId, setActiveId]);
 
     const [bundlesReady, setBundlesReady] = useState(false);
 

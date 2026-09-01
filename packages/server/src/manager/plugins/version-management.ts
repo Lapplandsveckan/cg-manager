@@ -32,8 +32,7 @@ export class PluginVersionManager {
         pluginClass: typeof CasparPlugin,
         folderName?: string,
     ) {
-        const label =
-            (pluginClass as any).pluginName ?? pluginClass.name ?? 'unknown';
+        const label = pluginClass.pluginName ?? pluginClass.name ?? 'unknown';
 
         const existing = folderName
             ? this.manager['_plugins'].find(

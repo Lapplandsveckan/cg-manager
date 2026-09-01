@@ -1,4 +1,4 @@
-import { type FieldDef } from '../../fields';
+import { type ScalarFieldDef } from '../../fields';
 import { type LegacyFixture } from '../types';
 
 type TFn = (key: string, opts?: Record<string, unknown>) => string;
@@ -18,10 +18,10 @@ export const newFixtureLegacy = (): LegacyFixture => ({
 export const buildLegacyFixtureFields = (
     t: TFn,
 ): {
-    X_FIELD: FieldDef;
-    Y_FIELD: FieldDef;
-    ROTATION_FIELD: FieldDef;
-    FIXTURE_COUNT_FIELD: FieldDef;
+    X_FIELD: ScalarFieldDef;
+    Y_FIELD: ScalarFieldDef;
+    ROTATION_FIELD: ScalarFieldDef;
+    FIXTURE_COUNT_FIELD: ScalarFieldDef;
 } => ({
     X_FIELD: { key: 'x', label: 'X', type: 'integer' },
     Y_FIELD: { key: 'y', label: 'Y', type: 'integer' },

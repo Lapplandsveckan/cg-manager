@@ -65,6 +65,7 @@ function App({ Component, pageProps }: AppProps) {
                         <ErrorBoundary
                             fallback={appCrashFallback}
                             onError={(e, i) => {
+                                // eslint-disable-next-line no-console -- devtools half of the report; reportClientError below sends the other half
                                 console.error('[app:login]', e, i);
                                 const err = e as Error;
                                 reportClientError({
@@ -110,6 +111,7 @@ function App({ Component, pageProps }: AppProps) {
                                                                     e,
                                                                     i,
                                                                 ) => {
+                                                                    // eslint-disable-next-line no-console -- devtools half of the report; reportClientError below sends the other half
                                                                     console.error(
                                                                         '[app:page]',
                                                                         e,

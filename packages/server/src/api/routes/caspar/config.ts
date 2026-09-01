@@ -4,14 +4,20 @@ import { configuration } from '../../../manager/config';
 import { type Config } from '../../../manager/caspar/config/types';
 import { CasparManager } from '../../../manager';
 
-function validate(data: any): data is Config {
+function validate(data: unknown): data is Config {
     if (!data || typeof data !== 'object') return false;
-    if (typeof data.version !== 'string') return false;
-    if (!Array.isArray(data.videoModes)) return false;
-    if (!Array.isArray(data.channels)) return false;
-    for (const ch of data.channels) {
-        if (!ch || typeof ch.videoMode !== 'string') return false;
-        if (!Array.isArray(ch.consumers)) return false;
+    const config = data as Record<string, unknown>;
+    if (typeof config.version !== 'string') return false;
+    if (!Array.isArray(config.videoModes)) return false;
+    if (!Array.isArray(config.channels)) return false;
+    for (const ch of config.channels as unknown[]) {
+        if (
+            !ch ||
+            typeof (ch as Record<string, unknown>).videoMode !== 'string'
+        )
+            return false;
+        if (!Array.isArray((ch as Record<string, unknown>).consumers))
+            return false;
     }
     return true;
 }

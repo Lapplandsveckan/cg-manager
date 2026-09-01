@@ -128,7 +128,7 @@ export const MediaView: React.FC<MediaViewProps> = ({
                 .filter(
                     item => !showAsDirectories || item.name.indexOf('/') < 0,
                 ),
-        [media, prefix],
+        [media, prefix, showAsDirectories],
     );
 
     // Drop selected ids that no longer appear in `data` — e.g. after a

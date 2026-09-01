@@ -137,7 +137,7 @@ export class MixerCommand extends CommandGroup {
             chroma.spill_suppress,
             chroma.spill_suppress_saturation,
             chroma.show_mask ? 1 : 0,
-        ] as any[];
+        ];
 
         return this.single(
             'CHROMA',
@@ -155,7 +155,7 @@ export class MixerCommand extends CommandGroup {
     }
 
     public opacity(opacity: number, tween?: Tween) {
-        const args = [opacity] as any[];
+        const args = [opacity];
 
         return this.single(
             'OPACITY',
@@ -165,7 +165,7 @@ export class MixerCommand extends CommandGroup {
     }
 
     public brightness(brightness: number, tween?: Tween) {
-        const args = [brightness] as any[];
+        const args = [brightness];
 
         return this.single(
             'BRIGHTNESS',
@@ -175,7 +175,7 @@ export class MixerCommand extends CommandGroup {
     }
 
     public saturation(saturation: number, tween?: Tween) {
-        const args = [saturation] as any[];
+        const args = [saturation];
 
         return this.single(
             'SATURATION',
@@ -185,7 +185,7 @@ export class MixerCommand extends CommandGroup {
     }
 
     public contrast(contrast: number, tween?: Tween) {
-        const args = [contrast] as any[];
+        const args = [contrast];
 
         return this.single(
             'CONTRAST',
@@ -201,7 +201,7 @@ export class MixerCommand extends CommandGroup {
             levels.gamma,
             levels.min_output,
             levels.max_output,
-        ] as any[];
+        ];
 
         return this.single(
             'LEVELS',
@@ -211,7 +211,7 @@ export class MixerCommand extends CommandGroup {
     }
 
     public fill(fill: Fill, tween?: Tween) {
-        const args = [fill.x, fill.y, fill.x_scale, fill.y_scale] as any[];
+        const args = [fill.x, fill.y, fill.x_scale, fill.y_scale];
 
         return this.single(
             'FILL',
@@ -221,7 +221,7 @@ export class MixerCommand extends CommandGroup {
     }
 
     public clip(clip: Clip, tween?: Tween) {
-        const args = [clip.x, clip.y, clip.width, clip.height] as any[];
+        const args = [clip.x, clip.y, clip.width, clip.height];
 
         return this.single(
             'CLIP',
@@ -231,7 +231,7 @@ export class MixerCommand extends CommandGroup {
     }
 
     public anchor(anchor: Anchor, tween?: Tween) {
-        const args = [anchor.x, anchor.y] as any[];
+        const args = [anchor.x, anchor.y];
 
         return this.single(
             'ANCHOR',
@@ -246,7 +246,7 @@ export class MixerCommand extends CommandGroup {
             crop.top_edge,
             crop.right_edge,
             crop.bottom_edge,
-        ] as any[];
+        ];
 
         return this.single(
             'CROP',
@@ -256,7 +256,7 @@ export class MixerCommand extends CommandGroup {
     }
 
     public rotation(angle: number, tween?: Tween) {
-        const args = [angle] as any[];
+        const args = [angle];
 
         return this.single(
             'ROTATION',
@@ -275,7 +275,7 @@ export class MixerCommand extends CommandGroup {
             perspective.bottom_right.y,
             perspective.bottom_left.x,
             perspective.bottom_left.y,
-        ] as any[];
+        ];
 
         return this.single(
             'PERSPECTIVE',
@@ -289,7 +289,7 @@ export class MixerCommand extends CommandGroup {
     }
 
     public volume(volume: number, tween?: Tween) {
-        const args = [volume] as any[];
+        const args = [volume];
 
         return this.single(
             'VOLUME',
@@ -316,7 +316,7 @@ export class MixerCommand extends CommandGroup {
             edgeblend.g ?? 1.8,
             edgeblend.p ?? 3.0,
             edgeblend.a ?? 0.5,
-        ] as any[];
+        ];
 
         return this.single(
             'EDGEBLEND',

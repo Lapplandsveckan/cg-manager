@@ -1,3 +1,5 @@
+import { type NamedArray } from './types';
+
 export const schema = {
     string: () => 'string',
     number: () => 1,
@@ -9,8 +11,8 @@ export const schema = {
     // `_name` is stored on the outer array (not the inner item schema) so
     // primitive item schemas like `schema.number()` survive — needed for
     // `<universes><universe>0</universe><universe>1</universe></universes>`.
-    array: <T>(item: T, name: string): T[] => {
-        const arr: any = [item];
+    array: <T>(item: T, name: string): NamedArray<T> => {
+        const arr = [item] as NamedArray<T>;
         arr._name = name;
         return arr;
     },

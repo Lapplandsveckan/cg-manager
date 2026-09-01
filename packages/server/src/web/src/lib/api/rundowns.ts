@@ -3,6 +3,9 @@ import { type CheckedRepClient } from './repClient';
 export interface RundownItem {
     id: string;
     title: string;
+    // Mirrors core's RundownItem.data — see the comment there. Narrowing
+    // breaks every plugin action doing `item.data.x`.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any;
     /** Registered action type. Always set for stored items; optional so
      *  client-side drafts (editor pre-fill, drag payloads) share the shape. */

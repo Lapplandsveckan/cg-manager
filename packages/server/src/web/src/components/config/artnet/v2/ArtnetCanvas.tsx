@@ -1,4 +1,10 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { ChannelPreview } from '../../../ChannelPreview';
@@ -54,13 +60,16 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
         return () => ro.disconnect();
     }, [canvasWidth]);
 
-    const toCanvas = (clientX: number, clientY: number) => {
-        const rect = stageRef.current!.getBoundingClientRect();
-        return {
-            x: (clientX - rect.left) / scale,
-            y: (clientY - rect.top) / scale,
-        };
-    };
+    const toCanvas = useCallback(
+        (clientX: number, clientY: number) => {
+            const rect = stageRef.current!.getBoundingClientRect();
+            return {
+                x: (clientX - rect.left) / scale,
+                y: (clientY - rect.top) / scale,
+            };
+        },
+        [scale],
+    );
 
     const handlePointerDown = (
         e: React.PointerEvent,
@@ -138,7 +147,7 @@ export const ArtnetCanvas: React.FC<ArtnetCanvasProps> = ({
             window.removeEventListener('pointerup', onUp);
             window.removeEventListener('pointercancel', onUp);
         };
-    }, [fixtures, onChange, scale, canvasWidth, canvasHeight]);
+    }, [fixtures, onChange, scale, canvasWidth, canvasHeight, toCanvas]);
 
     return (
         <Stack spacing={1} ref={wrapperRef} sx={{ minWidth: 0, flex: 1 }}>

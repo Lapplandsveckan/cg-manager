@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getStorageItem, setStorageItem } from '../storage';
 
 const identity = (n: number) => n;
@@ -15,13 +15,18 @@ export function useStoredNumber(
         if (raw) setValue(clamp(Number(raw)));
     }, [key, clamp]);
 
-    const update = (next: number | ((prev: number) => number)) => {
-        setValue(prev => {
-            const val = clamp(typeof next === 'function' ? next(prev) : next);
-            setStorageItem(key, String(val));
-            return val;
-        });
-    };
+    const update = useCallback(
+        (next: number | ((prev: number) => number)) => {
+            setValue(prev => {
+                const val = clamp(
+                    typeof next === 'function' ? next(prev) : next,
+                );
+                setStorageItem(key, String(val));
+                return val;
+            });
+        },
+        [key, clamp],
+    );
 
     return [value, update];
 }
