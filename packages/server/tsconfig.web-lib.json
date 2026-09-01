@@ -13,7 +13,7 @@
         "lib": ["dom", "dom.iterable", "esnext"],
         "resolveJsonModule": true,
         "skipLibCheck": true,
-        "types": ["react"]
+        "types": ["react", "node"]
     },
     "include": ["src/web/src/lib/index.ts", "src/web/src/lib/theme.ts"],
     "exclude": ["node_modules", "src/web/.next"]
