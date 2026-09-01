@@ -11,6 +11,7 @@ import {
     formatConsumerType,
 } from './fields';
 import { ArtnetEditor } from './artnet/ArtnetEditor';
+import { simpleFields } from '../../lib/config/simplePresets';
 
 type Consumer = CasparConfig['channels'][number]['consumers'][number];
 
@@ -26,6 +27,10 @@ interface ConsumerModalProps {
     /** 1-based CG channel this consumer lives on; used by the Artnet editor's
      *  optional live-preview backdrop. */
     previewChannel?: number | null;
+    /** Show only the essential fields and swap in plain-language copy. */
+    simple?: boolean;
+    /** Preset values to seed a new consumer's form with in simple mode. */
+    defaults?: RecordData;
     onClose: () => void;
     onSave: (consumer: Consumer) => void;
     onDelete?: () => void;
@@ -42,6 +47,8 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
     canvasWidth,
     canvasHeight,
     previewChannel,
+    simple,
+    defaults,
     onClose,
     onSave,
     onDelete,
@@ -63,8 +70,8 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
         }
         // Adding a fresh consumer of the picker-chosen type.
         setType(newType ?? 'screen');
-        setData({});
-    }, [open, consumer, newType]);
+        setData({ ...(defaults ?? {}) });
+    }, [open, consumer, newType, defaults]);
 
     const handleSave = () => {
         // Strip undefined/empty-string keys so we don't write empty XML
@@ -78,13 +85,18 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
         onClose();
     };
 
-    const fields = CONSUMER_FIELDS[type];
+    const fields = simple ? simpleFields(type) : CONSUMER_FIELDS[type];
     const typeLabel = t(`config.consumers.types.${type}`, {
         defaultValue: formatConsumerType(type),
     });
     const title = consumer
         ? t('config.consumers.editTitle', { type: typeLabel })
         : t('config.consumers.addTitle', { type: typeLabel });
+    const helpText = simple
+        ? t(`config.simple.help.${type}`, {
+              defaultValue: t('config.consumers.restartNote'),
+          })
+        : t('config.consumers.restartNote');
 
     return (
         <Modal open={open} onClose={onClose}>
@@ -109,22 +121,24 @@ export const ConsumerModal: React.FC<ConsumerModalProps> = ({
                                 flexWrap="wrap"
                             >
                                 <Typography variant="h3">{title}</Typography>
-                                <Typography
-                                    variant="caption"
-                                    sx={{
-                                        color: 'text.secondary',
-                                        fontFamily: 'monospace',
-                                        textTransform: 'lowercase',
-                                    }}
-                                >
-                                    {type}
-                                </Typography>
+                                {!simple && (
+                                    <Typography
+                                        variant="caption"
+                                        sx={{
+                                            color: 'text.secondary',
+                                            fontFamily: 'monospace',
+                                            textTransform: 'lowercase',
+                                        }}
+                                    >
+                                        {type}
+                                    </Typography>
+                                )}
                             </Stack>
                             <Typography
                                 variant="body2"
                                 sx={{ color: 'text.secondary' }}
                             >
-                                {t('config.consumers.restartNote')}
+                                {helpText}
                             </Typography>
                         </Stack>
 

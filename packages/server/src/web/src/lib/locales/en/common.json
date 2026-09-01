@@ -349,6 +349,97 @@
         "saveInfoBefore": "Saving writes ",
         "saveInfoAfter": " to disk. Restart CasparCG for changes to take effect.",
         "advanced": "Advanced",
+        "mode": {
+            "label": "Editor mode",
+            "simple": "Simple",
+            "advanced": "Advanced"
+        },
+        "simple": {
+            "intro": {
+                "title": "Set up your screens",
+                "body": "Each screen has one resolution and one or more outputs. Pick where the picture should go — CasparCG handles the rest."
+            },
+            "channel": {
+                "title": "Screen {{n}}",
+                "add": "Add another screen",
+                "delete": "Remove this screen",
+                "outputCount_one": "{{count}} output",
+                "outputCount_other": "{{count}} outputs"
+            },
+            "channels": {
+                "empty": "No screens yet — add one to get started."
+            },
+            "resolution": {
+                "label": "Resolution & frame rate",
+                "help": "The size and frame rate everything on this screen renders at.",
+                "customNote": "This screen uses a custom video mode set up in Advanced mode.",
+                "other": "Other…",
+                "presets": {
+                    "1080p5000": "1080p 50 Hz (HD)",
+                    "1080p6000": "1080p 60 Hz (HD)",
+                    "1080p2500": "1080p 25 Hz",
+                    "1080i5000": "1080i 50 Hz (broadcast)",
+                    "720p5000": "720p 50 Hz",
+                    "2160p5000": "2160p 50 Hz (4K)",
+                    "2160p6000": "2160p 60 Hz (4K)"
+                }
+            },
+            "outputs": {
+                "title": "Outputs",
+                "add": "Add output",
+                "empty": "No outputs yet",
+                "emptyHelp": "Nothing is being sent out from this screen.",
+                "pickerTitle": "Where should this screen go?",
+                "pickerDescription": "Pick the kind of output you want to add.",
+                "advancedOnly": "This output can only be edited in Advanced mode.",
+                "openAdvanced": "Open in Advanced"
+            },
+            "summary": {
+                "screenMonitor": "Monitor {{device}}",
+                "screenFullscreen": "Fullscreen",
+                "screenWindowed": "Windowed",
+                "decklinkCard": "Card {{device}}",
+                "ndiName": "Named “{{name}}”",
+                "artnetFixtures_one": "{{count}} fixture",
+                "artnetFixtures_other": "{{count}} fixtures",
+                "none": "Not configured yet",
+                "layouts": {
+                    "mono": "Mono",
+                    "stereo": "Stereo",
+                    "matrix": "Matrix"
+                }
+            },
+            "fields": {
+                "screen": {
+                    "device": "Which monitor?",
+                    "windowed": "Run in a window",
+                    "alwaysOnTop": "Keep on top of other windows"
+                },
+                "decklink": {
+                    "device": "Card number",
+                    "embeddedAudio": "Send audio over SDI",
+                    "keyer": "Keying"
+                },
+                "ndi": {
+                    "name": "Stream name"
+                },
+                "system-audio": {
+                    "channelLayout": "Speaker setup"
+                }
+            },
+            "help": {
+                "screen": "Shows the picture in a window or fullscreen on a monitor attached to this machine.",
+                "decklink": "Sends SDI video out through a Blackmagic Decklink card.",
+                "ndi": "Publishes the picture on the network so other NDI software can pick it up.",
+                "system-audio": "Plays the audio through this machine's default sound device.",
+                "artnet": "Drives DMX lighting fixtures over the network from what's on this screen."
+            },
+            "footer": {
+                "title": "Need more control?",
+                "body": "Log levels, custom video modes, HTML settings and FFmpeg / Bluefish outputs live in Advanced mode.",
+                "button": "Switch to Advanced"
+            }
+        },
         "errors": {
             "loadFailed": "Failed to load config",
             "saveFailed": "Failed to save config"

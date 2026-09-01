@@ -349,6 +349,97 @@
         "saveInfoBefore": "Spara skriver ",
         "saveInfoAfter": " till disk. Starta om CasparCG för att ändringar ska börja gälla.",
         "advanced": "Avancerat",
+        "mode": {
+            "label": "Redigeringsläge",
+            "simple": "Enkelt",
+            "advanced": "Avancerat"
+        },
+        "simple": {
+            "intro": {
+                "title": "Ställ in dina skärmar",
+                "body": "Varje skärm har en upplösning och en eller flera utgångar. Välj vart bilden ska gå — CasparCG sköter resten."
+            },
+            "channel": {
+                "title": "Skärm {{n}}",
+                "add": "Lägg till en skärm till",
+                "delete": "Ta bort den här skärmen",
+                "outputCount_one": "{{count}} utgång",
+                "outputCount_other": "{{count}} utgångar"
+            },
+            "channels": {
+                "empty": "Inga skärmar ännu — lägg till en för att komma igång."
+            },
+            "resolution": {
+                "label": "Upplösning och bildfrekvens",
+                "help": "Storleken och bildfrekvensen som allt på den här skärmen renderas i.",
+                "customNote": "Den här skärmen använder ett anpassat videoläge som ställts in i avancerat läge.",
+                "other": "Annat…",
+                "presets": {
+                    "1080p5000": "1080p 50 Hz (HD)",
+                    "1080p6000": "1080p 60 Hz (HD)",
+                    "1080p2500": "1080p 25 Hz",
+                    "1080i5000": "1080i 50 Hz (sändning)",
+                    "720p5000": "720p 50 Hz",
+                    "2160p5000": "2160p 50 Hz (4K)",
+                    "2160p6000": "2160p 60 Hz (4K)"
+                }
+            },
+            "outputs": {
+                "title": "Utgångar",
+                "add": "Lägg till utgång",
+                "empty": "Inga utgångar ännu",
+                "emptyHelp": "Ingenting skickas ut från den här skärmen.",
+                "pickerTitle": "Vart ska den här skärmen gå?",
+                "pickerDescription": "Välj vilken typ av utgång du vill lägga till.",
+                "advancedOnly": "Den här utgången kan bara redigeras i avancerat läge.",
+                "openAdvanced": "Öppna i avancerat läge"
+            },
+            "summary": {
+                "screenMonitor": "Skärm {{device}}",
+                "screenFullscreen": "Helskärm",
+                "screenWindowed": "Fönsterläge",
+                "decklinkCard": "Kort {{device}}",
+                "ndiName": "Heter ”{{name}}”",
+                "artnetFixtures_one": "{{count}} armatur",
+                "artnetFixtures_other": "{{count}} armaturer",
+                "none": "Inte konfigurerad ännu",
+                "layouts": {
+                    "mono": "Mono",
+                    "stereo": "Stereo",
+                    "matrix": "Matris"
+                }
+            },
+            "fields": {
+                "screen": {
+                    "device": "Vilken skärm?",
+                    "windowed": "Kör i fönster",
+                    "alwaysOnTop": "Håll över andra fönster"
+                },
+                "decklink": {
+                    "device": "Kortnummer",
+                    "embeddedAudio": "Skicka ljud via SDI",
+                    "keyer": "Keying"
+                },
+                "ndi": {
+                    "name": "Strömnamn"
+                },
+                "system-audio": {
+                    "channelLayout": "Högtalaruppsättning"
+                }
+            },
+            "help": {
+                "screen": "Visar bilden i ett fönster eller i helskärm på en skärm ansluten till den här datorn.",
+                "decklink": "Skickar ut SDI-video via ett Blackmagic Decklink-kort.",
+                "ndi": "Publicerar bilden på nätverket så att annan NDI-programvara kan hämta den.",
+                "system-audio": "Spelar upp ljudet via datorns standardljudenhet.",
+                "artnet": "Styr DMX-belysning över nätverket utifrån det som visas på den här skärmen."
+            },
+            "footer": {
+                "title": "Behöver du mer kontroll?",
+                "body": "Loggnivåer, anpassade videolägen, HTML-inställningar och FFmpeg-/Bluefish-utgångar finns i avancerat läge.",
+                "button": "Byt till avancerat läge"
+            }
+        },
         "errors": {
             "loadFailed": "Misslyckades att ladda konfiguration",
             "saveFailed": "Misslyckades att spara konfiguration"

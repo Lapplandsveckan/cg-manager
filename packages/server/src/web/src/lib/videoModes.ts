@@ -41,3 +41,41 @@ export const BUILTIN_VIDEO_MODES: readonly string[] = [
     'dci2160p2400',
     'dci2160p2500',
 ];
+
+// width/height for every built-in mode, parsed from the id
+// (e.g. '1080p5000' -> 1920x1080, '2160p2500' -> 3840x2160, 'PAL'/'NTSC' are
+// SD and hand-written). Used to lay out visual editors (e.g. the Art-Net
+// canvas) for a channel whose mode isn't in the custom videoModes list.
+const RESOLUTION_BY_PREFIX: Record<string, { width: number; height: number }> =
+    {
+        '576': { width: 720, height: 576 },
+        '720': { width: 1280, height: 720 },
+        '1080': { width: 1920, height: 1080 },
+        '1556': { width: 2048, height: 1556 },
+        dci1080: { width: 2048, height: 1080 },
+        '2160': { width: 3840, height: 2160 },
+        dci2160: { width: 4096, height: 2160 },
+    };
+
+export const BUILTIN_MODE_SIZES: Record<
+    string,
+    { width: number; height: number }
+> = {
+    PAL: { width: 720, height: 576 },
+    NTSC: { width: 720, height: 486 },
+    ...Object.fromEntries(
+        BUILTIN_VIDEO_MODES.filter(id => id !== 'PAL' && id !== 'NTSC').map(
+            id => {
+                const prefix = Object.keys(RESOLUTION_BY_PREFIX).find(p =>
+                    id.startsWith(p),
+                );
+                return [
+                    id,
+                    prefix
+                        ? RESOLUTION_BY_PREFIX[prefix]
+                        : { width: 1920, height: 1080 },
+                ];
+            },
+        ),
+    ),
+};

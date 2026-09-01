@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { type CasparConfig } from '../api/caspar';
 import { type ConsumerType } from '../../components/config/fields';
+import { BUILTIN_MODE_SIZES } from '../videoModes';
 
 type Channel = CasparConfig['channels'][number];
 type Consumer = Channel['consumers'][number];
@@ -42,16 +43,18 @@ export function useConsumerEditor(
     })();
 
     // Visual editors (artnet canvas, etc.) need the channel's output
-    // resolution. Look it up via the channel's videoMode → videoModes entry,
-    // falling back to 1080p when not found.
+    // resolution. Look it up via the channel's videoMode → custom
+    // videoModes entry first, then the built-in mode table (a channel on a
+    // built-in mode has no entry in draft.videoModes), falling back to
+    // 1080p only if the mode id is unrecognized.
     const canvasSize: { width: number; height: number } = (() => {
         const fallback = { width: 1920, height: 1080 };
         if (!editingConsumer || !draft) return fallback;
         const channel = draft.channels[editingConsumer.channelIndex];
         if (!channel) return fallback;
-        const mode = draft.videoModes.find(m => m.id === channel.videoMode);
-        if (!mode) return fallback;
-        return { width: mode.width, height: mode.height };
+        const custom = draft.videoModes.find(m => m.id === channel.videoMode);
+        if (custom) return { width: custom.width, height: custom.height };
+        return BUILTIN_MODE_SIZES[channel.videoMode] ?? fallback;
     })();
 
     const startPicking = (channelIndex: number) =>

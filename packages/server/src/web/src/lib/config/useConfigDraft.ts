@@ -138,7 +138,7 @@ export function useConfigDraft() {
     const addChannel = () =>
         setDraft(d => {
             if (!d) return d;
-            const defaultMode = d.videoModes[0]?.id ?? '1920x1080p5000';
+            const defaultMode = d.videoModes[0]?.id ?? '1080p5000';
             return {
                 ...d,
                 channels: [...d.channels, blankChannel(defaultMode)],

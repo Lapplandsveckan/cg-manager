@@ -17,12 +17,18 @@ import {
 
 interface ConsumerTypePickerProps {
     open: boolean;
+    types?: readonly ConsumerType[];
+    titleKey?: string;
+    descriptionKey?: string;
     onClose: () => void;
     onSelect: (type: ConsumerType) => void;
 }
 
 export const ConsumerTypePicker: React.FC<ConsumerTypePickerProps> = ({
     open,
+    types = CONSUMER_TYPES,
+    titleKey = 'config.consumers.pickerTitle',
+    descriptionKey = 'config.consumers.pickerDescription',
     onClose,
     onSelect,
 }) => {
@@ -43,14 +49,12 @@ export const ConsumerTypePicker: React.FC<ConsumerTypePickerProps> = ({
                 <Card sx={{ p: 3 }}>
                     <Stack spacing={3}>
                         <Stack spacing={1}>
-                            <Typography variant="h3">
-                                {t('config.consumers.pickerTitle')}
-                            </Typography>
+                            <Typography variant="h3">{t(titleKey)}</Typography>
                             <Typography
                                 variant="body2"
                                 sx={{ color: 'text.secondary' }}
                             >
-                                {t('config.consumers.pickerDescription')}
+                                {t(descriptionKey)}
                             </Typography>
                         </Stack>
 
@@ -62,7 +66,7 @@ export const ConsumerTypePicker: React.FC<ConsumerTypePickerProps> = ({
                                 gap: 1.5,
                             }}
                         >
-                            {CONSUMER_TYPES.map(type => (
+                            {types.map(type => (
                                 <Card
                                     key={type}
                                     variant="outlined"
