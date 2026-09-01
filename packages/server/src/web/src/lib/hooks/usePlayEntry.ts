@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'next-i18next/pages';
-import type { RundownEntry } from '../../components/Rundowns';
+import type { RundownEntry } from '../query/rundownEntries';
 import { useSocket } from './useSocket';
 import { useCasparOnline } from './useCasparOnline';
 import { useToast } from '../../components/ToastProvider';

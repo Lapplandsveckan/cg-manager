@@ -24,7 +24,7 @@ import { useMediaHandlers } from '../lib/media/useMediaHandlers';
 import { useRundownActionsQuery } from '../lib/query/rundownMeta';
 import MediaPlayModal from '../components/MediaPlayModal';
 import MediaInspectorModal from '../components/media/MediaInspectorModal';
-import { type RundownEntry } from '../components/Rundowns';
+import { type RundownEntry } from '../lib/query/rundownEntries';
 import { useToast } from '../components/ToastProvider';
 
 interface RundownFileMatchResult {

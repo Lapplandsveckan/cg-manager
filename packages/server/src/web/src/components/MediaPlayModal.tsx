@@ -3,7 +3,7 @@ import React from 'react';
 import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
 import { InstantPlayoutContext } from './RundownEditor';
 import { ModalShell } from './RundownModals';
-import { type RundownEntry } from './Rundowns';
+import { type RundownEntry } from '../lib/query/rundownEntries';
 import { usePlayEntry } from '../lib/hooks/usePlayEntry';
 
 interface Props {

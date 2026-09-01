@@ -18,7 +18,7 @@ import { usePlayEntry } from '../lib/hooks/usePlayEntry';
 import { useStopEntry } from '../lib/hooks/useStopEntry';
 import { EditRundown } from '../pages/play';
 import { RundownModals } from './RundownModals';
-import { Rundowns } from './Rundowns';
+import { Rundowns } from './rundown/RundownList';
 import { useStoredString } from '../lib/hooks/useStoredString';
 import { useRundownDropEditor } from '../lib/hooks/useRundownDropEditor';
 import {

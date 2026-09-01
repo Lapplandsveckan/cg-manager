@@ -1,4 +1,5 @@
 import { noTry } from 'no-try';
+import { type RundownEntry } from './query/rundownEntries';
 
 /**
  * Drag contract for adding items to a rundown via drag-and-drop.
@@ -69,6 +70,65 @@ export function parseRundownItemPayload(
 export function hasRundownItemPayload(dt: DataTransfer | null): boolean {
     if (!dt) return false;
     return Array.from(dt.types).includes(RUNDOWN_ITEM_DRAG_MIME);
+}
+
+/** Result of matching a dropped file against registered rundown actions
+ *  (`conn.rundowns.matchActions`) — the shape the server hands back for the
+ *  file-drop-to-upload flow in `useRundownFileDrop`. */
+export interface RundownFileMatchResult {
+    actionId: string;
+    payload: RundownItemDragPayload;
+    path: string;
+    mediaId: string;
+    destination: string;
+}
+
+/**
+ * Drag contract for reordering entries within a rundown list, and for
+ * dragging an existing entry between two Rundowns instances (e.g. the main
+ * rundown and a quick-actions list). Host-internal — unlike the item
+ * contract above, plugins never write this MIME type.
+ *
+ * A cross-list drop is told apart from a same-list reorder by comparing
+ * `rundownId` against the receiving list's own id.
+ */
+export const RUNDOWN_REORDER_MIME = 'application/x-cg-rundown-reorder';
+
+export interface RundownReorderPayload {
+    rundownId: string;
+    entry: RundownEntry;
+}
+
+export function hasReorderPayload(dt: DataTransfer | null): boolean {
+    if (!dt) return false;
+    return Array.from(dt.types).includes(RUNDOWN_REORDER_MIME);
+}
+
+export function writeReorderPayload(
+    dt: DataTransfer,
+    payload: RundownReorderPayload,
+): void {
+    dt.setData(RUNDOWN_REORDER_MIME, JSON.stringify(payload));
+    dt.effectAllowed = 'move';
+}
+
+export function readReorderPayload(
+    dt: DataTransfer,
+): RundownReorderPayload | null {
+    const raw = dt.getData(RUNDOWN_REORDER_MIME);
+    const [, parsed] = noTry(() => JSON.parse(raw) as RundownReorderPayload);
+    if (!parsed?.entry?.id || !parsed.rundownId) return null;
+    return parsed;
+}
+
+/**
+ * True when a DataTransfer carries OS files. Not a payload contract of ours
+ * — the browser sets this type for any external file drag — but it lives
+ * here so the drop handlers can ask about every drag shape in one place.
+ */
+export function isFileDrag(dt: DataTransfer | null): boolean {
+    if (!dt) return false;
+    return Array.from(dt.types).includes('Files');
 }
 
 /**

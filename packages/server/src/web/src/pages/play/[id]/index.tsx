@@ -9,12 +9,12 @@ import { DefaultContentLayout } from '../../../components/DefaultContentLayout';
 import { usePlayEntry } from '../../../lib/hooks/usePlayEntry';
 import { useStopEntry } from '../../../lib/hooks/useStopEntry';
 import { Injections, UI_INJECTION_ZONE } from '../../../lib/api/inject';
+import { Rundowns } from '../../../components/rundown/RundownList';
+import { ModeToggle } from '../../../components/RundownChrome';
 import {
-    ModeToggle,
     type RundownEntry,
-    Rundowns,
-} from '../../../components/Rundowns';
-import { useRundownEntries } from '../../../lib/query/rundownEntries';
+    useRundownEntries,
+} from '../../../lib/query/rundownEntries';
 import { RundownModals } from '../../../components/RundownModals';
 import { RundownTitleEditor } from '../../../components/play/RundownTitleEditor';
 import { QuickActions } from '../../../components/QuickActions';

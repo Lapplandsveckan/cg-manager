@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useRef, useState } from 'react';
-import type { RundownEntry } from './Rundowns';
+import type { RundownEntry } from '../lib/query/rundownEntries';
 
 interface EntryClipboard {
     copy: (entry: RundownEntry) => void;

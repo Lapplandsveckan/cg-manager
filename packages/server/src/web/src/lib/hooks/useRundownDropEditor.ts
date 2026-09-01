@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { RundownEntry } from '../../components/Rundowns';
+import type { RundownEntry } from '../query/rundownEntries';
 import type { RundownItemDragPayload } from '../dragPayload';
 
 /**
