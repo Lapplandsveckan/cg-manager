@@ -154,6 +154,12 @@
             "dataLabel": "Data (JSON)",
             "invalidData": "Ogiltig JSON"
         },
+        "color": {
+            "label": "Färg",
+            "none": "Ingen färg",
+            "custom": "Anpassad",
+            "swatch": "Färg {{hex}}"
+        },
         "play": {
             "offline": "CasparCG är offline — kan inte spela",
             "failed": "Det gick inte att spela objektet"

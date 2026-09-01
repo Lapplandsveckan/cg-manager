@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { noTry } from 'no-try';
 import { RundownEditorActionBar } from './RundownEditor';
+import { RundownColorPicker } from './RundownColorPicker';
 import { type RundownEntry } from '../lib/query/rundownEntries';
 
 interface EditorProps {
@@ -28,6 +29,9 @@ export const DefaultRundownItemEditor: React.FC<EditorProps> = ({
         JSON.stringify(entry.data ?? {}, null, 2),
     );
     const [error, setError] = useState<string | null>(null);
+    const [color, setColor] = useState<string | null>(
+        entry.metadata?.color ?? null,
+    );
 
     const validate = () => {
         const [err, parsed] = noTry(() => JSON.parse(dataText));
@@ -43,6 +47,7 @@ export const DefaultRundownItemEditor: React.FC<EditorProps> = ({
             ...entry,
             title: title.trim() || entry.title,
             data: parsed,
+            metadata: { ...entry.metadata, color: color ?? undefined },
         });
     };
 
@@ -82,6 +87,8 @@ export const DefaultRundownItemEditor: React.FC<EditorProps> = ({
                     },
                 }}
             />
+
+            <RundownColorPicker value={color} onChange={setColor} />
 
             <RundownEditorActionBar
                 onSave={onSave}

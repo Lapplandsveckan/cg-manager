@@ -11,6 +11,10 @@ export interface RundownItem {
 
     metadata: {
         autoNext: boolean;
+        /** `#rrggbb` accent color, rendered by the host as a left bar on the
+         *  rundown card. Plugins set this via the shared `RundownColorPicker`
+         *  (`@web-lib`) in their editor UI. */
+        color?: string;
     };
 }
 

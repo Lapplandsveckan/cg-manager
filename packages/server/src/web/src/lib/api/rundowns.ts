@@ -10,7 +10,7 @@ export interface RundownItem {
     /** Registered action type. Always set for stored items; optional so
      *  client-side drafts (editor pre-fill, drag payloads) share the shape. */
     type?: string;
-    metadata?: { autoNext?: boolean };
+    metadata?: { autoNext?: boolean; color?: string };
 }
 
 export interface Rundown {

@@ -8,7 +8,11 @@ import {
     TextField,
     Typography,
 } from '@mui/material';
-import { RundownEditorActionBar, useSocket } from '@web-lib';
+import {
+    RundownColorPicker,
+    RundownEditorActionBar,
+    useSocket,
+} from '@web-lib';
 import { useTranslation } from 'react-i18next';
 
 interface VideoRoute {
@@ -22,6 +26,7 @@ interface Entry {
     title: string;
     type: string;
     data?: { routeId?: string };
+    metadata?: { color?: string };
 }
 
 interface Props {
@@ -43,6 +48,9 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({
     const [title, setTitle] = useState(entry.title ?? '');
     const [routeId, setRouteId] = useState<string>(entry.data?.routeId ?? '');
     const [routes, setRoutes] = useState<VideoRoute[] | null>(null);
+    const [color, setColor] = useState<string | null>(
+        entry.metadata?.color ?? null,
+    );
 
     useEffect(() => {
         let mounted = true;
@@ -67,6 +75,7 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({
                 title.trim() ||
                 t('plugins.essentials.toggleVideoRoute.defaultTitle'),
             data: { ...(entry.data ?? {}), routeId: routeId || undefined },
+            metadata: { ...entry.metadata, color: color ?? undefined },
         });
     };
 
@@ -116,6 +125,8 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({
                     ))}
                 </Select>
             </FormControl>
+
+            <RundownColorPicker value={color} onChange={setColor} />
 
             {!selectedExists && (
                 <Typography variant="caption" sx={{ color: 'warning.main' }}>

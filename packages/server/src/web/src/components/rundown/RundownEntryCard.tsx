@@ -19,6 +19,8 @@ interface RundownEntryCardProps {
      *  mode it fires onPlay. The play button always fires onPlay regardless. */
     locked?: boolean;
     disabled?: boolean;
+    /** Plugin-set accent (`item.metadata.color`), normalized. */
+    color?: string | null;
     children: React.ReactNode;
 
     /** Drag handle wiring — when provided, a grip icon appears on the left
@@ -46,6 +48,7 @@ export const RundownEntryCard: React.FC<RundownEntryCardProps> = ({
     onDelete,
     locked,
     disabled,
+    color,
     children,
     onReorderDragStart,
     onReorderDragEnd,
@@ -98,6 +101,7 @@ export const RundownEntryCard: React.FC<RundownEntryCardProps> = ({
                         draggable,
                         locked,
                         supportsReorder,
+                        color,
                     })
                 }
             >

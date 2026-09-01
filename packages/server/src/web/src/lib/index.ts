@@ -24,6 +24,11 @@ export {
     InstantPlayoutContext,
 } from '../components/RundownEditor';
 export {
+    RundownColorPicker,
+    RUNDOWN_COLOR_PRESETS,
+    normalizeRundownColor,
+} from '../components/RundownColorPicker';
+export {
     Dropzone,
     UploadButton,
     UploadModal,

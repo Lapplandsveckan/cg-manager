@@ -6,6 +6,7 @@ import { SlotErrorBoundary } from '../SlotErrorBoundary';
 import { DefaultRundownItemView } from '../DefaultRundownItem';
 import { useContextMenu } from '../ContextMenuProvider';
 import { useEntryClipboard } from '../EntryClipboardProvider';
+import { normalizeRundownColor } from '../RundownColorPicker';
 import { RundownEntryCard } from './RundownEntryCard';
 import { rundownEntryMenuItems } from './rundownEntryMenu';
 import { type RundownEntry } from '../../lib/query/rundownEntries';
@@ -101,6 +102,7 @@ export const RundownListItem: React.FC<RundownListItemProps> = ({
                     title={entry.title}
                     locked={locked}
                     disabled={isOrphaned}
+                    color={normalizeRundownColor(entry.metadata?.color)}
                     onEdit={() => onEdit(entry)}
                     onPlay={() => onPlay(entry)}
                     onStop={

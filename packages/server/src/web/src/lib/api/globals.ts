@@ -4,6 +4,7 @@ import * as ReactDOMClient from 'react-dom/client';
 import * as ReactJSXRuntime from 'react/jsx-runtime';
 import * as ReactJSXDevRuntime from 'react/jsx-dev-runtime';
 import * as material from '@mui/material';
+import * as MUIColorInput from 'mui-color-input';
 import * as ReactI18next from 'react-i18next';
 import * as weblib from '../';
 import i18n from '../i18n';
@@ -17,6 +18,7 @@ if (typeof window !== 'undefined') {
     window['React'] = React;
     window['ReactDOM'] = ReactDOM;
     window['MaterialUI'] = material;
+    window['MUIColorInput'] = MUIColorInput;
     window['WebLib'] = weblib;
     window['i18n'] = i18n;
     window['ReactI18next'] = ReactI18next;

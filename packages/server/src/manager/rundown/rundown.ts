@@ -23,6 +23,7 @@ export interface RundownItem {
 
     metadata: {
         autoNext: boolean;
+        color?: string;
     };
 }
 
