@@ -44,6 +44,9 @@ export { MediaDropZone } from '../components/MediaDropZone';
 export type { MediaDropZoneProps } from '../components/MediaDropZone';
 export { useRundownLive, RundownLiveProvider } from '../hooks/useRundownLive';
 export { ChannelPreview } from '../components/ChannelPreview';
+// Lets a plugin open the route editor modal on top of the current page
+// (e.g. from a rundown context-menu item) without navigating to /routes.
+export { useRouteInspector } from '../components/routes/RouteInspectorProvider';
 // Plugins commonly need to annotate variables holding a media record (e.g.
 // from ManagerApi.caspar.getAllMedia()) without going through the socket API
 // module directly.

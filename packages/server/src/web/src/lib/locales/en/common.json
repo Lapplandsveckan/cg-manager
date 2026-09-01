@@ -620,7 +620,8 @@
             "saveFailed": "Failed to save route",
             "loadFailed": "Failed to load routes",
             "toggleFailed": "Failed to toggle route",
-            "deleteFailed": "Failed to delete route"
+            "deleteFailed": "Failed to delete route",
+            "routeNotFound": "Route not found"
         },
         "success": {
             "saved": "Route saved",
@@ -814,6 +815,9 @@
                 "toggles": "Toggles:",
                 "on": "On",
                 "off": "Off"
+            },
+            "inspectRoute": {
+                "menuLabel": "Inspect route"
             }
         },
         "edgeblend": {

@@ -3,44 +3,26 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { useCallback, useState } from 'react';
 import { noTryAsync } from 'no-try';
 import { useTranslation } from 'react-i18next';
-import type { VideoRoute } from '../../lib/api/videoRoutes';
-import {
-    RouteSourceTypePicker,
-    type SourceType,
-} from '../../components/routes/RouteSourceTypePicker';
-import { RouteModal } from '../../components/routes/RouteModal';
+import { RouteSourceTypePicker } from '../../components/routes/RouteSourceTypePicker';
 import { DefaultContentLayout } from '../../components/DefaultContentLayout';
 import { RouteCard } from '../../components/routes/RouteCard';
-import { DeleteRouteModal } from '../../components/routes/DeleteRouteModal';
+import { useRouteInspector } from '../../components/routes/RouteInspectorProvider';
 import { useToast } from '../../components/ToastProvider';
 import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
 import { liveId, record } from '../../lib/undo/undoStore';
-import { omitId, rekeyId, routeScope } from '../../lib/undo/tools';
+import { routeScope } from '../../lib/undo/tools';
 import { runMutation, useMutationSpec } from '../../lib/query/mutations';
-import {
-    routeCreate,
-    routeDelete,
-    routeSetEnabled,
-    routeUpdate,
-    useRoutesQuery,
-} from '../../lib/query/routes';
-import { useChannelInfo } from '../../lib/query/caspar';
+import { routeSetEnabled, useRoutesQuery } from '../../lib/query/routes';
 
 const Page = () => {
     const { t } = useTranslation('common');
     const notify = useToast();
 
     const { data: routes, error: routesError } = useRoutesQuery();
-    const { channels, videoModes, channelSizes } = useChannelInfo();
     const setEnabled = useMutationSpec(routeSetEnabled);
-    const create = useMutationSpec(routeCreate);
-    const update = useMutationSpec(routeUpdate);
-    const deleteMut = useMutationSpec(routeDelete);
-    const [deleting, setDeleting] = useState<VideoRoute | null>(null);
+    const { editor } = useRouteInspector();
 
     const [picking, setPicking] = useState(false);
-    const [editing, setEditing] = useState<VideoRoute | null>(null);
-    const [newType, setNewType] = useState<SourceType | null>(null);
 
     const setEnabledAsync = setEnabled.mutateAsync;
     const toggle = useCallback(
@@ -74,116 +56,6 @@ const Page = () => {
         },
         [setEnabledAsync, notify, t],
     );
-
-    const confirmDelete = async () => {
-        if (!deleting) return;
-
-        const [err] = await noTryAsync(() =>
-            deleteMut.mutateAsync({ id: deleting.id }),
-        );
-        if (err) {
-            notify(
-                (err as Error)?.message ?? t('videoRoutes.errors.deleteFailed'),
-                'error',
-            );
-        } else {
-            const deleted = deleting;
-            setDeleting(null);
-            notify(t('videoRoutes.success.deleted'), 'success');
-            record<VideoRoute | null>({
-                label: { key: 'routeDelete', params: { name: deleted.name } },
-                scopes: [routeScope(deleted.id)],
-                prev: deleted,
-                next: null,
-                apply: async (route, { api, entry }) => {
-                    if (route) {
-                        const created = await runMutation(
-                            routeCreate,
-                            api,
-                            omitId(route),
-                        );
-                        rekeyId(route.id, created.id, routeScope, entry);
-                        return;
-                    }
-                    await runMutation(routeDelete, api, {
-                        id: liveId(deleted.id),
-                    });
-                },
-            });
-        }
-    };
-
-    const saveRoute = async (data: Omit<VideoRoute, 'id'>) => {
-        const [err] = await noTryAsync(async () => {
-            if (editing) {
-                const before = editing;
-                const updated = await update.mutateAsync({
-                    id: editing.id,
-                    data,
-                });
-                record({
-                    label: {
-                        key: 'routeUpdate',
-                        params: { name: updated.name },
-                    },
-                    scopes: [routeScope(updated.id)],
-                    prev: before,
-                    next: updated,
-                    apply: (route, { api }) =>
-                        runMutation(routeUpdate, api, {
-                            id: liveId(updated.id),
-                            data: omitId(route),
-                        }),
-                });
-            } else {
-                const created = await create.mutateAsync(data);
-                record<VideoRoute | null>({
-                    label: {
-                        key: 'routeCreate',
-                        params: { name: created.name },
-                    },
-                    scopes: [routeScope(created.id)],
-                    prev: null,
-                    next: created,
-                    apply: async (route, { api, entry }) => {
-                        if (route) {
-                            const recreated = await runMutation(
-                                routeCreate,
-                                api,
-                                omitId(route),
-                            );
-                            rekeyId(
-                                created.id,
-                                recreated.id,
-                                routeScope,
-                                entry,
-                            );
-                            return;
-                        }
-                        await runMutation(routeDelete, api, {
-                            id: liveId(created.id),
-                        });
-                    },
-                });
-            }
-        });
-        if (err) {
-            notify(
-                (err as Error)?.message ?? t('videoRoutes.errors.saveFailed'),
-                'error',
-            );
-            return;
-        }
-        notify(t('videoRoutes.success.saved'), 'success');
-        setEditing(null);
-        setNewType(null);
-    };
-
-    const modalOpen = editing !== null || newType !== null;
-    const closeModal = () => {
-        setEditing(null);
-        setNewType(null);
-    };
 
     return (
         <DefaultContentLayout>
@@ -246,10 +118,10 @@ const Page = () => {
                     >
                         <RouteCard
                             route={route}
-                            onEdit={() => setEditing(route)}
+                            onEdit={() => editor.setEditing(route)}
                             onToggle={next => toggle(route.id, next)}
                             onDelete={() => {
-                                setDeleting(route);
+                                editor.setDeleting(route);
                             }}
                         />
                     </SlotErrorBoundary>
@@ -261,33 +133,8 @@ const Page = () => {
                 onClose={() => setPicking(false)}
                 onSelect={type => {
                     setPicking(false);
-                    setNewType(type);
+                    editor.setNewType(type);
                 }}
-            />
-
-            <RouteModal
-                open={modalOpen}
-                route={editing}
-                newType={newType ?? undefined}
-                channels={channels}
-                videoModes={videoModes}
-                channelSizes={channelSizes}
-                onClose={closeModal}
-                onSave={saveRoute}
-                onDelete={
-                    editing
-                        ? () => {
-                              setDeleting(editing);
-                          }
-                        : undefined
-                }
-            />
-
-            <DeleteRouteModal
-                deleting={deleting}
-                busy={deleteMut.isPending}
-                onClose={() => setDeleting(null)}
-                onConfirm={confirmDelete}
             />
         </DefaultContentLayout>
     );

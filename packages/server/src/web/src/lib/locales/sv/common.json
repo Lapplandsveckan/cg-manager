@@ -620,7 +620,8 @@
             "saveFailed": "Misslyckades att spara väg",
             "loadFailed": "Misslyckades att ladda rutter",
             "toggleFailed": "Misslyckades att växla rutt",
-            "deleteFailed": "Misslyckades att ta bort rutt"
+            "deleteFailed": "Misslyckades att ta bort rutt",
+            "routeNotFound": "Rutten hittades inte"
         },
         "success": {
             "saved": "Rutt sparad",
@@ -814,6 +815,9 @@
                 "toggles": "Växlar:",
                 "on": "På",
                 "off": "Av"
+            },
+            "inspectRoute": {
+                "menuLabel": "Inspektera rutt"
             }
         },
         "edgeblend": {
