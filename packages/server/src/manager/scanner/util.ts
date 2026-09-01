@@ -12,6 +12,18 @@ export function getId(fileDir: string, filePath: string) {
         .toUpperCase();
 }
 
+// Like getId, but for a directory: no extension to strip, so a folder name
+// containing a dot (e.g. "My.Folder") isn't mistaken for one. Media ids
+// living under this folder share this exact string as their prefix. The media
+// root itself yields '', which is not a usable prefix — callers reach this via
+// normalizeFolderPath, which rejects an empty path.
+export function getFolderId(fileDir: string, folderPath: string) {
+    return path
+        .relative(fileDir, folderPath)
+        .replace(/\\+/g, '/')
+        .toUpperCase();
+}
+
 /**
  * Resolve `relative` against `base` and reject any result that escapes `base`.
  * Guards against `..`, absolute paths, and symlink-style traversal in input

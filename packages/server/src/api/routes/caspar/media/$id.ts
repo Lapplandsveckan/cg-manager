@@ -6,10 +6,13 @@ import { type RouteExport } from '../../../route';
 import { CasparManager } from '../../../../manager';
 import scannerConfig from '../../../../manager/scanner/config';
 import {
+    getId,
     resolveSafePath,
     validateFilename,
 } from '../../../../manager/scanner/util';
 import {
+    isInternalMediaId,
+    isReservedTopLevel,
     normalizeFolderPath,
     PLACEHOLDER_NAME,
 } from '../../../../manager/scanner/folders';
@@ -17,6 +20,21 @@ import { resolveMediaFile } from '../../../../manager/scanner/locate';
 
 function resolveDoc(id: string) {
     return resolveMediaFile(decodeURIComponent(id));
+}
+
+// The doc exactly as the listing endpoint would serve it — same two filters as
+// `media/all` (and as the `caspar/media` broadcast), so the originating client
+// can never cache an entry a refetch would drop. `db.get` also returns
+// recently-evicted docs, which the caller must not cache either. Handing back
+// null in any of those cases lets it fall through to a refetch.
+function liveDoc(id: string) {
+    if (isInternalMediaId(id)) return null;
+
+    const db = CasparManager.getManager().getMediaScanner().getDatabase();
+    if (!db.has(id)) return null;
+
+    const doc = db.get(id);
+    return doc?.mediainfo ? doc : null;
 }
 
 export default {
@@ -38,9 +56,16 @@ export default {
         });
 
         // Update the DB + broadcast immediately instead of waiting for chokidar.
-        CasparManager.getManager().getMediaScanner().applyDelete(mediaPath);
+        // The requesting client is excluded from that broadcast (it applies
+        // this response instead), so it's passed through as the change origin.
+        // Recompute the id from the resolved path (rather than trusting the
+        // raw param) so it matches exactly what applyDelete removes.
+        const id = getId(scannerConfig.paths.media, mediaPath);
+        CasparManager.getManager()
+            .getMediaScanner()
+            .applyDelete(mediaPath, request.getClient());
 
-        return { ok: true };
+        return { ok: true, id };
     },
     UPDATE: async request => {
         if (!request.params.id) throw new WebError('No media id provided', 400);
@@ -73,6 +98,11 @@ export default {
             );
             if (normErr || !segments)
                 throw new WebError(normErr?.message ?? 'Invalid path', 400);
+            // `_internal/` holds plugin-side symlinks; the listing and the
+            // broadcast both hide ids under it, so a move in there would strand
+            // the file somewhere no client can see it again.
+            if (isReservedTopLevel(segments))
+                throw new WebError('Reserved folder', 400);
             for (const segment of segments) {
                 const [err] = noTry(() => validateFilename(segment));
                 if (err)
@@ -98,7 +128,10 @@ export default {
             scannerConfig.paths.media,
             `${targetRel}${ext}`,
         );
-        if (target === mediaPath) return { ok: true };
+        if (target === mediaPath) {
+            const id = getId(scannerConfig.paths.media, mediaPath);
+            return { ok: true, id, doc: liveDoc(id) };
+        }
 
         await fs.access(target).then(
             () => {
@@ -123,10 +156,13 @@ export default {
         });
 
         // Update the DB + broadcast immediately instead of waiting for chokidar.
+        // The requesting client is excluded from that broadcast (it applies
+        // this response instead), so it's passed through as the change origin.
         await CasparManager.getManager()
             .getMediaScanner()
-            .applyRename(mediaPath, target);
+            .applyRename(mediaPath, target, request.getClient());
 
-        return { ok: true };
+        const newId = getId(scannerConfig.paths.media, target);
+        return { ok: true, id: newId, doc: liveDoc(newId) };
     },
 } satisfies RouteExport;

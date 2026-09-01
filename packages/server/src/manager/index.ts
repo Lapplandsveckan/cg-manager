@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { type Client } from 'rest-exchange-protocol';
 import { EffectRegistry } from '@lappis/cg-manager';
 import { Logger } from '../util/log';
 import { MediaScanner } from './scanner';
@@ -44,8 +45,11 @@ export class CasparManager extends EventEmitter {
     // routes here.
     private readonly onCasparRunningConfig = (cfg: unknown) =>
         this.emit('caspar-running-config', cfg);
-    private readonly onDbChange = (key: string, value: unknown) =>
-        this.emit('media', key, value);
+    private readonly onDbChange = (
+        key: string,
+        value: unknown,
+        origin?: Client,
+    ) => this.emit('media', key, value, origin);
 
     public get db() {
         return FileDatabase.db;

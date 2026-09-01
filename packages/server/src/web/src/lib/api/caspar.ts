@@ -79,7 +79,7 @@ export interface MediaDoc {
         format: {
             name: string;
             long_name: string;
-            size: string;
+            size: number;
 
             start_time: number;
             duration: number;
@@ -236,36 +236,45 @@ export class CasparServerApi {
         return res.data.id;
     }
 
-    public async deleteMedia(id: string): Promise<void> {
-        await this.socket.request(
+    public async deleteMedia(id: string): Promise<{ id: string }> {
+        const res = await this.socket.request(
             `api/caspar/media/${encodeURIComponent(id)}`,
             'DELETE',
             {},
         );
+        return res.data as { id: string };
     }
 
-    public async renameMedia(id: string, newName: string): Promise<void> {
-        await this.socket.request(
+    public async renameMedia(
+        id: string,
+        newName: string,
+    ): Promise<{ id: string; doc: MediaDoc | null }> {
+        const res = await this.socket.request(
             `api/caspar/media/${encodeURIComponent(id)}`,
             'UPDATE',
             {
                 name: newName,
             },
         );
+        return res.data as { id: string; doc: MediaDoc | null };
     }
 
     /** Move a media file to a new location under the media root. `newPath`
      *  is slash-separated, relative to the root, no extension (the source
      *  file's extension is preserved). Use to drag media into a folder, or
      *  drop it onto a breadcrumb to move it back up the tree. */
-    public async moveMedia(id: string, newPath: string): Promise<void> {
-        await this.socket.request(
+    public async moveMedia(
+        id: string,
+        newPath: string,
+    ): Promise<{ id: string; doc: MediaDoc | null }> {
+        const res = await this.socket.request(
             `api/caspar/media/${encodeURIComponent(id)}`,
             'UPDATE',
             {
                 path: newPath,
             },
         );
+        return res.data as { id: string; doc: MediaDoc | null };
     }
 
     /** Create a folder under the media root. `path` is slash-separated and

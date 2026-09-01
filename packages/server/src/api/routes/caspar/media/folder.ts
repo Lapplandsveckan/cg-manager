@@ -76,6 +76,8 @@ export default {
             throw new WebError('Request body must be an object', 400);
 
         const segments = validatePath((data as { path?: string }).path ?? '');
+        if (isReservedTopLevel(segments))
+            throw new WebError('Reserved folder', 400);
 
         const target = resolveSafePath(
             scannerConfig.paths.media,
@@ -113,6 +115,13 @@ export default {
             const [err] = await noTryAsync(() => removeFolderRecursive(target));
             if (err)
                 throw new WebError(`Failed to delete: ${err.message}`, 500);
+
+            // Reconcile media docs under this folder immediately instead of
+            // waiting for chokidar's per-file unlink + deferral.
+            CasparManager.getManager()
+                .getMediaScanner()
+                .applyFolderDelete(target, request.getClient());
+
             await broadcastFolders(request.getClient());
             return { ok: true };
         }
@@ -143,6 +152,12 @@ export default {
 
         const fromSegments = validatePath(from);
         const toSegments = validatePath(to);
+        // `_internal/` is owned by DirectoryManager. Moving it away breaks the
+        // plugin symlinks it stashes there; moving a user folder into it hides
+        // every contained doc from the listing and the broadcast, stranding the
+        // media somewhere no client can see it again.
+        if (isReservedTopLevel(fromSegments) || isReservedTopLevel(toSegments))
+            throw new WebError('Reserved folder', 400);
 
         const fromAbs = resolveSafePath(
             scannerConfig.paths.media,
@@ -171,6 +186,12 @@ export default {
                 throw new WebError('Folder does not exist', 404);
             throw new WebError(`Failed to rename: ${renameErr.message}`, 500);
         }
+
+        // Reconcile media docs under this folder immediately instead of
+        // waiting for chokidar's per-file unlink + add pair to converge.
+        await CasparManager.getManager()
+            .getMediaScanner()
+            .applyFolderRename(fromAbs, toAbs, request.getClient());
 
         await broadcastFolders(request.getClient());
         return {

@@ -1,4 +1,5 @@
 import fs from 'fs/promises';
+import { type Client } from 'rest-exchange-protocol';
 import config from './config';
 import baseConfig from '../../util/config';
 import Scanner from './scanner';
@@ -66,12 +67,20 @@ export class MediaScanner {
         return this.db;
     }
 
-    public applyDelete(mediaPath: string) {
-        this.scanner.applyDelete(mediaPath);
+    public applyDelete(mediaPath: string, origin?: Client) {
+        this.scanner.applyDelete(mediaPath, origin);
     }
 
-    public applyRename(oldPath: string, newPath: string) {
-        return this.scanner.applyRename(oldPath, newPath);
+    public applyRename(oldPath: string, newPath: string, origin?: Client) {
+        return this.scanner.applyRename(oldPath, newPath, origin);
+    }
+
+    public applyFolderDelete(absDir: string, origin?: Client) {
+        this.scanner.applyFolderDelete(absDir, origin);
+    }
+
+    public applyFolderRename(oldAbs: string, newAbs: string, origin?: Client) {
+        return this.scanner.applyFolderRename(oldAbs, newAbs, origin);
     }
 
     public get mediaRoot() {

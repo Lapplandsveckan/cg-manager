@@ -56,10 +56,44 @@ function setMediaInCache(key: string, value: MediaDoc | null): void {
     });
 }
 
+/** Drop several ids in one cache write, e.g. after a bulk delete — avoids a
+ *  setQueryData (and re-render) per id. */
+function removeManyFromMediaCache(keys: string[]): void {
+    if (!keys.length || healIfUnfetched()) return;
+    queryClient.setQueryData<Record<string, MediaDoc>>(qk.media, prev => {
+        if (!prev) return prev;
+        const next = { ...prev };
+        for (const key of keys) delete next[key];
+        return next;
+    });
+}
+
 /** The broadcast carries the complete list, so setting an unfetched key is
  *  safe — unlike the per-key media patches above. */
 function setFoldersInCache(folders: string[]): void {
     queryClient.setQueryData(qk.mediaFolders, folders);
+}
+
+/** Apply a rename/move response: drop the old id, patch in the new doc. A
+ *  `null` doc means the scanner couldn't re-probe the file at its new path
+ *  (rare — e.g. it became unparseable mid-move); fall back to a refetch
+ *  rather than leave the cache missing an entry the server still has. */
+function applyMediaMoveResult(
+    oldId: string,
+    res: { id: string; doc: MediaDoc | null },
+): void {
+    // A move can create a folder (fs.mkdir recursive) or empty one out; this
+    // client is excluded from the caspar/media broadcast that would
+    // otherwise trigger useMediaSync's refreshFolders(), so do it here too.
+    setMediaInCache(oldId, null);
+    refreshFolders();
+
+    if (!res.doc) {
+        void queryClient.invalidateQueries({ queryKey: qk.media });
+        return;
+    }
+
+    setMediaInCache(res.id, res.doc);
 }
 
 /** For the originating client after a folder mutation — the server excludes
@@ -77,15 +111,28 @@ export class BulkDeleteError extends Error {
 }
 
 /** Raw wire mutations and their cache side-effects; the confirm-flow UX
- *  (busy, toasts, error messages) lives in useMediaHandlers. Media-doc
- *  mutations need no cache patch — the scanner broadcasts `caspar/media`
- *  per key to every client, originator included. */
+ *  (busy, toasts, error messages) lives in useMediaHandlers. The server
+ *  excludes the requesting client from `caspar/media` (see media route
+ *  handlers) so each mutation applies its own response here instead of
+ *  waiting for the broadcast — other clients still get it as normal. */
 export function useMediaMutations() {
     const conn = useSocket();
     const caspar = () => conn.caspar;
 
     const deleteMedia = useMutation({
         mutationFn: (id: string) => caspar().deleteMedia(id),
+        onSuccess: (res, id) => {
+            // Drop the requested id as well as the one the server removed.
+            // They normally match, but a doc whose mediaPath has drifted from
+            // its id resolves to a different id server-side — and with this
+            // client excluded from the broadcast, nothing would ever correct
+            // the leftover entry.
+            removeManyFromMediaCache([id, res.id]);
+            // A delete can empty out a folder; this client is excluded from
+            // the caspar/media broadcast that would otherwise trigger
+            // useMediaSync's refreshFolders(), so do it here too.
+            refreshFolders();
+        },
     });
 
     const deleteManyMedia = useMutation({
@@ -93,6 +140,15 @@ export function useMediaMutations() {
             const results = await Promise.allSettled(
                 ids.map(id => caspar().deleteMedia(id)),
             );
+            // Both ids per success, for the same reason as deleteMedia above.
+            // Patched here rather than in onSuccess because a partial failure
+            // throws below — the deletes that did land must still be applied.
+            const deletedIds = results.flatMap((res, index) =>
+                res.status === 'fulfilled' ? [ids[index], res.value.id] : [],
+            );
+            removeManyFromMediaCache(deletedIds);
+            if (deletedIds.length) refreshFolders();
+
             const failed = results.filter(r => r.status === 'rejected').length;
             if (failed > 0) throw new BulkDeleteError(failed, ids.length);
         },
@@ -101,11 +157,13 @@ export function useMediaMutations() {
     const renameMedia = useMutation({
         mutationFn: ({ id, name }: { id: string; name: string }) =>
             caspar().renameMedia(id, name),
+        onSuccess: (res, { id }) => applyMediaMoveResult(id, res),
     });
 
     const moveMedia = useMutation({
         mutationFn: ({ from, to }: { from: string; to: string }) =>
             caspar().moveMedia(from, to),
+        onSuccess: (res, { from }) => applyMediaMoveResult(from, res),
     });
 
     const createFolder = useMutation({
@@ -116,13 +174,25 @@ export function useMediaMutations() {
     const deleteFolder = useMutation({
         mutationFn: (vars: { path: string; recursive: boolean }) =>
             caspar().deleteFolder(vars.path, vars.recursive),
-        onSuccess: refreshFolders,
+        onSuccess: (_res, vars) => {
+            refreshFolders();
+            // A recursive delete removes every media doc under the folder —
+            // the route reconciles them server-side, but this client is
+            // excluded from the broadcast, so re-list to pick them up.
+            if (vars.recursive)
+                void queryClient.invalidateQueries({ queryKey: qk.media });
+        },
     });
 
     const renameFolder = useMutation({
         mutationFn: ({ from, to }: { from: string; to: string }) =>
             caspar().renameFolder(from, to),
-        onSuccess: refreshFolders,
+        onSuccess: () => {
+            refreshFolders();
+            // Every media doc under the folder gets a new id server-side;
+            // this client is excluded from the per-key broadcasts, so re-list.
+            void queryClient.invalidateQueries({ queryKey: qk.media });
+        },
     });
 
     return {
@@ -136,9 +206,10 @@ export function useMediaMutations() {
     };
 }
 
-/** Mounted once in QuerySync. `caspar/media` goes to ALL clients (originator
- *  included) — the scanner is the source of truth and the per-key set is
- *  idempotent, so there's no echo problem. */
+/** Mounted once in QuerySync. `caspar/media` reaches every client EXCEPT the
+ *  one whose own request caused the change — that client applies the
+ *  mutation's response instead (see useMediaMutations). So this only ever
+ *  handles other clients' changes and filesystem-driven ones. */
 export function useMediaSync(): void {
     useBroadcast(mediaChanged, ({ key, value }) => {
         setMediaInCache(key, value ?? null);

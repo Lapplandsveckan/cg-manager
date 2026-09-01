@@ -83,7 +83,7 @@ export class CGServer {
             });
         });
 
-        this.manager.on('media', (key, value) => {
+        this.manager.on('media', (key, value, origin?: Client) => {
             // Skip plugin-internal symlinks. They're scanner-only data and
             // shouldn't surface in the UI's media list.
             if (isInternalMediaId(key)) return;
@@ -95,16 +95,16 @@ export class CGServer {
                 !(value as { mediainfo?: unknown })?.mediainfo
             )
                 return;
-            const clients = this.server.getClients();
-            clients.forEach(client => {
-                if (!(client instanceof WebsocketClient)) return;
-                client.send(
-                    'caspar/media',
-                    WebsocketOutboundMethod.ACTION,
-                    { key, value },
-                    false,
-                );
-            });
+            // `origin` is the REP client whose request caused this change, if
+            // any — excluded here so it can apply the result from its own
+            // response instead of the echo. A filesystem-driven change has no
+            // origin and reaches every client, unchanged from before.
+            this.broadcast(
+                'caspar/media',
+                WebsocketOutboundMethod.ACTION,
+                { key, value },
+                origin,
+            );
         });
 
         // Running-config snapshot: emitted whenever CasparCG starts or stops.

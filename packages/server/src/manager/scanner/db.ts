@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { type Client } from 'rest-exchange-protocol';
 import { noTry } from 'no-try';
 
 export interface MediaDoc {
@@ -61,7 +62,7 @@ export interface MediaDoc {
         format: {
             name: string;
             long_name: string;
-            size: string;
+            size: number;
 
             start_time: number;
             duration: number;
@@ -137,7 +138,15 @@ export class FileDatabase extends EventEmitter {
         if (!ids.size) this.byHash.delete(hash);
     }
 
-    put(hash: string, doc: MediaDoc): MediaDoc {
+    // `origin` identifies the REP client whose request caused this change, if
+    // any — it's forwarded verbatim to 'change' listeners purely so the
+    // websocket broadcast can exclude that client. It is never stored on the
+    // doc or persisted; a filesystem-driven change passes no origin.
+    // An undefined `hash` means the content hash isn't known (a doc restored
+    // from disk, or one re-keyed by a folder move) — the doc still enters the
+    // live store, it just isn't offered as a metadata donor until a real scan
+    // computes its hash.
+    put(hash: string | undefined, doc: MediaDoc, origin?: Client): MediaDoc {
         this.evicted.delete(doc.id);
         const id = doc.id;
 
@@ -148,16 +157,18 @@ export class FileDatabase extends EventEmitter {
         doc._hash = hash;
         this.docs.set(id, doc);
 
-        if (!this.byHash.has(hash)) this.byHash.set(hash, new Set());
-        this.byHash.get(hash).add(id);
+        if (hash) {
+            if (!this.byHash.has(hash)) this.byHash.set(hash, new Set());
+            this.byHash.get(hash).add(id);
+        }
 
-        this.emit('change', id, doc);
+        this.emit('change', id, doc, origin);
         return doc;
     }
 
-    remove(id: string): MediaDoc | undefined {
+    remove(id: string, origin?: Client): MediaDoc | undefined {
         const doc = this.docs.get(id);
-        this.emit('change', id, null);
+        this.emit('change', id, null, origin);
 
         if (doc) this.evict(id, doc);
         else this.docs.delete(id);
@@ -167,14 +178,14 @@ export class FileDatabase extends EventEmitter {
 
     // Remove a stale id (e.g. the old name after a rename) without evicting the
     // doc if ownership has already transferred to another id.
-    removeStaleId(id: string): void {
+    removeStaleId(id: string, origin?: Client): void {
         const doc = this.docs.get(id);
         if (doc) {
             // If the doc still belongs to this id, evict it
             if (doc.id === id) this.evict(id, doc);
             else this.docs.delete(id);
         }
-        this.emit('change', id, null);
+        this.emit('change', id, null, origin);
     }
 
     allDocs(): MediaDoc[] {
@@ -203,7 +214,7 @@ export class FileDatabase extends EventEmitter {
             const doc = value as MediaDoc;
             // id may be stored in the value (new format) or keyed by id
             if (!doc.id) doc.id = key;
-            this.put(doc._hash ?? key, { ...doc, _invalidate: true });
+            this.put(doc._hash, { ...doc, _invalidate: true });
         }
     }
 }
