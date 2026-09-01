@@ -1,7 +1,7 @@
 import React from 'react';
 import { ErrorBoundary, type FallbackProps } from 'react-error-boundary';
 import { Button, Stack, Typography } from '@mui/material';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { reportClientError } from '../lib/reportClientError';
 
 const SlotErrorFallback: React.FC<FallbackProps> = ({ resetErrorBoundary }) => {

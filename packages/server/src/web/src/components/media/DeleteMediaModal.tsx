@@ -1,7 +1,7 @@
 import { Button, Modal, Stack, Typography } from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import React from 'react';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { type MediaDoc } from '../../lib/api/caspar';
 import ModalCard from './ModalCard';
 

@@ -1,6 +1,6 @@
 import { Box, ButtonBase, Tooltip, Typography, alpha } from '@mui/material';
 import Link from 'next/link';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { ICON_BOX_WIDTH } from './constants';
 import { type NavItem } from './navItems';
 

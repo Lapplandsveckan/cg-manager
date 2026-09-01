@@ -7,7 +7,7 @@ import {
     Typography,
 } from '@mui/material';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { ScalarField } from '../../fields';
 import { FixtureDetailsShell } from '../shared/FixtureDetailsShell';
 import { buildSharedFixtureFields } from '../shared/fixtureFields';

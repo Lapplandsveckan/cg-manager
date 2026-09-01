@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { noTryAsync } from 'no-try';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { Injections, UI_INJECTION_ZONE } from '../../../../lib/api/inject';
 import { DefaultContentLayout } from '../../../../components/DefaultContentLayout';
 import { useToast } from '../../../../components/ToastProvider';

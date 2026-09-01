@@ -4,7 +4,7 @@ import type { SxProps, Theme } from '@mui/material';
 import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
 import StopRoundedIcon from '@mui/icons-material/StopRounded';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 
 interface ActionIconButtonProps {
     icon: React.ReactNode;

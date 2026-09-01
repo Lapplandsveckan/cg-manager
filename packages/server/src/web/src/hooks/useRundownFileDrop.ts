@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { noTryAsync } from 'no-try';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../components/ToastProvider';
 import {
     type RundownFileMatchResult,

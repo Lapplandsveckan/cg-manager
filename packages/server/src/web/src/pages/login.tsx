@@ -10,7 +10,7 @@ import {
     Typography,
 } from '@mui/material';
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { noTryAsync } from 'no-try';
 import { useAuthQuery, useLoginMutation } from '../lib/query/auth';
 

@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { useSocket } from '../lib/hooks/useSocket';
 import { useStoredBoolean } from '../lib/hooks/useStoredBoolean';
 import { useStoredNumber } from '../lib/hooks/useStoredNumber';

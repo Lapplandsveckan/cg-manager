@@ -1,6 +1,6 @@
 import { Box, Stack } from '@mui/material';
 import React from 'react';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { useRundownCardDrag } from '../../hooks/useRundownCardDrag';
 import { DropIndicatorGap } from './DropIndicatorGap';
 import { RundownDragHandle } from './RundownDragHandle';

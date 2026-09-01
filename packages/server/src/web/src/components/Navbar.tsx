@@ -9,7 +9,7 @@ import {
 import ChevronLeftRoundedIcon from '@mui/icons-material/ChevronLeftRounded';
 import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { useRouter } from 'next/router';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { useAuthQuery } from '../lib/query/auth';
 import { useVersion } from '../lib/hooks/useVersion';

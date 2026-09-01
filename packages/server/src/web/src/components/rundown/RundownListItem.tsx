@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { Injections, UI_INJECTION_ZONE } from '../../lib/api/inject';
 import { SlotErrorBoundary } from '../SlotErrorBoundary';
 import { DefaultRundownItemView } from '../DefaultRundownItem';

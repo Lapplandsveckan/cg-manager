@@ -3,7 +3,7 @@ import CreateNewFolderRoundedIcon from '@mui/icons-material/CreateNewFolderRound
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import { noTryAsync } from 'no-try';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import {
     UploadButton,
     Dropzone,

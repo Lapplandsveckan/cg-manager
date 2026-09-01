@@ -12,7 +12,7 @@ import FolderOutlinedIcon from '@mui/icons-material/FolderOutlined';
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import DriveFileRenameOutlineRoundedIcon from '@mui/icons-material/DriveFileRenameOutlineRounded';
 import FolderOpenOutlinedIcon from '@mui/icons-material/FolderOpenOutlined';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { hasMediaMovePayload, parseMediaMovePayload } from '../lib/dragPayload';
 import { useContextMenu } from './ContextMenuProvider';
 

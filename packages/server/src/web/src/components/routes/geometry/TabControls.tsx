@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import type {
     EdgeBlendInsets,
     Perspective,

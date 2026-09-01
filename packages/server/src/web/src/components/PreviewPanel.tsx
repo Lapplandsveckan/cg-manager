@@ -12,7 +12,7 @@ import {
 } from '@mui/material';
 import VideocamOffRoundedIcon from '@mui/icons-material/VideocamOffRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { useCasparStatusQuery, useLiveChannels } from '../lib/query/caspar';
 
 interface PreviewCardProps {

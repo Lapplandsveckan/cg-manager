@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert, Button, Stack, Typography } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { type CasparConfig } from '../../lib/api/caspar';
 import { ChannelEditor } from './ChannelEditor';
 

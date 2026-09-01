@@ -12,7 +12,7 @@ import {
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import React, { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { type MediaDoc } from '../lib/api/caspar';
 import { MediaCard } from './MediaCard';
 import { MediaView } from './MediaView';

@@ -1,6 +1,6 @@
 import { Box, Button, Stack, Typography, alpha } from '@mui/material';
 import React, { useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { useDragAutoScroll } from '../../lib/hooks/useDragAutoScroll';
 import {
     useRundownActionsQuery,

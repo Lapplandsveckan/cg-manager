@@ -1,7 +1,7 @@
 import { Button, Modal, Stack, TextField, Typography } from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import React, { useState } from 'react';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { RundownEditorActionBar } from '../../lib';
 import type { Rundown } from '../../lib/query/rundowns';
 

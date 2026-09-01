@@ -6,7 +6,7 @@ import {
     Stack,
     Typography,
 } from '@mui/material';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { noTryAsync } from 'no-try';
 import { useSocket } from '../../lib/hooks/useSocket';
 

@@ -13,7 +13,7 @@ import {
     Typography,
 } from '@mui/material';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { noTryAsync } from 'no-try';
 import {
     type VideoRoute,

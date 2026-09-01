@@ -6,9 +6,11 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { Stack } from '@mui/material';
 import React from 'react';
 import { ThemeProvider } from '@mui/material/styles';
-import { appWithTranslation } from 'next-i18next/pages';
 import { ErrorBoundary } from 'react-error-boundary';
 import { QueryClientProvider } from '@tanstack/react-query';
+// Import first so the i18next singleton initialises before any
+// useTranslation() call in a child component resolves against it.
+import i18n from '../lib/i18n';
 import { reportClientError } from '../lib/reportClientError';
 import { queryClient } from '../lib/query/client';
 import { SocketProvider } from '../components/SocketProvider';
@@ -23,7 +25,6 @@ import { PluginContextMenuMounts } from '../components/PluginContextMenuMounts';
 import { EntryClipboardProvider } from '../components/EntryClipboardProvider';
 import { AuthGate } from '../components/AuthGate';
 import { theme } from '../lib/theme';
-import i18n from '../lib/i18n';
 import { detectLanguage } from '../lib/detectLanguage';
 import '../lib/api/globals';
 
@@ -148,4 +149,4 @@ function App({ Component, pageProps }: AppProps) {
     );
 }
 
-export default appWithTranslation(App);
+export default App;

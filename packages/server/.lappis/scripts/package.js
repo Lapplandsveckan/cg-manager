@@ -103,7 +103,6 @@ async function packageWeb() {
     // (where __dirname = /snapshot/manager/dist/web).
     const distWeb = path.join(root, 'dist', 'web');
     await fs.copyFile(path.join(web, 'next.config.js'), path.join(distWeb, 'next.config.js'));
-    await fs.copyFile(path.join(web, 'next-i18next.config.js'), path.join(distWeb, 'next-i18next.config.js'));
 }
 
 // Patch vm call sites in node_modules that omit importModuleDynamically.

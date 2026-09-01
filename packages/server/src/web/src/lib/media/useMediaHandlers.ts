@@ -1,4 +1,4 @@
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { useToast } from '../../components/ToastProvider';
 import { RequestError } from '../api/api';
 import { type MediaDoc } from '../api/caspar';

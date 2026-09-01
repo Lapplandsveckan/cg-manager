@@ -1,6 +1,6 @@
 import React from 'react';
 import { Card, Stack, Typography } from '@mui/material';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import {
     ARTNET_SCALAR_FIELDS,
     Fields,

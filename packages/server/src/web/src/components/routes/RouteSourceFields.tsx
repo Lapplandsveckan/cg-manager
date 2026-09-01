@@ -9,7 +9,7 @@ import {
     TextField,
 } from '@mui/material';
 import { MuiColorInput } from 'mui-color-input';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { type VideoRouteSource } from '../../lib/api/videoRoutes';
 import { type MediaDoc } from '../../lib/api/caspar';
 import { useMediaDocsQuery } from '../../lib/query/media';

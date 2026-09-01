@@ -1,5 +1,5 @@
 import { Box, Stack, Typography, alpha } from '@mui/material';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 
 interface StatusPillProps {
     enabled: boolean;

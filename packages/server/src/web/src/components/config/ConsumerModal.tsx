@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Button, Card, Modal, Stack, Typography } from '@mui/material';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { type CasparConfig, type Capabilities } from '../../lib/api/caspar';
 import {
     CONSUMER_FIELDS,

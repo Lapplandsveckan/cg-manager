@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Stack, Typography } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { Trans, useTranslation } from 'next-i18next/pages';
+import { Trans, useTranslation } from 'react-i18next';
 import { FixtureRow } from './FixtureRow';
 import { type BaseFixture } from '../types';
 

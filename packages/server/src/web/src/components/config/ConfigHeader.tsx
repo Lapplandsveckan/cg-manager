@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, Stack, Typography } from '@mui/material';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 
 interface ConfigHeaderProps {
     dirty: boolean;

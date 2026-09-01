@@ -1,4 +1,4 @@
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { DefaultContentLayout } from '../components/DefaultContentLayout';
 
 const Page = () => {

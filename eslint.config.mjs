@@ -79,7 +79,7 @@ export default tseslint.config(
             'react-hooks/exhaustive-deps': 'warn',
         },
     },
-    // CJS config files (next.config.js, next-i18next.config.js) use require/module/exports
+    // CJS config files (next.config.js) use require/module/exports
     {
         files: ['**/*.js', '**/*.cjs'],
         languageOptions: { sourceType: 'commonjs' },

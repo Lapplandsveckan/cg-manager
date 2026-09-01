@@ -10,10 +10,8 @@
 // with no importModuleDynamically callback, so the import() throws
 // ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING on first SSR. Transpiling them forces
 // webpack to bundle them in (as require()) instead of emitting import().
-const { i18n } = require('./next-i18next.config');
 
 module.exports = {
-    i18n,
     transpilePackages: ['mui-color-input', 'react-i18next', 'i18next'],
     logging: {
         // Silences the dev " GET /path 200 in Nms" access log lines. Only

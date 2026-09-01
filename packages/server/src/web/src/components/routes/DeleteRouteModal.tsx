@@ -1,6 +1,6 @@
 import { Button, Card, Modal, Stack, Typography } from '@mui/material';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import type { VideoRoute } from '../../lib/api/videoRoutes';
 
 interface DeleteRouteModalProps {

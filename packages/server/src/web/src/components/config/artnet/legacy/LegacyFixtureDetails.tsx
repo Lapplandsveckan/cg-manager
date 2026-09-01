@@ -1,6 +1,6 @@
 import React from 'react';
 import { Stack } from '@mui/material';
-import { useTranslation } from 'next-i18next/pages';
+import { useTranslation } from 'react-i18next';
 import { ScalarField } from '../../fields';
 import { FixtureDetailsShell } from '../shared/FixtureDetailsShell';
 import { buildSharedFixtureFields } from '../shared/fixtureFields';
