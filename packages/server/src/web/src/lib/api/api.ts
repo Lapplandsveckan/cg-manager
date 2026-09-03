@@ -2,20 +2,19 @@
  * Licenced under Eliyah Enterprises Ltd Inc.
  * All credit goes to Eliyah.
  */
-import { type Method } from 'rest-exchange-protocol-client';
+import { REPClient, type Method } from 'rest-exchange-protocol-client';
 import { BroadcastDispatcher } from './broadcastDispatcher';
 import { CasparServerApi } from './caspar';
 import { PluginInjectionAPI } from './inject';
 import { PluginApi } from './plugin';
-import { CheckedRepClient } from './repClient';
 import { RundownsApi } from './rundowns';
 import { VideoRoutesApi } from './videoRoutes';
 import { CLIENT_ERROR_PATH } from '../reportClientError';
 
-export { RequestError } from './repClient';
+export { WebError } from 'rest-exchange-protocol-client';
 
 export class ManagerApi {
-    private socket: CheckedRepClient;
+    private socket: REPClient;
     private broadcasts: BroadcastDispatcher;
 
     public caspar: CasparServerApi;
@@ -52,7 +51,7 @@ export class ManagerApi {
     constructor(host: string) {
         ManagerApi.instance = this;
 
-        this.socket = new CheckedRepClient({
+        this.socket = new REPClient({
             host,
         });
         this.broadcasts = new BroadcastDispatcher(this.socket.routes);
@@ -64,7 +63,11 @@ export class ManagerApi {
         this.rundowns = new RundownsApi(this.socket);
     }
 
-    public async rawRequest<T>(path: string, method: string, data: T) {
+    public async rawRequest<T>(
+        path: string,
+        method: string,
+        data: T,
+    ): Promise<unknown> {
         return this.socket.request(path, method, data);
     }
 
@@ -78,7 +81,7 @@ export class ManagerApi {
 
     public async getApiVersion(): Promise<string> {
         const res = await this.socket.request('api/version', 'GET', {});
-        return res.data as string;
+        return res as string;
     }
 
     /** Fire-and-forget: caller (reportClientError) swallows the rejection. */

@@ -27,8 +27,10 @@ async function checkAuthExpired(): Promise<boolean> {
     return !!status && status.enabled && !status.authenticated;
 }
 
-// REPClient's promise hangs forever on a dead websocket, so race it against
-// a timeout; the timed-out request leaks a small, bounded entry in its map.
+// REPClient rejects pending requests once it detects the socket close, but a
+// half-open socket (network drops without a clean close) never fires that
+// event, so the promise can still hang indefinitely — race it against a
+// timeout rather than trust rejection alone.
 async function pingOnce(socket: ManagerApi): Promise<string | null> {
     const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('timeout')), HEARTBEAT_TIMEOUT_MS);

@@ -31,12 +31,13 @@ export async function requestOk(
     return !err;
 }
 
-export function okData<T>(
-    res: { status?: number; data?: unknown } | undefined,
-): T | null {
-    if (!res) return null;
-    if (typeof res.status === 'number' && res.status >= 400) return null;
-    return (res.data as T) ?? null;
+/** @deprecated `rawRequest` now rejects on failure instead of resolving an
+ *  error envelope, so this is a no-op identity cast on the success path —
+ *  a failed request never reaches it. Prefer `await` + `.catch()`/
+ *  `noTryAsync` directly. Kept only so already-built plugin bundles that
+ *  reference it don't hard-crash; it does not restore old error handling. */
+export function okData<T>(res: unknown): T | null {
+    return (res as T) ?? null;
 }
 
 export function rekeyId(

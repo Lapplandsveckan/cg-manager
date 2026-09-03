@@ -1,4 +1,4 @@
-import { type CheckedRepClient } from './repClient';
+import { type REPClient } from 'rest-exchange-protocol-client';
 
 export interface RundownItem {
     id: string;
@@ -31,20 +31,20 @@ export interface RundownActionDescriptor {
 }
 
 export class RundownsApi {
-    private socket: CheckedRepClient;
+    private socket: REPClient;
 
-    constructor(socket: CheckedRepClient) {
+    constructor(socket: REPClient) {
         this.socket = socket;
     }
 
     public async list(): Promise<Rundown[]> {
         const res = await this.socket.request('api/rundown', 'GET', {});
-        return (res.data as Rundown[]) ?? [];
+        return (res as Rundown[]) ?? [];
     }
 
     public async listQuick(): Promise<Rundown[]> {
         const res = await this.socket.request('api/rundown/quick', 'GET', {});
-        return (res.data as Rundown[]) ?? [];
+        return (res as Rundown[]) ?? [];
     }
 
     /** The server replies 200 with a null body for an unknown id — degrade to
@@ -55,12 +55,12 @@ export class RundownsApi {
             'GET',
             {},
         );
-        return (res.data as Rundown) ?? { id, name: '', items: [] };
+        return (res as Rundown) ?? { id, name: '', items: [] };
     }
 
     public async create(name: string): Promise<Rundown> {
         const res = await this.socket.request('api/rundown', 'CREATE', name);
-        return res.data as Rundown;
+        return res as Rundown;
     }
 
     public async createQuick(name: string): Promise<Rundown> {
@@ -69,7 +69,7 @@ export class RundownsApi {
             'CREATE',
             name,
         );
-        return res.data as Rundown;
+        return res as Rundown;
     }
 
     public async rename(id: string, name: string): Promise<Rundown> {
@@ -78,7 +78,7 @@ export class RundownsApi {
             'UPDATE',
             name,
         );
-        return res.data as Rundown;
+        return res as Rundown;
     }
 
     public async delete(id: string): Promise<void> {
@@ -127,12 +127,12 @@ export class RundownsApi {
 
     public async getTypes(): Promise<string[]> {
         const res = await this.socket.request('api/rundown/types', 'GET', {});
-        return (res.data as string[]) ?? [];
+        return (res as string[]) ?? [];
     }
 
     public async getActions(): Promise<RundownActionDescriptor[]> {
         const res = await this.socket.request('api/rundown/actions', 'GET', {});
-        return (res.data as RundownActionDescriptor[]) ?? [];
+        return (res as RundownActionDescriptor[]) ?? [];
     }
 
     public async matchActions<T = unknown>(file: {
@@ -145,7 +145,7 @@ export class RundownsApi {
             'ACTION',
             file,
         );
-        return (res.data as T[]) ?? [];
+        return (res as T[]) ?? [];
     }
 
     public async matchMediaActions<T = unknown>(payload: {
@@ -158,7 +158,7 @@ export class RundownsApi {
             'ACTION',
             payload,
         );
-        return (res.data as T[]) ?? [];
+        return (res as T[]) ?? [];
     }
 
     public async stop(entry: RundownItem): Promise<void> {

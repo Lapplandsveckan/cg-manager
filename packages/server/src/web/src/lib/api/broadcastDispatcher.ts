@@ -1,8 +1,8 @@
 import { noTry } from 'no-try';
-import { type CheckedRepClient } from './repClient';
+import { type REPClient } from 'rest-exchange-protocol-client';
 import { reportClientError } from '../reportClientError';
 
-type Routes = CheckedRepClient['routes'];
+type Routes = REPClient['routes'];
 
 type BroadcastHandler = (data: unknown) => void;
 
@@ -26,10 +26,7 @@ function createTopic(path: string, method: string): Topic {
     return {
         subscriptions,
         route: {
-            // rest-exchange-protocol-client's Gateway.findRoute strips a leading
-            // path segment unconditionally, so a route must have a leading `/`
-            // to match against an incoming URL that never has one.
-            path: path.startsWith('/') ? path : `/${path}`,
+            path,
             method,
             handler: request => {
                 const data = request.getData();

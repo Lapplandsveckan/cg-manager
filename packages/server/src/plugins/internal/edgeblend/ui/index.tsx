@@ -63,8 +63,7 @@ const EdgeblendPage: React.FC = () => {
 
         conn.rawRequest(`${API_ROOT}/layouts`, 'GET', {})
             .then((res: unknown) => {
-                if (mounted)
-                    setLayouts((res as { data: StoredLayout[] }).data ?? []);
+                if (mounted) setLayouts((res as StoredLayout[]) ?? []);
             })
             .catch(() => mounted && setLayouts([]));
 

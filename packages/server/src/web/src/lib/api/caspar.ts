@@ -1,6 +1,6 @@
+import { type REPClient } from 'rest-exchange-protocol-client';
 import { type BroadcastDispatcher } from './broadcastDispatcher';
 import { casparLogs } from './broadcasts';
-import { type CheckedRepClient } from './repClient';
 import { getChunkCount } from './upload';
 import type {
     Config as CasparConfig,
@@ -113,12 +113,12 @@ function clampLogs(buf: string): string {
 type LogsListener = (logs: string) => void;
 
 export class CasparServerApi {
-    private socket: CheckedRepClient;
+    private socket: REPClient;
 
     private logs: string = '';
     private logsListeners = new Set<LogsListener>();
 
-    constructor(socket: CheckedRepClient, broadcasts: BroadcastDispatcher) {
+    constructor(socket: REPClient, broadcasts: BroadcastDispatcher) {
         this.socket = socket;
 
         broadcasts.subscribe(casparLogs.path, casparLogs.method, data => {
@@ -154,19 +154,19 @@ export class CasparServerApi {
 
     public async getLogs() {
         const res = await this.socket.request('api/caspar/logs', 'GET', {});
-        this.logs = clampLogs((res.data as string) ?? '');
+        this.logs = clampLogs((res as string) ?? '');
 
         return this.logs;
     }
 
     public async getStatus(): Promise<CasparStatus> {
         const res = await this.socket.request('api/caspar/status', 'GET', {});
-        return res.data as CasparStatus;
+        return res as CasparStatus;
     }
 
     public async getConfig(): Promise<CasparConfig> {
         const res = await this.socket.request('api/caspar/config', 'GET', {});
-        return res.data as CasparConfig;
+        return res as CasparConfig;
     }
 
     /** `null` = CasparCG is not running (or no snapshot yet) — a real value
@@ -177,7 +177,7 @@ export class CasparServerApi {
             'GET',
             {},
         );
-        return (res.data as CasparConfig | null) ?? null;
+        return (res as CasparConfig | null) ?? null;
     }
 
     public async getCapabilities(): Promise<CapabilitiesResponse> {
@@ -186,7 +186,7 @@ export class CasparServerApi {
             'GET',
             {},
         );
-        return res.data as CapabilitiesResponse;
+        return res as CapabilitiesResponse;
     }
 
     public async getAllMedia(): Promise<MediaDoc[]> {
@@ -195,7 +195,7 @@ export class CasparServerApi {
             'GET',
             {},
         );
-        return (res.data as MediaDoc[]) ?? [];
+        return (res as MediaDoc[]) ?? [];
     }
 
     public async getFolders(): Promise<string[]> {
@@ -204,7 +204,7 @@ export class CasparServerApi {
             'GET',
             {},
         );
-        return (res.data as { folders?: string[] })?.folders ?? [];
+        return (res as { folders?: string[] })?.folders ?? [];
     }
 
     public async updateConfig(config: CasparConfig): Promise<CasparConfig> {
@@ -213,7 +213,7 @@ export class CasparServerApi {
             'UPDATE',
             config,
         );
-        return res.data as CasparConfig;
+        return res as CasparConfig;
     }
 
     public async cancelUpload(id: string) {
@@ -233,7 +233,7 @@ export class CasparServerApi {
                 chunks,
             },
         );
-        return res.data.id;
+        return (res as { id: string }).id;
     }
 
     public async deleteMedia(id: string): Promise<{ id: string }> {
@@ -242,7 +242,7 @@ export class CasparServerApi {
             'DELETE',
             {},
         );
-        return res.data as { id: string };
+        return res as { id: string };
     }
 
     public async renameMedia(
@@ -256,7 +256,7 @@ export class CasparServerApi {
                 name: newName,
             },
         );
-        return res.data as { id: string; doc: MediaDoc | null };
+        return res as { id: string; doc: MediaDoc | null };
     }
 
     /** Move a media file to a new location under the media root. `newPath`
@@ -274,7 +274,7 @@ export class CasparServerApi {
                 path: newPath,
             },
         );
-        return res.data as { id: string; doc: MediaDoc | null };
+        return res as { id: string; doc: MediaDoc | null };
     }
 
     /** Create a folder under the media root. `path` is slash-separated and
@@ -288,7 +288,7 @@ export class CasparServerApi {
                 path: folderPath,
             },
         );
-        return { path: (res?.data as { path: string }).path };
+        return { path: (res as { path: string } | null)?.path };
     }
 
     /** Delete a folder under the media root. Server-side this only succeeds
@@ -318,6 +318,6 @@ export class CasparServerApi {
             'UPDATE',
             { from, to },
         );
-        return { path: (res?.data as { path: string }).path };
+        return { path: (res as { path: string } | null)?.path };
     }
 }

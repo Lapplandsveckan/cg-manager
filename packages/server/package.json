@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "2.40.0",
+  "version": "2.41.0",
   "name": "@cg-manager/server",
   "engines": {
     "node": ">=22.12"
@@ -48,8 +48,8 @@
     "react-dom": "^19.2.8",
     "react-error-boundary": "^6.1.2",
     "react-i18next": "^17.0.12",
-    "rest-exchange-protocol": "^0.0.17",
-    "rest-exchange-protocol-client": "^0.0.13",
+    "rest-exchange-protocol": "^0.0.19",
+    "rest-exchange-protocol-client": "^0.0.14",
     "webpack": "^5.90.3",
     "werift": "^0.24.4",
     "ws": "^8.12.1",

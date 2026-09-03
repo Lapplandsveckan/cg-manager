@@ -5845,19 +5845,20 @@ resolve@^1.19.0, resolve@^1.20.0, resolve@^1.22.10, resolve@^1.22.11:
     path-parse "^1.0.7"
     supports-preserve-symlinks-flag "^1.0.0"
 
-rest-exchange-protocol-client@^0.0.13:
-  version "0.0.13"
-  resolved "https://registry.yarnpkg.com/rest-exchange-protocol-client/-/rest-exchange-protocol-client-0.0.13.tgz#1da1235bfd9f569750953d45d4fa9f17dd1363d8"
-  integrity sha512-1xIH/t7iY/7Txe3m7cO+ZHn8j7Pm1s74tCTvUc7KL8pWPCZOTJ8L6mPzYrTQfY3SpgXeTO/vd6FxLldo8gKfCA==
+rest-exchange-protocol-client@^0.0.14:
+  version "0.0.14"
+  resolved "https://registry.yarnpkg.com/rest-exchange-protocol-client/-/rest-exchange-protocol-client-0.0.14.tgz#8af263330dfa3946dfbc4c4f432863a3633a596d"
+  integrity sha512-O0z92mx7lpiWP6OsAtxfFmx/s+rnOpkVOIn58VL5kbw+6HVfGpXfLEI3y8deCc+1CLgaycIUkBWjHi77Dp9L3Q==
   dependencies:
     axios "^1.3.5"
     isomorphic-ws "^5.0.0"
+    uuid "^9.0.0"
     ws "^8.13.0"
 
-rest-exchange-protocol@^0.0.17:
-  version "0.0.17"
-  resolved "https://registry.yarnpkg.com/rest-exchange-protocol/-/rest-exchange-protocol-0.0.17.tgz#87ad28796efe8e0a75a902f5813d4bc68c29b97a"
-  integrity sha512-u9E7h46QpSmwzSWCVdLCivhEFE6xewwGUDmumGjfaDCJ0aOxy2X9dKAEJywF3QmJ4mnz+du+NOGTWfo8TWtVfw==
+rest-exchange-protocol@^0.0.19:
+  version "0.0.19"
+  resolved "https://registry.yarnpkg.com/rest-exchange-protocol/-/rest-exchange-protocol-0.0.19.tgz#3d66d9bd8b3e2070692e5aa3434926adf48d3ca6"
+  integrity sha512-E8TeEIjlc/o3+wCc2G13EIG2EtnOBVxQSrFubp2zAWjcF34Tokg7s0WIVE7gkLAfG42ZSIHWxYvrZ6ej8SZGjg==
   dependencies:
     uuid "^9.0.0"
     ws "^8.12.1"

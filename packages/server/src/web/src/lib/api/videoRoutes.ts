@@ -1,4 +1,4 @@
-import { type CheckedRepClient } from './repClient';
+import { type REPClient } from 'rest-exchange-protocol-client';
 
 export interface DecklinkSource {
     type: 'decklink';
@@ -47,20 +47,20 @@ export interface VideoRoute {
 }
 
 export class VideoRoutesApi {
-    private socket: CheckedRepClient;
+    private socket: REPClient;
 
-    constructor(socket: CheckedRepClient) {
+    constructor(socket: REPClient) {
         this.socket = socket;
     }
 
     public async list(): Promise<VideoRoute[]> {
         const res = await this.socket.request('api/routes', 'GET', {});
-        return (res.data as VideoRoute[]) ?? [];
+        return (res as VideoRoute[]) ?? [];
     }
 
     public async create(data: Omit<VideoRoute, 'id'>): Promise<VideoRoute> {
         const res = await this.socket.request('api/routes', 'CREATE', data);
-        return res.data as VideoRoute;
+        return res as VideoRoute;
     }
 
     public async get(id: string): Promise<VideoRoute> {
@@ -69,7 +69,7 @@ export class VideoRoutesApi {
             'GET',
             {},
         );
-        return res.data as VideoRoute;
+        return res as VideoRoute;
     }
 
     public async delete(id: string): Promise<void> {
@@ -91,7 +91,7 @@ export class VideoRoutesApi {
             'UPDATE',
             patch,
         );
-        return res.data as VideoRoute;
+        return res as VideoRoute;
     }
 
     public async setEnabled(id: string, enabled: boolean): Promise<VideoRoute> {
@@ -101,6 +101,6 @@ export class VideoRoutesApi {
             'ACTION',
             {},
         );
-        return res.data as VideoRoute;
+        return res as VideoRoute;
     }
 }

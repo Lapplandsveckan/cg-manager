@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../../components/ToastProvider';
-import { RequestError } from '../api/api';
+import { WebError } from '../api/api';
 import { type MediaDoc } from '../api/caspar';
 import { useSocket } from '../hooks/useSocket';
 import { BulkDeleteError, useMediaMutations } from '../query/media';
@@ -147,7 +147,7 @@ export const useMediaHandlers = (path: string) => {
                 onError: err => {
                     const isNotEmpty =
                         !recursive &&
-                        err instanceof RequestError &&
+                        err instanceof WebError &&
                         err.status === 409;
                     if (!isNotEmpty || !onNotEmpty) return;
 

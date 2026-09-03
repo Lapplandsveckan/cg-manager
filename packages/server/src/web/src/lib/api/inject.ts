@@ -6,6 +6,7 @@ import {
     useState,
 } from 'react';
 import type React from 'react';
+import { type REPClient } from 'rest-exchange-protocol-client';
 import { useSocket } from '../hooks/useSocket';
 import { SlotErrorBoundary } from '../../components/SlotErrorBoundary';
 import {
@@ -13,7 +14,6 @@ import {
     useInjectionsForZone,
     usePluginInjectionsQuery,
 } from '../query/pluginInjections';
-import { type CheckedRepClient } from './repClient';
 
 export const UI_INJECTION_ZONE = {
     PLUGIN_PAGE: 'plugin-page',
@@ -71,15 +71,15 @@ interface PluginModule {
 
 export class PluginInjectionAPI {
     private _modules = new Map<string, PluginModule | Promise<PluginModule>>();
-    private socket: CheckedRepClient;
+    private socket: REPClient;
 
-    constructor(socket: CheckedRepClient) {
+    constructor(socket: REPClient) {
         this.socket = socket;
     }
 
     public async list(): Promise<Injection[]> {
         const res = await this.socket.request('api/plugins/inject', 'GET', {});
-        return res.data as Injection[];
+        return res as Injection[];
     }
 
     private async _importModule(id: string) {
@@ -88,7 +88,7 @@ export class PluginInjectionAPI {
             'GET',
             {},
         );
-        const str = data.data as string;
+        const str = data as string;
 
         if (typeof URL.createObjectURL !== 'undefined') {
             const blob = new Blob([str], { type: 'text/javascript' });

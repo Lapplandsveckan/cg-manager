@@ -1,4 +1,4 @@
-import { type CheckedRepClient } from './repClient';
+import { type REPClient } from 'rest-exchange-protocol-client';
 import { getChunkCount } from './upload';
 
 export interface Plugin {
@@ -17,15 +17,15 @@ export interface Plugin {
 }
 
 export class PluginApi {
-    private socket: CheckedRepClient;
+    private socket: REPClient;
 
-    constructor(socket: CheckedRepClient) {
+    constructor(socket: REPClient) {
         this.socket = socket;
     }
 
     public async getPlugins(): Promise<Plugin[]> {
         const res = await this.socket.request('api/plugins', 'GET', {});
-        return res.data as Plugin[];
+        return res as Plugin[];
     }
 
     public async setEnabled(name: string, enabled: boolean): Promise<boolean> {
@@ -34,11 +34,11 @@ export class PluginApi {
             'ACTION',
             { enabled },
         );
-        if (typeof res.data !== 'boolean')
+        if (typeof res !== 'boolean')
             throw new Error(
-                `Plugin toggle returned unexpected value: ${JSON.stringify(res.data)}`,
+                `Plugin toggle returned unexpected value: ${JSON.stringify(res)}`,
             );
-        return res.data;
+        return res;
     }
 
     /** Create a plugin upload session and return the upload id.
@@ -49,7 +49,7 @@ export class PluginApi {
             filename: file.name,
             chunks,
         });
-        return (res.data as { id: string }).id;
+        return (res as { id: string }).id;
     }
 
     public async uninstall(name: string) {
@@ -69,7 +69,7 @@ export class PluginApi {
             'ACTION',
             { version },
         );
-        return res.data as Plugin;
+        return res as Plugin;
     }
 
     public async deleteVersion(name: string, version: string): Promise<void> {
