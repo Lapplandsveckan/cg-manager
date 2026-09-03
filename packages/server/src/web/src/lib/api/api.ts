@@ -3,19 +3,18 @@
  * All credit goes to Eliyah.
  */
 import { REPClient, type Method } from 'rest-exchange-protocol-client';
-import { BroadcastDispatcher } from './broadcastDispatcher';
 import { CasparServerApi } from './caspar';
 import { PluginInjectionAPI } from './inject';
 import { PluginApi } from './plugin';
 import { RundownsApi } from './rundowns';
 import { VideoRoutesApi } from './videoRoutes';
+import { subscribeBroadcast } from './subscribeBroadcast';
 import { CLIENT_ERROR_PATH } from '../reportClientError';
 
 export { WebError } from 'rest-exchange-protocol-client';
 
 export class ManagerApi {
     private socket: REPClient;
-    private broadcasts: BroadcastDispatcher;
 
     public caspar: CasparServerApi;
     public injects: PluginInjectionAPI;
@@ -28,15 +27,14 @@ export class ManagerApi {
         return ManagerApi.instance;
     }
 
-    /** The only way to listen for a server broadcast — `BroadcastDispatcher`
-     *  is the sole holder of `socket.routes`, so two subscribers on the same
-     *  topic can never shadow each other (see its docstring). */
+    /** The only way to listen for a server broadcast (see
+     *  `subscribeBroadcast` for why it must go through a passive route). */
     public subscribe(
         path: string,
         method: Method,
         handler: (data: unknown) => void,
     ): () => void {
-        return this.broadcasts.subscribe(path, method, handler);
+        return subscribeBroadcast(this.socket.routes, path, method, handler);
     }
 
     /** True while the websocket transport is actually open. Requests fall
@@ -54,9 +52,7 @@ export class ManagerApi {
         this.socket = new REPClient({
             host,
         });
-        this.broadcasts = new BroadcastDispatcher(this.socket.routes);
-
-        this.caspar = new CasparServerApi(this.socket, this.broadcasts);
+        this.caspar = new CasparServerApi(this.socket);
         this.injects = new PluginInjectionAPI(this.socket);
         this.plugin = new PluginApi(this.socket);
         this.videoRoutes = new VideoRoutesApi(this.socket);

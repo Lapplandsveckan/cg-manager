@@ -11,8 +11,8 @@ const reportedTopics = new Set<string>();
 
 /** Subscribe to a server broadcast topic while mounted. The handler is read
  *  through a ref so callers can pass inline closures without re-registering
- *  on every render. Fan-out for topics with multiple subscribers is handled
- *  by `ManagerApi.subscribe` (`BroadcastDispatcher`), not here. */
+ *  on every render. Several subscribers can share a topic — `ManagerApi
+ *  .subscribe` registers each as its own passive REP route. */
 export function useBroadcast<T>(
     topic: BroadcastTopic<T>,
     handler: (data: T) => void,

@@ -5,8 +5,8 @@ import { type Rundown, type RundownItem } from './rundowns';
 import { type VideoRoute } from './videoRoutes';
 
 /** One entry per server broadcast topic: path, method and the payload shape,
- *  declared once so subscribers never re-cast `unknown` by hand. Lives next
- *  to `BroadcastDispatcher` (not `lib/query/`) because topics reference
+ *  declared once so subscribers never re-cast `unknown` by hand. Lives in
+ *  `lib/api/` (not `lib/query/`) because topics reference
  *  `caspar`/`plugin`/`rundowns`/`videoRoutes` API types — putting it under
  *  `lib/query/` would make those files depend back on `lib/api/`. */
 export interface BroadcastTopic<T> {

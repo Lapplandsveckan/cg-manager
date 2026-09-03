@@ -1,6 +1,6 @@
 import { type REPClient } from 'rest-exchange-protocol-client';
-import { type BroadcastDispatcher } from './broadcastDispatcher';
 import { casparLogs } from './broadcasts';
+import { subscribeBroadcast } from './subscribeBroadcast';
 import { getChunkCount } from './upload';
 import type {
     Config as CasparConfig,
@@ -118,14 +118,19 @@ export class CasparServerApi {
     private logs: string = '';
     private logsListeners = new Set<LogsListener>();
 
-    constructor(socket: REPClient, broadcasts: BroadcastDispatcher) {
+    constructor(socket: REPClient) {
         this.socket = socket;
 
-        broadcasts.subscribe(casparLogs.path, casparLogs.method, data => {
-            if (!casparLogs.isValid(data)) return;
-            this.logs = clampLogs(this.logs + data);
-            this.logsListeners.forEach(listener => listener(this.logs));
-        });
+        subscribeBroadcast(
+            socket.routes,
+            casparLogs.path,
+            casparLogs.method,
+            data => {
+                if (!casparLogs.isValid(data)) return;
+                this.logs = clampLogs(this.logs + data);
+                this.logsListeners.forEach(listener => listener(this.logs));
+            },
+        );
     }
 
     public on(event: 'logs', listener: LogsListener): this {
