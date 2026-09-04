@@ -9,5 +9,11 @@
   "rundown-dir": "./rundowns",
   "routes-dir": "./routes",
   "plugins-dir": "./plugins",
-  "plugin-state-file": "./plugin-state.json"
+  "plugin-state-file": "./plugin-state.json",
+  "telemetry": {
+    "dsn": null,
+    "environment": "production",
+    "replays": true,
+    "sample-rate": 1
+  }
 }

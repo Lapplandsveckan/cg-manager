@@ -1,3 +1,10 @@
+export interface TelemetryConfig {
+    dsn: string | null;
+    environment: string;
+    replays: boolean;
+    'sample-rate': number;
+}
+
 export interface Config {
     'hide-debug': boolean;
     'pipe-caspar': boolean;
@@ -19,6 +26,7 @@ export interface Config {
     'socket-path'?: string | null;
     'caspar-profile'?: string;
     'caspar-auto-restart': boolean;
+    telemetry: TelemetryConfig;
 }
 
 const isDev = process.env.NODE_ENV !== 'production';
@@ -33,7 +41,10 @@ export interface FieldMeta {
     secret?: boolean;
 }
 
-export const schema: Record<keyof Omit<Config, 'temp'>, FieldMeta> = {
+/** Dotted keys (`telemetry.dsn`) reach into nested config objects — the only
+ *  nesting `Config` has. `schema` therefore can't stay `keyof Config`-checked;
+ *  the dotted paths below are all that guards it. */
+export const schema: Record<string, FieldMeta> = {
     port: {
         type: 'number',
         default: 5353,
@@ -133,13 +144,98 @@ export const schema: Record<keyof Omit<Config, 'temp'>, FieldMeta> = {
         default: true,
         desc: 'Automatically respawn CasparCG (with backoff and a retry cap) when it exits unexpectedly, e.g. a crash. false = leave it down until manually restarted.',
     },
+    'telemetry.dsn': {
+        type: 'string',
+        default: null,
+        desc: 'Sentry DSN for error reporting, log breadcrumbs and session replay. null disables telemetry entirely.',
+    },
+    'telemetry.environment': {
+        type: 'string',
+        default: 'production',
+        desc: 'Sentry environment tag (e.g. "production", "staging").',
+    },
+    'telemetry.replays': {
+        type: 'boolean',
+        default: true,
+        desc: 'Capture a browser session replay alongside error reports. No effect without telemetry.dsn.',
+    },
+    'telemetry.sample-rate': {
+        type: 'number',
+        default: 1,
+        desc: 'Fraction (0-1) of server-side error events sent to Sentry.',
+    },
 };
 
-export default {
-    ...Object.fromEntries(
-        Object.entries(schema)
-            .filter(([, m]) => m.seeded !== false)
-            .map(([k, m]) => [k, m.default]),
-    ),
-    temp: true,
-} as Config;
+/** `__proto__`/`constructor`/`prototype` segments let a dotted path escape
+ *  into the prototype chain instead of `target`'s own data — reject them
+ *  outright rather than trying to path-traverse around them. */
+const UNSAFE_PATH_SEGMENTS = new Set(['__proto__', 'constructor', 'prototype']);
+const isUnsafePath = (path: string): boolean =>
+    path.split('.').some(part => UNSAFE_PATH_SEGMENTS.has(part));
+
+/** Writes `value` at a dot-separated `path` into `target`, creating
+ *  intermediate objects as needed. */
+export function setPath(
+    target: Record<string, unknown>,
+    path: string,
+    value: unknown,
+): void {
+    if (isUnsafePath(path)) return;
+    const parts = path.split('.');
+    const last = parts.pop() as string;
+    const parent = parts.reduce((acc, part) => {
+        const next = acc[part];
+        if (typeof next !== 'object' || next === null) acc[part] = {};
+        return acc[part] as Record<string, unknown>;
+    }, target);
+    parent[last] = value;
+}
+
+/** Reads the value at a dot-separated `path` from `target`. */
+export function getPath(
+    target: Record<string, unknown>,
+    path: string,
+): unknown {
+    if (isUnsafePath(path)) return undefined;
+    return path
+        .split('.')
+        .reduce<unknown>(
+            (acc, part) =>
+                typeof acc === 'object' && acc !== null
+                    ? (acc as Record<string, unknown>)[part]
+                    : undefined,
+            target,
+        );
+}
+
+/** True when a dot-separated `path` resolves to an own property in `target`. */
+export function hasPath(
+    target: Record<string, unknown>,
+    path: string,
+): boolean {
+    if (isUnsafePath(path)) return false;
+    const parts = path.split('.');
+    const last = parts.pop() as string;
+    const parent = parts.reduce<unknown>(
+        (acc, part) =>
+            typeof acc === 'object' && acc !== null
+                ? (acc as Record<string, unknown>)[part]
+                : undefined,
+        target,
+    );
+    return (
+        typeof parent === 'object' &&
+        parent !== null &&
+        Object.prototype.hasOwnProperty.call(parent, last)
+    );
+}
+
+export default Object.entries(schema)
+    .filter(([, m]) => m.seeded !== false)
+    .reduce(
+        (defaults, [key, meta]) => {
+            setPath(defaults, key, meta.default);
+            return defaults;
+        },
+        { temp: true } as Record<string, unknown>,
+    ) as unknown as Config;

@@ -9,6 +9,32 @@ import { configuration } from '../manager/config';
 
 type LoadOutcome = 'loaded' | 'missing' | 'failed';
 
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+    typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** `JSON.parse` happily produces an own `"__proto__"` property (it assigns
+ *  keys directly, it doesn't invoke the setter), but reading `obj['__proto__']`
+ *  back off a normal object *does* hit the inherited accessor and returns the
+ *  real prototype — so an unguarded recursive merge of config.json content
+ *  can walk straight into `Object.prototype`. Same hazard for `constructor`. */
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
+/** One-level-aware recursive merge of plain objects. `Object.assign` is
+ *  shallow, so overlaying `{"telemetry":{"dsn":"..."}}` from config.json
+ *  would otherwise replace the whole nested `telemetry` default and wipe its
+ *  siblings. Arrays and `null` replace wholesale — config has no array-valued
+ *  keys, and `null` is a meaningful "unset" value (e.g. telemetry.dsn). */
+function deepAssign<T extends object>(target: T, source: object): T {
+    const targetRecord = target as Record<string, unknown>;
+    Object.entries(source).forEach(([key, value]) => {
+        if (UNSAFE_KEYS.has(key)) return;
+        if (isPlainObject(value) && isPlainObject(targetRecord[key]))
+            deepAssign(targetRecord[key], value);
+        else targetRecord[key] = value;
+    });
+    return target;
+}
+
 async function readConfigFile(configPath: string): Promise<LoadOutcome> {
     const [readErr, raw] = await noTryAsync(() =>
         fs.readFile(configPath, 'utf8'),
@@ -30,7 +56,7 @@ async function readConfigFile(configPath: string): Promise<LoadOutcome> {
         return 'failed';
     }
 
-    Object.assign(config, parsed);
+    deepAssign(config, parsed);
     return 'loaded';
 }
 

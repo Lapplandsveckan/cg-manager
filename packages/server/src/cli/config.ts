@@ -2,7 +2,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { noTry, noTryAsync } from 'no-try';
 import config, { loadConfigQuiet } from '../util/config';
-import { schema } from '../util/_config';
+import { schema, getPath, hasPath, setPath } from '../util/_config';
 
 function printUsage() {
     console.log(`Usage: manager config <command>
@@ -31,8 +31,8 @@ export async function runConfigCli(args: string[]): Promise<void> {
         const cfg = config as unknown as Record<string, unknown>;
         const out: Record<string, unknown> = {};
         for (const [k, meta] of Object.entries(schema)) {
-            const val = k in cfg ? cfg[k] : meta.default;
-            out[k] = meta.secret && val ? '***' : val;
+            const val = hasPath(cfg, k) ? getPath(cfg, k) : meta.default;
+            setPath(out, k, meta.secret && val ? '***' : val);
         }
         console.log(JSON.stringify(out, null, 2));
         return;
@@ -52,7 +52,7 @@ export async function runConfigCli(args: string[]): Promise<void> {
             process.exit(1);
         }
         const cfg = config as unknown as Record<string, unknown>;
-        const val = key in cfg ? cfg[key] : meta.default;
+        const val = hasPath(cfg, key) ? getPath(cfg, key) : meta.default;
         console.log(JSON.stringify(val ?? null));
         return;
     }
@@ -113,7 +113,7 @@ export async function runConfigCli(args: string[]): Promise<void> {
             existing = parsed ?? {};
         }
 
-        existing[key] = coerced;
+        setPath(existing, key, coerced);
         const [writeErr] = await noTryAsync(() =>
             fs.writeFile(configPath, JSON.stringify(existing, null, 2), 'utf8'),
         );
