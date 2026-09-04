@@ -7,6 +7,7 @@ import { CasparManager } from './manager';
 import { loadPlugins, unloadPlugins } from './plugins/plugins';
 import { startWeb } from './web';
 import { isAmcpError, formatError } from './util/amcpError';
+import { initTelemetry, flushTelemetry } from './util/telemetry';
 
 Logger.debug('Debug mode enabled!');
 
@@ -33,6 +34,7 @@ async function start() {
 
     Logger.info('Starting Caspar CG manager...');
     await loadConfig();
+    initTelemetry();
     startWeb();
 
     const manager = CasparManager.getManager();
@@ -68,6 +70,7 @@ async function start() {
 
         Logger.info('Gateway stopped!');
 
+        await flushTelemetry();
         process.exit(0);
     };
 }
@@ -114,7 +117,10 @@ async function main() {
         // AMCP errors (timeout, bad response) must not take the whole manager
         // down — they're transient and the executor recovers on reconnect.
         // Anything else (config parse failure, port bind, etc.) is fatal.
-        if (!isAmcpError(err)) process.exit(1);
+        if (!isAmcpError(err)) {
+            await flushTelemetry();
+            process.exit(1);
+        }
     }
 }
 

@@ -1,6 +1,7 @@
 import path from 'path';
 import { promises as fs } from 'fs';
 import chalk from 'chalk';
+import { noTry } from 'no-try';
 import config from './config';
 
 export enum LogLevel {
@@ -21,6 +22,35 @@ const Console = {
     info: global.console.info,
     warn: global.console.warn,
     error: global.console.error,
+};
+
+export interface LogHook {
+    (level: LogLevel, message: string, error?: Error): void;
+}
+
+let logHook: LogHook | null = null;
+let inHook = false;
+
+/** Registers a sink that sees every log line (and, for ERROR/FATAL, the
+ *  original `Error` before it's flattened to a string) alongside the normal
+ *  console/file output. `null` unregisters. Telemetry uses this instead of
+ *  being imported by this module, so `log.ts` stays leaf-level and telemetry
+ *  code doesn't need to duplicate any formatting logic. */
+export const setLogHook = (hook: LogHook | null) => (logHook = hook);
+
+/** Re-entrancy-guarded: a hook whose own transport fails and logs that
+ *  failure (directly, or via the intercepted `console.*`) must not recurse
+ *  back into itself. Failures inside the hook go to the raw `Console`
+ *  snapshot below, never through `Logger`, for the same reason. */
+const fireHook = (level: LogLevel, message: string, error?: Error) => {
+    if (!logHook || inHook) return;
+    inHook = true;
+    const [err] = noTry(() => logHook?.(level, message, error));
+    inHook = false;
+    if (err)
+        Console.error(
+            `Log hook threw: ${err instanceof Error ? err.message : String(err)}`,
+        );
 };
 
 export class Logger {
@@ -150,11 +180,16 @@ export class Logger {
         this.flushLogs();
     }
 
-    public static log(level: LogLevel, message: string) {
+    public static log(level: LogLevel, message: string, error?: Error) {
         const messageString = Logger.formatMessage(level, message);
         this.logToFile(level, message);
 
+        // Debug lines suppressed from the console (prod default) are
+        // suppressed from telemetry too — otherwise routine debug chatter
+        // (e.g. one line per file during a media scan) evicts the whole
+        // breadcrumb ring before a real error ever gets a chance to use it.
         if (level === LogLevel.DEBUG && config['hide-debug']) return;
+        fireHook(level, message, error);
         switch (level) {
             case LogLevel.INFO:
                 Console.info(messageString);
@@ -184,8 +219,14 @@ export class Logger {
     }
 
     public static error(message: string | Error): void {
-        if (message instanceof Error)
-            return Logger.error(`Exception ${this.formatError(message)}`);
+        if (message instanceof Error) {
+            Logger.log(
+                LogLevel.ERROR,
+                `Exception ${this.formatError(message)}`,
+                message,
+            );
+            return;
+        }
         Logger.log(LogLevel.ERROR, message);
     }
 
@@ -194,8 +235,14 @@ export class Logger {
     }
 
     public static fatal(message: string | Error): void {
-        if (message instanceof Error)
-            return Logger.fatal(`Exception ${this.formatError(message)}`);
+        if (message instanceof Error) {
+            Logger.log(
+                LogLevel.FATAL,
+                `Exception ${this.formatError(message)}`,
+                message,
+            );
+            return;
+        }
         Logger.log(LogLevel.FATAL, message);
     }
 
@@ -208,17 +255,21 @@ export class Logger {
     }
 
     private readonly scope_: string;
-    private readonly logger: (level: LogLevel, message: string) => void;
+    private readonly logger: (
+        level: LogLevel,
+        message: string,
+        error?: Error,
+    ) => void;
     private constructor(
         scope: string,
-        logger?: (level: LogLevel, message: string) => void,
+        logger?: (level: LogLevel, message: string, error?: Error) => void,
     ) {
         this.scope_ = scope;
         this.logger = logger || Logger.log.bind(Logger);
     }
 
-    public log(level: LogLevel, message: string) {
-        this.logger(level, `(${this.scope_}) ${message}`);
+    public log(level: LogLevel, message: string, error?: Error) {
+        this.logger(level, `(${this.scope_}) ${message}`, error);
     }
 
     public info(message: string) {
@@ -230,8 +281,14 @@ export class Logger {
     }
 
     public error(message: string | Error): void {
-        if (message instanceof Error)
-            return this.error(`Exception ${Logger.formatError(message)}`);
+        if (message instanceof Error) {
+            this.log(
+                LogLevel.ERROR,
+                `Exception ${Logger.formatError(message)}`,
+                message,
+            );
+            return;
+        }
         this.log(LogLevel.ERROR, message);
     }
 
@@ -240,8 +297,14 @@ export class Logger {
     }
 
     public fatal(message: string | Error): void {
-        if (message instanceof Error)
-            return this.fatal(`Exception ${Logger.formatError(message)}`);
+        if (message instanceof Error) {
+            this.log(
+                LogLevel.FATAL,
+                `Exception ${Logger.formatError(message)}`,
+                message,
+            );
+            return;
+        }
         this.log(LogLevel.FATAL, message);
     }
 

@@ -2,7 +2,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { noTry, noTryAsync } from 'no-try';
 import config, { loadConfigQuiet } from '../util/config';
-import { schema, getPath, hasPath, setPath } from '../util/_config';
+import { schema, getPath, hasPath, setPath } from '../util/configSchema';
 
 function printUsage() {
     console.log(`Usage: manager config <command>

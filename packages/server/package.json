@@ -27,6 +27,7 @@
     "@mui/icons-material": "5.18.0",
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
+    "@sentry/node-core": "^10.73.0",
     "@tanstack/react-query": "^5",
     "adm-zip": "^0.6.0",
     "babel-loader": "^10.1.1",
@@ -76,7 +77,11 @@
       "dist/web/.next/**/*.js",
       "../../node_modules/react-i18next/**/*.{js,cjs,mjs}",
       "../../node_modules/i18next/**/*.{js,cjs,mjs}",
-      "../../node_modules/html-parse-stringify/**/*.{js,cjs,mjs}"
+      "../../node_modules/html-parse-stringify/**/*.{js,cjs,mjs}",
+      "../../node_modules/@sentry/core/build/cjs/**/*.js",
+      "../../node_modules/@sentry/node-core/build/cjs/**/*.js",
+      "../../node_modules/import-in-the-middle/**/*.js",
+      "../../node_modules/module-details-from-path/**/*.js"
     ],
     "assets": [
       "dist/web/.next/**/*",
