@@ -1,11 +1,23 @@
 import { CommandExecutor } from '@lappis/cg-manager';
 import { noTry } from 'no-try';
 import { Logger } from '../../util/log';
+import { breadcrumbAmcp } from '../../util/telemetry';
 import {
     getTemplatesWithContent,
     type TemplateInfo,
 } from '../scanner/templates';
 import { AmcpSocket, type AmcpTransport } from './amcp-socket';
+
+// Caps a single AMCP line/detail-message in a breadcrumb. CLS/TLS/INFO
+// responses (code 200) never reach here — onEvent() below skips all 2xx —
+// but a 400's echoed command or an outgoing CG ADD payload can still be
+// long enough to be worth capping.
+const AMCP_BREADCRUMB_LINE_LIMIT = 200;
+
+const truncateAmcpLine = (line: string): string =>
+    line.length > AMCP_BREADCRUMB_LINE_LIMIT
+        ? `${line.slice(0, AMCP_BREADCRUMB_LINE_LIMIT)}…`
+        : line;
 
 // Circuit-breaker for bounce(): if AMCP errors keep firing — e.g. a route
 // command repeatedly fails — the reconnect handler re-runs the same failing
@@ -117,9 +129,31 @@ export class CasparExecutor extends CommandExecutor {
         this.socket.write(data);
 
         const lines = data.replace(/\r/g, '').split('\n');
-        for (const line of lines) if (line) Logger.scope('AMCP').debug(line);
+        for (const line of lines) {
+            if (!line) continue;
+            Logger.scope('AMCP').debug(line);
+            breadcrumbAmcp(`→ ${truncateAmcpLine(line)}`);
+        }
 
         this.buffer = '';
+    }
+
+    // Fires once per fully-parsed AMCP response — the core executor already
+    // splits it into code/cmd/data before `readData()` calls this, so there's
+    // no need to hand-parse the socket buffer here. Skips informational 1xx
+    // and successful 2xx (their `data` can be a full CLS/TLS/INFO dump —
+    // response bodies aren't the trail, the commands that produced them are;
+    // `< 200` also matches core's own `executeListeners` early-return). Only
+    // ever one line of `data` for a non-2xx code — see `readData()`: the
+    // 101/201/400 branch pushes exactly `data[0]`, every other non-2xx code
+    // (500, 4xx, an unparsed status line) leaves `data` empty.
+    protected onEvent(code: number, cmd: string, data: string[]) {
+        super.onEvent(code, cmd, data);
+        if (!Number.isFinite(code) || code < 300) return;
+
+        const header = cmd ? `${code} ${cmd}` : `${code}`;
+        const detail = data[0] ? `: ${truncateAmcpLine(data[0])}` : '';
+        breadcrumbAmcp(`← ${header}${detail}`, 'warning');
     }
 
     private connectListeners: (() => void)[] = [];
@@ -195,8 +229,19 @@ export class CasparExecutor extends CommandExecutor {
         };
     }
 
-    protected onDisconnect(_error?: Error) {
+    protected onDisconnect(error?: Error) {
         if (!this.socket) return;
+
+        // `error` was previously discarded entirely. It's only ever present
+        // for a post-ready socket that dropped (`AmcpSocket` only emits
+        // 'error' from inside its already-connected wiring — a failed
+        // pre-ready connect attempt is retried internally and never reaches
+        // here), so this fires once per lost connection, not continuously.
+        // Breadcrumb only, not a Logger call or an event: reconnects are
+        // routine, not exceptional.
+        if (error) {
+            breadcrumbAmcp(`✕ disconnected: ${error.message}`, 'warning');
+        }
 
         this.socket.destroy();
         this.socket = null;

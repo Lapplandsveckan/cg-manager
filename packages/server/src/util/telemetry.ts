@@ -15,6 +15,7 @@ import * as Sentry from '@sentry/node-core/light';
 // can never reach Sentry, since the DSN itself comes from that same config —
 // unavoidable without a second, env-var-only bootstrap path, which isn't
 // worth it for a failure this rare.
+import { noTry } from 'no-try';
 import config from './_config';
 import { LogLevel, setLogHook } from './log';
 import { isAmcpError } from './amcpError';
@@ -160,6 +161,30 @@ function handleLog(level: LogLevel, message: string, error?: Error): void {
 }
 
 let initialized = false;
+
+/** Records an AMCP command-trail entry as a breadcrumb — never an event.
+ *  `CasparExecutor` calls this directly (not through `Logger`, hence not
+ *  through `fireHook`'s re-entrancy guard) from inside `send()`/`receive()`
+ *  on the live AMCP stream — a throw here must never propagate: in `send()`
+ *  it would skip clearing the retry buffer and cause already-transmitted
+ *  commands to be resent; in `receive()`'s `this.responseBuffer =
+ *  this.receive(...)` it would drop the just-arrived chunk and desync the
+ *  stream until the next reconnect. `noTry` guarantees telemetry can never
+ *  corrupt the transport it's observing. No-ops when telemetry isn't
+ *  initialised, so callers don't need to guard themselves. */
+export function breadcrumbAmcp(
+    message: string,
+    level: Sentry.SeverityLevel = 'info',
+): void {
+    if (!initialized) return;
+    noTry(() =>
+        Sentry.addBreadcrumb({
+            category: 'amcp',
+            level,
+            message: truncateForBreadcrumb(message),
+        }),
+    );
+}
 
 /** No-op when `telemetry.dsn` is unset (the default) — nothing initialises
  *  and there is zero behaviour change for installs that never configure it.
