@@ -126,6 +126,7 @@ export const schema: Record<string, FieldMeta> = {
     'telemetry.dsn': {
         type: 'string',
         default: null,
+        secret: true,
         desc: 'Sentry DSN for error reporting, log breadcrumbs and session replay. null disables telemetry entirely.',
     },
     'telemetry.environment': {
