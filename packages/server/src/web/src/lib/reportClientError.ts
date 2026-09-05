@@ -1,4 +1,5 @@
 import { noTry } from 'no-try';
+import * as Sentry from '@sentry/react';
 import { type ManagerApi } from './api/api';
 
 let client: ManagerApi | null = null;
@@ -29,6 +30,23 @@ export const reportClientError = (report: ClientErrorReport) => {
         ...report,
         url: typeof window !== 'undefined' ? window.location.href : undefined,
     };
+
+    // Sentry.captureException no-ops when telemetry isn't initialised — this
+    // is the single sink for both _app.tsx's ErrorBoundarys and every
+    // SlotErrorBoundary, so this one call covers all React crashes. Kept
+    // alongside the beacon below (not instead of it): the beacon is the
+    // fallback when no DSN is configured, and still reaches the server log.
+    noTry(() =>
+        Sentry.withScope(scope => {
+            scope.setTag('origin', 'browser');
+            scope.setTag('source', report.source);
+            if (report.componentStack)
+                scope.setExtra('componentStack', report.componentStack);
+            const error = new Error(report.message);
+            if (report.stack) error.stack = report.stack;
+            Sentry.captureException(error);
+        }),
+    );
 
     const [, sentViaBeacon] = noTry(
         () =>

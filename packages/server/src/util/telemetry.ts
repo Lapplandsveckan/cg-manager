@@ -94,6 +94,11 @@ const NOISY_MESSAGE_PATTERNS = [
     /Exception Error \(not media\)/,
     /Info Failed$/,
     /Thumbnail Failed$/,
+    // `logger.error(log)` in api/routes/log/client.ts — `captureClientError`
+    // below is the real event for this scope (proper Error object, correct
+    // grouping); this suppresses the log hook's own generic-string
+    // duplicate of the same crash while still keeping it as a breadcrumb.
+    /^\(WebClient\) /,
 ];
 
 function isNoisyEvent(message: string, error?: Error): boolean {
@@ -162,6 +167,65 @@ function handleLog(level: LogLevel, message: string, error?: Error): void {
 
 let initialized = false;
 
+export interface ClientErrorReport {
+    source: string;
+    message: string;
+    stack?: string;
+    componentStack?: string;
+    url?: string;
+}
+
+// `/api/log/client` has no auth requirement of its own beyond whatever
+// `authMiddleware` applies globally — with the default `password: null` it's
+// reachable by anyone on the LAN. Everything below is therefore untrusted
+// input: capped in length and, critically, routed through the same
+// `isRepeat`/`withinRateLimit` guards as every other event path rather than
+// calling Sentry directly, so a client that spams this endpoint can't drain
+// the 20/min quota on its own or flood Sentry with fabricated stacks.
+const CLIENT_ERROR_FIELD_LIMIT = 2000;
+const truncateClientField = (value: string): string =>
+    value.length > CLIENT_ERROR_FIELD_LIMIT
+        ? value.slice(0, CLIENT_ERROR_FIELD_LIMIT)
+        : value;
+
+/** Captures a browser crash report (arrived via `/api/log/client`'s beacon)
+ *  as a proper Sentry exception with the original stack, instead of the
+ *  generic string-message event `Logger.error(log)` alone would produce —
+ *  which groups by whatever server-side frame the log hook attributes it
+ *  to, not by the actual browser failure site. No-ops when telemetry isn't
+ *  initialised. */
+export function captureClientError(report: ClientErrorReport): void {
+    if (!initialized) return;
+    const message = truncateClientField(report.message);
+    if (isRepeat(`client:${report.source}:${message}`)) return;
+    if (!withinRateLimit()) return;
+
+    noTry(() => {
+        const error = new Error(message);
+        if (report.stack) error.stack = truncateClientField(report.stack);
+        // Not `scope.clearBreadcrumbs()`: `Sentry.addBreadcrumb` (the
+        // top-level call `handleLog`/`breadcrumbAmcp` use) writes to the
+        // *isolation* scope, not the `withScope`-forked current scope, so
+        // that call would silently no-op here — and reaching for
+        // `Sentry.getIsolationScope().clearBreadcrumbs()` instead would wipe
+        // breadcrumb history process-wide (this server sets up no
+        // per-request scope isolation), corrupting context for unrelated
+        // concurrent events. `beforeSend` (in `initTelemetry`, tagged on
+        // `origin: 'browser'`) is what actually strips them, per-event.
+        Sentry.withScope(scope => {
+            scope.setTag('origin', 'browser');
+            scope.setTag('source', report.source);
+            if (report.componentStack)
+                scope.setExtra(
+                    'componentStack',
+                    truncateClientField(report.componentStack),
+                );
+            if (report.url) scope.setExtra('url', report.url);
+            Sentry.captureException(error);
+        });
+    });
+}
+
 /** Records an AMCP command-trail entry as a breadcrumb — never an event.
  *  `CasparExecutor` calls this directly (not through `Logger`, hence not
  *  through `fireHook`'s re-entrancy guard) from inside `send()`/`receive()`
@@ -215,6 +279,16 @@ export function initTelemetry(): void {
         integrations: [Sentry.dedupeIntegration()],
         maxBreadcrumbs: 100,
         debug: false,
+        // A browser crash (captured via captureClientError, tagged
+        // origin: 'browser') has nothing to do with this process's own AMCP/
+        // log breadcrumb trail. Stripping per-event here, rather than
+        // clearing the isolation scope's breadcrumbs before the capture, is
+        // what actually works without corrupting other events — see the
+        // comment in captureClientError.
+        beforeSend(event) {
+            if (event.tags?.origin === 'browser') event.breadcrumbs = [];
+            return event;
+        },
     });
 
     setLogHook(handleLog);

@@ -19,6 +19,7 @@ import { Upload } from '../manager/scanner/upload';
 import { authMiddleware, authApiMiddleware } from './authMiddleware';
 import { isInternalMediaId } from '../manager/scanner/folders';
 import { mediaStreamMiddleware } from './mediaStream';
+import { telemetryScriptMiddleware } from './telemetryScript';
 import { type Config } from '../manager/caspar/config/types';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -46,12 +47,15 @@ export class CGServer {
         const routes = loadRoutes();
         routes.forEach(route => this.server.register(route));
 
-        // Middleware order: cors → authApi → auth → previewWhep → mediaStream
-        //   → upload → web. Each stage short-circuits via
-        //   MiddlewareProhibitFurtherExecution when it handles a request.
-        // authApi claims /api/auth/* outright, so the auth gate never needs
-        // to know that prefix exists.
+        // Middleware order: cors → telemetryScript → authApi → auth →
+        //   previewWhep → mediaStream → upload → web. Each stage
+        //   short-circuits via MiddlewareProhibitFurtherExecution when it
+        //   handles a request. authApi claims /api/auth/* outright, so the
+        //   auth gate never needs to know that prefix exists. telemetryScript
+        //   must precede both — it's deliberately public (pre-login) and
+        //   also precedes web(), which would otherwise 404 it via Next.
         this.server.use(this.cors());
+        this.server.use(telemetryScriptMiddleware());
         this.server.use(authApiMiddleware());
         this.server.use(authMiddleware());
         this.server.use(this.previewWhep());

@@ -28,6 +28,7 @@
     "@mui/material": "5.18.0",
     "@mui/system": "5.18.0",
     "@sentry/node-core": "^10.73.0",
+    "@sentry/react": "10.73.0",
     "@tanstack/react-query": "^5",
     "adm-zip": "^0.6.0",
     "babel-loader": "^10.1.1",

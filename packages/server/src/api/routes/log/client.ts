@@ -1,5 +1,6 @@
 import { type RouteExport } from '../../route';
 import { Logger } from '../../../util/log';
+import { captureClientError } from '../../../util/telemetry';
 
 const logger = Logger.scope('WebClient');
 
@@ -24,6 +25,13 @@ export default {
         if (data.stack) log += `\n${data.stack}`;
 
         logger.error(log);
+        captureClientError({
+            source,
+            message,
+            stack: data.stack,
+            componentStack: data.componentStack,
+            url: data.url,
+        });
         return null;
     },
 } satisfies RouteExport;

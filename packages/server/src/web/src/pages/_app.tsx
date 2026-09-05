@@ -12,6 +12,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 // useTranslation() call in a child component resolves against it.
 import i18n from '../lib/i18n';
 import { reportClientError } from '../lib/reportClientError';
+import { initBrowserTelemetry } from '../lib/telemetry';
 import { queryClient } from '../lib/query/client';
 import { SocketProvider } from '../components/SocketProvider';
 import { ConnectionProvider } from '../components/ConnectionProvider';
@@ -28,6 +29,11 @@ import { AuthGate } from '../components/AuthGate';
 import { theme } from '../lib/theme';
 import { detectLanguage } from '../lib/detectLanguage';
 import '../lib/api/globals';
+
+// Module scope, not inside the component: must run before first render so
+// window.onerror/unhandledrejection and the two ErrorBoundarys below are
+// covered from the start. No-ops server-side (SSR) and when no DSN is set.
+initBrowserTelemetry();
 
 const appCrashFallback = (
     <div style={{ padding: 32 }}>

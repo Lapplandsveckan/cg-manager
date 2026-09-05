@@ -5,6 +5,7 @@ export default function Document() {
     return (
         <Html lang="en">
             <Head>
+                <script src="/telemetry.js" />
                 <link rel="preconnect" href="https://fonts.googleapis.com" />
                 <link
                     rel="preconnect"

@@ -141,7 +141,7 @@ export const schema: Record<string, FieldMeta> = {
     'telemetry.sample-rate': {
         type: 'number',
         default: 1,
-        desc: 'Fraction (0-1) of server-side error events sent to Sentry.',
+        desc: 'Fraction (0-1) of error events sent to Sentry — applies to both the server and the browser.',
     },
 };
 
