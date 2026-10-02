@@ -1,30 +1,26 @@
 import { WebError } from 'rest-exchange-protocol';
 import { type RouteExport } from '../../../route';
+import { idParams, parseBody, parseParams } from '../../../validate';
 import { CasparManager } from '../../../../manager';
+import { orderBody } from '../../../../schemas/rundown';
 
 export default {
     ACTION: async request => {
-        if (!request.params.id) throw new WebError('Invalid request data', 400);
-
-        const data = request.getData();
-        if (!Array.isArray(data) || data.some(id => typeof id !== 'string'))
-            throw new WebError('Body must be an array of item ids', 400);
+        const { id } = parseParams(idParams, request);
+        const order = parseBody(orderBody, request);
 
         const manager = CasparManager.getManager();
-        const rundown = manager.rundowns.getRundown(request.params.id);
+        const rundown = manager.rundowns.getRundown(id);
         if (!rundown) throw new WebError('Rundown not found', 404);
 
-        // Reorder items by id, defensive against unknown or missing ids.
         const remaining = new Map(rundown.items.map(item => [item.id, item]));
         const reordered = [];
-        for (const id of data) {
-            const item = remaining.get(id);
+        for (const itemId of order) {
+            const item = remaining.get(itemId);
             if (!item) continue;
             reordered.push(item);
-            remaining.delete(id);
+            remaining.delete(itemId);
         }
-        // Append any items the client didn't mention (shouldn't happen with a
-        // full list but keeps the rundown consistent if it does).
         for (const item of remaining.values()) reordered.push(item);
 
         rundown.items = reordered;
@@ -33,7 +29,7 @@ export default {
         manager.server.broadcast(
             'rundown/order',
             'ACTION',
-            { id: request.params.id, order: reordered.map(item => item.id) },
+            { id, order: reordered.map(item => item.id) },
             request.getClient(),
         );
 

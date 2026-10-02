@@ -3,6 +3,8 @@ import * as path from 'path';
 import { type Client, WebError } from 'rest-exchange-protocol';
 import { noTry, noTryAsync } from 'no-try';
 import { type RouteExport } from '../../../route';
+import { parseBody } from '../../../validate';
+import { folderBody, folderRenameBody } from '../../../../schemas/media';
 import { CasparManager } from '../../../../manager';
 import scannerConfig from '../../../../manager/scanner/config';
 import {
@@ -30,9 +32,6 @@ import {
  * alive even when no media lives inside it.
  */
 function validatePath(folderPath: string): string[] {
-    if (typeof folderPath !== 'string')
-        throw new WebError('Missing "path"', 400);
-
     const [normErr, segments] = noTry(() => normalizeFolderPath(folderPath));
     if (normErr || !segments)
         throw new WebError(normErr?.message ?? 'Invalid path', 400);
@@ -71,11 +70,9 @@ export default {
     }),
 
     CREATE: async request => {
-        const data = request.getData();
-        if (typeof data !== 'object' || data === null)
-            throw new WebError('Request body must be an object', 400);
+        const { path: folderPath } = parseBody(folderBody, request);
 
-        const segments = validatePath((data as { path?: string }).path ?? '');
+        const segments = validatePath(folderPath);
         if (isReservedTopLevel(segments))
             throw new WebError('Reserved folder', 400);
 
@@ -96,12 +93,9 @@ export default {
     },
 
     DELETE: async request => {
-        const data = request.getData();
-        if (typeof data !== 'object' || data === null)
-            throw new WebError('Request body must be an object', 400);
+        const { path: folderPath, recursive } = parseBody(folderBody, request);
 
-        const segments = validatePath((data as { path?: string }).path ?? '');
-        const recursive = (data as { recursive?: unknown }).recursive === true;
+        const segments = validatePath(folderPath);
 
         const target = resolveSafePath(
             scannerConfig.paths.media,
@@ -141,14 +135,7 @@ export default {
     },
 
     UPDATE: async request => {
-        const data = request.getData();
-        if (typeof data !== 'object' || data === null)
-            throw new WebError('Request body must be an object', 400);
-
-        const from = (data as { from?: unknown }).from;
-        const to = (data as { to?: unknown }).to;
-        if (typeof from !== 'string') throw new WebError('Missing "from"', 400);
-        if (typeof to !== 'string') throw new WebError('Missing "to"', 400);
+        const { from, to } = parseBody(folderRenameBody, request);
 
         const fromSegments = validatePath(from);
         const toSegments = validatePath(to);

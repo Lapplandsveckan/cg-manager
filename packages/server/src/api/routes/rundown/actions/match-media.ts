@@ -1,28 +1,14 @@
-import { WebError } from 'rest-exchange-protocol';
 import { type RouteExport } from '../../../route';
+import { parseBody } from '../../../validate';
 import { CasparManager } from '../../../../manager';
+import { matchMediaBody } from '../../../../schemas/rundown';
 
 export default {
     ACTION: async request => {
-        const data = request.getData();
-        if (typeof data !== 'object' || data === null)
-            throw new WebError('Invalid request data', 400);
+        const media = parseBody(matchMediaBody, request);
 
-        const { mediaId, name, type } = data as {
-            mediaId?: unknown;
-            name?: unknown;
-            type?: unknown;
-        };
-        if (typeof mediaId !== 'string' || !mediaId)
-            throw new WebError('Invalid mediaId', 400);
-        if (typeof name !== 'string' || !name)
-            throw new WebError('Invalid name', 400);
-        if (typeof type !== 'string') throw new WebError('Invalid type', 400);
-
-        return await CasparManager.getManager().rundowns.executor.matchMedia({
-            mediaId,
-            name,
-            type,
-        });
+        return await CasparManager.getManager().rundowns.executor.matchMedia(
+            media,
+        );
     },
 } satisfies RouteExport;

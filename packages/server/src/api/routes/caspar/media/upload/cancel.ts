@@ -1,15 +1,12 @@
 import { WebError } from 'rest-exchange-protocol';
 import { type RouteExport } from '../../../../route';
+import { parseBody } from '../../../../validate';
 import { Upload } from '../../../../../manager/scanner/upload';
+import { uploadCancelBody } from '../../../../../schemas/media';
 
 export default {
     ACTION: async request => {
-        const data = request.getData();
-        if (typeof data !== 'object')
-            throw new WebError('Invalid request data', 400);
-
-        const { id } = data as { id: string };
-        if (typeof id !== 'string') throw new WebError('Invalid id', 400);
+        const { id } = parseBody(uploadCancelBody, request);
 
         const upload = Upload.get(id);
         if (!upload) throw new WebError('Upload not found', 404);

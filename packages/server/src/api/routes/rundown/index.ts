@@ -1,16 +1,15 @@
-import { WebError } from 'rest-exchange-protocol';
 import { type RouteExport } from '../../route';
+import { parseBody } from '../../validate';
 import { CasparManager } from '../../../manager';
+import { nameBody } from '../../../schemas/rundown';
 
 export default {
     CREATE: async request => {
-        const data = request.getData();
-        if (typeof data !== 'string')
-            throw new WebError('Invalid request data', 400);
+        const name = parseBody(nameBody, request);
 
         const manager = CasparManager.getManager();
 
-        const rundown = manager.rundowns.createRundown(data);
+        const rundown = manager.rundowns.createRundown(name);
 
         manager.server.broadcast(
             'rundown',

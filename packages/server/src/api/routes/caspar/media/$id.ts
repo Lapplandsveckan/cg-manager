@@ -3,6 +3,8 @@ import * as path from 'path';
 import { WebError } from 'rest-exchange-protocol';
 import { noTry } from 'no-try';
 import { type RouteExport } from '../../../route';
+import { parseBody } from '../../../validate';
+import { mediaUpdateBody } from '../../../../schemas/media';
 import { CasparManager } from '../../../../manager';
 import scannerConfig from '../../../../manager/scanner/config';
 import {
@@ -70,11 +72,10 @@ export default {
     UPDATE: async request => {
         if (!request.params.id) throw new WebError('No media id provided', 400);
 
-        const data = request.getData();
-        if (typeof data !== 'object' || data === null)
-            throw new WebError('Request body must be an object', 400);
-        const newName = (data as { name?: unknown }).name;
-        const newPath = (data as { path?: unknown }).path;
+        const { name: newName, path: newPath } = parseBody(
+            mediaUpdateBody,
+            request,
+        );
 
         // Two accepted shapes:
         //  - `{ name }`: in-place rename — keep the file's current dir,
@@ -84,9 +85,6 @@ export default {
         //    (extension is preserved from the source file). Use this for
         //    drag-into-folder, move-up-to-parent, etc.
         //  If both are supplied, `path` wins.
-        if (typeof newName !== 'string' && typeof newPath !== 'string')
-            throw new WebError('Missing "name" or "path"', 400);
-
         const { mediaPath } = resolveDoc(request.params.id);
         const ext = path.extname(mediaPath);
 

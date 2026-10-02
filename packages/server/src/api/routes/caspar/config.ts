@@ -1,35 +1,19 @@
-import { WebError } from 'rest-exchange-protocol';
 import { type RouteExport } from '../../route';
+import { parseBody } from '../../validate';
 import { configuration } from '../../../manager/config';
 import { type Config } from '../../../manager/caspar/config/types';
 import { CasparManager } from '../../../manager';
-
-function validate(data: unknown): data is Config {
-    if (!data || typeof data !== 'object') return false;
-    const config = data as Record<string, unknown>;
-    if (typeof config.version !== 'string') return false;
-    if (!Array.isArray(config.videoModes)) return false;
-    if (!Array.isArray(config.channels)) return false;
-    for (const ch of config.channels as unknown[]) {
-        if (
-            !ch ||
-            typeof (ch as Record<string, unknown>).videoMode !== 'string'
-        )
-            return false;
-        if (!Array.isArray((ch as Record<string, unknown>).consumers))
-            return false;
-    }
-    return true;
-}
+import { casparConfigBody } from '../../../schemas/caspar';
 
 export default {
     // Force a re-read so the page reflects what's actually on disk, not a
     // stale snapshot from CasparCG startup.
     GET: async () => configuration.get(true),
     UPDATE: async request => {
-        const payload = request.getData();
-        if (!validate(payload))
-            throw new WebError('Invalid config payload', 400);
+        const payload = parseBody(
+            casparConfigBody,
+            request,
+        ) as unknown as Config;
 
         const saved = await configuration.set(payload);
         const manager = CasparManager.getManager();

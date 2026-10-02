@@ -1,32 +1,16 @@
-import { WebError } from 'rest-exchange-protocol';
 import { type RouteExport } from '../../../../route';
+import { parseBody, parseParams } from '../../../../validate';
 import { CasparManager } from '../../../../../manager';
+import { actionBody, companionParams } from '../../../../../schemas/companion';
 
 export default {
     ACTION: async request => {
-        const { plugin, id } = request.params as {
-            plugin?: string;
-            id?: string;
-        };
-        if (!plugin) throw new WebError('Missing plugin', 400);
-        if (!id) throw new WebError('Missing id', 400);
+        const { plugin, id } = parseParams(companionParams, request);
+        const { options, surface } = parseBody(actionBody, request);
 
-        const body = (request.getData() ?? {}) as Record<string, unknown>;
-        const options = (body.options ?? {}) as Record<
-            string,
-            string | number | boolean
-        >;
-        const ctx = {
-            surface:
-                typeof body.surface === 'string' ? body.surface : undefined,
-        };
-
-        await CasparManager.getManager().companion.invoke(
-            plugin,
-            id,
-            options,
-            ctx,
-        );
+        await CasparManager.getManager().companion.invoke(plugin, id, options, {
+            surface,
+        });
         return null;
     },
 } satisfies RouteExport;

@@ -213,7 +213,7 @@ const AddModal: React.FC<BaseModalProps> = ({
                     onChoose={type => {
                         setAdding(false);
                         setEditing({
-                            id: Math.random().toString(36).substring(7),
+                            id: Math.random().toString(36).substring(2, 11),
                             title: t('rundown.newItemDefaultTitle'),
                             data: {},
                             type,

@@ -1,49 +1,40 @@
-import { WebError } from 'rest-exchange-protocol';
 import { type RouteExport } from '../../../route';
+import { idParams, parseBody, parseParams } from '../../../validate';
 import { CasparManager } from '../../../../manager';
+import { nameBody } from '../../../../schemas/rundown';
 
 export default {
     DELETE: async request => {
-        if (!request.params.id) throw new WebError('Invalid request data', 400);
+        const { id } = parseParams(idParams, request);
 
         const manager = CasparManager.getManager();
 
-        await manager.rundowns.deleteRundown(request.params.id);
+        await manager.rundowns.deleteRundown(id);
 
-        manager.server.broadcast(
-            'rundown',
-            'DELETE',
-            request.params.id,
-            request.getClient(),
-        );
+        manager.server.broadcast('rundown', 'DELETE', id, request.getClient());
 
         return null;
     },
     UPDATE: async request => {
-        if (!request.params.id) throw new WebError('Invalid request data', 400);
-
-        const data = request.getData();
-        if (typeof data !== 'string')
-            throw new WebError('Invalid request data', 400);
+        const { id } = parseParams(idParams, request);
+        const name = parseBody(nameBody, request);
 
         const manager = CasparManager.getManager();
 
-        await manager.rundowns.updateRundown(request.params.id, data);
+        await manager.rundowns.updateRundown(id, name);
 
         manager.server.broadcast(
             'rundown',
             'UPDATE',
-            { id: request.params.id, name: data },
+            { id, name },
             request.getClient(),
         );
 
         return null;
     },
     GET: async request => {
-        if (!request.params.id) throw new WebError('Invalid request data', 400);
+        const { id } = parseParams(idParams, request);
 
-        return CasparManager.getManager().rundowns.getRundown(
-            request.params.id,
-        );
+        return CasparManager.getManager().rundowns.getRundown(id);
     },
 } satisfies RouteExport;

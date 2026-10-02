@@ -1,20 +1,14 @@
 import { type RouteExport } from '../../route';
+import { parseBody } from '../../validate';
 import { Logger } from '../../../util/log';
 import { captureClientError } from '../../../util/telemetry';
+import { clientErrorBody } from '../../../schemas/log';
 
 const logger = Logger.scope('WebClient');
 
-interface ClientErrorPayload {
-    source?: string;
-    message?: string;
-    stack?: string;
-    componentStack?: string;
-    url?: string;
-}
-
 export default {
     ACTION: async request => {
-        const data = (request.getData() ?? {}) as ClientErrorPayload;
+        const data = parseBody(clientErrorBody, request);
         const source = data.source ?? 'unknown';
         const message = data.message ?? 'Unknown client error';
 

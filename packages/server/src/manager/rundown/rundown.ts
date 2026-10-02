@@ -11,30 +11,9 @@ import config from '../../util/config';
 import { safeMediaPath } from '../scanner/util';
 import { DirectoryManager } from '../scanner/dir';
 
-export interface RundownItem {
-    id: string;
-    title: string;
+import type { Rundown, RundownItem } from '../../schemas/rundown.types';
 
-    type: string;
-    // Mirrors core's RundownItem.data — see the comment there. Narrowing
-    // breaks every plugin action doing `item.data.x`.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: any;
-
-    metadata: {
-        autoNext: boolean;
-        color?: string;
-    };
-}
-
-export interface Rundown {
-    id: string;
-    name: string;
-
-    items: RundownItem[];
-    type?: 'rundown' | 'quick';
-    createdAt?: number;
-}
+export type { Rundown, RundownItem };
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface RundownState {}

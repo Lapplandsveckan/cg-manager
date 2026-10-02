@@ -1,26 +1,14 @@
 import { type REPClient } from 'rest-exchange-protocol-client';
+import type {
+    Rundown as ServerRundown,
+    RundownItemDraft,
+} from '../../../../schemas/rundown.types';
 
-export interface RundownItem {
-    id: string;
-    title: string;
-    // Mirrors core's RundownItem.data — see the comment there. Narrowing
-    // breaks every plugin action doing `item.data.x`.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: any;
-    /** Registered action type. Always set for stored items; optional so
-     *  client-side drafts (editor pre-fill, drag payloads) share the shape. */
-    type?: string;
-    metadata?: { autoNext?: boolean; color?: string };
-}
+export type RundownItem = RundownItemDraft;
 
-export interface Rundown {
-    id: string;
-    name: string;
+export type Rundown = Omit<ServerRundown, 'items'> & {
     items: RundownItem[];
-    type?: 'rundown' | 'quick';
-    /** Read straight off the rundown's file on disk — not user-editable. */
-    createdAt?: number;
-}
+};
 
 export interface RundownActionDescriptor {
     id: string;

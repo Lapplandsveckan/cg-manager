@@ -1,5 +1,7 @@
 import { WebError } from 'rest-exchange-protocol';
 import { type RouteExport } from '../../../route';
+import { parseBody } from '../../../validate';
+import { statusBody } from '../../../../schemas/plugins';
 import { CasparManager } from '../../../../manager';
 import { Logger } from '../../../../util/log';
 
@@ -20,13 +22,7 @@ export default {
         if (!request.params.id)
             throw new WebError('No plugin id provided', 400);
 
-        const data = request.getData();
-        const body =
-            typeof data === 'object' && data !== null
-                ? (data as Record<string, unknown>)
-                : {};
-        if (typeof body.enabled !== 'boolean')
-            throw new WebError('Invalid enabled value', 400);
+        const { enabled } = parseBody(statusBody, request);
 
         const plugins = CasparManager.getManager().getPlugins();
         const plugin = plugins.plugins.find(
@@ -36,7 +32,7 @@ export default {
         if (!plugin) throw new WebError('Plugin not found', 404);
 
         const logger = Logger.scope('Plugin Loader').scope(plugin.pluginName);
-        if (body.enabled) plugins.enablePlugin(plugin, logger);
+        if (enabled) plugins.enablePlugin(plugin, logger);
         else plugins.disablePlugin(plugin, logger);
 
         return plugin['_enabled'];
