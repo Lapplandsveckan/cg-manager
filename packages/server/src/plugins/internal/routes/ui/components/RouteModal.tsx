@@ -88,8 +88,7 @@ const DestinationFields: React.FC<DestinationFieldsProps> = ({
     onChange,
 }) => {
     const { t } = useTranslation('common');
-    // Allow channels that exist OR whatever is already in the draft (so editing
-    // a route pointed at a now-removed channel doesn't silently snap to ch 1).
+    // Keeps a removed channel selectable so editing doesn't snap to ch 1.
     const channelOptions = useMemo(() => {
         const opts = new Set(channels.map(c => String(c)));
         if (draft.channel) opts.add(draft.channel);
@@ -173,17 +172,16 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                     : {}),
                 ...(route.edgeblend ? { edgeblend: route.edgeblend } : {}),
             });
-        } else {
-            const type = newType ?? 'color';
-            setName('');
-            setSource(defaultSourceFor(type));
-            setDestination(emptyDestinationDraft(channels));
-            setGeometry({});
+            return;
         }
+
+        const type = newType ?? 'color';
+        setName('');
+        setSource(defaultSourceFor(type));
+        setDestination(emptyDestinationDraft(channels));
+        setGeometry({});
     }, [open, route, newType, channels]);
 
-    // Canvas size tracks the currently-selected destination channel so the
-    // GeometryEditor stage matches its output resolution.
     const canvasSize = useMemo(() => {
         const ch = Number(destination.channel);
         return Number.isFinite(ch)
@@ -195,9 +193,6 @@ export const RouteModal: React.FC<RouteModalProps> = ({
         geometry.transform || geometry.perspective || geometry.edgeblend,
     );
 
-    // The persisted route's source type wins over the picker choice when
-    // editing — the user can't change a route's source type after the fact
-    // (would invalidate effect-layer wiring downstream).
     const activeType: SourceType = route
         ? route.source.type
         : (newType ?? 'color');
@@ -261,9 +256,6 @@ export const RouteModal: React.FC<RouteModalProps> = ({
                 name: name.trim(),
                 source: src,
                 destination: dest,
-                // Default to enabled for new routes; preserve current state
-                // when editing. The Switch on the card is still the canonical
-                // toggle for live activation.
                 enabled: route?.enabled ?? true,
                 ...(geometry.transform
                     ? { transform: geometry.transform }

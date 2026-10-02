@@ -24,6 +24,9 @@ const LOG_BUFFER_MAX = 256 * 1024;
 
 const logger = Logger.scope('CasparCG');
 
+const describeExit = (code: number | null, signal: string | null) =>
+    `CasparCG exited with code ${code}${signal ? ` (signal ${signal})` : ''}`;
+
 // Uptime past which a crash is treated as fresh rather than part of the same
 // crash-loop — resets the retry counter so an occasional crash months apart
 // doesn't inherit a stale count.
@@ -105,11 +108,7 @@ export class CasparProcess extends EventEmitter {
                     : path.join(this.casparPath, 'run.sh');
 
             this.lastError = null;
-            // On Linux `run.sh` is a shell wrapper that spawns the real
-            // casparcg binary as a child. Killing the shell's pid leaves that
-            // child orphaned, so detach into a new process group and signal
-            // the whole group on stop (see stop()). Windows spawns the exe
-            // directly, so a plain kill suffices there.
+            // run.sh spawns casparcg as a child; detach so killProcess can signal the whole group.
             const detached = process.platform !== 'win32';
             const proc = spawn(cmd, [], { cwd: this.casparPath, detached });
             this.process = proc;
@@ -142,59 +141,58 @@ export class CasparProcess extends EventEmitter {
             });
 
             proc.on('close', (code, signal) => {
-                logger.warn(
-                    `CasparCG exited with code ${code}${signal ? ` (signal ${signal})` : ''}`,
-                );
-                // Only react if `proc` is still the tracked process — guards
-                // against a stale close from an older proc (nulling a newer
-                // survivor's reference, polluting the crash counter, or
-                // scheduling a bogus respawn).
+                const exitMessage = describeExit(code, signal);
+                logger.warn(exitMessage);
+
                 const wasCurrent = this.process === proc;
                 if (wasCurrent) this.process = null;
-                // A user-initiated stop/restart sets `stopping` before killing,
-                // so that path never counts as an error or triggers a respawn
-                // below — only an exit we didn't ask for does.
-                if (wasCurrent && !this.stopping && (code !== 0 || signal))
-                    this.lastError = `CasparCG exited with code ${code}${signal ? ` (signal ${signal})` : ''}.`;
+
+                const wasCrash = wasCurrent && !this.stopping;
+                if (wasCrash && (code !== 0 || signal))
+                    this.lastError = `${exitMessage}.`;
                 this.emit('status', this.getStatus());
                 this.emit('running-config', this.getRunningConfig());
 
-                if (
-                    wasCurrent &&
-                    !this.stopping &&
-                    !spawnFailed &&
-                    this.supported &&
-                    config['caspar-auto-restart']
-                ) {
-                    if (Date.now() - this.startedAt > CRASH_STABLE_MS)
-                        this.crashRestarts = 0;
+                if (!wasCrash || spawnFailed) return;
+                if (!this.supported || !config['caspar-auto-restart']) return;
 
-                    if (this.crashRestarts < CRASH_RESTART_MAX) {
-                        this.crashRestarts += 1;
-                        const backoff = Math.min(
-                            CRASH_BACKOFF_BASE_MS *
-                                2 ** (this.crashRestarts - 1),
-                            CRASH_BACKOFF_MAX_MS,
-                        );
-                        logger.warn(
-                            `Auto-restarting CasparCG in ${backoff}ms (attempt ${this.crashRestarts}/${CRASH_RESTART_MAX})`,
-                        );
-                        this.crashTimer = setTimeout(
-                            () => this._start(),
-                            backoff,
-                        );
-                    } else {
-                        logger.error(
-                            `CasparCG crashed ${this.crashRestarts} times — giving up auto-restart.`,
-                        );
-                    }
-                }
+                this.scheduleCrashRestart();
             });
 
             this.emit('status', this.getStatus());
         });
 
         this.starting = false;
+    }
+
+    private scheduleCrashRestart() {
+        if (Date.now() - this.startedAt > CRASH_STABLE_MS)
+            this.crashRestarts = 0;
+
+        if (this.crashRestarts >= CRASH_RESTART_MAX)
+            return logger.error(
+                `CasparCG crashed ${this.crashRestarts} times — giving up auto-restart.`,
+            );
+
+        this.crashRestarts += 1;
+        const backoff = Math.min(
+            CRASH_BACKOFF_BASE_MS * 2 ** (this.crashRestarts - 1),
+            CRASH_BACKOFF_MAX_MS,
+        );
+        logger.warn(
+            `Auto-restarting CasparCG in ${backoff}ms (attempt ${this.crashRestarts}/${CRASH_RESTART_MAX})`,
+        );
+        this.crashTimer = setTimeout(() => this._start(), backoff);
+    }
+
+    private async killProcess(proc: ChildProcessWithoutNullStreams) {
+        if (process.platform === 'win32' || !proc.pid) {
+            proc.kill();
+            return;
+        }
+
+        const [err] = await noTryAsync(async () => process.kill(-proc.pid));
+        if (err) proc.kill();
     }
 
     async stop() {
@@ -215,16 +213,7 @@ export class CasparProcess extends EventEmitter {
         const closed = new Promise<void>(resolve =>
             proc.once('close', () => resolve()),
         );
-        // Kill the whole process group on Linux (negative pid) so the
-        // casparcg child spawned by run.sh dies with the shell. Fall back to
-        // killing just the pid if the group signal fails (e.g. the process
-        // already exited and the group is gone).
-        if (process.platform !== 'win32' && proc.pid) {
-            const [err] = await noTryAsync(async () => process.kill(-proc.pid));
-            if (err) proc.kill();
-        } else {
-            proc.kill();
-        }
+        await this.killProcess(proc);
         await closed;
     }
 

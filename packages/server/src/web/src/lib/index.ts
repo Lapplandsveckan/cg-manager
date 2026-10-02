@@ -47,7 +47,7 @@ export { useRundownLive, RundownLiveProvider } from '../hooks/useRundownLive';
 export { ChannelPreview } from '../components/ChannelPreview';
 export { useToast } from '../components/ToastProvider';
 export { SlotErrorBoundary } from '../components/SlotErrorBoundary';
-export { useStoredBoolean } from './hooks/useStoredBoolean';
+export { useStoredBoolean } from './hooks/useStoredValue';
 export { useMediaDocsQuery } from './query/media';
 export { useChannelInfo } from './query/caspar';
 export { BUILTIN_VIDEO_MODES } from './videoModes';

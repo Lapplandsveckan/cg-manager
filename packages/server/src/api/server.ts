@@ -48,13 +48,7 @@ export class CGServer {
         const routes = loadRoutes();
         routes.forEach(route => this.server.register(route));
 
-        // Middleware order: cors → telemetryScript → authApi → auth →
-        //   previewWhep → mediaStream → pluginHttp → upload → web. Each stage
-        //   short-circuits via MiddlewareProhibitFurtherExecution when it
-        //   handles a request. authApi claims /api/auth/* outright, so the
-        //   auth gate never needs to know that prefix exists. telemetryScript
-        //   must precede both — it's deliberately public (pre-login) and
-        //   also precedes web(), which would otherwise 404 it via Next.
+        // telemetryScript must precede auth (public, pre-login) and web() (Next would 404 it).
         this.server.use(this.cors());
         this.server.use(telemetryScriptMiddleware());
         this.server.use(authApiMiddleware());
@@ -65,79 +59,32 @@ export class CGServer {
         this.server.use(this.upload());
         this.server.use(this.web());
 
-        this.manager.on('caspar-status', status => {
-            const clients = this.server.getClients();
-            clients.forEach(client => {
-                if (!(client instanceof WebsocketClient)) return;
-                client.send(
-                    'caspar/status',
-                    WebsocketOutboundMethod.ACTION,
-                    status,
-                    false,
-                );
-            });
-        });
+        const action = WebsocketOutboundMethod.ACTION;
 
-        this.manager.on('caspar-logs', logs => {
-            const clients = this.server.getClients();
-            clients.forEach(client => {
-                if (!(client instanceof WebsocketClient)) return;
-                client.send(
-                    'caspar/logs',
-                    WebsocketOutboundMethod.ACTION,
-                    logs,
-                    false,
-                );
-            });
-        });
+        this.manager.on('caspar-status', status =>
+            this.broadcast('caspar/status', action, status),
+        );
+
+        this.manager.on('caspar-logs', logs =>
+            this.broadcast('caspar/logs', action, logs),
+        );
 
         this.manager.on('media', (key, value, origin?: Client) => {
-            // Skip plugin-internal symlinks. They're scanner-only data and
-            // shouldn't surface in the UI's media list.
             if (isInternalMediaId(key)) return;
-            // Skip entries the scanner couldn't actually probe (sidecar
-            // files, .txt etc). `value === null` is a removal — still
-            // broadcast so clients drop their cached entry.
-            if (
-                value !== null &&
-                !(value as { mediainfo?: unknown })?.mediainfo
-            )
-                return;
-            // `origin` is the REP client whose request caused this change, if
-            // any — excluded here so it can apply the result from its own
-            // response instead of the echo. A filesystem-driven change has no
-            // origin and reaches every client, unchanged from before.
-            this.broadcast(
-                'caspar/media',
-                WebsocketOutboundMethod.ACTION,
-                { key, value },
-                origin,
-            );
+
+            const isRemoval = value === null;
+            const isProbed = (value as { mediainfo?: unknown })?.mediainfo;
+            if (!isRemoval && !isProbed) return;
+
+            this.broadcast('caspar/media', action, { key, value }, origin);
         });
 
-        // Running-config snapshot: emitted whenever CasparCG starts or stops.
-        // Lets UI consumers (previews, routes) react to live capability
-        // changes without polling /api/caspar/config/running.
-        this.manager.on('caspar-running-config', (cfg: Config | null) => {
-            const clients = this.server.getClients();
-            clients.forEach(client => {
-                if (!(client instanceof WebsocketClient)) return;
-                client.send(
-                    'caspar/running-config',
-                    WebsocketOutboundMethod.ACTION,
-                    cfg ?? null,
-                    false,
-                );
-            });
-        });
+        this.manager.on('caspar-running-config', (cfg: Config | null) =>
+            this.broadcast('caspar/running-config', action, cfg ?? null),
+        );
 
-        // Plugin list changes — push updated list so clients refresh their cache.
         this.manager.on('plugin-list-changed', () =>
-            this.broadcast(
-                'plugins',
-                WebsocketOutboundMethod.ACTION,
-                this.manager.getPlugins().list(),
-            ),
+            this.broadcast('plugins', action, this.manager.getPlugins().list()),
         );
     }
 
@@ -147,12 +94,13 @@ export class CGServer {
         data: T,
         exclude?: Client,
     ) {
-        const clients = this.server.getClients();
-        clients.forEach(client => {
-            if (client === exclude || !(client instanceof WebsocketClient))
-                return;
-            client.send(target, method, data, false);
-        });
+        const isRecipient = (client: Client): client is WebsocketClient =>
+            client !== exclude && client instanceof WebsocketClient;
+
+        this.server
+            .getClients()
+            .filter(isRecipient)
+            .forEach(client => client.send(target, method, data, false));
     }
 
     log() {
@@ -165,16 +113,7 @@ export class CGServer {
     }
 
     previewWhep() {
-        // POST /preview-whep/:channel — WHEP-style SDP exchange. The browser
-        // POSTs an SDP offer (Content-Type: application/sdp), we hand it to
-        // PreviewManager.openWebRTC, and return 201 + SDP answer. The
-        // resulting peer connection lives until the browser tab closes;
-        // werift tears the underlying CasparCG consumer down via the
-        // connectionStateChange subscription inside the session.
-        //
-        // No DELETE endpoint: ICE/DTLS state transitions handle teardown
-        // automatically. The Location header is included per RFC 9725
-        // so clients can target a DELETE if we add one later.
+        // No DELETE endpoint: ICE/DTLS state transitions handle teardown.
         return async (data: MiddleWareData) => {
             if (data.type !== 'http') return;
 
@@ -197,7 +136,6 @@ export class CGServer {
                 throw new MiddlewareProhibitFurtherExecution();
             }
 
-            // Collect the SDP offer body.
             const chunks: Buffer[] = [];
             for await (const chunk of data.request as unknown as AsyncIterable<Buffer>)
                 chunks.push(chunk);

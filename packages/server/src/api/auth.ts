@@ -2,17 +2,11 @@ import crypto from 'crypto';
 import config from '../util/config';
 
 const COOKIE_NAME = 'cg-session';
-// Sliding-window expiry: tokens are re-issued with a fresh expiry once past
-// the halfway point of their lifetime (see `checkSession`). Tokens are
-// stateless (signed, not stored), so they survive a server restart.
+// Stateless signed tokens survive restarts; re-issued once past half their lifetime.
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-// Brute-force defence: failed logins block for this long. Cheap to hit on
-// a single password setup, painful for anyone trying to guess.
 const FAILED_LOGIN_DELAY_MS = 250;
 
 class AuthManagerImpl {
-    /** Whether auth is configured. When false, all requests are allowed
-     *  through — preserves the pre-auth open behavior. */
     get enabled(): boolean {
         return (
             (typeof config.password === 'string' &&
@@ -22,9 +16,7 @@ class AuthManagerImpl {
         );
     }
 
-    /** Compare a candidate password against the configured one in constant
-     *  time so timing channels can't leak the password length / prefix.
-     *  Returns false fast when auth is disabled (no password to match). */
+    /** Constant-time compare so timing cannot leak the password length or prefix. */
     async verifyPassword(candidate: unknown): Promise<boolean> {
         if (!this.enabled || typeof candidate !== 'string') {
             await this.delay(FAILED_LOGIN_DELAY_MS);
@@ -38,9 +30,6 @@ class AuthManagerImpl {
         return ok;
     }
 
-    /** Check an `Authorization: Bearer <token>` header value against the
-     *  configured `api-token`. Returns false immediately when no token is
-     *  configured so the cookie path still works in that case. */
     verifyApiToken(authHeader: string | undefined): boolean {
         const token = config['api-token'];
         if (typeof token !== 'string' || token.length === 0) return false;
@@ -51,23 +40,16 @@ class AuthManagerImpl {
         return a.length === b.length && crypto.timingSafeEqual(a, b);
     }
 
-    /** Stateless signed session token: `<exp>.<hmac>`. No server-side store,
-     *  so validity survives a restart. Signed with a secret derived from the
-     *  configured password, so changing the password invalidates sessions. */
+    /** Stateless `<exp>.<hmac>`, keyed from the password so changing it invalidates sessions. */
     createSession(): string {
         return this.sign(Date.now() + SESSION_TTL_MS);
     }
 
-    /** Validate a token: signature must match and it must not be expired. */
     touch(token: string | undefined): boolean {
         return this.checkSession(token).authenticated;
     }
 
-    /** Single verification pass covering both whether a token is valid and,
-     *  if so, whether it's past the halfway point of its lifetime and due
-     *  for a sliding-window refresh (`refresh` holds the new Set-Cookie
-     *  value in that case). Callers that need both should use this directly
-     *  instead of `touch`+`refreshedCookie`, which would verify twice. */
+    /** One pass for validity and the sliding-window refresh cookie, avoiding a double verify. */
     checkSession(token: string | undefined): {
         authenticated: boolean;
         refresh?: string;
@@ -83,10 +65,7 @@ class AuthManagerImpl {
         return { authenticated: true, refresh };
     }
 
-    /** Cookie sessions can only be minted via `verifyPassword`, so signing
-     *  requires a configured password. Without this guard, an `api-token`
-     *  -only deployment (no password) would derive the secret from an empty
-     *  string — a value anyone can compute, forging valid sessions. */
+    /** Signing needs a password: with only an api-token the secret would derive from an empty string, so anyone could forge sessions. */
     private secret(): Buffer | undefined {
         if (typeof config.password !== 'string' || config.password.length === 0)
             return undefined;
@@ -96,8 +75,6 @@ class AuthManagerImpl {
             .digest();
     }
 
-    /** Only called after `verifyPassword` succeeds, so a password is always
-     *  configured here. */
     private sign(exp: number): string {
         const secret = this.secret();
         if (!secret) throw new Error('sign() called without a password set');
@@ -108,8 +85,7 @@ class AuthManagerImpl {
         return `${exp}.${hmac}`;
     }
 
-    /** Returns the token's expiry timestamp if the signature is valid,
-     *  otherwise undefined. Does not check expiry itself. */
+    /** Does not check expiry. */
     private verify(token: string | undefined): number | undefined {
         const secret = this.secret();
         if (!secret || !token) return undefined;
@@ -129,9 +105,7 @@ class AuthManagerImpl {
         return exp;
     }
 
-    /** Build the `Set-Cookie` header value for a session. HttpOnly so JS
-     *  can't read it (mitigates XSS exfil); SameSite=Lax for casual CSRF
-     *  protection. Path=/ so the WS upgrade sees it too. */
+    /** HttpOnly + SameSite=Lax; Path=/ so the WS upgrade sees the cookie. */
     cookieHeader(token: string): string {
         const maxAgeSeconds = Math.floor(SESSION_TTL_MS / 1000);
         return `${COOKIE_NAME}=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAgeSeconds}`;

@@ -115,14 +115,19 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
         if (tab === 'position') {
             setSrcRect({ ...identityRect });
             setDestRect({ ...identityRect });
-        } else if (tab === 'perspective') {
-            setQuad({ ...identityQuad });
-        } else if (tab === 'edgeblend') {
-            setInsets({ ...zeroInsets });
-            setGamma(1.8);
-            setPower(3.0);
-            setAlpha(0.5);
+            return;
         }
+
+        if (tab === 'perspective') {
+            setQuad({ ...identityQuad });
+            return;
+        }
+
+        if (tab !== 'edgeblend') return;
+        setInsets({ ...zeroInsets });
+        setGamma(1.8);
+        setPower(3.0);
+        setAlpha(0.5);
     };
 
     return (

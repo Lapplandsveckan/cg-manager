@@ -6,23 +6,14 @@ import { ChannelPreview } from '@web-lib';
 interface GeometryStageProps {
     canvasWidth: number;
     canvasHeight: number;
-    /** Render-prop for the overlay layer. `scale` converts normalized 0..1 to
-     *  on-screen pixels. Stage size in pixels is also passed so handle layers
-     *  can place absolute-positioned children directly. */
     children: (ctx: {
         scale: number;
         width: number;
         height: number;
     }) => React.ReactNode;
-    /** When set, stream this 1-based CG channel as the stage backdrop in
-     *  place of the dark gradient. The handles overlay on top. */
     previewChannel?: number | null;
 }
 
-/** Aspect-correct stage canvas that sizes itself to the parent's width up to
- *  a sensible cap. Used by the geometry editor to host position / perspective
- *  / edge-blend handles on a backdrop matched to the destination channel's
- *  output resolution. */
 export const GeometryStage: React.FC<GeometryStageProps> = ({
     canvasWidth,
     canvasHeight,

@@ -6,8 +6,7 @@ import { noTry } from 'no-try';
 import { getStorageItem, setStorageItem } from '../../../lib/storage';
 import { useDragAutoScroll } from '../../../lib/hooks/useDragAutoScroll';
 import { DefaultContentLayout } from '../../../components/DefaultContentLayout';
-import { usePlayEntry } from '../../../lib/hooks/usePlayEntry';
-import { useStopEntry } from '../../../lib/hooks/useStopEntry';
+import { useEntryCommand } from '../../../lib/hooks/useEntryCommand';
 import { Injections, UI_INJECTION_ZONE } from '../../../lib/api/inject';
 import { Rundowns } from '../../../components/rundown/RundownList';
 import { ModeToggle } from '../../../components/RundownChrome';
@@ -169,8 +168,8 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({
 
 const Page = () => {
     const { t } = useTranslation('common');
-    const play = usePlayEntry();
-    const stop = useStopEntry();
+    const play = useEntryCommand('play');
+    const stop = useEntryCommand('stop');
     const router = useRouter();
     const {
         name,

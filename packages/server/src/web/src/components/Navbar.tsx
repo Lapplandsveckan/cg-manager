@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
 import { useAuthQuery } from '../lib/query/auth';
 import { useVersion } from '../lib/hooks/useVersion';
-import { useStoredBoolean } from '../lib/hooks/useStoredBoolean';
+import { useStoredBoolean } from '../lib/hooks/useStoredValue';
 import {
     EXPANDED_WIDTH,
     COLLAPSED_WIDTH,

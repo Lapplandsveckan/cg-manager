@@ -32,13 +32,9 @@ const ToggleVideoRouteItem: React.FC<Props> = ({ entry }) => {
             .get(conn, routeId)
             .then(r => {
                 if (!mounted) return;
-                if (r?.id) {
-                    setRoute(r);
-                    setMissing(false);
-                } else {
-                    setRoute(null);
-                    setMissing(true);
-                }
+                const found = r?.id ? r : null;
+                setRoute(found);
+                setMissing(!found);
             })
             .catch(() => mounted && setMissing(true));
 

@@ -8,10 +8,7 @@ import {
 } from '../scanner/templates';
 import { AmcpSocket, type AmcpTransport } from './amcp-socket';
 
-// Caps a single AMCP line/detail-message in a breadcrumb. CLS/TLS/INFO
-// responses (code 200) never reach here — onEvent() below skips all 2xx —
-// but a 400's echoed command or an outgoing CG ADD payload can still be
-// long enough to be worth capping.
+// Caps one AMCP line in a breadcrumb (a 400's echoed command or CG ADD payload can be long).
 const AMCP_BREADCRUMB_LINE_LIMIT = 200;
 
 const truncateAmcpLine = (line: string): string =>
@@ -19,18 +16,11 @@ const truncateAmcpLine = (line: string): string =>
         ? `${line.slice(0, AMCP_BREADCRUMB_LINE_LIMIT)}…`
         : line;
 
-// Circuit-breaker for bounce(): if AMCP errors keep firing — e.g. a route
-// command repeatedly fails — the reconnect handler re-runs the same failing
-// path and the loop becomes a tight cycle. Cap to BOUNCE_MAX bounces inside
-// BOUNCE_WINDOW_MS; beyond that we drop bounce requests until the rate
-// subsides, which lets the loop unwind without taking the manager down.
+// Circuit breaker: drops bounce requests beyond BOUNCE_MAX per BOUNCE_WINDOW_MS so a failing path cannot loop.
 const BOUNCE_WINDOW_MS = 10_000;
 const BOUNCE_MAX = 5;
 
-// Effect churn (routes enabling/disabling, edgeblend rebuilds, ...) leaves
-// holes in each channel's layer order on purpose — see Channel.compact()'s
-// doc comment in @lappis/cg-manager. Periodically drop those holes so
-// CasparCG layer numbers don't creep upward forever over a long session.
+// Periodically compacts layer holes left by effect churn so layer numbers do not creep upward.
 const COMPACTION_INTERVAL_MS = 60_000;
 
 export class CasparExecutor extends CommandExecutor {
@@ -138,15 +128,7 @@ export class CasparExecutor extends CommandExecutor {
         this.buffer = '';
     }
 
-    // Fires once per fully-parsed AMCP response — the core executor already
-    // splits it into code/cmd/data before `readData()` calls this, so there's
-    // no need to hand-parse the socket buffer here. Skips informational 1xx
-    // and successful 2xx (their `data` can be a full CLS/TLS/INFO dump —
-    // response bodies aren't the trail, the commands that produced them are;
-    // `< 200` also matches core's own `executeListeners` early-return). Only
-    // ever one line of `data` for a non-2xx code — see `readData()`: the
-    // 101/201/400 branch pushes exactly `data[0]`, every other non-2xx code
-    // (500, 4xx, an unparsed status line) leaves `data` empty.
+    // Skips 1xx/2xx: their bodies (CLS/TLS dumps) are not the trail. A non-2xx carries at most data[0].
     protected onEvent(code: number, cmd: string, data: string[]) {
         super.onEvent(code, cmd, data);
         if (!Number.isFinite(code) || code < 300) return;
@@ -162,9 +144,7 @@ export class CasparExecutor extends CommandExecutor {
     protected handleReady() {
         const isReconnect = this.hasConnectedBefore;
         this.hasConnectedBefore = true;
-        // Stamp before marking connected so the base-class promise() timeout
-        // re-arms for any commands buffered pre-connect, giving them a full 1 s
-        // window from this moment rather than from when they were enqueued.
+        // Stamp before marking connected so buffered commands get a full 1 s timeout from now.
         this._connectedAt = Date.now();
         this._connected = true;
         this.fetchTemplates();
@@ -178,10 +158,7 @@ export class CasparExecutor extends CommandExecutor {
     }
 
     private dispatchConnect(isReconnect: boolean) {
-        // Snapshot before dispatch so a handler that subscribes/unsubscribes
-        // mid-iteration doesn't disturb the loop. connectHandlers fire on
-        // every connect (first boot included); reconnectListeners only after
-        // a prior connection was lost.
+        // Snapshot so handlers can unsubscribe mid-iteration.
         for (const listener of this.connectListeners) listener();
         this.connectListeners = [];
         this.dispatch(this.connectHandlers);
@@ -195,11 +172,7 @@ export class CasparExecutor extends CommandExecutor {
         }
     }
 
-    /**
-     * Subscribe to AMCP connect events. Unlike onReconnect, the handler fires
-     * on every successful connection including the first boot connect. Returns
-     * an unsubscribe function.
-     */
+    /** Fires on every connect, first boot included. */
     public onConnect(handler: () => void): () => void {
         this.connectHandlers.push(handler);
         return () => {
@@ -215,12 +188,7 @@ export class CasparExecutor extends CommandExecutor {
         });
     }
 
-    /**
-     * Subscribe to AMCP reconnect events. The handler fires whenever the
-     * executor re-establishes a socket to CasparCG *after* having lost one —
-     * i.e. when CasparCG has restarted. The first connection on boot does
-     * NOT trigger this. Returns an unsubscribe function.
-     */
+    /** Fires on every reconnect after a lost socket (CasparCG restart), not the first boot connect. */
     public onReconnect(handler: () => void): () => void {
         this.reconnectListeners.push(handler);
         return () => {
@@ -232,13 +200,7 @@ export class CasparExecutor extends CommandExecutor {
     protected onDisconnect(error?: Error) {
         if (!this.socket) return;
 
-        // `error` was previously discarded entirely. It's only ever present
-        // for a post-ready socket that dropped (`AmcpSocket` only emits
-        // 'error' from inside its already-connected wiring — a failed
-        // pre-ready connect attempt is retried internally and never reaches
-        // here), so this fires once per lost connection, not continuously.
-        // Breadcrumb only, not a Logger call or an event: reconnects are
-        // routine, not exceptional.
+        // Only set for a post-ready drop, so this fires once per lost connection. Breadcrumb only: reconnects are routine.
         if (error) {
             breadcrumbAmcp(`✕ disconnected: ${error.message}`, 'warning');
         }
@@ -249,8 +211,6 @@ export class CasparExecutor extends CommandExecutor {
         const wasConnected = this._connected;
         this._connected = false;
 
-        // Discard buffered commands and reject pending listeners so awaiting
-        // callers unblock and state is clean for the reconnect handlers.
         this.buffer = '';
         this.clearPendingCommands();
 
@@ -258,9 +218,7 @@ export class CasparExecutor extends CommandExecutor {
             Logger.info('Caspar CG executor disconnected');
         }
 
-        // When a ready connection drops unexpectedly, reconnect by creating a
-        // fresh AmcpSocket that retries until ready. An intentional disconnect()
-        // sets retry=false first, and destroy() is silent, so neither re-enters here.
+        // Reconnect with a fresh retrying socket; an intentional disconnect() sets retry=false first.
         if (this.retry && wasConnected) this.connect();
     }
 
@@ -297,11 +255,7 @@ export class CasparExecutor extends CommandExecutor {
         return { channel: cid, ...group.toJSON() };
     }
 
-    // CasparCG may not be running (dev on macOS, or pre-boot). The parent's
-    // getChannel returns undefined for unallocated channels, which crashes
-    // plugins that assume the Channel is always there. Lazy-allocate so
-    // plugins get a real Channel object; commands it issues go through the
-    // executor's buffered send() and are dropped on the next disconnect tick.
+    // Lazy-allocate: without CasparCG, getChannel returns undefined and crashes plugins.
     public getChannel(casparChannel: number) {
         let channel = super.getChannel(casparChannel);
         if (!channel) {
@@ -316,14 +270,7 @@ export class CasparExecutor extends CommandExecutor {
 
     private bounceTimestamps: number[] = [];
 
-    /**
-     * Drop the current AMCP socket and immediately try to re-establish it.
-     * Used by the global unhandled-rejection trap when a CasparResponseError
-     * escapes plugin code — bouncing the connection puts host-side state
-     * back in sync (effects re-init on reconnect) without taking the manager
-     * down. Rate-limited so a persistently failing AMCP path can't drive a
-     * tight bounce ↔ reconnect ↔ refresh ↔ AMCP-error loop.
-     */
+    /** Rebuilds the AMCP socket after a stray CasparResponseError; rate-limited to prevent a bounce/reconnect loop. */
     public bounce() {
         const now = Date.now();
         this.bounceTimestamps = this.bounceTimestamps.filter(

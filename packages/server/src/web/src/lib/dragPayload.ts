@@ -1,55 +1,17 @@
 import { noTry } from 'no-try';
 import { type RundownEntry } from './query/rundownEntries';
 
-/**
- * Drag contract for adding items to a rundown via drag-and-drop.
- *
- * A plugin (or any other source) makes an element draggable, and on dragstart
- * writes the payload as JSON to the dedicated MIME type below. When the user
- * drops the element on a rundown list, the host parses the payload, fills in
- * a new RundownEntry, and opens the editor modal with the pre-filled values.
- *
- * The host deliberately does NOT export a wrapper component for plugins —
- * the contract is just "set this MIME type to this JSON shape". Plugins are
- * free to use whatever drag implementation they prefer (native HTML5 DnD,
- * react-dnd, dnd-kit, etc.) as long as they honour the contract.
- *
- * Plugin-side example:
- *
- *   const onDragStart = (e: React.DragEvent) => {
- *       e.dataTransfer.setData('application/x-cg-rundown-item', JSON.stringify({
- *           type: 'play-video',
- *           data: { video: 'INTRO.mp4', loop: false },
- *           title: 'Intro',
- *           immediate: false,
- *       }));
- *       e.dataTransfer.effectAllowed = 'copy';
- *   };
- *
- *   <div draggable onDragStart={onDragStart}>…</div>
- *
- * Set `immediate: true` when the plugin already has everything it needs
- * (e.g. an upload flow that matched a file to an action) to skip the editor
- * modal entirely and create the entry straight away.
- */
-
+// Plugins set this MIME to JSON matching RundownItemDragPayload on dragstart
 export const RUNDOWN_ITEM_DRAG_MIME = 'application/x-cg-rundown-item';
 
 export interface RundownItemDragPayload {
-    /** Registered rundown action type (must match a `registerRundownAction` name). */
     type: string;
-    /** Pre-filled item.data. Plugin editors read this when the modal opens. */
     data?: unknown;
-    /** Pre-filled item.title. Defaults to "New Rundown Item" if missing. */
+    /** Defaults to "New Rundown Item". */
     title?: string;
-    /** Skip the editor modal and create the entry immediately on drop. */
     immediate?: boolean;
 }
 
-/**
- * Read and validate the payload from a DataTransfer. Returns null when the
- * data is missing, isn't JSON, or doesn't include a string `type`.
- */
 export function parseRundownItemPayload(
     dt: DataTransfer | null,
 ): RundownItemDragPayload | null {
@@ -62,19 +24,12 @@ export function parseRundownItemPayload(
     return parsed as RundownItemDragPayload;
 }
 
-/**
- * True when a DataTransfer carries the rundown-item MIME type. Use this in
- * onDragOver to decide whether to accept the drop — calling getData() on
- * dragover doesn't work in most browsers, so we just check the types list.
- */
+// getData() is empty during dragover in most browsers, so only types is checked
 export function hasRundownItemPayload(dt: DataTransfer | null): boolean {
     if (!dt) return false;
     return Array.from(dt.types).includes(RUNDOWN_ITEM_DRAG_MIME);
 }
 
-/** Result of matching a dropped file against registered rundown actions
- *  (`conn.rundowns.matchActions`) — the shape the server hands back for the
- *  file-drop-to-upload flow in `useRundownFileDrop`. */
 export interface RundownFileMatchResult {
     actionId: string;
     payload: RundownItemDragPayload;
@@ -83,15 +38,7 @@ export interface RundownFileMatchResult {
     destination: string;
 }
 
-/**
- * Drag contract for reordering entries within a rundown list, and for
- * dragging an existing entry between two Rundowns instances (e.g. the main
- * rundown and a quick-actions list). Host-internal — unlike the item
- * contract above, plugins never write this MIME type.
- *
- * A cross-list drop is told apart from a same-list reorder by comparing
- * `rundownId` against the receiving list's own id.
- */
+// Cross-list drops differ from reorders by rundownId vs the receiving list
 export const RUNDOWN_REORDER_MIME = 'application/x-cg-rundown-reorder';
 
 export interface RundownReorderPayload {
@@ -121,27 +68,14 @@ export function readReorderPayload(
     return parsed;
 }
 
-/**
- * True when a DataTransfer carries OS files. Not a payload contract of ours
- * — the browser sets this type for any external file drag — but it lives
- * here so the drop handlers can ask about every drag shape in one place.
- */
 export function isFileDrag(dt: DataTransfer | null): boolean {
     if (!dt) return false;
     return Array.from(dt.types).includes('Files');
 }
 
-/**
- * Drag contract for moving a media file inside the Media page. The
- * source is always a MediaCard; the drop target is either a MediaFolder
- * (move into) or a breadcrumb segment (move to that level). The payload
- * is the media's full id (slash-separated, no extension) so the drop
- * handler can call `moveMedia(id, newPath)` directly.
- */
 export const MEDIA_MOVE_DRAG_MIME = 'application/x-cg-media-move';
 
 export interface MediaMoveDragPayload {
-    /** Full media id, same shape as MediaDoc.id (e.g. `INTRO/CLIP`). */
     id: string;
 }
 

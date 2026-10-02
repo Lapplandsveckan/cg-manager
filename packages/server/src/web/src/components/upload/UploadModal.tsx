@@ -107,44 +107,30 @@ const UploadModalContent: React.FC<UploadModalContentProps> = ({
     const showOptions =
         phase === 'review' && targetPaths.length > 0 && optionsZone != null;
 
-    let title: string;
-    if (phase === 'review')
-        title = multi
+    const progress = { current: currentIndex + 1, total: queue.length };
+    const counts = { success: successCount, total: queue.length };
+    const titles: Record<string, string> = {
+        review: multi
             ? t('media.upload.title.reviewMulti', { count: queue.length })
-            : t('media.upload.title.reviewOne');
-    else if (phase === 'starting')
-        title = multi
-            ? t('media.upload.title.preparingMulti', {
-                  current: currentIndex + 1,
-                  total: queue.length,
-              })
-            : t('media.upload.title.preparingOne');
-    else if (phase === 'uploading')
-        title = multi
-            ? t('media.upload.title.uploadingMulti', {
-                  current: currentIndex + 1,
-                  total: queue.length,
-              })
-            : t('media.upload.title.uploadingOne');
-    else if (phase === 'done')
-        title = multi
+            : t('media.upload.title.reviewOne'),
+        starting: multi
+            ? t('media.upload.title.preparingMulti', progress)
+            : t('media.upload.title.preparingOne'),
+        uploading: multi
+            ? t('media.upload.title.uploadingMulti', progress)
+            : t('media.upload.title.uploadingOne'),
+        done: multi
             ? t('media.upload.title.doneMulti', { count: successCount })
-            : t('media.upload.title.doneOne');
-    else if (phase === 'canceled')
-        title = multi
-            ? t('media.upload.title.canceledMulti', {
-                  success: successCount,
-                  total: queue.length,
-              })
-            : t('media.upload.title.canceledOne');
-    else
-        title =
-            failedCount === queue.length
-                ? t('media.upload.title.failed')
-                : t('media.upload.title.partial', {
-                      success: successCount,
-                      total: queue.length,
-                  });
+            : t('media.upload.title.doneOne'),
+        canceled: multi
+            ? t('media.upload.title.canceledMulti', counts)
+            : t('media.upload.title.canceledOne'),
+    };
+    const failedTitle =
+        failedCount === queue.length
+            ? t('media.upload.title.failed')
+            : t('media.upload.title.partial', counts);
+    const title = titles[phase] ?? failedTitle;
 
     return (
         <Stack spacing={2}>

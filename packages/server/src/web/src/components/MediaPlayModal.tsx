@@ -4,7 +4,7 @@ import { Injections, UI_INJECTION_ZONE } from '../lib/api/inject';
 import { InstantPlayoutContext } from './RundownEditor';
 import { ModalShell } from './RundownModals';
 import { type RundownEntry } from '../lib/query/rundownEntries';
-import { usePlayEntry } from '../lib/hooks/usePlayEntry';
+import { useEntryCommand } from '../lib/hooks/useEntryCommand';
 
 interface Props {
     entry: RundownEntry | null;
@@ -17,7 +17,7 @@ interface Props {
  *  instant-playout mode: pressing the primary button runs the item via
  *  /api/rundown/execute instead of persisting it to a rundown. */
 const MediaPlayModal: React.FC<Props> = ({ entry, onClose }) => {
-    const play = usePlayEntry();
+    const play = useEntryCommand('play');
 
     return (
         <Modal open={entry !== null} onClose={onClose}>

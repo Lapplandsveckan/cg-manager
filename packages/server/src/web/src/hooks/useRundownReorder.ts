@@ -19,16 +19,12 @@ function moveEntry(
     return next.map(entry => entry.id);
 }
 
-// `dropIndex` is measured against the list as it looks *before* the dragged
-// card is removed. Once that card is spliced out, every slot after it shifts
-// left by one, so a drop index that falls after the source needs the same
-// correction before it can be used as the splice target.
+// dropIndex is measured before the dragged card is removed, so indexes after the source shift by one
 function adjustIndexForRemoval(fromIndex: number, dropIndex: number): number {
     return fromIndex < dropIndex ? dropIndex - 1 : dropIndex;
 }
 
-// Cross-list drops always copy, never move — the payload only needs the
-// entry's content, not its id (a fresh one is minted at the destination).
+// Cross-list drops copy: only entry content is needed, a fresh id is minted at the destination
 function toCrossListCopyPayload(entry: RundownEntry): RundownItemDragPayload {
     return {
         type: entry.type,
@@ -46,12 +42,6 @@ interface UseRundownReorderOptions {
     onDropItem?: (payload: RundownItemDragPayload, index?: number) => void;
 }
 
-/**
- * Drag-to-reorder state machine for a rundown list. Also handles a reorder
- * payload dropped from a *different* Rundowns instance (e.g. main rundown
- * <-> quick actions) by copying the entry via `onDropItem` instead of
- * reordering.
- */
 export function useRundownReorder({
     rundownId,
     entries,
@@ -61,8 +51,6 @@ export function useRundownReorder({
 }: UseRundownReorderOptions) {
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [draggingHeight, setDraggingHeight] = useState(0);
-    // Marked synchronously by applyReorderDrop so dragend can skip the
-    // outside-container path without relying on render timing.
     const didDropInsideRef = useRef(false);
 
     const {
@@ -105,13 +93,9 @@ export function useRundownReorder({
             }
             const index = dropIndex;
 
-            // Assumes distinct Rundowns instances never share a rundownId — if
-            // they did, this would misfire as a same-list reorder here.
+            // Distinct Rundowns instances must not share a rundownId or this misreads as a same-list reorder
             const isCrossListDrag = parsed.rundownId !== rundownId;
             if (isCrossListDrag) {
-                // Entry dragged in from a different Rundowns instance (e.g. the
-                // main rundown <-> quick actions) — copy it here; the source
-                // keeps its own entry (cross-list drags don't remove it).
                 clearReorderState();
                 if (!onDropItem) {
                     e.dataTransfer.dropEffect = 'none';
@@ -136,7 +120,6 @@ export function useRundownReorder({
             }
             e.preventDefault();
 
-            // Mark before clearing so dragend (fired after drop) skips the outside-container path.
             didDropInsideRef.current = true;
             const toIndex = adjustIndexForRemoval(fromIndex, index);
             clearReorderState();
@@ -163,9 +146,6 @@ export function useRundownReorder({
             }
 
             if (e.dataTransfer.dropEffect !== 'none') {
-                // Accepted by a different Rundowns instance — it already
-                // created its own copy of this entry, and cross-list drags
-                // are copy-only, so there's nothing further to do here.
                 clearReorderState();
                 return;
             }

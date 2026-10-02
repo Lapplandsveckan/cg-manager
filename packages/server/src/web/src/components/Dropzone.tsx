@@ -4,20 +4,12 @@ import { CloudUploadRounded } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 
 interface DropzoneProps {
-    /** Called with the dropped File list (already filtered + multiple-applied). */
     onDrop: (files: File[]) => void;
     children: React.ReactNode;
-    /** Optional accept filter (extensions like `.mp4`, MIME types like `video/*`). */
     accept?: string[];
-    /** If false, only the first dropped file is kept. Defaults true. */
     multiple?: boolean;
-    /** Skip drag handling entirely (e.g. while a modal is open). */
     disabled?: boolean;
-    /** Override the overlay text shown while hovering. */
     overlayLabel?: string;
-    /** When true, the zone stretches to at least the parent's full height so
-     *  drops anywhere on the page area land — not just on top of the
-     *  children. The parent needs an explicit/`flex:1` height. */
     fill?: boolean;
 }
 
@@ -31,17 +23,6 @@ function matchesAccept(file: File, accept: string[]): boolean {
     });
 }
 
-/**
- * Generic file-drop target. Renders `children` and shows a copper overlay
- * while a drag-with-files is hovering over the wrapped area. On drop, calls
- * `onDrop` with the (filtered) File list. Pair with `useFileUpload` if you
- * want progress UI; or do whatever else you want with the files.
- *
- * Native HTML5 drag/drop — no react-dnd or dnd-kit needed. Browser drags from
- * the OS file manager fire `dataTransfer.types` containing 'Files', which is
- * what we gate on to avoid lighting up the overlay for unrelated drags
- * (e.g. text selections, plugin rundown-item payloads).
- */
 export const Dropzone: React.FC<DropzoneProps> = ({
     onDrop,
     children,
@@ -67,9 +48,7 @@ export const Dropzone: React.FC<DropzoneProps> = ({
     const onDragLeave = (e: React.DragEvent) => {
         if (disabled || !isFileDrag(e)) return;
         e.preventDefault();
-        // relatedTarget is null when the cursor leaves the browser window —
-        // in that case clear immediately instead of waiting for depth to
-        // drain (it won't, because subsequent enter events stop firing).
+        // relatedTarget is null when leaving the window; enter events stop firing so depth never drains
         if (e.relatedTarget === null) {
             dragDepth.current = 0;
             setHovering(false);

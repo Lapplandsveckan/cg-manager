@@ -50,7 +50,6 @@ export interface MediaDoc {
                 is_avc: string | number | boolean;
             };
 
-            // Video
             width: number;
             height: number;
             sample_aspect_ratio: string;
@@ -58,14 +57,12 @@ export interface MediaDoc {
             pix_fmt: string;
             bits_per_raw_sample: string;
 
-            // Audio
             sample_fmt: string;
             sample_rate: number;
             channels: number;
             channel_layout: string;
             bits_per_sample: number;
 
-            // Common
             time_base: string;
             start_time: number;
             duration_ts: string;
@@ -96,12 +93,7 @@ export interface MediaDoc {
     };
 }
 
-// Mirror of the server-side cap in `CasparProcess`. Without this, an
-// always-on log listener accumulates an unbounded string for the whole
-// browser session — and since `emit('logs', this.logs)` ships the full
-// buffer to React on every CasparCG line, the LogViewer would re-render
-// a multi-MB pre block on every emit. That blocks navigation and
-// eventually crashes the tab.
+// Mirrors the server cap in CasparProcess: an unbounded log string re-renders the LogViewer on every line and crashes the tab
 const CLIENT_LOG_BUFFER_MAX = 256 * 1024;
 
 function clampLogs(buf: string): string {
@@ -174,8 +166,6 @@ export class CasparServerApi {
         return res as CasparConfig;
     }
 
-    /** `null` = CasparCG is not running (or no snapshot yet) — a real value
-     *  the server sends, distinct from `undefined` (query not resolved). */
     public async getRunningConfig(): Promise<CasparConfig | null> {
         const res = await this.socket.request(
             'api/caspar/running-config',
@@ -264,10 +254,6 @@ export class CasparServerApi {
         return res as { id: string; doc: MediaDoc | null };
     }
 
-    /** Move a media file to a new location under the media root. `newPath`
-     *  is slash-separated, relative to the root, no extension (the source
-     *  file's extension is preserved). Use to drag media into a folder, or
-     *  drop it onto a breadcrumb to move it back up the tree. */
     public async moveMedia(
         id: string,
         newPath: string,
@@ -282,9 +268,6 @@ export class CasparServerApi {
         return res as { id: string; doc: MediaDoc | null };
     }
 
-    /** Create a folder under the media root. `path` is slash-separated and
-     *  relative to the root (e.g. `intro/concerts/2026`). Server drops a
-     *  `.cgkeep` placeholder so the dir survives without media inside it. */
     public async createFolder(folderPath: string): Promise<{ path: string }> {
         const res = await this.socket.request(
             'api/caspar/media/folder',
@@ -296,10 +279,6 @@ export class CasparServerApi {
         return { path: (res as { path: string } | null)?.path };
     }
 
-    /** Delete a folder under the media root. Server-side this only succeeds
-     *  if the folder is empty (the `.cgkeep` placeholder doesn't count) —
-     *  any real media or sub-folders inside cause a 409, unless `recursive`
-     *  is set, which removes the folder and everything inside it. */
     public async deleteFolder(
         folderPath: string,
         recursive = false,
@@ -310,10 +289,6 @@ export class CasparServerApi {
         });
     }
 
-    /** Rename a folder. Both paths are slash-separated and relative to the
-     *  media root, no trailing slash. The directory is fs.rename'd as a
-     *  unit so the contained media comes along (the scanner re-indexes on
-     *  its next pass). Returns the new normalized path. */
     public async renameFolder(
         from: string,
         to: string,

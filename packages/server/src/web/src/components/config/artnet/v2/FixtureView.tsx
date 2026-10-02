@@ -139,7 +139,6 @@ export const FixtureView: React.FC<FixtureViewProps> = ({
                 onPointerDownHandle(e, 'move');
             }}
         >
-            {/* Inner layer — mirror-only transform; grid stays inside the box */}
             <Box
                 sx={{
                     position: 'absolute',
@@ -173,7 +172,6 @@ export const FixtureView: React.FC<FixtureViewProps> = ({
                 {label}
             </Box>
 
-            {/* Badges — sit above the top edge, rotate with the fixture */}
             {(rotation !== 0 || mirrorX || mirrorY) && (
                 <Box
                     sx={{
@@ -236,7 +234,6 @@ export const FixtureView: React.FC<FixtureViewProps> = ({
                 </Box>
             )}
 
-            {/* Corner resize handles */}
             {selected &&
                 (['tl', 'tr', 'br', 'bl'] as Handle[]).map(corner => (
                     <Box
@@ -249,10 +246,8 @@ export const FixtureView: React.FC<FixtureViewProps> = ({
                     />
                 ))}
 
-            {/* Rotate handle — circle above top-center, connected by a thin line */}
             {selected && (
                 <>
-                    {/* Connector line */}
                     <Box
                         sx={{
                             position: 'absolute',
@@ -265,7 +260,6 @@ export const FixtureView: React.FC<FixtureViewProps> = ({
                             zIndex: 2,
                         }}
                     />
-                    {/* Circle handle */}
                     <Box
                         sx={{
                             position: 'absolute',

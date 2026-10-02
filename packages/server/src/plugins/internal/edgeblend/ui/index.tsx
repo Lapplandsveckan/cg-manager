@@ -127,16 +127,14 @@ const EdgeblendPage: React.FC = () => {
         if (!conn || !isValid) return;
         setSaving(true);
         const body = fromForm(form, editEnabled);
-        if (selected === 'new') {
-            await conn
-                .rawRequest(`${API_ROOT}/layouts`, 'ACTION', body)
-                .catch(() => null);
-            setSelected(null);
-        } else if (selected) {
-            await conn
-                .rawRequest(`${API_ROOT}/layouts/${selected}`, 'UPDATE', body)
-                .catch(() => null);
-        }
+        const isNew = selected === 'new';
+        const path = isNew
+            ? `${API_ROOT}/layouts`
+            : `${API_ROOT}/layouts/${selected}`;
+        const method = isNew ? 'ACTION' : 'UPDATE';
+        if (selected)
+            await conn.rawRequest(path, method, body).catch(() => null);
+        if (isNew) setSelected(null);
         setSaving(false);
     };
 

@@ -1,8 +1,6 @@
 import { type CasparPlugin } from '@lappis/cg-manager';
 
-/** Tracks declared plugin dependencies and resolves enable order / gating.
- *  Kept separate from `PluginManager` so dependency bookkeeping doesn't
- *  crowd out the enable/disable lifecycle it's mixed into. */
+/** Dependency bookkeeping split out of PluginManager. */
 export class PluginDependencyResolver {
     /** pluginName -> hard dependency names (must be enabled first). */
     private _dependencies = new Map<string, string[]>();
@@ -30,8 +28,7 @@ export class PluginDependencyResolver {
         return this._blocked.has(name);
     }
 
-    /** Force-clear the blocked flag, e.g. when the host bypasses gating via
-     *  an explicit user-triggered enable regardless of unmet dependencies. */
+    /** Force-clears the blocked flag for an explicit user enable that bypasses gating. */
     public clearBlocked(name: string) {
         this._blocked.delete(name);
     }
@@ -40,7 +37,6 @@ export class PluginDependencyResolver {
         return [...this._blocked];
     }
 
-    /** Hard dependencies of `name` that aren't currently enabled (or don't exist). */
     public missing(name: string, plugins: CasparPlugin[]): string[] {
         return this.dependenciesOf(name).filter(dep => {
             const p = plugins.find(pp => pp.pluginName === dep);
@@ -48,7 +44,6 @@ export class PluginDependencyResolver {
         });
     }
 
-    /** Same as `missing`, but also updates the blocked set as a side effect. */
     public evaluate(name: string, plugins: CasparPlugin[]): string[] {
         const missing = this.missing(name, plugins);
         if (missing.length) this._blocked.add(name);
@@ -56,11 +51,7 @@ export class PluginDependencyResolver {
         return missing;
     }
 
-    /** Orders plugins so a dependency (hard or soft) always precedes its
-     *  dependents. Plugins involved in a cycle keep their original relative
-     *  order — they'll simply stay dependency-blocked, since neither side
-     *  of the cycle can ever be enabled first. Returns the cyclic subset
-     *  separately so the caller can log it. */
+    /** Dependencies precede dependents; cyclic plugins keep their relative order (neither side can enable first) and are returned separately. */
     public order(plugins: CasparPlugin[]): {
         ordered: CasparPlugin[];
         cyclic: CasparPlugin[];
@@ -107,9 +98,7 @@ export class PluginDependencyResolver {
         return { ordered: [...ordered, ...cyclic], cyclic };
     }
 
-    /** Every currently-enabled plugin that (transitively) hard-depends on
-     *  `name`, marked blocked as they're discovered. Caller is responsible
-     *  for actually disabling them (in the returned order). */
+    /** Transitive hard dependents of `name`, marked blocked; the caller disables them in the returned order. */
     public cascadeBlocked(
         name: string,
         plugins: CasparPlugin[],

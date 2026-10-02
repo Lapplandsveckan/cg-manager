@@ -211,9 +211,12 @@ const Page = () => {
         const name = uninstalling;
         setUninstalling(null);
         const [err] = await noTryAsync(() => uninstall.mutateAsync(name));
-        if (err)
+        if (err) {
             notify(err.message || t('pluginsPage.uninstall.error'), 'error');
-        else notify(t('pluginsPage.uninstall.success'), 'success');
+            return;
+        }
+
+        notify(t('pluginsPage.uninstall.success'), 'success');
     };
 
     const handleRestart = useCallback(async () => {

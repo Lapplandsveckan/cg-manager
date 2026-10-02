@@ -171,8 +171,6 @@ export class Channel extends BasicChannel {
         const index = options.index ?? this.currentOrder.length;
         this.currentOrder.splice(index, 0, ...ids);
 
-        // We want to move the layers as little as possible,
-        // so we'll try to remove empty space to try to keep it in the same place as before
         for (
             let i = index + 1;
             i < this.currentOrder.length && count > 0;

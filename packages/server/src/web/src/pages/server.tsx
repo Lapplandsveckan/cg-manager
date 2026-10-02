@@ -330,12 +330,10 @@ const Page = () => {
         if (!socket) return;
         setBusy(action);
         const [err] = await noTryAsync(() => socket.caspar[action]());
-        if (err)
-            notify(
-                (err as Error)?.message ?? t(`serverPage.errors.${action}`),
-                'error',
-            );
-        else notify(t(`serverPage.success.${action}`), 'success');
+        const message = err
+            ? ((err as Error)?.message ?? t(`serverPage.errors.${action}`))
+            : t(`serverPage.success.${action}`);
+        notify(message, err ? 'error' : 'success');
         setBusy(null);
     };
 

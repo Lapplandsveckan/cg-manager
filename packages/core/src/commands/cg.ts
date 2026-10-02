@@ -82,7 +82,8 @@ export class CgCommand extends LayeredCommand {
     public getArguments(): string[] {
         const args = this.arguments.slice();
         if (this.cgLayer !== undefined) args.unshift(this.cgLayer.toString());
-        else if (this.cmd !== 'CLEAR') args.unshift('0');
+        if (this.cgLayer === undefined && this.cmd !== 'CLEAR')
+            args.unshift('0');
 
         args.unshift(this.cmd);
 

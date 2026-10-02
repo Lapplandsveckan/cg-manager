@@ -92,13 +92,15 @@ export function renameRundownInCache(
 
     const entriesKey = qk.rundownEntries(id);
     const beforeEntries = queryClient.getQueryData<Rundown>(entriesKey)?.name;
-    if (beforeEntries === undefined) {
-        void queryClient.invalidateQueries({ queryKey: entriesKey });
-    } else {
+    const patchEntries = () =>
         queryClient.setQueryData<Rundown>(entriesKey, prev =>
             prev ? { ...prev, name } : prev,
         );
-    }
+    const refetchEntries = () =>
+        void queryClient.invalidateQueries({ queryKey: entriesKey });
+    const syncEntries =
+        beforeEntries === undefined ? refetchEntries : patchEntries;
+    syncEntries();
 
     const before = beforeList ?? beforeEntries;
     if (before === undefined) return undefined;

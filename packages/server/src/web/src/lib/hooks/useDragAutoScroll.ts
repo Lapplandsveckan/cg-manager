@@ -17,6 +17,16 @@ function lerp(a: number, b: number, t: number) {
     return a + (b - a) * t;
 }
 
+function edgeSpeed(fromTop: number, fromBottom: number) {
+    const topRatio = 1 - fromTop / EDGE_ZONE;
+    if (fromTop < EDGE_ZONE) return -lerp(MIN_SPEED, MAX_SPEED, topRatio);
+
+    const bottomRatio = 1 - fromBottom / EDGE_ZONE;
+    if (fromBottom < EDGE_ZONE) return lerp(MIN_SPEED, MAX_SPEED, bottomRatio);
+
+    return 0;
+}
+
 export function useDragAutoScroll(ref: RefObject<HTMLElement>) {
     useEffect(() => {
         const el = ref.current;
@@ -45,16 +55,7 @@ export function useDragAutoScroll(ref: RefObject<HTMLElement>) {
             const fromTop = y - rect.top;
             const fromBottom = rect.bottom - y;
 
-            let next = 0;
-            if (fromTop < EDGE_ZONE) {
-                const ratio = 1 - fromTop / EDGE_ZONE;
-                next = -lerp(MIN_SPEED, MAX_SPEED, ratio);
-            } else if (fromBottom < EDGE_ZONE) {
-                const ratio = 1 - fromBottom / EDGE_ZONE;
-                next = lerp(MIN_SPEED, MAX_SPEED, ratio);
-            }
-
-            speed = next;
+            speed = edgeSpeed(fromTop, fromBottom);
             if (speed !== 0 && raf === null) raf = requestAnimationFrame(step);
         };
 

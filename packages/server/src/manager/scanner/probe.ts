@@ -51,31 +51,23 @@ export const MEDIA_EXTENSIONS = new Set([
     '.m4a',
 ]);
 
-// Point fluent-ffmpeg at the ffmpeg/ffprobe binaries shipped alongside the
-// CasparCG executable. Without this, the scanner relies on whatever's on
-// PATH — fine on dev boxes, but the packaged manager runs next to its own
-// CasparCG install and shouldn't depend on a system-wide ffmpeg being
-// present (or matching the version Caspar uses). If `caspar-path` isn't
-// set we fall back to PATH so dev mode keeps working.
+// Prefer the binaries next to CasparCG so the packaged manager doesn't depend on a system ffmpeg.
 export function configureBinaries() {
     const folder = managerConfig['caspar-path'];
     if (!folder) return;
 
     const ext = process.platform === 'win32' ? '.exe' : '';
-    const ffmpegPath = path.join(folder, `ffmpeg${ext}`);
-    const ffprobePath = path.join(folder, `ffprobe${ext}`);
+    const pointAtBinary = (name: string, setPath: (p: string) => unknown) => {
+        const binaryPath = path.join(folder, `${name}${ext}`);
+        if (existsSync(binaryPath)) return setPath(binaryPath);
 
-    if (existsSync(ffmpegPath)) ffmpeg.setFfmpegPath(ffmpegPath);
-    else
         logger.warn(
-            `ffmpeg not found at ${ffmpegPath} — falling back to PATH lookup`,
+            `${name} not found at ${binaryPath} — falling back to PATH lookup`,
         );
+    };
 
-    if (existsSync(ffprobePath)) ffmpeg.setFfprobePath(ffprobePath);
-    else
-        logger.warn(
-            `ffprobe not found at ${ffprobePath} — falling back to PATH lookup`,
-        );
+    pointAtBinary('ffmpeg', p => ffmpeg.setFfmpegPath(p));
+    pointAtBinary('ffprobe', p => ffmpeg.setFfprobePath(p));
 }
 
 // Replace the JSON-stringified id prefix in a cinf/tinf string after a rename.

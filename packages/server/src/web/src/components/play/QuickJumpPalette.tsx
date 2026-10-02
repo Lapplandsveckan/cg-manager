@@ -89,24 +89,28 @@ export const QuickJumpPalette: React.FC<QuickJumpPaletteProps> = ({
                     setActiveIndex(0);
                 }}
                 onKeyDown={e => {
-                    if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        setActiveIndex(i =>
-                            matches.length ? (i + 1) % matches.length : 0,
-                        );
-                    } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        setActiveIndex(i =>
-                            matches.length
-                                ? (i - 1 + matches.length) % matches.length
-                                : 0,
-                        );
-                    } else if (e.key === 'Enter') {
-                        e.preventDefault();
-                        const match = matches[activeIndex];
-                        if (match) onSelect(match.id);
-                    } else if (e.key === 'Escape') {
-                        onClose();
+                    switch (e.key) {
+                        case 'ArrowDown':
+                            e.preventDefault();
+                            setActiveIndex(i =>
+                                matches.length ? (i + 1) % matches.length : 0,
+                            );
+                            return;
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            setActiveIndex(i =>
+                                matches.length
+                                    ? (i - 1 + matches.length) % matches.length
+                                    : 0,
+                            );
+                            return;
+                        case 'Enter':
+                            e.preventDefault();
+                            if (matches[activeIndex])
+                                onSelect(matches[activeIndex].id);
+                            return;
+                        case 'Escape':
+                            onClose();
                     }
                 }}
                 InputProps={{

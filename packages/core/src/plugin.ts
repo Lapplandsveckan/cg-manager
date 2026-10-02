@@ -75,8 +75,9 @@ export class CasparPlugin {
 
         this['_api']['unregister'](); // await?
         const [error] = noTry(() => this.onDisable());
-        if (error) logger.error(`Error disabling plugin: ${error}`);
-        else logger.debug('Disabled');
+        if (error) return logger.error(`Error disabling plugin: ${error}`);
+        
+        logger.debug('Disabled');
     }
 
     protected onEnable() {}
@@ -345,8 +346,6 @@ export class PluginAPI extends EventEmitter {
         );
     }
 
-    // Companion surface — actions & feedbacks
-
     public registerAction(def: ActionDefinition): ActionHandle {
         const handle = this._manager.companion.registerAction(
             def,
@@ -369,12 +368,10 @@ export class PluginAPI extends EventEmitter {
         this._manager.companion.invalidate(this._plugin.pluginName, id);
     }
 
-    // Channel access
     public getChannel(casparChannel: number): Channel {
         return this._manager.executor.getChannel(casparChannel);
     }
 
-    // Rundowns — read
     public getRundown(id: string): Rundown | null {
         return this._manager.rundowns.getRundown(id);
     }
@@ -383,7 +380,6 @@ export class PluginAPI extends EventEmitter {
         return this._manager.rundowns.getRundowns();
     }
 
-    // Rundowns — write
     public createRundown(name: string): Rundown {
         return this._manager.rundowns.createRundown(name);
     }
@@ -392,7 +388,6 @@ export class PluginAPI extends EventEmitter {
         return this._manager.rundowns.deleteRundown(id);
     }
 
-    // CasparCG process status
     public getCasparStatus(): CasparStatus {
         return this._manager.caspar.getStatus();
     }
@@ -405,7 +400,6 @@ export class PluginAPI extends EventEmitter {
         this._manager.off('caspar-status', handler);
     }
 
-    // AMCP connection state
     public isConnected(): boolean {
         return this._manager.executor.connected;
     }
@@ -414,7 +408,6 @@ export class PluginAPI extends EventEmitter {
         return this._manager.executor.awaitConnection();
     }
 
-    // Media library events
     public onMediaChange(handler: (key: string, value: unknown) => void) {
         this._manager.on('media', handler);
     }
@@ -423,9 +416,7 @@ export class PluginAPI extends EventEmitter {
         this._manager.off('media', handler);
     }
 
-    // Inter-plugin services — a named, in-process object another plugin can
-    // look up and call directly. Loosely coupled: consumers address the
-    // provider by string name only, never by importing its class.
+    /** Services are named in-process objects other plugins look up by string name, never by importing the provider class. */
     public provideService<T>(name: string, impl: T): ServiceHandle<T> {
         return this._manager.interop.provideService(
             name,
@@ -454,8 +445,7 @@ export class PluginAPI extends EventEmitter {
         this._manager.interop.offServiceChange(handler);
     }
 
-    // Inter-plugin extension points — the inverse of a service: a provider
-    // declares a named point and consumers push contributions into it.
+    /** Extension points are the inverse of a service: a provider declares a named point and consumers push contributions into it. */
     public contribute<T>(point: string, value: T): ContributionHandle<T> {
         return this._manager.interop.contribute(
             point,

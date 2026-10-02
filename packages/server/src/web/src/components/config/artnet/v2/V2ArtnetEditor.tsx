@@ -1,7 +1,7 @@
 import React from 'react';
 import { FormControlLabel, Stack, Switch, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { useStoredBoolean } from '../../../../lib/hooks/useStoredBoolean';
+import { useStoredBoolean } from '../../../../lib/hooks/useStoredValue';
 import { OutputCard } from '../shared/OutputCard';
 import { FixturePanel } from '../shared/FixturePanel';
 import { useFixtureList } from '../shared/useFixtureList';

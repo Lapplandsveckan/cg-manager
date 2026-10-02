@@ -17,7 +17,6 @@ import {
 
 const logger = Logger.scope('Scanner');
 
-// Path of `filePath` relative to `dirAbs`, or null if it isn't under it.
 function relativeInside(dirAbs: string, filePath?: string): string | null {
     if (!filePath) return null;
 
@@ -39,7 +38,6 @@ async function scanFile(
     const mediaLogger = logger.scope(mediaId);
     const hash = await hashFile(mediaPath);
 
-    // Look up the doc for THIS id specifically (not any other file sharing content)
     const doc: MediaDoc = db.get(mediaId) ?? { id: mediaId };
     delete doc._invalidate;
 
@@ -48,18 +46,13 @@ async function scanFile(
         doc.mediaTime === mediaStat.mtime.getTime();
 
     if (metaUnchanged && doc._hash === hash) {
-        // db.get() also returns recently-evicted docs; if this id was removed
-        // and re-added unchanged, resurrect it into the live store. A case-only
-        // rename keeps the id, size, mtime and content, so this is also the
-        // only place the new path can land — without the mediaPath check the
-        // doc would keep pointing at a name that no longer exists on a
-        // case-sensitive filesystem, and no 'change' would ever be emitted.
+        // db.get() returns recently-evicted docs; resurrect. A case-only rename keeps id/size/mtime,
+        // so mediaPath must be re-checked or the doc keeps a name that no longer exists.
         if (db.has(mediaId) && doc.mediaPath === mediaPath)
             return mediaLogger.debug('Unchanged');
 
         doc.mediaPath = mediaPath;
-        // mediainfo is shared by reference with donor docs — replace it
-        // wholesale rather than mutating the object in place.
+        // mediainfo is shared with donors; replace wholesale.
         if (doc.mediainfo)
             doc.mediainfo = { ...doc.mediainfo, path: mediaPath };
         db.put(hash, doc, opts.origin);
@@ -70,16 +63,8 @@ async function scanFile(
     doc.mediaSize = mediaStat.size;
     doc.mediaTime = mediaStat.mtime.getTime();
 
-    // Metadata reuse: if another doc (rename source or a copy) already has mediainfo
-    // for the same content, clone it and patch the id/path — skips ffprobe. The donor's
-    // timestamps ride along (cinf/tinf/mediainfo.time), so a plain copy shows the
-    // original's modified-time; doc.mediaSize/mediaTime above stay accurate. _attachments
-    // and nested mediainfo are shared by reference — safe only because they're always
-    // replaced wholesale, never mutated in place. The hash check below is required even
-    // for the renamedFrom donor: a delete+add pair can land on a reused inode (false
-    // "rename") for files that don't share content, e.g. a reencode that writes a new
-    // file under a different name right after the original is removed — without it,
-    // the new file would inherit the old file's stale metadata/thumbnail.
+    // Reuse donor mediainfo (shared by reference, always replaced wholesale) to skip ffprobe.
+    // The hash check is required even for renamedFrom: a reused inode can fake a rename (e.g. reencode).
     const renamedFromDoc = opts.renamedFrom
         ? db.get(opts.renamedFrom)
         : undefined;
@@ -105,12 +90,7 @@ async function scanFile(
         mediaLogger.error('Thumbnail Failed');
     });
 
-    // Anything ffprobe couldn't parse (text files, plugin sidecars
-    // like `<file>.cgnoencode`, random binaries that ended up in the
-    // media folder) lacks `mediainfo`. Storing those would surface
-    // them in the UI as broken media cards and crash MediaView when
-    // it tries to read `media.mediainfo.format.duration`. Bail before
-    // the DB write so they never enter the listing at all.
+    // No mediainfo means unprobeable (text, sidecars); storing them would break MediaView.
     if (!doc.mediainfo) {
         mediaLogger.debug('Skipping unparseable file (no mediainfo)');
         return;
@@ -160,8 +140,7 @@ function Scanner(db: FileDatabase) {
         mediaStat: Stats,
         opts: { renamedFromId?: string; origin?: Client } = {},
     ) => {
-        // Non-zero inode uniquely identifies a file; zero means unsupported FS
-        // (some Windows volumes) — fall back to normal behaviour in that case.
+        // Inode 0 means unsupported FS (some Windows volumes).
         const inode: number = mediaStat.ino;
         const pending = opts.renamedFromId
             ? { mediaId: opts.renamedFromId, timer: undefined }
@@ -170,15 +149,13 @@ function Scanner(db: FileDatabase) {
               : undefined;
 
         if (pending) {
-            // Same inode → rename. Cancel the deferred deletion so the old entry
-            // stays visible in the UI until the new one is ready.
+            // Same inode: a rename. Cancel the deferred deletion.
             clearTimeout(pending.timer);
             pendingRemovals.delete(inode);
             inodeMap.delete(pending.mediaId);
         }
 
-        // Register the inode before the async scan so any unlink arriving
-        // during scanFile can still match this file in pendingRemovals.
+        // Register the inode before the async scan so an unlink during scanFile can still match.
         if (
             MEDIA_EXTENSIONS.has(path.extname(mediaPath).toLowerCase()) &&
             inode
@@ -193,10 +170,7 @@ function Scanner(db: FileDatabase) {
         );
         if (error) logger.error(error);
 
-        // Remove the old id only AFTER the new entry is in the DB, so the UI sees
-        // the item change name rather than disappear and reappear. Ids are
-        // upper-cased, so a case-only rename lands on the same id — removing it
-        // would evict the entry we just wrote.
+        // Remove the old id only after the new entry lands; ids are upper-cased, so a case-only rename shares it.
         if (pending && pending.mediaId !== mediaId)
             db.removeStaleId(pending.mediaId, opts.origin);
     };
@@ -205,58 +179,41 @@ function Scanner(db: FileDatabase) {
         const mediaId = getId(config.paths.media, mediaPath);
 
         if (!mediaStat) {
-            // unlink: defer removal so a paired rename `add` can cancel it
             const inode = inodeMap.get(mediaId);
-            if (inode !== undefined) {
-                const timer = setTimeout(() => {
-                    pendingRemovals.delete(inode);
-                    // Guard: only remove if this id still belongs to the file we
-                    // scheduled for. A reencode (clip.mov → clip.mp4) produces a
-                    // new inode and reuses the same extension-stripped id; by the
-                    // time the timer fires, processAdd has already updated
-                    // inodeMap[mediaId] to the new file's inode — skip the remove
-                    // so the freshly-added entry isn't clobbered.
-                    if (inodeMap.get(mediaId) !== inode) return;
-                    inodeMap.delete(mediaId);
-                    db.remove(mediaId);
-                }, RENAME_WINDOW_MS);
-                pendingRemovals.set(inode, { mediaId, timer });
-            } else {
+            if (inode === undefined) {
                 db.remove(mediaId);
+                return;
             }
+
+            const timer = setTimeout(() => {
+                pendingRemovals.delete(inode);
+                // A reencode (clip.mov -> clip.mp4) reuses the id with a new inode; skip so the new entry isn't removed.
+                if (inodeMap.get(mediaId) !== inode) return;
+                inodeMap.delete(mediaId);
+                db.remove(mediaId);
+            }, RENAME_WINDOW_MS);
+            pendingRemovals.set(inode, { mediaId, timer });
             return;
         }
 
         await processAdd(mediaPath, mediaId, mediaStat);
     });
 
-    // Trigger an immediate scan, bypassing awaitWriteFinish — used by the upload
-    // handler so a finished upload appears in the UI without waiting for chokidar.
-    // No origin: uploads aren't attributed to a live request by the time the
-    // chunked transfer completes, so this always broadcasts to everyone.
+    // Bypasses awaitWriteFinish for finished uploads; no origin, so every client is told.
     const scan = async (mediaPath: string) => {
         const [err, stat] = await noTryAsync(() => fs.stat(mediaPath));
         if (err || !stat) return;
         await processAdd(mediaPath, getId(config.paths.media, mediaPath), stat);
     };
 
-    // Optimistic delete — called right after the route handler's fs.unlink
-    // succeeds, so the DB/broadcast update fires immediately instead of
-    // waiting for chokidar's `unlink` + RENAME_WINDOW_MS deferral. The later
-    // chokidar event is harmless: the inode is already gone from inodeMap, so
-    // it just re-removes an already-absent id.
+    // Optimistic delete; the later chokidar unlink just re-removes an absent id.
     const applyDelete = (mediaPath: string, origin?: Client) => {
         const mediaId = getId(config.paths.media, mediaPath);
         inodeMap.delete(mediaId);
         db.remove(mediaId, origin);
     };
 
-    // Optimistic rename/move — called right after the route handler's
-    // fs.rename succeeds. Reuses processAdd's rename branch (via
-    // renamedFromId) so the UI sees the item change name/path rather than
-    // disappear and reappear. The later chokidar `unlink oldPath` + `add
-    // newPath` events are harmless — the old inode is already cleared, and
-    // the new file's hash is unchanged so scanFile skips the rescan.
+    // Optimistic rename: reuses processAdd's rename branch so the UI sees a rename, not remove+add.
     const applyRename = async (
         oldPath: string,
         newPath: string,
@@ -275,10 +232,7 @@ function Scanner(db: FileDatabase) {
         });
     };
 
-    // Reconcile every media doc under a folder that was just deleted
-    // recursively — called right after the route handler's fs.rm succeeds,
-    // so contained docs vanish immediately instead of waiting on chokidar's
-    // unlink + RENAME_WINDOW_MS deferral per file.
+    // Reconciles docs under a recursively deleted folder without waiting on per-file unlinks.
     const applyFolderDelete = (absDir: string, origin?: Client) => {
         const prefix = `${getFolderId(config.paths.media, absDir)}/`;
         for (const doc of db.allDocs()) {
@@ -288,14 +242,7 @@ function Scanner(db: FileDatabase) {
         }
     };
 
-    // Reconcile every media doc under a folder that was just renamed/moved —
-    // called right after the route handler's fs.rename succeeds. The files
-    // themselves are untouched, so each doc is re-keyed in place rather than
-    // replayed through scanFile: that would re-hash every file's full contents
-    // while the route holds the request open. The later chokidar `add` events
-    // then find matching size/mtime/hash and no-op — except for docs with no
-    // known hash yet (restored from disk, never rescanned), which get a normal
-    // full probe at that point.
+    // Re-keys docs in place: rescanning would re-hash every file while the request is open.
     const applyFolderRename = async (
         oldAbs: string,
         newAbs: string,
@@ -304,8 +251,6 @@ function Scanner(db: FileDatabase) {
         const oldPrefix = `${getFolderId(config.paths.media, oldAbs)}/`;
         const docs = db.allDocs().filter(doc => doc.id.startsWith(oldPrefix));
 
-        // Stat every candidate up front rather than one at a time — the route
-        // holds the request open for the whole reconcile.
         const moves = await Promise.all(
             docs.map(async doc => {
                 const relPath = relativeInside(oldAbs, doc.mediaPath);

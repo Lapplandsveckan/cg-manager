@@ -56,7 +56,6 @@ export class CommandExecutor {
     }
 
     protected fetchTemplates() {
-        // TODO: optimize and better options
         if (!this.fetchPromise)
             this.fetchPromise = this._fetchTemplates().then(templates => {
                 this.fetchPromise = null;
@@ -79,32 +78,35 @@ export class CommandExecutor {
         return this.templates;
     }
 
+    // Pre-connect-buffered commands only just reached the server, so the timeout re-arms.
+    private get awaitingServer() {
+        return (
+            !this.connected || Date.now() - this._connectedAt < CONNECT_GRACE_MS
+        );
+    }
+
     public promise(command: string) {
         const callerStack = new Error().stack; // kept for timeout diagnostics
+        const timeoutError = () =>
+            new CasparResponseError(
+                [`Timeout: "${command}"`, callerStack ?? '(no stack)'],
+                -1,
+            );
+
         return new Promise<{ data: string[]; code: number }>(
             (resolve, reject) => {
-                const startTimeout = () => {
-                    listener.timeout = setTimeout(() => {
-                        listener.timeout = undefined;
-                        // Re-arm while disconnected, or within the grace window after connect —
-                        // pre-connect-buffered commands only just reached the server.
-                        if (
-                            !this.connected ||
-                            Date.now() - this._connectedAt < CONNECT_GRACE_MS
-                        )
-                            return startTimeout();
+                const onTimeout = () => {
+                    listener.timeout = undefined;
+                    if (this.awaitingServer) return startTimeout();
 
-                        this.removeListener(listener);
-                        reject(
-                            new CasparResponseError(
-                                [
-                                    `Timeout: "${command}"`,
-                                    callerStack ?? '(no stack)',
-                                ],
-                                -1,
-                            ),
-                        );
-                    }, COMMAND_TIMEOUT_MS);
+                    this.removeListener(listener);
+                    reject(timeoutError());
+                };
+                const startTimeout = () => {
+                    listener.timeout = setTimeout(
+                        onTimeout,
+                        COMMAND_TIMEOUT_MS,
+                    );
                 };
 
                 const clear = () => {
@@ -130,7 +132,7 @@ export class CommandExecutor {
         );
     }
 
-    /** @description NOTE: only use this function when you are certain that the server won't respond */
+    /** Only for commands the server will not answer; a reply is left unconsumed. */
     public executePassive(command: Command) {
         const data = command.getCommand();
         if (!data) return;
@@ -142,14 +144,10 @@ export class CommandExecutor {
         const data = command.getCommand();
         if (!data) return;
 
-        // TODO: handle information from commands sent such as if the cmd was a CLEAR or SWAP,
-        // which would affect critical systems of this application and should be handled accordingly
-
         const commands = BasicCommand.interpret(data);
         const promises = commands.map(cmd => this.promise(cmd.getCmd()));
         this.send(data);
 
-        // Could be faulty if one of the commands fails, especially if it's a multi-command and in the middle
         return Promise.all(promises);
     }
 
@@ -193,8 +191,7 @@ export class CommandExecutor {
         this.executeListeners(code, cmd, data);
         this.onEvent(code, cmd, data);
 
-        // 200 means multiple lines and ends with one empty line which will not be in data,
-        // so in that case we read one more line than data.length
+        // 200 ends with an empty line that is not in data, so read one more line.
         return code === 200 ? data.length + 1 : data.length;
     }
 
@@ -244,7 +241,7 @@ export class CommandExecutor {
 
     protected executeListeners(code: number, cmd: string, data: string[]) {
         if (code < 200) return; // Ignore informational codes
-        if (!cmd) return; // Ignore commands without a command (e.g. 400, 500), TODO: handle these in a different way
+        if (!cmd) return; // Ignore commands without a command (e.g. 400, 500)
 
         const success = Math.floor(code / 100) === 2;
         for (const listener of this.listeners) {

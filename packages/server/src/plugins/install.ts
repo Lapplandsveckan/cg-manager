@@ -7,19 +7,14 @@ import { Logger } from '../util/log';
 
 export const TOMBSTONE_PREFIX = '.trash-';
 
-/**
- * Remove a plugin directory, falling back to a tombstone rename when native
- * .node addons hold OS-level locks (Windows). Tombstones are swept at next
- * startup by sweepTombstones(). Throws only if both rm and rename fail.
- */
+/** Falls back to a tombstone rename when native addons lock files (Windows). */
 export async function removeOrTombstone(dir: string): Promise<void> {
     const [rmErr] = await noTryAsync(() =>
         fs.rm(dir, { recursive: true, force: true }),
     );
     if (!rmErr) return;
 
-    // rm failed — try to rename aside so the folder is invisible to
-    // loadPluginFolder (dotted entries are skipped) and swept next restart.
+    // Dotted names are skipped by loadPluginFolder; swept next restart.
     const tombstone = path.join(
         path.dirname(dir),
         `${TOMBSTONE_PREFIX}${path.basename(dir)}-${Date.now()}`,
@@ -32,8 +27,6 @@ export async function removeOrTombstone(dir: string): Promise<void> {
     );
 }
 
-/** Remove any `.trash-*` entries directly inside `dir`. Shared by the
- *  top-level and per-plugin (versioned) sweep passes. */
 async function sweepTombstonesIn(dir: string): Promise<void> {
     const logger = Logger.scope('Plugin Installer');
     const [readErr, entries] = await noTryAsync(() =>
@@ -47,16 +40,15 @@ async function sweepTombstonesIn(dir: string): Promise<void> {
         const [err] = await noTryAsync(() =>
             fs.rm(full, { recursive: true, force: true }),
         );
-        if (err)
+        if (err) {
             logger.warn(`Failed to sweep tombstone "${full}": ${err.message}`);
-        else logger.info(`Swept tombstone "${full}"`);
+            continue;
+        }
+
+        logger.info(`Swept tombstone "${full}"`);
     }
 }
 
-/** Remove any tombstone folders left from previous sessions, both at the
- *  top level (whole-plugin removals) and one level deep inside each plugin
- *  folder (single-version removals). Called once at startup before plugins
- *  are loaded, when native addons are not yet locked. */
 export async function sweepTombstones(pluginsDir: string): Promise<void> {
     await sweepTombstonesIn(pluginsDir);
 
@@ -72,36 +64,27 @@ export async function sweepTombstones(pluginsDir: string): Promise<void> {
     }
 }
 
-/** Strips characters that would break the folder loader (dotted names are
- *  skipped by loadPluginFolder) and sanitize npm scopes / slashes. */
+/** Dotted names would be skipped by loadPluginFolder. */
 export function sanitizeName(name: string): string {
-    // Strip npm scope prefix (@scope/name → name)
     const stripped = name.startsWith('@') ? name.split('/').pop()! : name;
-    // Replace anything that isn't safe as a directory name
     return stripped.replace(/[^A-Za-z0-9_-]/g, '_');
 }
 
-/** Sanitize a version string for use as a directory name. Unlike
- *  sanitizeName, dots/plus are kept since version subfolders are scanned
- *  explicitly and never go through the dotted-name folder filter. */
+/** Unlike sanitizeName keeps dots/plus: version dirs bypass the dotted-name filter. */
 export function sanitizeVersion(version: string | undefined): string {
     if (!version) return 'unknown';
     const cleaned = version.replace(/[^A-Za-z0-9._+-]/g, '_');
     return cleaned || 'unknown';
 }
 
-/** Split a version into comparable segments: numeric runs compare
- *  numerically, everything else compares as a string. Good enough for
- *  semver-ish plugin versions without pulling in a semver dependency. */
+// No semver dependency: numeric runs compare numerically.
 function versionSegments(version: string): (string | number)[] {
     return version
         .split(/[.-]/)
         .map(part => (/^\d+$/.test(part) ? Number(part) : part));
 }
 
-/** Compare two version strings for sorting newest-first. Numeric segments
- *  compare numerically; mismatched types fall back to string compare.
- *  Returns >0 if `a` is newer than `b`. */
+/** Returns >0 if `a` is newer than `b`. */
 export function compareVersions(a: string, b: string): number {
     const segA = versionSegments(a);
     const segB = versionSegments(b);
@@ -120,15 +103,11 @@ export function compareVersions(a: string, b: string): number {
     return 0;
 }
 
-/** Locate package.json inside the zip, either at root or inside a single
- *  top-level folder. Returns the prefix path (e.g. "" or "myplugin/"). */
 function findPackageJsonPrefix(zip: AdmZip): string | null {
     const entries = zip.getEntries().map(e => e.entryName);
 
-    // Root-level package.json
     if (entries.includes('package.json')) return '';
 
-    // Single top-level folder containing package.json
     const topLevel = new Set(entries.map(e => e.split('/')[0]));
     if (topLevel.size === 1) {
         const [folder] = topLevel;
@@ -139,7 +118,6 @@ function findPackageJsonPrefix(zip: AdmZip): string | null {
     return null;
 }
 
-/** Guard against zip-slip: every extracted path must resolve inside destDir. */
 function isSafe(destDir: string, entryPath: string): boolean {
     const resolved = path.resolve(destDir, entryPath);
     return (
@@ -154,7 +132,6 @@ export interface ExtractResult {
     dir: string;
 }
 
-/** Extract a .cgplugin zip into pluginsDir and return the installed folder. */
 export async function extractCgPlugin(
     zipPath: string,
     pluginsDir: string,
@@ -181,14 +158,10 @@ export async function extractCgPlugin(
     const version = sanitizeVersion(pkg.version as string | undefined);
     const destDir = path.join(pluginsDir, folderName, version);
 
-    // Clear only this version's folder (handles re-uploading the same
-    // name+version) — sibling versions are left untouched so they remain
-    // available for rollback. removeOrTombstone handles the Windows
-    // native-addon lock case gracefully.
+    // Sibling versions stay for rollback.
     await removeOrTombstone(destDir);
     await fs.mkdir(destDir, { recursive: true });
 
-    // Extract only the entries under the prefix, guarding against zip-slip
     const entries = zip.getEntries();
     for (const entry of entries) {
         if (!entry.entryName.startsWith(prefix)) continue;
@@ -213,8 +186,7 @@ export async function extractCgPlugin(
     };
 }
 
-/** Purge all require.cache entries for a plugin directory so Node releases
- *  its file handles. On Windows this is required before deleting the folder. */
+/** Windows needs the cache purged before the folder can be deleted. */
 export function purgePluginCache(dir: string) {
     const resolvedDir = path.resolve(dir);
     for (const key of Object.keys(require.cache)) {
@@ -223,11 +195,7 @@ export function purgePluginCache(dir: string) {
     }
 }
 
-/** Clear require cache for a plugin dir and re-require it, returning the
- *  default-exported CasparPlugin class. Throws on any validation failure. */
 export function loadSinglePlugin(dir: string): typeof CasparPlugin {
-    // Purge the module and all its children from require cache so hot-reload
-    // picks up the new version on update.
     const resolvedDir = path.resolve(dir);
     purgePluginCache(resolvedDir);
 

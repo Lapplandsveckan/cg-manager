@@ -121,25 +121,25 @@ async function main() {
     }
 }
 
-if (require.main === module) {
-    const argv = process.argv.slice(2);
-    if (argv[0] === 'plugins') {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { runPluginCli } = require('./cli/plugins');
-        (runPluginCli(argv.slice(1)) as Promise<void>).catch((e: unknown) => {
-            // eslint-disable-next-line no-console -- CLI error output belongs on stderr, not the file logger
-            console.error(e instanceof Error ? e.message : String(e));
-            process.exit(1);
-        });
-    } else if (argv[0] === 'config') {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { runConfigCli } = require('./cli/config');
-        (runConfigCli(argv.slice(1)) as Promise<void>).catch((e: unknown) => {
-            // eslint-disable-next-line no-console -- CLI error output belongs on stderr, not the file logger
-            console.error(e instanceof Error ? e.message : String(e));
-            process.exit(1);
-        });
-    } else {
-        main();
-    }
+function runCli(load: () => (args: string[]) => Promise<void>) {
+    load()(process.argv.slice(3)).catch((e: unknown) => {
+        // eslint-disable-next-line no-console -- CLI error output belongs on stderr, not the file logger
+        console.error(e instanceof Error ? e.message : String(e));
+        process.exit(1);
+    });
 }
+
+const cliCommands: Record<string, () => (args: string[]) => Promise<void>> = {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    plugins: () => require('./cli/plugins').runPluginCli,
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    config: () => require('./cli/config').runConfigCli,
+};
+
+const [, , command] = process.argv;
+const loadCli = Object.hasOwn(cliCommands, command)
+    ? cliCommands[command]
+    : null;
+const entry = () => (loadCli ? runCli(loadCli) : main());
+
+if (require.main === module) entry();

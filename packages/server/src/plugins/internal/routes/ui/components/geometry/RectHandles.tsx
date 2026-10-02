@@ -74,16 +74,14 @@ export function applyRectDrag(
     if (signX === -1 && newX < 0) {
         newW += newX;
         newX = 0;
-    } else if (signX === 1 && newX + newW > 1) {
-        newW = 1 - newX;
     }
+    if (signX === 1 && newX + newW > 1) newW = 1 - newX;
 
     if (signY === -1 && newY < 0) {
         newH += newY;
         newY = 0;
-    } else if (signY === 1 && newY + newH > 1) {
-        newH = 1 - newY;
     }
+    if (signY === 1 && newY + newH > 1) newH = 1 - newY;
 
     return {
         x: newX,

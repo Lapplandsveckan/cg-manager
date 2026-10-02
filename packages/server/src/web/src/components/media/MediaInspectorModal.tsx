@@ -124,7 +124,6 @@ const MediaInspectorModal: React.FC<Props> = ({ doc, onClose }) => {
                     border: `1px solid ${theme.palette.divider}`,
                 })}
             >
-                {/* Header */}
                 <Stack
                     direction="row"
                     alignItems="center"
@@ -158,13 +157,11 @@ const MediaInspectorModal: React.FC<Props> = ({ doc, onClose }) => {
                     </Tooltip>
                 </Stack>
 
-                {/* Body */}
                 <Stack
                     direction="row"
                     sx={{ flexGrow: 1, minHeight: 0 }}
                     divider={<Divider orientation="vertical" flexItem />}
                 >
-                    {/* Player */}
                     <Box
                         sx={{
                             flex: '1 1 60%',
@@ -225,7 +222,6 @@ const MediaInspectorModal: React.FC<Props> = ({ doc, onClose }) => {
                         )}
                     </Box>
 
-                    {/* Metadata */}
                     <Box
                         sx={{
                             flex: '0 0 300px',

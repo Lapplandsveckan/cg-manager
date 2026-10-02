@@ -66,9 +66,6 @@ const ViewportPlaceholder: React.FC<ViewportPlaceholderProps> = ({
 const whepUrlForChannel = (channel: number, nonce: number): string =>
     `/preview-whep/${channel}?t=${nonce}`;
 
-/** Standard WHEP exchange: POST the local SDP offer, server replies with the
- *  SDP answer. No DataChannel, no ICE-restart, no DELETE — keep alive until
- *  the peer connection itself closes. */
 async function whepExchange(
     channel: number,
     offerSdp: string,
@@ -91,21 +88,13 @@ async function whepExchange(
 const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
     const { t } = useTranslation('common');
     const [enabled, setEnabled] = useState(false);
-    // Bump on each (re)load — used in the URL so a Retry forces a fresh
-    // exchange rather than reusing whatever the browser/proxy might cache.
     const [reloadKey, setReloadKey] = useState(0);
     const [loaded, setLoaded] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     const videoRef = useRef<HTMLVideoElement | null>(null);
-    // Read via ref inside the WebRTC effect below so a language switch
-    // (which gives `t` a new identity) doesn't tear down and re-establish
-    // an already-live peer connection.
     const tRef = useLatest(t);
 
-    // Server going offline mid-preview won't always close the PC instantly
-    // (ICE has its own timeout). Auto-disable on caspar-status:false so the
-    // UI doesn't sit on a frozen frame pretending it's live.
     useEffect(() => {
         if (!running && enabled) {
             setEnabled(false);
@@ -116,9 +105,6 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
 
     const live = enabled && running;
 
-    // Spin up a WebRTC peer connection whenever we transition into a live
-    // state. WHEP-style SDP exchange against the manager's `/preview-whep/:ch`
-    // endpoint. Sub-second latency H.264 over WebRTC.
     useEffect(() => {
         if (!live) return;
 
@@ -179,9 +165,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
                 noTry(() => pc.getSenders().forEach(s => s.track?.stop()));
                 noTry(() => pc.close());
             }
-            // Intentionally read at cleanup time, not hoisted from the effect
-            // body — we want whichever element is mounted at teardown so
-            // clearing srcObject actually releases its stream.
+            // Read at teardown, not hoisted: the element mounted now is the one whose srcObject must be cleared
             // eslint-disable-next-line react-hooks/exhaustive-deps
             const video = videoRef.current;
             if (video) video.srcObject = null;
@@ -259,9 +243,6 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
                             width: '100%',
                             height: '100%',
                             objectFit: 'contain',
-                            // Hide the partially-rendered video element until
-                            // the first frame arrives; the placeholder/spinner
-                            // covers the gap during DTLS/ICE handshake.
                             visibility:
                                 live && loaded && !error ? 'visible' : 'hidden',
                         }}
@@ -336,16 +317,10 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ channel, running }) => {
 
 export const PreviewPanel: React.FC = () => {
     const { t } = useTranslation('common');
-    // Live (running) channels rather than the saved config — if CasparCG is
-    // off or starts with a different channel set we don't want to render
-    // preview cards for things that physically aren't there.
     const channels = useLiveChannels();
     const { data: status } = useCasparStatusQuery();
     const running = Boolean(status?.running);
 
-    // null = initial fetch hasn't resolved yet (avoid a brief empty flash).
-    // []   = CasparCG is off OR has no channels — render the panel chrome
-    //        with an explanatory placeholder rather than disappearing.
     if (channels === null) return null;
 
     return (

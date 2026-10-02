@@ -22,22 +22,22 @@ export async function loadPlugins() {
     await sweepTombstones(pluginsDir);
     await migrateFlatLayout(pluginsDir);
 
-    // Wire the plugin-upload completion hook so uploaded .cgplugin zips are
-    // extracted, activated, and hot-loaded without a restart.
+    const installPlugin = async (zipPath: string) => {
+        const result = await extractCgPlugin(zipPath, pluginsDir);
+        const manager = CasparManager.getManager();
+        await manager
+            .getPlugins()
+            .versions.setActiveVersion(result.name, result.version);
+        manager.emit('plugin-list-changed');
+        logger.info(
+            `Plugin "${result.name}" v${result.version} installed and activated`,
+        );
+    };
+
     Upload.onPluginComplete = async (zipPath: string) => {
-        try {
-            const result = await extractCgPlugin(zipPath, pluginsDir);
-            const manager = CasparManager.getManager();
-            await manager
-                .getPlugins()
-                .versions.setActiveVersion(result.name, result.version);
-            manager.emit('plugin-list-changed');
-            logger.info(
-                `Plugin "${result.name}" v${result.version} installed and activated`,
-            );
-        } finally {
-            await noTryAsync(() => fs.rm(zipPath, { force: true }));
-        }
+        const [err] = await noTryAsync(() => installPlugin(zipPath));
+        await noTryAsync(() => fs.rm(zipPath, { force: true }));
+        if (err) throw err;
     };
 
     await CasparManager.getManager().plugins.loadState();

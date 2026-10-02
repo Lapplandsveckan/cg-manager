@@ -34,7 +34,6 @@ export interface MediaDoc {
                 is_avc: any;
             };
 
-            // Video
             width: number;
             height: number;
             sample_aspect_ratio: string;

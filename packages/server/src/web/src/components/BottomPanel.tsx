@@ -12,9 +12,11 @@ import ExpandLessRoundedIcon from '@mui/icons-material/ExpandLessRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import { useTranslation } from 'react-i18next';
 import { useSocket } from '../lib/hooks/useSocket';
-import { useStoredBoolean } from '../lib/hooks/useStoredBoolean';
-import { useStoredNumber } from '../lib/hooks/useStoredNumber';
-import { useStoredString } from '../lib/hooks/useStoredString';
+import {
+    useStoredBoolean,
+    useStoredNumber,
+    useStoredString,
+} from '../lib/hooks/useStoredValue';
 import {
     Injection as InjectionView,
     UI_INJECTION_ZONE,

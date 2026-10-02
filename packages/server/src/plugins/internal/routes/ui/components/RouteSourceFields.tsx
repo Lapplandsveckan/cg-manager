@@ -93,11 +93,6 @@ interface SourceFieldsProps {
     draft: DraftSource;
     channels: number[];
     videoModes: string[];
-    // State-setter (rather than a plain onChange) so callbacks can use
-    // functional updates. The Autocomplete in the decklink branch fires
-    // `onInputChange` once at unmount when the source type changes; without
-    // a functional update reading current state, that stale fire overwrites
-    // the just-set new-type draft and the modal sticks on decklink.
     setDraft: React.Dispatch<React.SetStateAction<DraftSource>>;
 }
 
@@ -108,23 +103,16 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({
     setDraft,
 }) => {
     const { t } = useTranslation('common');
-    // Only fetch the media library when a video source actually needs it —
-    // decklink/channel/color routes shouldn't pull every doc over the wire.
+    // Only fetch media when a video source needs it.
     const { data: mediaRecord } = useMediaDocsQuery(draft.type === 'video');
     const videoId = draft.type === 'video' ? draft.video : '';
 
-    // For the video source, resolve the persisted media id to a full MediaDoc
-    // so MediaSelect can render the thumbnail card. Falls back to a stub doc
-    // (just the id) if we can't find a match — picker still works, the
-    // preview just won't have a thumb.
     const videoClip = useMemo<MediaDoc | null>(() => {
         if (!videoId) return null;
         return mediaRecord?.[videoId] ?? ({ id: videoId } as MediaDoc);
     }, [mediaRecord, videoId]);
 
-    // Type-guarded functional update: only patches the draft if the *current*
-    // type still matches. Prevents stale callbacks (e.g. Autocomplete's
-    // unmount fire) from reverting the source type.
+    // Skips stale callbacks (Autocomplete fires onInputChange at unmount) after a type change.
     const patch = <T extends DraftSource['type']>(
         type: T,
         update: (
@@ -138,11 +126,6 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({
         );
 
     if (draft.type === 'decklink') {
-        // Video modes come from the CG config; if none are configured yet we
-        // fall back to a small set of common ones so the dropdown isn't
-        // empty on first run. freeSolo via Autocomplete also lets users type
-        // a custom mode CasparCG supports but the host config doesn't know
-        // about.
         const modes = videoModes.length > 0 ? videoModes : BUILTIN_VIDEO_MODES;
         return (
             <Stack direction="row" gap={1.5} flexWrap="wrap">

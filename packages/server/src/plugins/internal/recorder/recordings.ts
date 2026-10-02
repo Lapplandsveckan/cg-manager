@@ -41,9 +41,6 @@ const sanitizeName = (name: string | undefined, fallback: string) => {
     return trimmed || fallback;
 };
 
-// Used when the user leaves the name blank — "channel-2-2026-10-02-143007"
-// rather than a bare UUID, so an unnamed recording is still identifiable in
-// the media library.
 const defaultName = (channel: number) => {
     const pad = (n: number) => String(n).padStart(2, '0');
     const now = new Date();
@@ -159,10 +156,7 @@ export class RecordingManager {
         const recording = this.recordings.get(id);
         if (recording?.state !== 'recording') return null;
 
-        // Flip state synchronously, before the REMOVE round-trip, so a
-        // concurrent stop() call (duration timer racing a manual stop) sees
-        // 'done' immediately and bails out above instead of sending a
-        // second REMOVE.
+        // State flips before the await so a racing stop() bails instead of sending a second REMOVE.
         clearTimeout(recording.timer);
         recording.timer = undefined;
         recording.state = 'done';
@@ -183,8 +177,6 @@ export class RecordingManager {
         return toPublic(recording);
     }
 
-    /** Stops whichever recording is currently active on `channel`, if any —
-     *  used by the rundown stop action, which only knows the channel. */
     public stopChannel(channel: number) {
         const active = [...this.recordings.values()].find(
             r => r.channel === channel && r.state === 'recording',
@@ -192,11 +184,7 @@ export class RecordingManager {
         return active ? this.stop(active.id) : Promise.resolve(null);
     }
 
-    /** `caspar-reconnect` fires both for a real CasparCG restart (every
-     *  consumer is already gone) and for a bare AMCP socket bounce (the
-     *  consumer is still running). We can't tell them apart, so always try
-     *  REMOVE first — a 404 on a restart is harmless — before giving up and
-     *  marking the recording interrupted. */
+    // Reconnect can't distinguish a restart from a socket bounce, so always try REMOVE first.
     public async handleReconnect() {
         const active = [...this.recordings.values()].filter(
             r => r.state === 'recording',
@@ -221,8 +209,6 @@ export class RecordingManager {
         if (active.length) this.broadcast();
     }
 
-    /** Best-effort stop for plugin disable — fires REMOVE without waiting
-     *  for the round-trip, since the plugin is already tearing down. */
     public disposeAll() {
         for (const recording of this.recordings.values()) {
             if (recording.state !== 'recording') continue;
@@ -265,8 +251,6 @@ export class RecordingManager {
         return { path: relativePath };
     }
 
-    /** Resolves to the temp file path for a finished recording, or `null`
-     *  if it doesn't exist or is still being written. */
     public getDownloadPath(id: string): string | null {
         const recording = this.recordings.get(id);
         if (!recording || recording.state === 'recording') return null;

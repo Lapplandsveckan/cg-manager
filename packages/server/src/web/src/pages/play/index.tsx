@@ -23,7 +23,7 @@ import { DeleteRundownModal } from '../../components/play/DeleteRundownModal';
 import { EditRundownModal } from '../../components/play/EditRundownModal';
 import { ModalShell } from '../../components/play/ModalShell';
 import { QuickJumpPalette } from '../../components/play/QuickJumpPalette';
-import { useStoredString } from '../../lib/hooks/useStoredString';
+import { useStoredString } from '../../lib/hooks/useStoredValue';
 import { useToast } from '../../components/ToastProvider';
 import type { Rundown, RundownItem } from '../../lib/query/rundowns';
 

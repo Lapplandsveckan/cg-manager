@@ -14,12 +14,11 @@ import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useContextMenu } from './ContextMenuProvider';
-import { usePlayEntry } from '../lib/hooks/usePlayEntry';
-import { useStopEntry } from '../lib/hooks/useStopEntry';
+import { useEntryCommand } from '../lib/hooks/useEntryCommand';
 import { EditRundown } from '../pages/play';
 import { RundownModals } from './RundownModals';
 import { Rundowns } from './rundown/RundownList';
-import { useStoredString } from '../lib/hooks/useStoredString';
+import { useStoredString } from '../lib/hooks/useStoredValue';
 import { useRundownDropEditor } from '../lib/hooks/useRundownDropEditor';
 import {
     type Rundown,
@@ -109,8 +108,8 @@ interface QuickActionsProps {
 
 export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
     const { t } = useTranslation('common');
-    const play = usePlayEntry();
-    const stop = useStopEntry();
+    const play = useEntryCommand('play');
+    const stop = useEntryCommand('stop');
 
     const { data: quickActionsData } = useQuickActionsList();
     const quickActions = useMemo(

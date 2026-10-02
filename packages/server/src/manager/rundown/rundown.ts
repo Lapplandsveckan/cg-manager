@@ -68,12 +68,7 @@ export class RundownManager {
         await this.saveRundown(rundown);
     }
 
-    // Tolerant read: returns the parsed rundown, or null if the file is
-    // missing, empty, or doesn't have the expected shape. Empty files happen
-    // when a save is interrupted by power loss after the OS truncated the
-    // file but before the new bytes were durably written — atomic save
-    // (saveRundown) prevents this going forward, but we still need a tolerant
-    // reader for files that pre-date the fix.
+    // Tolerant read: null for missing, empty or malformed files (empty ones predate the atomic save).
     private async parseRundownFile(p: string): Promise<Rundown | null> {
         const [err, content] = await noTryAsync(() => fs.readFile(p, 'utf8'));
         if (err) return null;
@@ -102,9 +97,7 @@ export class RundownManager {
 
         const direct = await this.parseRundownFile(primary);
         if (direct) {
-            // Stale .tmp from a crashed save that landed at the primary path
-            // earlier (or from before this code shipped) — remove so it
-            // doesn't shadow a future recovery attempt.
+            // A stale .tmp from a crashed save would shadow a future recovery.
             await noTryAsync(() => fs.unlink(tmp));
             return direct;
         }
@@ -164,13 +157,7 @@ export class RundownManager {
 
         const content = JSON.stringify(rundown, null, 2);
 
-        // Atomic save: write to a sibling .tmp + fsync so the bytes are
-        // durable on disk, then atomically rename over the primary file.
-        // A crash before rename leaves the primary intact; a crash after
-        // leaves the new content in place. The previous fs.writeFile path
-        // truncated the file first, so a power loss between truncate and
-        // write left a 0-byte file with the rundown gone — that's what
-        // readWithRecovery now defends against by also probing .tmp.
+        // Atomic save (.tmp + fsync + rename): a crash cannot leave the 0-byte file readWithRecovery defends against.
         const [openErr, fh] = await noTryAsync(() => fs.open(tmp, 'w'));
         if (openErr) {
             Logger.error(`Failed to open rundown tmp (${tmp})`);
@@ -227,19 +214,12 @@ interface ActionEntry {
     metadata: RundownActionMetadata | null;
 }
 
-/** Serializable view of a registered action. Sent to the browser by
- *  GET /api/rundown/actions so the rundown drop overlay can do a coarse
- *  client-side filter on dragenter — the authoritative match still runs
- *  through POST /api/rundown/actions/match. */
+/** Browser-facing action view: a coarse dragenter filter; POST /api/rundown/actions/match is authoritative. */
 export interface RundownActionDescriptor {
     id: string;
     fileTypes?: string[];
     destination?: string;
-    /** True when this action registered an accepts.match predicate and can
-     *  therefore participate in instant playout from the Media view. */
     acceptsFiles: boolean;
-    /** True when this action registered a stop handler. The browser uses this
-     *  to decide whether to show the per-entry stop button. */
     hasStop: boolean;
 }
 
@@ -257,10 +237,7 @@ export interface RundownFileMatchResult {
     destination: string;
 }
 
-/** Derive a media-scanner id from a path that's already relative to the
- *  media root. Mirrors `getId(mediaRoot, absPath)` in scanner/util.ts —
- *  kept inline here to avoid pulling the scanner module into the rundown
- *  module. If the scanner's conversion rules change, update both. */
+// Not getId: the input is already root-relative, and getId would normalize it via path.relative.
 function relPathToMediaId(relPath: string): string {
     return relPath
         .replace(/\.[^/.]+$/, '')
@@ -275,10 +252,7 @@ export class RundownExecutor {
         return Array.from(this.actions.keys());
     }
 
-    /** Like getActionTypes, but each entry carries the slice of metadata
-     *  that's safe to send to the browser. The `match` predicate is
-     *  intentionally omitted — it isn't serializable and only runs in
-     *  matchFile() below. */
+    /** getActionTypes plus browser-safe metadata; the non-serializable `match` predicate is omitted. */
     public getActionDescriptors(): RundownActionDescriptor[] {
         const out: RundownActionDescriptor[] = [];
         for (const [id, entry] of this.actions) {
@@ -304,12 +278,7 @@ export class RundownExecutor {
             if (!accepts?.match) continue;
 
             const destination = accepts.destination ?? '';
-            // Resolve to an ASCII-safe, non-colliding path so the mediaId
-            // we return to the client matches the on-disk filename the
-            // scanner will pick up. Doing this once per action keeps the
-            // file.path / file.mediaId the predicate sees consistent with
-            // what the upload will land at. file.name stays raw so the
-            // plugin can use it for the display title.
+            // ASCII-safe, non-colliding path so the returned mediaId matches what the scanner will pick up.
             const filePath = await safeMediaPath(
                 destination + file.name,
                 mediaRoot,
@@ -351,12 +320,7 @@ export class RundownExecutor {
         return matches;
     }
 
-    /** Like matchFile, but for media that already exists in the library.
-     *  Skips upload-destination logic — the mediaId is used directly as
-     *  both path and mediaId so match predicates receive a consistent value.
-     *  Note: `size` is passed as 0 since it isn't tracked here; a predicate
-     *  that gates on file size would reject library media — none currently do
-     *  (they key on type/name), but keep this in mind if that changes. */
+    /** matchFile for library media: mediaId doubles as path and size is 0 (untracked), so a size-gated predicate would reject it. */
     public async matchMedia(input: {
         mediaId: string;
         name: string;
@@ -400,11 +364,7 @@ export class RundownExecutor {
         return matches;
     }
 
-    // `owner` is passed by `PluginAPI.registerRundownAction` (in
-    // @lappis/cg-manager) so the host can clean the action up when the
-    // owning plugin is disabled. Optional to keep the signature usable by
-    // internal callers that aren't tied to a plugin. `metadata` opts the
-    // action into the file-drop pipeline (see matchFile above).
+    // `owner` lets the host clean the action up when its plugin is disabled; `metadata` opts into file-drop.
     public registerAction(
         type: string,
         action: ActionHandler,

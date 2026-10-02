@@ -12,23 +12,15 @@ import { CasparManager } from '../index';
 export class PluginManager {
     private _plugins: CasparPlugin[] = [];
     private _disabled: Set<string> = new Set();
-    /** pluginName -> currently loaded dir (active version dir for external
-     *  plugins, flat internal dir for built-ins). */
     private _pluginDirs = new Map<string, string>();
     private _builtin = new Set<string>();
     private _minChannels = new Map<string, number>();
-    /** Plugins skipped at enable time solely because of insufficient channels. */
     private _channelBlocked = new Set<string>();
     private _channelCount = 0;
     private _deps = new PluginDependencyResolver();
-    /** folderName -> active version, for external (uploaded) plugins. */
     private _active: Record<string, string> = {};
-    /** pluginName -> on-disk folder name. External plugins only — the
-     *  runtime identity (pluginName) and the on-disk identity (sanitized
-     *  package name) are independent. */
+    /** External plugins only; runtime and on-disk identity are independent. */
     private _folderNames = new Map<string, string>();
-    /** folderName -> installed versions, newest-first. Cached so the sync
-     *  list() can include it without hitting disk on every call. */
     private _versions = new Map<string, string[]>();
 
     private get pluginsDir(): string {
@@ -41,8 +33,6 @@ export class PluginManager {
         this._active = state.active;
     }
 
-    /** Snapshot of the persisted active-version selections, used by the
-     *  plugin loader to resolve which version to load at startup. */
     public getActiveMap(): Record<string, string> {
         return { ...this._active };
     }
@@ -87,9 +77,7 @@ export class PluginManager {
         return this._channelBlocked.has(name) || this._deps.isBlocked(name);
     }
 
-    // Only hard-dependency cycles actually block enabling — one formed
-    // purely by optional deps just falls back to registration order and
-    // enables fine, so that case is logged quietly instead of as an error.
+    // Optional-only cycles are logged at debug, not error.
     private _logCycle(cyclic: CasparPlugin[]) {
         if (!cyclic.length) return;
         const names = new Set(cyclic.map(p => p.pluginName));
@@ -98,14 +86,11 @@ export class PluginManager {
         );
         const message = `Dependency cycle detected involving: ${[...names].join(', ')}`;
         const logger = Logger.scope('Plugin Loader');
-        if (hard) logger.error(message);
-        else logger.debug(message);
+        if (hard) return logger.error(message);
+        logger.debug(message);
     }
 
-    /** Re-checks every channel- or dependency-blocked plugin and enables any
-     *  that are now satisfied, looping to a fixpoint (one pass can enable a
-     *  provider after its dependent was already checked in that same pass).
-     *  Returns whether anything changed. */
+    /** Loops to a fixpoint; one pass can enable a provider after its dependent was checked. */
     private _recomputeBlocked(): boolean {
         let anyChanged = false;
         let changedThisPass = true;
@@ -184,10 +169,9 @@ export class PluginManager {
 
         this._plugins.push(_plugin);
         if (dir) this._pluginDirs.set(_plugin.pluginName, dir);
-        if (builtin) {
-            this._builtin.add(_plugin.pluginName);
-        } else if (dir) {
-            // dir is `<pluginsDir>/<folderName>/<version>` for external plugins.
+        if (builtin) this._builtin.add(_plugin.pluginName);
+        // external dir layout: <pluginsDir>/<folderName>/<version>
+        if (!builtin && dir) {
             const folderName = path.basename(path.dirname(dir));
             this._folderNames.set(_plugin.pluginName, folderName);
             this.refreshVersions(folderName);
@@ -202,10 +186,7 @@ export class PluginManager {
         pluginLogger.debug('Loaded');
 
         this._maybeAutoEnable(_plugin, pluginLogger);
-        // Hot-loaded outside the initial enableAll() sweep (e.g. a plugin
-        // upload) — this newly-registered plugin may itself be the
-        // dependency an already-registered, dependency-blocked plugin was
-        // waiting on.
+        // Hot-loading may supply a dependency a blocked plugin was waiting on.
         if (this._enabled) this._recomputeBlocked();
     }
 
@@ -224,8 +205,6 @@ export class PluginManager {
             plugin.pluginName,
         );
         this._applyDisable(plugin, pluginLogger);
-        // The plugin is gone entirely, not just disabled — anything that
-        // hard-depends on it can no longer run.
         this._disableDependents(plugin.pluginName);
     }
 
@@ -249,10 +228,7 @@ export class PluginManager {
     public list() {
         return this._plugins.map(p => {
             const folderName = this._folderNames.get(p.pluginName);
-            // Derive the displayed active version from the dir actually
-            // loaded, rather than the persisted selection — this stays
-            // correct even before any explicit setActiveVersion call has
-            // persisted a choice (e.g. right after startup discovery).
+            // Derive from the loaded dir so it is right before any setActiveVersion call.
             const loadedDir = this._pluginDirs.get(p.pluginName);
             const activeVersion = folderName
                 ? (this._active[folderName] ??
@@ -289,8 +265,6 @@ export class PluginManager {
         if (this._enabled) return;
         this._enabled = true;
 
-        // Providers must be attempted before dependents so a dependent's
-        // first `_maybeAutoEnable` check sees its dependency already enabled.
         const { ordered, cyclic } = this._deps.order(this._plugins);
         this._logCycle(cyclic);
         for (const plugin of ordered) {
@@ -347,12 +321,7 @@ export class PluginManager {
             logger.error(`Failed to enable plugin: ${Logger.formatError(err)}`);
     }
 
-    // Tears the plugin down, then strips any rundown actions it had
-    // registered so disabled-plugin types stop appearing in the picker and
-    // items keyed off them silently no-op. Ownership is set at registration
-    // time by `PluginAPI.registerRundownAction` (which passes the plugin
-    // name), so this cleanup catches both sync- and async-registered
-    // actions.
+    // Also drops the plugin's rundown actions so disabled types leave the picker.
     private _applyDisable(plugin: CasparPlugin, logger: Logger) {
         const [err] = noTry(() => plugin['disable'](logger));
         if (err)
@@ -361,9 +330,7 @@ export class PluginManager {
             );
         const manager = CasparManager.getManager();
         manager.rundowns.executor.unregisterActionsByOwner(plugin.pluginName);
-        // CompanionRegistry also tracks sub-cleanup internally, but calling
-        // unregisterOwner here ensures the broadcast fires before the plugin's
-        // own API teardown clears its handle list.
+        // Broadcast must fire before the plugin API teardown clears its handles.
         manager.companion.unregisterOwner(plugin.pluginName);
     }
 

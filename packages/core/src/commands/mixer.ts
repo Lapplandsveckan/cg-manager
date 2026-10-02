@@ -100,9 +100,10 @@ export class MixerCommand extends CommandGroup {
     }
 
     protected single(command: string, args: string[] = [], tween?: Tween) {
-        if (tween)
-            if (typeof tween === 'number') args.push(tween.toString());
-            else args.push(tween.duration.toString());
+        if (tween) {
+            const duration = typeof tween === 'number' ? tween : tween.duration;
+            args.push(duration.toString());
+        }
 
         if (typeof tween !== 'number' && tween?.type) args.push(tween.type);
 

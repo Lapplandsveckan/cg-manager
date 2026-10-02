@@ -1,13 +1,13 @@
 export const UI_INJECTION_ZONE = {
     PLUGIN_PAGE: 'plugin-page',
 
-    // Contributes a top-level sidebar button + page (served at
-    // /ext/:plugin[/:pageKey]). One registration = one button. Use a dotted
-    // sub-zone (`navbar-page.<pageKey>`) to add more than one button per
-    // plugin; a bare registration is the single-button case. The label/icon
-    // are read from a `meta = { label, icon }` export on the page module
-    // (label falls back to the page-key, then the plugin name; icon falls
-    // back to a default).
+    /**
+     * Top-level sidebar button + page, served at `/ext/:plugin[/:pageKey]`.
+     * Use a dotted sub-zone (`navbar-page.<pageKey>`) for more than one
+     * button per plugin. Label and icon come from a `meta = { label, icon }`
+     * export on the page module (label falls back to the page key, then the
+     * plugin name).
+     */
     NAVBAR_PAGE: 'navbar-page',
 
     RUNDOWN_ITEM: 'rundown-item',
@@ -18,22 +18,25 @@ export const UI_INJECTION_ZONE = {
 
     UPLOAD_OPTIONS: 'upload-options',
 
-    // Not rendered visually. Components injected here mount in a hidden div
-    // and call `useRegisterContextMenuItems(surface, provider)` to contribute
-    // items to host right-click menus. Use dotted sub-zones to target a
-    // specific surface, e.g. `context-menu.rundown-item`.
+    /**
+     * Not rendered visually. Mounted in a hidden div; components call
+     * `useRegisterContextMenuItems(surface, provider)` to add right-click
+     * items. Target a surface with a dotted sub-zone, e.g.
+     * `context-menu.rundown-item`.
+     */
     CONTEXT_MENU: 'context-menu',
 
-    // Mounted once at the app root, outside any page, for the plugin's whole
-    // enabled lifetime. For global modals and cross-page listeners.
+    /** Mounted once at the app root for the plugin's whole enabled lifetime. */
     GLOBAL: 'global',
 } as const;
 
 export type UI_INJECTION_ZONE =
     (typeof UI_INJECTION_ZONE)[keyof typeof UI_INJECTION_ZONE];
-// A plugin can also define its own zone for other plugins to extend, in the
-// form `plugin:<owner-defined-name>` (e.g. `plugin:edgeblend.sidebar`) — the
-// same rendering machinery works for host zones and plugin zones alike.
+
+/**
+ * Plugins can also define their own zone for others to extend, as
+ * `plugin:<owner-defined-name>` (e.g. `plugin:edgeblend.sidebar`).
+ */
 export type UI_INJECTION_ZONE_KEY =
     UI_INJECTION_ZONE | `${UI_INJECTION_ZONE}.${string}` | `plugin:${string}`;
 

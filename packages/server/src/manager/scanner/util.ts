@@ -12,11 +12,8 @@ export function getId(fileDir: string, filePath: string) {
         .toUpperCase();
 }
 
-// Like getId, but for a directory: no extension to strip, so a folder name
-// containing a dot (e.g. "My.Folder") isn't mistaken for one. Media ids
-// living under this folder share this exact string as their prefix. The media
-// root itself yields '', which is not a usable prefix — callers reach this via
-// normalizeFolderPath, which rejects an empty path.
+// Directory variant of getId: no extension strip, so "My.Folder" keeps its dot.
+// Callers go through normalizeFolderPath, which rejects the empty media-root id.
 export function getFolderId(fileDir: string, folderPath: string) {
     return path
         .relative(fileDir, folderPath)
@@ -24,11 +21,6 @@ export function getFolderId(fileDir: string, folderPath: string) {
         .toUpperCase();
 }
 
-/**
- * Resolve `relative` against `base` and reject any result that escapes `base`.
- * Guards against `..`, absolute paths, and symlink-style traversal in input
- * strings before we hand them to fs operations.
- */
 export function resolveSafePath(base: string, relative: string): string {
     const baseAbs = path.resolve(base);
     const target = path.resolve(baseAbs, relative);
@@ -37,16 +29,7 @@ export function resolveSafePath(base: string, relative: string): string {
     return target;
 }
 
-/**
- * Replace non-ASCII characters in a path so CasparCG can reference it.
- * Latin diacritics collapse to their base letter (ä → a, é → e, ø → o);
- * non-Latin characters that can't be reduced are stripped. Path
- * separators and ASCII punctuation are preserved.
- *
- * CasparCG's AMCP layer silently no-ops on PLAY for media whose names
- * contain non-ASCII bytes — sanitizing at the point of upload means the
- * file lands at a name the runtime can actually use.
- */
+/** CasparCG silently no-ops PLAY on non-ASCII names; diacritics collapse to base letters, others are stripped. */
 export function sanitizeMediaPath(p: string): string {
     return p
         .normalize('NFD')
@@ -63,29 +46,8 @@ async function fileExists(p: string): Promise<boolean> {
     return !err;
 }
 
-/**
- * Resolve `rawPath` (relative to `mediaRoot`) to an ASCII-safe, non-
- * colliding final path. Always returns a path the scanner can index and
- * AMCP can reference.
- *
- * Resolution order:
- *  1. Sanitize via {@link sanitizeMediaPath}.
- *  2. If the basename collapsed to nothing (e.g. `中文.mp4` → `.mp4`),
- *     replace the stem with `shortHash(rawPath)` so we never end up with
- *     anonymous dot-files.
- *  3. If the resulting on-disk path is free, return it.
- *  4. Otherwise append `-<shortHash(rawPath)>` before the extension and
- *     re-check.
- *  5. If even that's taken, append an 8-char random nonce too — at this
- *     point we've stopped trying to be deterministic and just need
- *     somewhere to land.
- *
- * The hash is derived from the *raw* path so the same upload always
- * resolves to the same name. That's important because matchFile returns
- * a mediaId to the browser based on this path; if the resolver gave
- * different answers on second call, the rundown item would reference a
- * file the scanner can't find.
- */
+/** Resolves to an ASCII-safe, non-colliding path. Hashes the raw path so repeat calls agree:
+ *  matchFile hands the browser a mediaId derived from it. */
 export async function safeMediaPath(
     rawPath: string,
     mediaRoot: string,
@@ -94,9 +56,7 @@ export async function safeMediaPath(
     const dir = path.dirname(sanitized);
     const dirPrefix = dir === '.' || dir === '' ? '' : `${dir}/`;
     const hash = shortHash(rawPath);
-    // path.extname treats leading-dot basenames as having no extension
-    // (`.mp4` → '') — manually split to ensure the dot suffix is treated
-    // as extension, not left as part of stem.
+    // path.extname('.mp4') is '', so split manually to keep the dot suffix as the extension.
     const base = path.basename(sanitized);
     const lastDot = base.lastIndexOf('.');
     const stem = lastDot < 0 ? base : base.slice(0, lastDot);
@@ -112,8 +72,6 @@ export async function safeMediaPath(
         : `${dirPrefix}${hash}-${shortHash(`${rawPath}:suffix`)}${ext}`;
     if (!(await fileExists(path.join(mediaRoot, suffixed)))) return suffixed;
 
-    // Last resort: preserve determinism as much as possible by hashing the
-    // raw path; if a collision still occurs, layer a random nonce.
     const nonce = crypto.randomBytes(4).toString('hex');
     const stemOrHash = stem || hash;
     return `${dirPrefix}${stemOrHash}-${hash}-${nonce}${ext}`;
@@ -122,10 +80,7 @@ export async function safeMediaPath(
 // eslint-disable-next-line no-control-regex
 const INVALID_FILENAME_CHARS = /[/\\<>:|?*\x00-\x1f]/;
 
-/**
- * Validate a single filename component (no directory parts allowed).
- * Throws on empty, too long, reserved, or character-set violations.
- */
+/** Throws on empty, too long, reserved, or invalid names. */
 export function validateFilename(name: string): void {
     if (!name || typeof name !== 'string') throw new Error('Name is required');
     if (name.length > 255) throw new Error('Name is too long');

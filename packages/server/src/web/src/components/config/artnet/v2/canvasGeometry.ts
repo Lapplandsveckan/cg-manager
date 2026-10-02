@@ -67,7 +67,6 @@ export function applyDrag(
     let newH = Math.max(minSize, start.height + signY * localDy);
 
     if (rotation === 0) {
-        // Axis-aligned path: keep the original strict bounds-clamping behaviour.
         let newLeft =
             signX === -1 ? start.left + (start.width - newW) : start.left;
         let newTop =
@@ -76,13 +75,15 @@ export function applyDrag(
         if (signX === -1 && newLeft < 0) {
             newW += newLeft;
             newLeft = 0;
-        } else if (signX === 1 && newLeft + newW > bounds.width) {
+        }
+        if (signX === 1 && newLeft + newW > bounds.width) {
             newW = bounds.width - newLeft;
         }
         if (signY === -1 && newTop < 0) {
             newH += newTop;
             newTop = 0;
-        } else if (signY === 1 && newTop + newH > bounds.height) {
+        }
+        if (signY === 1 && newTop + newH > bounds.height) {
             newH = bounds.height - newTop;
         }
 

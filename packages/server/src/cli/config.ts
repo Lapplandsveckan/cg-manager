@@ -15,6 +15,33 @@ Commands:
 `);
 }
 
+function fail(message: string): never {
+    console.error(`Error: ${message}`);
+    process.exit(1);
+}
+
+function parseNumber(raw: string) {
+    const n = Number(raw);
+    if (Number.isNaN(n)) fail(`"${raw}" is not a valid number.`);
+    return n;
+}
+
+function parseBoolean(raw: string) {
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+    return fail(`"${raw}" is not a valid boolean. Use true or false.`);
+}
+
+const parsers: Record<string, (raw: string) => string | number | boolean> = {
+    number: parseNumber,
+    boolean: parseBoolean,
+};
+
+function coerce(raw: string, type: string) {
+    if (raw === 'null') return null;
+    return (parsers[type] ?? (value => value))(raw);
+}
+
 export async function runConfigCli(args: string[]): Promise<void> {
     if (process.env.CASPAR_DIR) process.chdir(process.env.CASPAR_DIR);
     await loadConfigQuiet();
@@ -72,28 +99,7 @@ export async function runConfigCli(args: string[]): Promise<void> {
             process.exit(1);
         }
 
-        let coerced: string | number | boolean | null;
-        if (raw === 'null') {
-            coerced = null;
-        } else if (meta.type === 'number') {
-            const n = Number(raw);
-            if (Number.isNaN(n)) {
-                console.error(`Error: "${raw}" is not a valid number.`);
-                process.exit(1);
-            }
-            coerced = n;
-        } else if (meta.type === 'boolean') {
-            if (raw === 'true') coerced = true;
-            else if (raw === 'false') coerced = false;
-            else {
-                console.error(
-                    `Error: "${raw}" is not a valid boolean. Use true or false.`,
-                );
-                process.exit(1);
-            }
-        } else {
-            coerced = raw;
-        }
+        const coerced = coerce(raw, meta.type);
 
         // Read the raw file (not merged defaults) so we only persist explicit overrides.
         const [readErr, rawContent] = await noTryAsync(() =>

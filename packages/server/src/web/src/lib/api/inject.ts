@@ -18,13 +18,7 @@ import {
 export const UI_INJECTION_ZONE = {
     PLUGIN_PAGE: 'plugin-page',
 
-    // Contributes a top-level sidebar button + page (served at
-    // /ext/:plugin[/:pageKey]). One registration = one button. Use a dotted
-    // sub-zone (`navbar-page.<pageKey>`) to add more than one button per
-    // plugin; a bare registration is the single-button case. The label/icon
-    // are read from a `meta = { label, icon }` export on the page module
-    // (label falls back to the page-key, then the plugin name; icon falls
-    // back to a default).
+    // One button per registration; use navbar-page.<pageKey> for more. Label/icon come from the page meta export
     NAVBAR_PAGE: 'navbar-page',
 
     RUNDOWN_ITEM: 'rundown-item',
@@ -33,17 +27,10 @@ export const UI_INJECTION_ZONE = {
     RUNDOWN_SIDE: 'rundown-side',
     RUNDOWN_BOTTOM_PANEL: 'rundown-bottom-panel',
 
-    // Rendered inside the **media** upload modal while a file is being
-    // uploaded; injections receive `targetPaths: string[]` (server-side
-    // absolute paths) via props so they can act on the in-flight files.
-    // The plugin-install modal deliberately passes `optionsZone={null}`
-    // to suppress this zone — media-specific options make no sense there.
+    // Media upload modal only; injections receive targetPaths: string[] props
     UPLOAD_OPTIONS: 'upload-options',
 
-    // Not rendered visually. Components injected here mount in a hidden div
-    // and call `useRegisterContextMenuItems(surface, provider)` to contribute
-    // items to host right-click menus. Use dotted sub-zones to target a
-    // specific surface, e.g. `context-menu.rundown-item`.
+    // Hidden mount; components call useRegisterContextMenuItems
     CONTEXT_MENU: 'context-menu',
 
     GLOBAL: 'global',
@@ -51,9 +38,7 @@ export const UI_INJECTION_ZONE = {
 
 export type UI_INJECTION_ZONE =
     (typeof UI_INJECTION_ZONE)[keyof typeof UI_INJECTION_ZONE];
-// A plugin can also define its own zone for other plugins to extend, in the
-// form `plugin:<owner-defined-name>` — mirrors @lappis/cg-manager's
-// types/ui.ts and the server's manager/plugins/ui.ts, keep all in sync.
+// Keep in sync with @lappis/cg-manager types/ui.ts and manager/plugins/ui.ts
 export type UI_INJECTION_ZONE_KEY =
     UI_INJECTION_ZONE | `${UI_INJECTION_ZONE}.${string}` | `plugin:${string}`;
 
@@ -64,8 +49,6 @@ export interface Injection {
     id: string;
 }
 
-// The ES module namespace loaded off an injection bundle. `meta` is a
-// navbar-page (or similar) convention — see `meta()` below.
 interface PluginModule {
     default?: React.ComponentType;
     meta?: { label?: string; icon?: string };
@@ -105,9 +88,6 @@ export class PluginInjectionAPI {
         return import(/* webpackIgnore: true */ url);
     }
 
-    // Loads (and caches) the full ES module namespace for an injection, so
-    // both its default export (the component) and named exports (e.g. a
-    // navbar page's `meta`) are reachable from one bundle fetch.
     private async moduleOf(id: string): Promise<PluginModule> {
         const cached = this._modules.get(id);
         if (cached) return cached;
@@ -126,8 +106,6 @@ export class PluginInjectionAPI {
         return module?.default as React.ComponentType;
     }
 
-    // Named `meta` export of a navbar-page (or similar) injection module —
-    // e.g. `{ label, icon }`. Returns null if the module has none.
     public async meta(id: string) {
         const module = await this.moduleOf(id);
         return module?.meta ?? null;
@@ -139,8 +117,6 @@ interface InjectionProps {
     props?: Record<string, unknown>;
 }
 
-// Renders a single injection by id. Use this when you need one specific
-// injection rather than all injections in a zone.
 export const Injection: React.FC<InjectionProps> = ({ id, props }) => {
     const [Component, setComponent] = useState<ComponentType | null>(null);
     const socket = useSocket();

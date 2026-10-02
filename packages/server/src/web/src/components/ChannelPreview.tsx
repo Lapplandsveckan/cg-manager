@@ -5,14 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { useLatest } from '../lib/hooks/useLatest';
 
 interface ChannelPreviewProps {
-    /** 1-based CasparCG channel number. Disabled when undefined/null. */
     channel: number | null | undefined;
-    /** How the video fills its parent. `cover` for stage backdrops, `contain`
-     *  for preview cards that need to show the whole frame. */
     objectFit?: 'contain' | 'cover';
-    /** Called once when the first frame arrives. Useful for hiding spinners. */
     onReady?: () => void;
-    /** Called with a message on WHEP/SDP/ICE failures. */
     onError?: (msg: string) => void;
 }
 
@@ -36,14 +31,6 @@ async function whepExchange(
     return resp.text();
 }
 
-/**
- * Embeds a single CasparCG channel's WebRTC preview. Mount = open session,
- * unmount = close it. The server-side PreviewManager tears down its consumer
- * automatically when our peer-connection state goes to closed/disconnected.
- *
- * Renders an absolutely-positioned `<video>` filling its parent — wrap in a
- * relatively-positioned container with whatever size you want.
- */
 export const ChannelPreview: React.FC<ChannelPreviewProps> = ({
     channel,
     objectFit = 'cover',
@@ -52,12 +39,8 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({
 }) => {
     const { t } = useTranslation('common');
     const videoRef = useRef<HTMLVideoElement | null>(null);
-    // Read via ref inside the WebRTC effect below so a language switch
-    // (which gives `t` a new identity) doesn't tear down and re-establish
-    // an already-live peer connection.
+    // Read via ref so a language switch does not restart a live peer connection
     const tRef = useLatest(t);
-    // Per-mount key; changing channel re-runs the effect cleanly. We also
-    // include it in deps so the WebRTC session restarts when the prop flips.
     const [mountId] = useState(() => Math.random());
     const [loaded, setLoaded] = useState(false);
 
@@ -81,12 +64,7 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({
                     video.srcObject =
                         event.streams[0] ?? new MediaStream([event.track]);
 
-                    // Tell the WebRTC stack to paint the first decodable
-                    // frame immediately instead of building up its default
-                    // 150–200ms jitter buffer. We're on LAN/loopback so the
-                    // jitter the buffer would have absorbed isn't there to
-                    // worry about. noTry because older browsers don't ship
-                    // this hint and the property assignment throws.
+                    // Paint first frame immediately; older browsers throw on this hint, hence noTry
                     noTry(() => {
                         (
                             event.receiver as RTCRtpReceiver & {
@@ -129,9 +107,7 @@ export const ChannelPreview: React.FC<ChannelPreviewProps> = ({
             abort.abort();
             if (pc) noTry(() => pc.close());
 
-            // Intentionally read at cleanup time, not hoisted from the effect
-            // body — we want whichever element is mounted at teardown so
-            // clearing srcObject actually releases its stream.
+            // Read at teardown, not hoisted: the mounted element is the one whose srcObject must be cleared
             // eslint-disable-next-line react-hooks/exhaustive-deps
             const video = videoRef.current;
             if (video) video.srcObject = null;

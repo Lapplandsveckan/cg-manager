@@ -21,23 +21,8 @@ import { ChannelPreview } from './ChannelPreview';
 
 const STORAGE_KEY = 'rundown-preview-channel';
 
-/**
- * Compact preview card meant to live at the bottom of the side column on
- * the rundowns page. Shows one channel at a time — operators flip between
- * them with the chips in the header. Picking the same chip again, or
- * hitting ×, disables preview entirely (no encoder spun up). The choice
- * is persisted in localStorage so an operator who's set up their workspace
- * doesn't have to re-pick on reload.
- *
- * Renders nothing when CasparCG reports zero channels.
- */
 export const RundownPreview: React.FC = () => {
     const { t } = useTranslation('common');
-    // *Live* channels — what CasparCG is actually serving right now, not
-    // what's on disk. The chip list shrinks/grows when CasparCG is started
-    // or restarted with a different config. Empty when CasparCG is stopped,
-    // so the operator can't try to preview something that physically isn't
-    // running.
     const channels = useLiveChannels();
     const [selected, setSelected] = useState<number | null>(null);
     const hydratedRef = useRef(false);
@@ -46,10 +31,7 @@ export const RundownPreview: React.FC = () => {
         if (!channels) return;
 
         if (!hydratedRef.current) {
-            // First channel list arriving — restore the operator's last pick
-            // if it's still valid. Doing this here (not on mount) means we
-            // never momentarily open a WHEP session for a channel that no
-            // longer exists.
+            // Restore last pick only after channels arrive; avoids opening WHEP for a vanished channel
             hydratedRef.current = true;
             const raw = getStorageItem(STORAGE_KEY);
             const stored = raw ? Number(raw) : NaN;
@@ -70,9 +52,6 @@ export const RundownPreview: React.FC = () => {
     };
 
     const pickChannel = (ch: number) => {
-        // Clicking the active chip turns preview off — saves an extra
-        // explicit "close" interaction for the common "I'm done glancing"
-        // case while still keeping × available for discoverability.
         updateSelected(ch === selected ? null : ch);
     };
 
@@ -80,12 +59,6 @@ export const RundownPreview: React.FC = () => {
 
     const offline = channels.length === 0;
 
-    // Plain Box (no Card chrome) so the preview reads as a section of the
-    // column rather than a floating panel — only the top hairline visually
-    // separates it from the scrollable injections above. Matching 8px
-    // breathing room on the sides and bottom (`mx`+`mb: 1`) makes the
-    // inset symmetric: same gap to the column edge horizontally as the
-    // gap to the page bottom vertically.
     return (
         <Box
             sx={theme => ({
@@ -100,9 +73,6 @@ export const RundownPreview: React.FC = () => {
                 alignItems="center"
                 justifyContent="space-between"
                 gap={1}
-                // Header label flush with the column's left edge (= the
-                // video box's left edge below). Right side still gets a
-                // little breathing room so the chips don't touch the edge.
                 sx={{ pl: 0, pr: 1.5, py: 1.25 }}
             >
                 <Typography variant="h6" sx={{ color: 'text.secondary' }}>
@@ -187,7 +157,6 @@ export const RundownPreview: React.FC = () => {
                 })}
             >
                 {offline ? (
-                    // Placeholder so the slot doesn't read as a frozen preview
                     <Stack
                         spacing={0.5}
                         sx={{
@@ -206,7 +175,6 @@ export const RundownPreview: React.FC = () => {
                         </Typography>
                     </Stack>
                 ) : selected != null ? (
-                    // WHEP session is opened/closed by ChannelPreview's mount/unmount effect
                     <ChannelPreview channel={selected} objectFit="contain" />
                 ) : (
                     <Stack

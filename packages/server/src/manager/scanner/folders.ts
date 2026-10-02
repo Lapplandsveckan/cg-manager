@@ -3,38 +3,23 @@ import * as path from 'path';
 import { noTryAsync } from 'no-try';
 import { Logger } from '../../util/log';
 
-/**
- * Folder management for the CasparCG media root.
- *
- * The scanner is file-driven, so empty folders are invisible to it. To
- * give the UI a stable view of the folder tree we maintain a placeholder
- * file (`.cgkeep`) inside every directory under the media root. The
- * scanner ignores this filename, but its presence keeps the directory
- * around regardless of whether it contains real media.
- */
+/** Empty folders are invisible to the file-driven scanner, so every directory holds a `.cgkeep` placeholder. */
 export const PLACEHOLDER_NAME = '.cgkeep';
 export const MAX_FOLDER_DEPTH = 16;
 
-/** Top-level directory names that are managed internally (currently just
- *  `_internal`, used by `DirectoryManager` to stash plugin-side symlinks).
- *  These are excluded from the listing the UI sees and from placeholder
- *  backfill — they're not user-facing folders. */
+/** Internal top-level dirs (e.g. `_internal` plugin symlinks), hidden from the UI and placeholder backfill. */
 const RESERVED_FOLDERS = new Set<string>(['_internal']);
 
 function isReserved(name: string): boolean {
     return RESERVED_FOLDERS.has(name);
 }
 
-/** True when the first segment of a folder path is reserved. Callers doing a
- *  recursive delete must check this before touching disk — `removeEmptyFolder`
- *  is naturally guarded by "not empty", but `fs.rm` isn't. */
+/** Recursive deletes must check this first: `fs.rm` has no "not empty" guard. */
 export function isReservedTopLevel(segments: string[]): boolean {
     return isReserved((segments[0] ?? '').toLowerCase());
 }
 
-/** True when a media ID lives under a reserved top-level folder. Use to
- *  hide plugin-internal symlinks from UI consumers (the scanner-facing
- *  endpoints on :8000 still expose them so CasparCG can play them). */
+/** True when a media ID lives under a reserved folder (hides plugin-internal symlinks from the UI; :8000 still serves them). */
 export function isInternalMediaId(id: string): boolean {
     const head = id.split('/', 1)[0];
     return RESERVED_FOLDERS.has(head.toLowerCase());
@@ -68,10 +53,7 @@ export async function listAllFolders(root: string): Promise<string[]> {
     return out;
 }
 
-/** Touch a `.cgkeep` in every directory that doesn't already have one. Safe
- *  to call repeatedly — uses `wx` so existing placeholders aren't touched.
- *  Logs but doesn't throw on per-folder errors so a permissions issue on
- *  one subtree can't take the whole manager down. */
+/** Touches `.cgkeep` in every directory lacking one (`wx`, so repeat calls are safe). Per-folder errors are logged, not thrown. */
 export async function ensureFolderPlaceholders(root: string): Promise<void> {
     let touched = 0;
 
@@ -104,8 +86,7 @@ export async function ensureFolderPlaceholders(root: string): Promise<void> {
 
         for (const entry of entries) {
             if (!entry.isDirectory()) continue;
-            // Don't recurse into reserved trees — the manager owns those
-            // and they don't need placeholders.
+            // Reserved trees are manager-owned; no placeholders.
             if (depth === 0 && isReserved(entry.name)) continue;
             await walk(path.join(dir, entry.name), depth + 1);
         }
@@ -115,9 +96,6 @@ export async function ensureFolderPlaceholders(root: string): Promise<void> {
     if (touched > 0) logger.info(`backfilled .cgkeep in ${touched} folder(s)`);
 }
 
-/** Parse + validate a slash-separated relative path into segments suitable
- *  for `path.join`. Throws via the caller's choice of error type by letting
- *  the segment validator throw `Error`. */
 export function normalizeFolderPath(folderPath: string): string[] {
     const segments = folderPath
         .replace(/^\/+/, '')
@@ -131,29 +109,18 @@ export function normalizeFolderPath(folderPath: string): string[] {
     return segments;
 }
 
-/** Remove a folder under `root` iff it contains nothing the user
- *  would consider "media". Dotfile-named entries — `.cgkeep` (our
- *  empty-folder placeholder), `.cgnoencode` markers, `.DS_Store`,
- *  any plugin sidecar — are treated as ignorable noise and are
- *  swept before `rmdir`. Throws on:
- *    - ENOENT: directory doesn't exist
- *    - non-empty: contains any non-dotfile entry
- *    - path escapes root: caught by the caller's resolveSafePath
- *  The caller is responsible for safe-path resolution; pass the
- *  pre-resolved absolute path as `targetAbs`.
- */
+/** Removes a folder holding only dotfiles (swept first); throws on ENOENT or real content.
+ *  Takes a pre-resolved absolute path. */
 export async function removeEmptyFolder(targetAbs: string): Promise<void> {
     const entries = await fs.readdir(targetAbs);
-    // Hidden / dotfile entries are infrastructure (our placeholder,
-    // sidecars, OS noise); they don't count toward "non-empty".
+    // Dotfiles (placeholder, sidecars, OS noise) do not count as content.
     const stray = entries.filter(name => !name.startsWith('.'));
     if (stray.length > 0)
         throw new Error(
             `Folder is not empty (${stray.length} item${stray.length === 1 ? '' : 's'})`,
         );
 
-    // Sweep every dotfile so rmdir actually succeeds (it won't touch
-    // files). ENOENT on any of them is fine — they were just gone.
+    // Sweep dotfiles so rmdir succeeds; ENOENT means already gone.
     const dotfiles = entries.filter(name => name.startsWith('.'));
     for (const name of dotfiles)
         await noTryAsync(() => fs.unlink(path.join(targetAbs, name)));
@@ -161,13 +128,7 @@ export async function removeEmptyFolder(targetAbs: string): Promise<void> {
     await fs.rmdir(targetAbs);
 }
 
-/** Remove a folder under `root` and everything inside it. Unlike
- *  {@link removeEmptyFolder}, this doesn't check contents first — the caller
- *  is expected to have already gotten a "not empty" rejection and prompted
- *  the user to escalate. Contained media is not touched via the DB directly;
- *  the scanner's watcher reconciles each deleted file via its own `unlink`
- *  event. Uses `force: true`, so a missing directory is a silent no-op
- *  rather than an ENOENT throw — deletion is idempotent either way. */
+/** Recursive remove; the scanner watcher reconciles each deleted file. `force` makes a missing dir a no-op. */
 export async function removeFolderRecursive(targetAbs: string): Promise<void> {
     await fs.rm(targetAbs, { recursive: true, force: true });
 }
