@@ -7,7 +7,12 @@ import {
 } from 'rest-exchange-protocol';
 import { type Effect, type EffectConstructor } from './effect';
 import { type Channel } from './layers';
-import { type Logger, type CasparManager } from './types';
+import {
+    type Logger,
+    type CasparManager,
+    type HttpHandler,
+    type HttpRouter,
+} from './types';
 import { type UI_INJECTION_ZONE_KEY } from './types/ui';
 import {
     type RundownActionMetadata,
@@ -136,6 +141,17 @@ export class PluginAPI extends EventEmitter {
         this.routes = [];
     }
 
+    private httpHandlers: HttpHandler[] = [];
+
+    private unregisterHttpHandlers() {
+        for (const handler of this.httpHandlers)
+            this._manager.server.unregisterHttpHandler(
+                this._plugin.pluginName,
+                handler,
+            );
+        this.httpHandlers = [];
+    }
+
     private async unregisterFiles() {
         for (const file of this.files)
             await this._manager.directory.deleteDirectory(file);
@@ -160,6 +176,7 @@ export class PluginAPI extends EventEmitter {
     private unregister() {
         this.unregisterEffects();
         this.unregisterRoutes();
+        this.unregisterHttpHandlers();
         this.unregisterUIInjections();
         this.unregisterCompanion();
         this._manager.interop.unregisterOwner(this._plugin.pluginName);
@@ -187,6 +204,36 @@ export class PluginAPI extends EventEmitter {
 
         this.routes.splice(index, 1);
         this._manager.server.unregisterRoute(route);
+    }
+
+    public createHttpRouter(): HttpRouter {
+        return this._manager.server.createHttpRouter();
+    }
+
+    public registerHttpHandler(handler: HttpHandler) {
+        if (this.httpHandlers.includes(handler)) return;
+
+        this._manager.server.registerHttpHandler(
+            this._plugin.pluginName,
+            handler,
+        );
+        this.httpHandlers.push(handler);
+    }
+
+    public unregisterHttpHandler(handler: HttpHandler) {
+        const index = this.httpHandlers.indexOf(handler);
+        if (index < 0) return;
+
+        this.httpHandlers.splice(index, 1);
+        this._manager.server.unregisterHttpHandler(
+            this._plugin.pluginName,
+            handler,
+        );
+    }
+
+    public getHttpPath(subPath = '') {
+        const name = encodeURIComponent(this._plugin.pluginName);
+        return `/api/plugin-http/${name}/${subPath.replace(/^\/+/, '')}`;
     }
 
     public broadcast(

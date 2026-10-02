@@ -9,6 +9,7 @@ import {
     WebsocketOutboundMethod,
     type Route,
 } from 'rest-exchange-protocol';
+import { type RequestHandler } from 'express';
 import { noTry, noTryAsync } from 'no-try';
 import { loadRoutes } from './route';
 import { type CasparManager } from '../manager';
@@ -21,6 +22,12 @@ import { isInternalMediaId } from '../manager/scanner/folders';
 import { mediaStreamMiddleware } from './mediaStream';
 import { telemetryScriptMiddleware } from './telemetryScript';
 import { type Config } from '../manager/caspar/config/types';
+import {
+    createPluginRouter,
+    pluginHttpMiddleware,
+    registerPluginHttp,
+    unregisterPluginHttp,
+} from './pluginHttp';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type CGClient = TypedClient<{}>;
@@ -42,7 +49,7 @@ export class CGServer {
         routes.forEach(route => this.server.register(route));
 
         // Middleware order: cors → telemetryScript → authApi → auth →
-        //   previewWhep → mediaStream → upload → web. Each stage
+        //   previewWhep → mediaStream → pluginHttp → upload → web. Each stage
         //   short-circuits via MiddlewareProhibitFurtherExecution when it
         //   handles a request. authApi claims /api/auth/* outright, so the
         //   auth gate never needs to know that prefix exists. telemetryScript
@@ -54,6 +61,7 @@ export class CGServer {
         this.server.use(authMiddleware());
         this.server.use(this.previewWhep());
         this.server.use(mediaStreamMiddleware());
+        this.server.use(pluginHttpMiddleware());
         this.server.use(this.upload());
         this.server.use(this.web());
 
@@ -350,5 +358,21 @@ export class CGServer {
             `Unregistering route ${route.method} ${route.path}`,
         );
         this.server.unregister(route);
+    }
+
+    public registerHttpHandler(pluginName: string, handler: RequestHandler) {
+        Logger.scope('API').debug(`Registering HTTP handler for ${pluginName}`);
+        registerPluginHttp(pluginName, handler);
+    }
+
+    public unregisterHttpHandler(pluginName: string, handler: RequestHandler) {
+        Logger.scope('API').debug(
+            `Unregistering HTTP handler for ${pluginName}`,
+        );
+        unregisterPluginHttp(pluginName, handler);
+    }
+
+    public createHttpRouter() {
+        return createPluginRouter();
     }
 }

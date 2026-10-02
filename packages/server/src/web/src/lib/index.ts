@@ -1,6 +1,7 @@
 export { useSocket } from './hooks/useSocket';
 export { useBroadcast } from './hooks/useBroadcast';
 export { topic } from './api/broadcasts';
+export { pluginHttpUrl } from './api/pluginHttpUrl';
 export type { BroadcastTopic } from './api/broadcasts';
 export { Method, WebError } from 'rest-exchange-protocol-client';
 export {

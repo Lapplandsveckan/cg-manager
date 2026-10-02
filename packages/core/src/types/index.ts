@@ -5,3 +5,4 @@ export * from './rundown';
 export * from './companion';
 export type { CasparStatus } from './caspar/process';
 export type { MediaDoc } from './scanner/db';
+export type { HttpHandler, HttpRouter } from './server';
