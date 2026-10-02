@@ -3,7 +3,7 @@ import dgram from 'dgram';
 import fs from 'fs';
 import path from 'path';
 import { spawn, type ChildProcess } from 'child_process';
-import { BasicCommand } from '@lappis/cg-manager';
+import { type Consumer } from '@lappis/cg-manager';
 import {
     MediaStreamTrack,
     RTCDtlsTransport,
@@ -96,12 +96,6 @@ function ffmpegBinary(): string {
     return fs.existsSync(bundled) ? bundled : 'ffmpeg';
 }
 
-// Consumer slot index for preview sessions starts well above the typical
-// statically-configured consumers (which sit at 1..N from the XML). Each
-// new session bumps the counter; CasparCG only cares about uniqueness
-// within a channel but we make it globally unique for easier tracking.
-let nextConsumerIndex = 100;
-
 export interface WebRTCSessionOptions {
     channel: number;
     /** SDP offer from the browser, exchanged via the WHEP endpoint. */
@@ -117,7 +111,7 @@ export interface WebRTCSession {
 
 interface InternalWebRTCSession extends WebRTCSession {
     channel: number;
-    consumerIndex: number;
+    consumer: Consumer;
     udpSocket: dgram.Socket;
     tcpServer: net.Server;
     ffmpeg: ChildProcess;
@@ -197,7 +191,8 @@ export class PreviewManager {
                 'CasparCG is not connected — start the server first',
             );
 
-        const consumerIndex = nextConsumerIndex++;
+        const channel = this.executor.getChannel(opts.channel);
+
         const [, dtlsKeys] = await noTryAsync(() => this.dtlsKeysPromise);
 
         const udpSocket = dgram.createSocket('udp4');
@@ -324,19 +319,15 @@ export class PreviewManager {
             return sdp;
         });
         const addPromise = noTryAsync(() =>
-            this.executor.execute(
-                BasicCommand.construct(
-                    'ADD',
-                    `${opts.channel}-${consumerIndex}`,
-                    'STREAM',
-                    `tcp://127.0.0.1:${tcpPort}`,
-                    ...H264_PREVIEW_ARGS,
-                ),
+            channel.addConsumer(
+                'STREAM',
+                `tcp://127.0.0.1:${tcpPort}`,
+                ...H264_PREVIEW_ARGS,
             ),
         );
 
         const [sdpErr, sdpAnswer] = await sdpPromise;
-        const [addErr] = await addPromise;
+        const [addErr, consumer] = await addPromise;
 
         if (sdpErr || addErr) {
             udpSocket.close();
@@ -345,22 +336,14 @@ export class PreviewManager {
             await noTryAsync(() => pc.close());
             // If ADD landed but SDP failed, undo the consumer so we don't
             // leave a dangling encoder feeding nothing.
-            if (!addErr)
-                await noTryAsync(() =>
-                    this.executor.execute(
-                        BasicCommand.construct(
-                            'REMOVE',
-                            `${opts.channel}-${consumerIndex}`,
-                        ),
-                    ),
-                );
+            if (consumer) await noTryAsync(() => consumer.remove());
             if (sdpErr) throw sdpErr;
             throw new Error(`AMCP ADD failed: ${addErr!.message ?? addErr}`);
         }
 
         const session: InternalWebRTCSession = {
             channel: opts.channel,
-            consumerIndex,
+            consumer,
             udpSocket,
             tcpServer,
             ffmpeg,
@@ -385,7 +368,7 @@ export class PreviewManager {
 
         this.webrtcSessions.add(session);
         logger.debug(
-            `Opened WebRTC preview ch=${opts.channel} idx=${consumerIndex} ` +
+            `Opened WebRTC preview ch=${opts.channel} idx=${consumer.index} ` +
                 `tcp=${tcpPort} udp=${udpPort} ffmpeg=${ffmpeg.pid}`,
         );
 
@@ -399,17 +382,10 @@ export class PreviewManager {
         session.closed = true;
         this.webrtcSessions.delete(session);
 
-        const [removeErr] = await noTryAsync(() =>
-            this.executor.execute(
-                BasicCommand.construct(
-                    'REMOVE',
-                    `${session.channel}-${session.consumerIndex}`,
-                ),
-            ),
-        );
+        const [removeErr] = await noTryAsync(() => session.consumer.remove());
         if (removeErr)
             logger.warn(
-                `AMCP REMOVE failed for ${session.channel}-${session.consumerIndex}: ${removeErr.message ?? removeErr}`,
+                `AMCP REMOVE failed for ${session.channel}-${session.consumer.index}: ${removeErr.message ?? removeErr}`,
             );
 
         await noTryAsync(() => session.pc.close());
@@ -418,7 +394,7 @@ export class PreviewManager {
         noTry(() => session.ffmpeg.kill('SIGTERM'));
 
         logger.debug(
-            `Closed WebRTC preview ch=${session.channel} idx=${session.consumerIndex}`,
+            `Closed WebRTC preview ch=${session.channel} idx=${session.consumer.index}`,
         );
     }
 

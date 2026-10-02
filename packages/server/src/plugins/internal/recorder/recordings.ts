@@ -1,7 +1,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { BasicCommand, type Logger, type PluginAPI } from '@lappis/cg-manager';
+import { type Consumer, type Logger, type PluginAPI } from '@lappis/cg-manager';
 import { noTryAsync } from 'no-try';
 import { WebsocketOutboundMethod } from 'rest-exchange-protocol';
 import { UUID } from '../../../util/uuid';
@@ -32,14 +32,9 @@ export interface StartRecordingOptions {
 
 interface InternalRecording extends RecordingEntry {
     filePath: string;
-    consumerIndex: number;
+    consumer: Consumer;
     timer?: NodeJS.Timeout;
 }
-
-// Clear of preview.ts's consumer-index range (100+ and counting), but the
-// two allocators are independent — this only holds in practice, not by
-// construction.
-let nextConsumerIndex = 20000;
 
 const sanitizeName = (name: string | undefined, fallback: string) => {
     const trimmed = name?.trim().replace(/[/\\]+/g, '-') || '';
@@ -60,17 +55,6 @@ const defaultName = (channel: number) => {
     ].join('-');
     return `channel-${channel}-${stamp}`;
 };
-
-const removeConsumer = (
-    channel: ReturnType<PluginAPI['getChannel']>,
-    channelNum: number,
-    consumerIndex: number,
-) =>
-    noTryAsync(() =>
-        channel.executor.execute(
-            BasicCommand.construct('REMOVE', `${channelNum}-${consumerIndex}`),
-        ),
-    );
 
 export class RecordingManager {
     private readonly tempDir = path.join(os.tmpdir(), 'cg-manager-recordings');
@@ -135,27 +119,19 @@ export class RecordingManager {
         preset: NonNullable<ReturnType<typeof presetById>>,
     ): Promise<[InternalRecording, null] | [null, Error]> {
         const channel = this.api.getChannel(opts.channel);
+
         const id = UUID.generate();
         const filePath = path.join(this.tempDir, `${id}.${preset.extension}`);
-        const consumerIndex = nextConsumerIndex++;
 
-        const [err] = await noTryAsync(() =>
-            channel.executor.execute(
-                BasicCommand.construct(
-                    'ADD',
-                    `${opts.channel}-${consumerIndex}`,
-                    'FILE',
-                    filePath.replace(/\\/g, '/'),
-                    ...preset.args,
-                ),
+        const [err, consumer] = await noTryAsync(() =>
+            channel.addConsumer(
+                'FILE',
+                filePath.replace(/\\/g, '/'),
+                ...preset.args,
             ),
         );
-        if (err) {
-            // ADD may have landed even though the response timed out — make
-            // sure we don't leave a consumer no one is tracking.
-            await removeConsumer(channel, opts.channel, consumerIndex);
+        if (err)
             return [null, new Error(`AMCP ADD failed: ${err.message ?? err}`)];
-        }
 
         const recording: InternalRecording = {
             id,
@@ -167,7 +143,7 @@ export class RecordingManager {
             startedAt: Date.now(),
             durationSec: opts.durationSec,
             filePath,
-            consumerIndex,
+            consumer,
         };
 
         if (opts.durationSec)
@@ -192,14 +168,10 @@ export class RecordingManager {
         recording.state = 'done';
         recording.stoppedAt = Date.now();
 
-        const [err] = await removeConsumer(
-            this.api.getChannel(recording.channel),
-            recording.channel,
-            recording.consumerIndex,
-        );
+        const [err] = await noTryAsync(() => recording.consumer.remove());
         if (err)
             this.logger.warn(
-                `AMCP REMOVE failed for ${recording.channel}-${recording.consumerIndex}: ${err.message ?? err}`,
+                `AMCP REMOVE failed for ${recording.channel}-${recording.consumer.index}: ${err.message ?? err}`,
             );
 
         const [, stat] = await noTryAsync(() =>
@@ -235,11 +207,7 @@ export class RecordingManager {
                 clearTimeout(recording.timer);
                 recording.timer = undefined;
 
-                await removeConsumer(
-                    this.api.getChannel(recording.channel),
-                    recording.channel,
-                    recording.consumerIndex,
-                );
+                await noTryAsync(() => recording.consumer.remove());
 
                 recording.state = 'interrupted';
                 recording.stoppedAt = Date.now();
@@ -260,11 +228,7 @@ export class RecordingManager {
             if (recording.state !== 'recording') continue;
 
             clearTimeout(recording.timer);
-            void removeConsumer(
-                this.api.getChannel(recording.channel),
-                recording.channel,
-                recording.consumerIndex,
-            );
+            void noTryAsync(() => recording.consumer.remove());
         }
     }
 
@@ -321,7 +285,7 @@ export class RecordingManager {
 const toPublic = (recording: InternalRecording): RecordingEntry => {
     const {
         filePath: _filePath,
-        consumerIndex: _consumerIndex,
+        consumer: _consumer,
         timer: _timer,
         ...rest
     } = recording;

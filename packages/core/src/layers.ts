@@ -6,6 +6,7 @@ import { SwapCommand } from './commands/swap';
 import { BasicChannel, BasicLayer } from './basic';
 import { type CommandExecutor } from './executor';
 import { MixerCommand } from './commands';
+import { addConsumer, type Consumer } from './consumer';
 export interface AllocateOptions {
     count?: number;
     index?: number;
@@ -125,6 +126,16 @@ export class Channel extends BasicChannel {
 
     public setExecutor(executor: CommandExecutor) {
         this.executor = executor;
+    }
+
+    private consumerIndices = new Set<number>();
+    public addConsumer(...params: string[]): Promise<Consumer> {
+        return addConsumer(
+            this.executor,
+            this.getCasparChannel(),
+            this.consumerIndices,
+            params,
+        );
     }
 
     public getLayer(id: string) {
