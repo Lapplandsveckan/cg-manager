@@ -890,7 +890,7 @@
         }
     },
     "plugins": {
-        "essentials": {
+        "routes": {
             "toggleVideoRoute": {
                 "title": "Toggle video route",
                 "description": "Flips the selected route between enabled and disabled when this item runs.",

@@ -44,9 +44,21 @@ export { MediaDropZone } from '../components/MediaDropZone';
 export type { MediaDropZoneProps } from '../components/MediaDropZone';
 export { useRundownLive, RundownLiveProvider } from '../hooks/useRundownLive';
 export { ChannelPreview } from '../components/ChannelPreview';
-// Lets a plugin open the route editor modal on top of the current page
-// (e.g. from a rundown context-menu item) without navigating to /routes.
-export { useRouteInspector } from '../components/routes/RouteInspectorProvider';
+export { useToast } from '../components/ToastProvider';
+export { SlotErrorBoundary } from '../components/SlotErrorBoundary';
+export { useStoredBoolean } from './hooks/useStoredBoolean';
+export { useMediaDocsQuery } from './query/media';
+export { useChannelInfo } from './query/caspar';
+export { BUILTIN_VIDEO_MODES } from './videoModes';
+// Plugins that cache server data share the host's QueryClient (and, via the
+// `ReactQuery` window external, its React context) instead of bundling their own.
+export { queryClient } from './query/client';
+export {
+    defineMutation,
+    useMutationSpec,
+    runMutation,
+} from './query/mutations';
+export type { MutationSpec, Rollback } from './query/mutations';
 // Plugins commonly need to annotate variables holding a media record (e.g.
 // from ManagerApi.caspar.getAllMedia()) without going through the socket API
 // module directly.

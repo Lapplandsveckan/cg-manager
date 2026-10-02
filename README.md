@@ -44,7 +44,6 @@ Use `manager config show` to print the effective configuration and `manager conf
 | `log-dir` | string | `null` | Directory for log files. `null` = no file logging. |
 | `db-file` | string | `./media-cache.json` | Path to the media-cache database file. |
 | `rundown-dir` | string | `./rundowns` | Directory for rundown files. |
-| `routes-dir` | string | `./routes` | Directory for video route files. |
 | `plugins-dir` | string | `./plugins` | Directory external plugins load from. |
 | `plugin-state-file` | string | `./plugin-state.json` | Path to the persisted plugin enabled/disabled state. |
 | `password` | string | `null` | Shared web UI / API password. `null` disables auth entirely. |

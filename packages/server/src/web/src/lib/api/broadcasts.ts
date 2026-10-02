@@ -2,12 +2,11 @@ import { Method } from 'rest-exchange-protocol-client';
 import { type CasparConfig, type CasparStatus, type MediaDoc } from './caspar';
 import { type Plugin } from './plugin';
 import { type Rundown, type RundownItem } from './rundowns';
-import { type VideoRoute } from './videoRoutes';
 
 /** One entry per server broadcast topic: path, method and the payload shape,
  *  declared once so subscribers never re-cast `unknown` by hand. Lives in
  *  `lib/api/` (not `lib/query/`) because topics reference
- *  `caspar`/`plugin`/`rundowns`/`videoRoutes` API types — putting it under
+ *  `caspar`/`plugin`/`rundowns` API types — putting it under
  *  `lib/query/` would make those files depend back on `lib/api/`. */
 export interface BroadcastTopic<T> {
     path: string;
@@ -91,20 +90,6 @@ export const entriesReordered = topic<{ id: string; order: string[] }>(
     (data): data is { id: string; order: string[] } =>
         isString(fields(data).id) && Array.isArray(fields(data).order),
 );
-
-export const routeCreated = topic<VideoRoute>(
-    'routes',
-    Method.CREATE,
-    (data): data is VideoRoute => hasId(data),
-);
-
-export const routeUpdated = topic<VideoRoute>(
-    'routes',
-    Method.UPDATE,
-    (data): data is VideoRoute => hasId(data),
-);
-
-export const routeDeleted = topic<string>('routes', Method.DELETE, isString);
 
 export const casparStatus = topic<CasparStatus>(
     'caspar/status',

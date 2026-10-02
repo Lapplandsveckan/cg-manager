@@ -7,7 +7,6 @@
   "caspar-path": null,
   "db-file": "./media-cache.json",
   "rundown-dir": "./rundowns",
-  "routes-dir": "./routes",
   "plugins-dir": "./plugins",
   "plugin-state-file": "./plugin-state.json",
   "telemetry": {

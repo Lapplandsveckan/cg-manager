@@ -22,7 +22,7 @@ import { ConnectionBanner } from '../components/ConnectionBanner';
 import { ToastProvider } from '../components/ToastProvider';
 import { UndoProvider } from '../components/UndoProvider';
 import { ContextMenuProvider } from '../components/ContextMenuProvider';
-import { RouteInspectorProvider } from '../components/routes/RouteInspectorProvider';
+import { PluginGlobalMounts } from '../components/PluginGlobalMounts';
 import { PluginContextMenuMounts } from '../components/PluginContextMenuMounts';
 import { EntryClipboardProvider } from '../components/EntryClipboardProvider';
 import { AuthGate } from '../components/AuthGate';
@@ -94,59 +94,58 @@ function App({ Component, pageProps }: AppProps) {
                                         <UndoProvider>
                                             <UndoInvalidationSync />
                                             <ContextMenuProvider>
-                                                <RouteInspectorProvider>
-                                                    <PluginContextMenuMounts />
-                                                    <EntryClipboardProvider>
+                                                <PluginContextMenuMounts />
+                                                <PluginGlobalMounts />
+                                                <EntryClipboardProvider>
+                                                    <Stack
+                                                        direction="column"
+                                                        sx={{
+                                                            height: '100vh',
+                                                            width: '100%',
+                                                        }}
+                                                    >
+                                                        <ConnectionBanner />
                                                         <Stack
-                                                            direction="column"
                                                             sx={{
-                                                                height: '100vh',
-                                                                width: '100%',
+                                                                flex: 1,
+                                                                minHeight: 0,
                                                             }}
                                                         >
-                                                            <ConnectionBanner />
-                                                            <Stack
-                                                                sx={{
-                                                                    flex: 1,
-                                                                    minHeight: 0,
-                                                                }}
-                                                            >
-                                                                <ErrorBoundary
-                                                                    fallback={
-                                                                        appCrashFallback
-                                                                    }
-                                                                    onError={(
+                                                            <ErrorBoundary
+                                                                fallback={
+                                                                    appCrashFallback
+                                                                }
+                                                                onError={(
+                                                                    e,
+                                                                    i,
+                                                                ) => {
+                                                                    // eslint-disable-next-line no-console -- devtools half of the report; reportClientError below sends the other half
+                                                                    console.error(
+                                                                        '[app:page]',
                                                                         e,
                                                                         i,
-                                                                    ) => {
-                                                                        // eslint-disable-next-line no-console -- devtools half of the report; reportClientError below sends the other half
-                                                                        console.error(
-                                                                            '[app:page]',
-                                                                            e,
-                                                                            i,
-                                                                        );
-                                                                        const err =
-                                                                            e as Error;
-                                                                        reportClientError(
-                                                                            {
-                                                                                source: 'app:page',
-                                                                                message:
-                                                                                    err.message,
-                                                                                stack: err.stack,
-                                                                                componentStack:
-                                                                                    i.componentStack,
-                                                                            },
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <Component
-                                                                        {...pageProps}
-                                                                    />
-                                                                </ErrorBoundary>
-                                                            </Stack>
+                                                                    );
+                                                                    const err =
+                                                                        e as Error;
+                                                                    reportClientError(
+                                                                        {
+                                                                            source: 'app:page',
+                                                                            message:
+                                                                                err.message,
+                                                                            stack: err.stack,
+                                                                            componentStack:
+                                                                                i.componentStack,
+                                                                        },
+                                                                    );
+                                                                }}
+                                                            >
+                                                                <Component
+                                                                    {...pageProps}
+                                                                />
+                                                            </ErrorBoundary>
                                                         </Stack>
-                                                    </EntryClipboardProvider>
-                                                </RouteInspectorProvider>
+                                                    </Stack>
+                                                </EntryClipboardProvider>
                                             </ContextMenuProvider>
                                         </UndoProvider>
                                     </ToastProvider>

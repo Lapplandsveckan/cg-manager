@@ -55,7 +55,6 @@ export function rekeyId(
         );
 }
 
-export const routeScope = (id: string): string => `route:${id}`;
 export const rundownScope = (id: string, sub?: string): string =>
     sub ? `rundown:${id}:${sub}` : `rundown:${id}`;
 export const CONFIG_SCOPE = 'config';

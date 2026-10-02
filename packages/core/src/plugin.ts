@@ -14,7 +14,6 @@ import {
     type RundownItem,
     type Rundown,
 } from './types/rundown';
-import { type VideoRoute, type RouteChange } from './types/routes';
 import { type CasparStatus } from './types/caspar/process';
 import {
     type ActionDefinition,
@@ -108,6 +107,14 @@ export class PluginAPI extends EventEmitter {
 
     public offReconnect(handler: () => void) {
         this._manager.off('caspar-reconnect', handler);
+    }
+
+    public onConnect(handler: () => void) {
+        this._manager.on('caspar-connect', handler);
+    }
+
+    public offConnect(handler: () => void) {
+        this._manager.off('caspar-connect', handler);
     }
 
     private _effects: string[] = [];
@@ -315,34 +322,6 @@ export class PluginAPI extends EventEmitter {
         this._manager.companion.invalidate(this._plugin.pluginName, id);
     }
 
-    // Video routes — read
-    public getVideoRoute(id: string): VideoRoute | null {
-        return this._manager.routes.getVideoRoute(id);
-    }
-
-    public getVideoRoutes(): VideoRoute[] {
-        return this._manager.routes.getVideoRoutes();
-    }
-
-    // Video routes — write
-    public createVideoRoute(data: Omit<VideoRoute, 'id'>): VideoRoute {
-        return this._manager.routes.createVideoRoute(data);
-    }
-
-    public updateVideoRoute(data: VideoRoute): Promise<void> {
-        return this._manager.routes.updateVideoRoute(data);
-    }
-
-    public deleteVideoRoute(id: string): Promise<void> {
-        return this._manager.routes.deleteVideoRoute(id);
-    }
-
-    public setVideoRouteEnabled(id: string, enabled?: boolean) {
-        const value =
-            enabled ?? !this._manager.routes.getVideoRoute(id)?.enabled;
-        this._manager.routes.setVideoRouteEnabled(id, value);
-    }
-
     // Channel access
     public getChannel(casparChannel: number): Channel {
         return this._manager.executor.getChannel(casparChannel);
@@ -395,15 +374,6 @@ export class PluginAPI extends EventEmitter {
 
     public offMediaChange(handler: (key: string, value: unknown) => void) {
         this._manager.off('media', handler);
-    }
-
-    // Route change events
-    public onRouteChange(handler: (change: RouteChange) => void) {
-        this._manager.on('route-change', handler);
-    }
-
-    public offRouteChange(handler: (change: RouteChange) => void) {
-        this._manager.off('route-change', handler);
     }
 
     // Inter-plugin services — a named, in-process object another plugin can

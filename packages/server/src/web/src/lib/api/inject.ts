@@ -45,6 +45,8 @@ export const UI_INJECTION_ZONE = {
     // items to host right-click menus. Use dotted sub-zones to target a
     // specific surface, e.g. `context-menu.rundown-item`.
     CONTEXT_MENU: 'context-menu',
+
+    GLOBAL: 'global',
 } as const;
 
 export type UI_INJECTION_ZONE =

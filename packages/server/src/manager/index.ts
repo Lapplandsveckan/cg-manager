@@ -13,7 +13,6 @@ import { DirectoryManager } from './scanner/dir';
 import { FileDatabase } from './scanner/db';
 import { UIInjector } from './plugins/ui';
 import { RundownManager } from './rundown/rundown';
-import { VideoRoutesManager } from './routes/routes';
 import { PreviewManager } from './preview/preview';
 import { CompanionRegistry } from './companion/registry';
 import { PluginInterop } from './plugins/interop';
@@ -27,7 +26,6 @@ export class CasparManager extends EventEmitter {
     public server: CGServer;
     public ui: UIInjector;
     public rundowns: RundownManager;
-    public routes: VideoRoutesManager;
     public preview: PreviewManager;
     public companion: CompanionRegistry;
     public interop: PluginInterop;
@@ -39,10 +37,7 @@ export class CasparManager extends EventEmitter {
     private readonly onCasparLog = (log: string) =>
         this.emit('caspar-logs', log);
     // Re-emit the CasparCG running-config event for UI consumers (preview
-    // chips, config drift banner). The executor already buffers / drops
-    // commands aimed at non-existent channels, so routes targeting missing
-    // channels degrade gracefully on their own — no need to re-check
-    // routes here.
+    // chips, config drift banner).
     private readonly onCasparRunningConfig = (cfg: unknown) =>
         this.emit('caspar-running-config', cfg);
     private readonly onDbChange = (
@@ -74,7 +69,6 @@ export class CasparManager extends EventEmitter {
         this.plugins = new PluginManager();
         this.ui = new UIInjector();
         this.rundowns = new RundownManager();
-        this.routes = new VideoRoutesManager(this);
         this.preview = new PreviewManager(this.executor);
         this.companion = new CompanionRegistry();
         this.interop = new PluginInterop();
@@ -84,10 +78,8 @@ export class CasparManager extends EventEmitter {
         this.caspar.on('log', this.onCasparLog);
         this.caspar.on('running-config', this.onCasparRunningConfig);
 
-        // Route effects can only be built once the AMCP socket is up. Activate
-        // them on every connect — first boot (routes were loaded while the
-        // socket was still warming up) and reconnect (CasparCG was wiped, so
-        // the existing effects are stale refs and must be rebuilt).
+        // Plugins hear about every connect (first boot and reconnect) via
+        // `caspar-connect`, emitted after channel allocation.
         //
         // Channel allocation also happens here rather than in start() so that
         // allocateChannel() (and any AMCP commands emitted by initial layer
@@ -110,12 +102,12 @@ export class CasparManager extends EventEmitter {
                         this.executor.allocateChannel(i + 1);
                 }
             }
-            this.routes.refreshEffects();
+            this.emit('caspar-connect');
         });
 
         // A reconnect also means plugin-owned state no longer matches reality.
         // Broadcast a `caspar-reconnect` event so plugins can re-apply whatever
-        // they own. (Route effects are handled by onConnect above.)
+        // they own.
         this.unsubReconnect = this.executor.onReconnect(() => {
             Logger.info('CasparCG reconnected — refreshing host state.');
             this.emit('caspar-reconnect');
@@ -154,7 +146,6 @@ export class CasparManager extends EventEmitter {
         this.executor.disconnect();
 
         await this.preview.disposeAll();
-        this.routes.disposeAll();
 
         await this.scanner.stop();
         await this.caspar.stop();

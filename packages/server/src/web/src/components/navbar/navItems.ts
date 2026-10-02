@@ -6,7 +6,6 @@ import ComputerIcon from '@mui/icons-material/Computer';
 import ImageIcon from '@mui/icons-material/Image';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import ExtensionIcon from '@mui/icons-material/Extension';
-import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
 import TuneIcon from '@mui/icons-material/Tune';
 import { useSocket } from '../../lib/hooks/useSocket';
 import { UI_INJECTION_ZONE } from '../../lib/api/inject';
@@ -26,7 +25,6 @@ export const NAV_ITEMS: NavItem[] = [
     { href: '/server', labelKey: 'nav.server', icon: ComputerIcon },
     { href: '/media', labelKey: 'nav.media', icon: ImageIcon },
     { href: '/play', labelKey: 'nav.play', icon: PlayArrowIcon },
-    { href: '/routes', labelKey: 'nav.routes', icon: HubOutlinedIcon },
     { href: '/plugins', labelKey: 'nav.plugins', icon: ExtensionIcon },
     { href: '/config', labelKey: 'nav.config', icon: TuneIcon },
 ];

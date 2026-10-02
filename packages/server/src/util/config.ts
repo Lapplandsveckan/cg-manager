@@ -101,7 +101,6 @@ export async function loadConfig() {
     const directories = [];
     if (config['log-dir']) directories.push(config['log-dir']);
     if (config['rundown-dir']) directories.push(config['rundown-dir']);
-    if (config['routes-dir']) directories.push(config['routes-dir']);
     if (config['plugins-dir']) directories.push(config['plugins-dir']);
 
     await Promise.all(

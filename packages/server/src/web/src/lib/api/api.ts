@@ -7,7 +7,6 @@ import { CasparServerApi } from './caspar';
 import { PluginInjectionAPI } from './inject';
 import { PluginApi } from './plugin';
 import { RundownsApi } from './rundowns';
-import { VideoRoutesApi } from './videoRoutes';
 import { subscribeBroadcast } from './subscribeBroadcast';
 import { CLIENT_ERROR_PATH } from '../reportClientError';
 
@@ -19,7 +18,6 @@ export class ManagerApi {
     public caspar: CasparServerApi;
     public injects: PluginInjectionAPI;
     public plugin: PluginApi;
-    public videoRoutes: VideoRoutesApi;
     public rundowns: RundownsApi;
 
     private static instance: ManagerApi;
@@ -55,7 +53,6 @@ export class ManagerApi {
         this.caspar = new CasparServerApi(this.socket);
         this.injects = new PluginInjectionAPI(this.socket);
         this.plugin = new PluginApi(this.socket);
-        this.videoRoutes = new VideoRoutesApi(this.socket);
         this.rundowns = new RundownsApi(this.socket);
     }
 

@@ -79,11 +79,6 @@ export const schema: Record<string, FieldMeta> = {
         default: './rundowns',
         desc: 'Directory for rundown files.',
     },
-    'routes-dir': {
-        type: 'string',
-        default: './routes',
-        desc: 'Directory for video route files.',
-    },
     'plugins-dir': {
         type: 'string',
         default: './plugins',

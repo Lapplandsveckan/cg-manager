@@ -25,12 +25,6 @@ import { type Config } from '../manager/caspar/config/types';
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type CGClient = TypedClient<{}>;
 
-interface RouteChange {
-    method: 'CREATE' | 'UPDATE' | 'DELETE';
-    data: unknown;
-    excludeClientId?: string;
-}
-
 export class CGServer {
     private server: REPServer;
     private manager: CasparManager;
@@ -128,20 +122,6 @@ export class CGServer {
                 );
             });
         });
-
-        // Video route mutations (create / update / delete) — forwarded so
-        // clients can refresh without polling. UPDATE / CREATE carry the
-        // full route; DELETE carries the id string.
-        this.manager.on('route-change', (change: RouteChange) =>
-            this.broadcast(
-                'routes',
-                WebsocketOutboundMethod[change.method],
-                change.data,
-                change.excludeClientId
-                    ? this.server.getClient(change.excludeClientId)
-                    : undefined,
-            ),
-        );
 
         // Plugin list changes — push updated list so clients refresh their cache.
         this.manager.on('plugin-list-changed', () =>

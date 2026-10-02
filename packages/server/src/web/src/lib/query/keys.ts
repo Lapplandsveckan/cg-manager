@@ -1,8 +1,7 @@
 /** Single registry of every query key in the app. Undo scopes
- *  (`route:<id>`, `rundown:<id>:...`, `config`) are a deliberately separate
+ *  (`rundown:<id>:...`, `config`) are a deliberately separate
  *  string namespace — don't unify them with these. */
 export const qk = {
-    routes: ['routes'] as const,
     rundowns: ['rundowns'] as const,
     rundownEntries: (id: string) => ['rundown', id] as const,
     rundownMeta: ['rundown-meta'] as const,
@@ -25,10 +24,6 @@ export const qk = {
  *  re-entrancy guard uses `qm.undo`). A separate namespace from `qk`, not a
  *  cache-addressing one. */
 export const qm = {
-    routeCreate: ['route', 'create'] as const,
-    routeUpdate: ['route', 'update'] as const,
-    routeDelete: ['route', 'delete'] as const,
-    routeSetEnabled: ['route', 'setEnabled'] as const,
     rundownCreate: ['rundown', 'create'] as const,
     rundownRename: ['rundown', 'rename'] as const,
     rundownDelete: ['rundown', 'delete'] as const,

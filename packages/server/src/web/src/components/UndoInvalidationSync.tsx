@@ -3,14 +3,12 @@ import {
     entryDeleted,
     entryUpdated,
     entriesReordered,
-    routeDeleted,
-    routeUpdated,
     rundownDeleted,
     rundownRenamed,
 } from '../lib/api/broadcasts';
 import { useBroadcast } from '../lib/hooks/useBroadcast';
 import { invalidate } from '../lib/undo/undoStore';
-import { routeScope, rundownScope } from '../lib/undo/tools';
+import { rundownScope } from '../lib/undo/tools';
 
 /** Renderless mount point for the broadcast listeners that invalidate stale
  *  undo entries. Split out of UndoProvider so that component stays focused
@@ -35,14 +33,6 @@ export const UndoInvalidationSync: React.FC = () => {
 
     useBroadcast(rundownDeleted, id => {
         invalidate([rundownScope(id)]);
-    });
-
-    useBroadcast(routeUpdated, ({ id }) => {
-        invalidate([routeScope(id)]);
-    });
-
-    useBroadcast(routeDeleted, id => {
-        invalidate([routeScope(id)]);
     });
 
     return null;

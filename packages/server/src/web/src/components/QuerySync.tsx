@@ -1,7 +1,6 @@
 import type React from 'react';
 import { useEffect, useRef } from 'react';
 import { queryClient } from '../lib/query/client';
-import { useRoutesSync } from '../lib/query/routes';
 import { useRundownsSync } from '../lib/query/rundowns';
 import { useRundownEntriesSync } from '../lib/query/rundownEntries';
 import { useRundownMetaSync } from '../lib/query/rundownMeta';
@@ -16,7 +15,6 @@ import { useConnection } from './ConnectionProvider';
  *  UndoProvider uses for clearAll() so the two stay in lockstep. */
 export const QuerySync: React.FC = () => {
     const { state } = useConnection();
-    useRoutesSync();
     useRundownsSync();
     useRundownEntriesSync();
     useRundownMetaSync();

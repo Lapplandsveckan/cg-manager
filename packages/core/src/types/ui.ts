@@ -23,6 +23,10 @@ export const UI_INJECTION_ZONE = {
     // items to host right-click menus. Use dotted sub-zones to target a
     // specific surface, e.g. `context-menu.rundown-item`.
     CONTEXT_MENU: 'context-menu',
+
+    // Mounted once at the app root, outside any page, for the plugin's whole
+    // enabled lifetime. For global modals and cross-page listeners.
+    GLOBAL: 'global',
 } as const;
 
 export type UI_INJECTION_ZONE =

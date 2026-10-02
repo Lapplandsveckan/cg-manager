@@ -10,7 +10,6 @@ import { type CasparProcess } from './caspar/process';
 import { type CasparExecutor } from './caspar/executor';
 import { type FileDatabase } from './scanner/db';
 import { type RundownManager } from './rundown';
-import { type VideoRoutesManager } from './routes';
 import {
     type ActionDefinition,
     type ActionHandle,
@@ -81,7 +80,6 @@ export declare class CasparManager extends EventEmitter {
     public executor: CasparExecutor;
     public db: FileDatabase;
     public rundowns: RundownManager;
-    public routes: VideoRoutesManager;
     public companion: CompanionRegistry;
     public interop: PluginInterop;
 

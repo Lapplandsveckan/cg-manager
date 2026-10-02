@@ -16,7 +16,6 @@ export interface Config {
     temp?: true;
     'db-file': string;
     'rundown-dir'?: string;
-    'routes-dir': string;
     'plugins-dir': string;
     'plugin-state-file': string;
     password?: string | null;

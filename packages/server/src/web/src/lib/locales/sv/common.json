@@ -890,7 +890,7 @@
         }
     },
     "plugins": {
-        "essentials": {
+        "routes": {
             "toggleVideoRoute": {
                 "title": "Växla videorutt",
                 "description": "Växlar den valda rutten mellan aktiverad och inaktiverad när detta objekt körs.",

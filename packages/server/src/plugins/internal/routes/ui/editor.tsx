@@ -1,0 +1,142 @@
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+    FormControl,
+    InputLabel,
+    MenuItem,
+    Select,
+    Stack,
+    TextField,
+    Typography,
+} from '@mui/material';
+import {
+    RundownColorPicker,
+    RundownEditorActionBar,
+    useSocket,
+} from '@web-lib';
+import { useTranslation } from 'react-i18next';
+import { routesApi, type VideoRoute } from './api';
+
+interface Entry {
+    id: string;
+    title: string;
+    type: string;
+    data?: { routeId?: string };
+    metadata?: { color?: string };
+}
+
+interface Props {
+    entry: Entry;
+    creating: boolean;
+    updateEntry: (entry: Entry) => void;
+    deleteEntry: (entry: Entry) => void;
+}
+
+const ToggleVideoRouteEditor: React.FC<Props> = ({
+    entry,
+    creating,
+    updateEntry,
+    deleteEntry,
+}) => {
+    const conn = useSocket();
+    const { t } = useTranslation();
+
+    const [title, setTitle] = useState(entry.title ?? '');
+    const [routeId, setRouteId] = useState<string>(entry.data?.routeId ?? '');
+    const [routes, setRoutes] = useState<VideoRoute[] | null>(null);
+    const [color, setColor] = useState<string | null>(
+        entry.metadata?.color ?? null,
+    );
+
+    useEffect(() => {
+        let mounted = true;
+        routesApi
+            .list(conn)
+            .then(list => mounted && setRoutes(list))
+            .catch(() => mounted && setRoutes([]));
+        return () => {
+            mounted = false;
+        };
+    }, [conn]);
+
+    const selectedExists = useMemo(
+        () => !routes || !routeId || routes.some(r => r.id === routeId),
+        [routes, routeId],
+    );
+
+    const onSave = () => {
+        updateEntry({
+            ...entry,
+            title:
+                title.trim() ||
+                t('plugins.routes.toggleVideoRoute.defaultTitle'),
+            data: { ...(entry.data ?? {}), routeId: routeId || undefined },
+            metadata: { ...entry.metadata, color: color ?? undefined },
+        });
+    };
+
+    return (
+        <Stack spacing={2.5}>
+            <Stack spacing={0.5}>
+                <Typography variant="h3">
+                    {t('plugins.routes.toggleVideoRoute.title')}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    {t('plugins.routes.toggleVideoRoute.description')}
+                </Typography>
+            </Stack>
+
+            <TextField
+                label={t('plugins.routes.toggleVideoRoute.titleLabel')}
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                size="small"
+                fullWidth
+            />
+
+            <FormControl size="small" fullWidth>
+                <InputLabel id="essentials-toggle-route-select">
+                    {t('plugins.routes.toggleVideoRoute.routeLabel')}
+                </InputLabel>
+                <Select
+                    labelId="essentials-toggle-route-select"
+                    label={t('plugins.routes.toggleVideoRoute.routeLabel')}
+                    value={routes ? routeId : ''}
+                    onChange={e => setRouteId(String(e.target.value))}
+                    displayEmpty
+                >
+                    <MenuItem value="">
+                        <em>
+                            {routes === null
+                                ? t('actions.loading')
+                                : t(
+                                      'plugins.routes.toggleVideoRoute.selectRoute',
+                                  )}
+                        </em>
+                    </MenuItem>
+                    {(routes ?? []).map(r => (
+                        <MenuItem key={r.id} value={r.id}>
+                            {r.name || r.id}
+                        </MenuItem>
+                    ))}
+                </Select>
+            </FormControl>
+
+            <RundownColorPicker value={color} onChange={setColor} />
+
+            {!selectedExists && (
+                <Typography variant="caption" sx={{ color: 'warning.main' }}>
+                    {t('plugins.routes.toggleVideoRoute.routeGone', {
+                        id: routeId,
+                    })}
+                </Typography>
+            )}
+
+            <RundownEditorActionBar
+                onSave={onSave}
+                onDelete={creating ? undefined : () => deleteEntry(entry)}
+            />
+        </Stack>
+    );
+};
+
+export default ToggleVideoRouteEditor;
