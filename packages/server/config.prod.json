@@ -8,6 +8,7 @@
   "db-file": "./media-cache.json",
   "rundown-dir": "./rundowns",
   "plugins-dir": "./plugins",
+  "plugin-data-dir": "./plugin-data",
   "plugin-state-file": "./plugin-state.json",
   "telemetry": {
     "dsn": null,

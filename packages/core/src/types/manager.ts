@@ -95,6 +95,7 @@ export declare class CasparManager extends EventEmitter {
     public getCasparProcess(): CasparProcess;
     public getExecutor(): CasparExecutor;
     public getFiles(): FileDatabase;
+    public getPluginDataRoot(): string;
 
     public getPluginInjections(): Injection[];
     public getPluginInjectionCode(id: string): Promise<string>;

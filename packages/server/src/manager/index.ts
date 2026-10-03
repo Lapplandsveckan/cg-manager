@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events';
+import path from 'path';
 import { type Client } from 'rest-exchange-protocol';
 import { EffectRegistry } from '@lappis/cg-manager';
+import config from '../util/config';
 import { Logger } from '../util/log';
 import { MediaScanner } from './scanner';
 import { CasparProcess, type CasparStatus } from './caspar/process';
@@ -188,6 +190,10 @@ export class CasparManager extends EventEmitter {
 
     public getFiles() {
         return this.db;
+    }
+
+    public getPluginDataRoot() {
+        return path.resolve(process.cwd(), config['plugin-data-dir']);
     }
 
     public getPluginInjections() {

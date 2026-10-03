@@ -33,8 +33,7 @@ export default class EdgeblendPlugin extends CasparPlugin {
     };
 
     protected async onEnable() {
-        const dataDir = path.join(process.cwd(), 'plugin-data', 'edgeblend');
-        this.store = new LayoutStore(dataDir);
+        this.store = new LayoutStore(this.api.getDataDir());
         await this.store.ready;
 
         this.api.registerEffect(

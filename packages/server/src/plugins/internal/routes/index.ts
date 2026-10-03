@@ -51,7 +51,7 @@ export default class VideoRoutesPlugin extends CasparPlugin {
     private async start() {
         this.registerEffects();
 
-        const dataDir = path.join(process.cwd(), 'plugin-data', 'routes');
+        const dataDir = this.api.getDataDir();
         this.manager = new VideoRoutesManager(
             this.api,
             dataDir,

@@ -5,6 +5,7 @@ import {
     type WebsocketOutboundMethod,
     type Route,
 } from 'rest-exchange-protocol';
+import { pluginDataDir, pluginTempDir, resolveInside } from './pluginDirs';
 import { type Effect, type EffectConstructor } from './effect';
 import { type Channel } from './layers';
 import {
@@ -76,7 +77,7 @@ export class CasparPlugin {
         this['_api']['unregister'](); // await?
         const [error] = noTry(() => this.onDisable());
         if (error) return logger.error(`Error disabling plugin: ${error}`);
-        
+
         logger.debug('Disabled');
     }
 
@@ -296,6 +297,19 @@ export class PluginAPI extends EventEmitter {
      */
     public getMediaRoot() {
         return this._manager.getMediaScanner().mediaRoot;
+    }
+
+    public getDataDir() {
+        const root = this._manager.getPluginDataRoot();
+        return pluginDataDir(root, this._plugin.pluginName);
+    }
+
+    public getDataPath(...segments: string[]) {
+        return resolveInside(this.getDataDir(), segments);
+    }
+
+    public getTempDir() {
+        return pluginTempDir(this._plugin.pluginName);
     }
 
     /**

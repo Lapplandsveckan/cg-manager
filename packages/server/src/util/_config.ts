@@ -17,6 +17,7 @@ export interface Config {
     'db-file': string;
     'rundown-dir'?: string;
     'plugins-dir': string;
+    'plugin-data-dir': string;
     'plugin-state-file': string;
     password?: string | null;
     'api-token'?: string | null;

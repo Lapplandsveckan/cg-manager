@@ -84,6 +84,11 @@ export const schema: Record<string, FieldMeta> = {
         default: './plugins',
         desc: 'Directory external plugins load from.',
     },
+    'plugin-data-dir': {
+        type: 'string',
+        default: './plugin-data',
+        desc: 'Directory holding one data folder per plugin.',
+    },
     'plugin-state-file': {
         type: 'string',
         default: './plugin-state.json',

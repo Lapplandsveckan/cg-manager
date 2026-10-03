@@ -102,6 +102,7 @@ export async function loadConfig() {
     if (config['log-dir']) directories.push(config['log-dir']);
     if (config['rundown-dir']) directories.push(config['rundown-dir']);
     if (config['plugins-dir']) directories.push(config['plugins-dir']);
+    if (config['plugin-data-dir']) directories.push(config['plugin-data-dir']);
 
     await Promise.all(
         directories.map(directory => fs.mkdir(directory, { recursive: true })),

@@ -61,6 +61,7 @@ Use `manager config show` to print the effective configuration (secrets redacted
 | `db-file` | string | `./media-cache.json` | Path to the media-cache database file. |
 | `rundown-dir` | string | `./rundowns` | Directory for rundown files. |
 | `plugins-dir` | string | `./plugins` | Directory external plugins load from. |
+| `plugin-data-dir` | string | `./plugin-data` | Directory holding one data folder per plugin. |
 | `plugin-state-file` | string | `./plugin-state.json` | Path to the persisted plugin enabled/disabled state. |
 | `password` | string | `null` | Shared web UI / API password. `null` disables auth entirely. |
 | `api-token` | string | `null` | Static bearer token for headless clients (`Authorization: Bearer <token>`). Coexists with or replaces `password`. |

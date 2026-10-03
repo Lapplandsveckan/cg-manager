@@ -1,5 +1,4 @@
 import fs from 'fs';
-import os from 'os';
 import path from 'path';
 import { type Consumer, type Logger, type PluginAPI } from '@lappis/cg-manager';
 import { noTryAsync } from 'no-try';
@@ -54,7 +53,6 @@ const defaultName = (channel: number) => {
 };
 
 export class RecordingManager {
-    private readonly tempDir = path.join(os.tmpdir(), 'cg-manager-recordings');
     private readonly recordings = new Map<string, InternalRecording>();
     private readonly startingChannels = new Set<number>();
 
@@ -62,6 +60,10 @@ export class RecordingManager {
         private readonly api: PluginAPI,
         private readonly logger: Logger,
     ) {}
+
+    private get tempDir() {
+        return this.api.getTempDir();
+    }
 
     public async init() {
         await noTryAsync(() =>
