@@ -5,6 +5,13 @@ export interface TelemetryConfig {
     'sample-rate': number;
 }
 
+export interface BrandConfig {
+    name?: string | null;
+    tagline?: string | Record<string, string> | null;
+    accent?: string | null;
+    home?: string | null;
+}
+
 export interface Config {
     'hide-debug': boolean;
     'pipe-caspar': boolean;
@@ -27,6 +34,7 @@ export interface Config {
     'caspar-profile'?: string;
     'caspar-auto-restart': boolean;
     telemetry: TelemetryConfig;
+    brand?: BrandConfig;
 }
 
 // This module's default export is the only thing packaging cares about:

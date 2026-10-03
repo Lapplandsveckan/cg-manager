@@ -21,6 +21,7 @@ import { authMiddleware, authApiMiddleware } from './authMiddleware';
 import { isInternalMediaId } from '../manager/scanner/folders';
 import { mediaStreamMiddleware } from './mediaStream';
 import { telemetryScriptMiddleware } from './telemetryScript';
+import { brandHomeMiddleware, brandScriptMiddleware } from './brand';
 import { type Config } from '../manager/caspar/config/types';
 import {
     createPluginRouter,
@@ -51,6 +52,8 @@ export class CGServer {
         // telemetryScript must precede auth (public, pre-login) and web() (Next would 404 it).
         this.server.use(this.cors());
         this.server.use(telemetryScriptMiddleware());
+        this.server.use(brandScriptMiddleware());
+        this.server.use(brandHomeMiddleware());
         this.server.use(authApiMiddleware());
         this.server.use(authMiddleware());
         this.server.use(this.previewWhep());

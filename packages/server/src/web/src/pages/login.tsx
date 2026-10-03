@@ -12,10 +12,12 @@ import {
 import LockRoundedIcon from '@mui/icons-material/LockRounded';
 import { useTranslation } from 'react-i18next';
 import { noTryAsync } from 'no-try';
+import { useBrandLabels } from '../lib/brand';
 import { useAuthQuery, useLoginMutation } from '../lib/query/auth';
 
 const Page = () => {
     const { t } = useTranslation('common');
+    const brand = useBrandLabels();
     const router = useRouter();
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -87,9 +89,7 @@ const Page = () => {
                             <LockRoundedIcon fontSize="small" />
                         </Box>
                         <Stack spacing={0}>
-                            <Typography variant="h3">
-                                {t('brand.name')}
-                            </Typography>
+                            <Typography variant="h3">{brand.name}</Typography>
                             <Typography
                                 variant="caption"
                                 sx={{ color: 'text.secondary' }}

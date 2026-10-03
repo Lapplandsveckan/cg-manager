@@ -11,6 +11,7 @@ import ChevronRightRoundedIcon from '@mui/icons-material/ChevronRightRounded';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'react-i18next';
 import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import { useBrandLabels } from '../lib/brand';
 import { useAuthQuery } from '../lib/query/auth';
 import { useVersion } from '../lib/hooks/useVersion';
 import { useStoredBoolean } from '../lib/hooks/useStoredValue';
@@ -27,6 +28,7 @@ import { logout } from './navbar/logout';
 
 export const Navbar = () => {
     const { t } = useTranslation('common');
+    const brand = useBrandLabels();
     const version = useVersion();
     const router = useRouter();
     const status = useCasparStatus();
@@ -86,14 +88,14 @@ export const Navbar = () => {
                             noWrap
                             sx={{ whiteSpace: 'nowrap' }}
                         >
-                            {t('brand.name')}
+                            {brand.name}
                         </Typography>
                         <Typography
                             variant="caption"
                             noWrap
                             sx={{ whiteSpace: 'nowrap' }}
                         >
-                            {t('brand.tagline')}
+                            {brand.tagline}
                         </Typography>
                     </Stack>
                     <Tooltip

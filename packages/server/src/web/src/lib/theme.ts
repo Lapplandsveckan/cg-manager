@@ -1,4 +1,10 @@
-import { createTheme, alpha } from '@mui/material/styles';
+import {
+    createTheme,
+    alpha,
+    darken,
+    lighten,
+    type ThemeOptions,
+} from '@mui/material/styles';
 
 // Cool-technical dark palette, leaning toward broadcast tooling (OBS / vMix).
 // Neutral-cool surfaces, a desaturated copper accent for primary actions
@@ -27,34 +33,44 @@ const text = {
     disabled: alpha(TEXT_WHITE, 0.4),
 };
 
-export const palette = {
-    mode: 'dark' as const,
+const defaultPrimary = {
+    main: accent.primary,
+    dark: accent.primaryDark,
+    light: accent.primaryLight,
+    contrastText: surface.base,
+};
 
-    background: {
-        default: surface.base,
-        paper: surface.paper,
-    },
+const primaryFor = (main?: string | null) =>
+    main
+        ? { main, dark: darken(main, 0.25), light: lighten(main, 0.2) }
+        : defaultPrimary;
 
-    primary: {
-        main: accent.primary,
-        dark: accent.primaryDark,
-        light: accent.primaryLight,
-        contrastText: surface.base,
-    },
-    secondary: {
-        main: accent.secondary,
-        contrastText: surface.base,
-    },
+export const createAppTheme = (primaryMain?: string | null) =>
+    createTheme({
+        palette: {
+            mode: 'dark',
 
-    text,
-    divider: alpha(TEXT_WHITE, 0.07),
+            background: {
+                default: surface.base,
+                paper: surface.paper,
+            },
 
-    // Custom slots — read via theme.palette.surface.elevated etc.
-    surface,
-} as const;
+            primary: primaryFor(primaryMain),
+            secondary: {
+                main: accent.secondary,
+                contrastText: surface.base,
+            },
 
-export const theme = createTheme({
-    palette,
+            text,
+            divider: alpha(TEXT_WHITE, 0.07),
+
+            // Custom slots — read via theme.palette.surface.elevated etc.
+            surface,
+        },
+        ...themeOptions,
+    });
+
+const themeOptions = {
     shape: {
         borderRadius: 8,
     },
@@ -136,7 +152,7 @@ export const theme = createTheme({
             },
         },
     },
-});
+} satisfies ThemeOptions;
 
 // Module augmentation so consumers can read theme.palette.surface.elevated etc.
 declare module '@mui/material/styles' {

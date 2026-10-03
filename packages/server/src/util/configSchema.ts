@@ -144,6 +144,30 @@ export const schema: Record<string, FieldMeta> = {
         default: 1,
         desc: 'Fraction (0-1) of error events sent to Sentry — applies to both the server and the browser.',
     },
+    'brand.name': {
+        type: 'string',
+        default: null,
+        seeded: false,
+        desc: 'Product name shown in the navbar, login page and browser title. null = "CG Manager".',
+    },
+    'brand.tagline': {
+        type: 'string',
+        default: null,
+        seeded: false,
+        desc: 'Line under the product name. null = default tagline. config.json also accepts a per-language object, e.g. {"en": "...", "sv": "..."}.',
+    },
+    'brand.accent': {
+        type: 'string',
+        default: null,
+        seeded: false,
+        desc: 'Primary accent colour as #rrggbb. null = default copper.',
+    },
+    'brand.home': {
+        type: 'string',
+        default: null,
+        seeded: false,
+        desc: 'Path the root URL redirects to, e.g. "/ext/routes". null = "/play".',
+    },
 };
 
 /** `__proto__`/`constructor`/`prototype` segments let a dotted path escape

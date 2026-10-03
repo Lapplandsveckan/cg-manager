@@ -26,7 +26,8 @@ import { PluginGlobalMounts } from '../components/PluginGlobalMounts';
 import { PluginContextMenuMounts } from '../components/PluginContextMenuMounts';
 import { EntryClipboardProvider } from '../components/EntryClipboardProvider';
 import { AuthGate } from '../components/AuthGate';
-import { theme } from '../lib/theme';
+import { createAppTheme } from '../lib/theme';
+import { useBrand, useBrandLabels } from '../lib/brand';
 import { detectLanguage } from '../lib/detectLanguage';
 import '../lib/api/globals';
 
@@ -43,6 +44,9 @@ const appCrashFallback = (
 
 function App({ Component, pageProps }: AppProps) {
     const router = useRouter();
+    const { accent } = useBrand();
+    const { name } = useBrandLabels();
+    const theme = React.useMemo(() => createAppTheme(accent), [accent]);
 
     // Detect and apply the preferred language on mount. Done here rather than
     // in i18n.ts to avoid an SSR/hydration mismatch — the server always renders
@@ -59,7 +63,7 @@ function App({ Component, pageProps }: AppProps) {
     return (
         <>
             <Head>
-                <title>Caspar Manager</title>
+                <title>{name}</title>
                 <meta
                     name="viewport"
                     content="initial-scale=1.0, width=device-width"
