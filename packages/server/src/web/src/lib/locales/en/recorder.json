@@ -1,0 +1,47 @@
+{
+    "channelN": "Channel {{n}}",
+    "name": "Name",
+    "durationSec": "Duration (s)",
+    "start": "Start recording",
+    "stop": "Stop recording",
+    "choosePreset": "Choose format",
+    "autoStop": "Automatically stop recording",
+    "afterSeconds": "After (seconds)",
+    "settings": "Recording settings",
+    "namePlaceholder": "Auto (date & time)",
+    "autoStopSummary": "Stops automatically after {{seconds}}s",
+    "manualStopSummary": "Stops manually",
+    "download": "Download",
+    "importToMedia": "Import to media",
+    "importDone": "Imported into the media library",
+    "noRecordings": "No recordings yet.",
+    "defaultTitle": "Record channel",
+    "commands": {
+        "start": "Start recording…",
+        "stop": "Stop recording…"
+    },
+    "states": {
+        "recording": "Recording…",
+        "done": "Done",
+        "interrupted": "Interrupted"
+    },
+    "presets": {
+        "mp4-h264": "MP4 (H.264)",
+        "mov-prores4444": "MOV (ProRes 4444, alpha)"
+    },
+    "editor": {
+        "title": "Record channel",
+        "description": "Records the selected channel to a file when this item runs.",
+        "titleLabel": "Title",
+        "durationHint": "Leave blank to stop manually or with the item's stop action."
+    },
+    "item": {
+        "unconfigured": "No channel configured",
+        "durationLabel": "{{count}}s"
+    },
+    "errors": {
+        "startFailed": "Failed to start recording",
+        "importFailed": "Failed to import recording"
+    },
+    "nav": "Recorder"
+}

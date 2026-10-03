@@ -26,7 +26,7 @@ export const RouteSourceTypePicker: React.FC<RouteSourceTypePickerProps> = ({
     onClose,
     onSelect,
 }) => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     return (
         <Modal open={open} onClose={onClose}>
             <Box
@@ -44,13 +44,13 @@ export const RouteSourceTypePicker: React.FC<RouteSourceTypePickerProps> = ({
                     <Stack spacing={3}>
                         <Stack spacing={1}>
                             <Typography variant="h3">
-                                {t('videoRoutes.picker.title')}
+                                {t('picker.title')}
                             </Typography>
                             <Typography
                                 variant="body2"
                                 sx={{ color: 'text.secondary' }}
                             >
-                                {t('videoRoutes.picker.description')}
+                                {t('picker.description')}
                             </Typography>
                         </Stack>
 
@@ -103,16 +103,14 @@ export const RouteSourceTypePicker: React.FC<RouteSourceTypePickerProps> = ({
                                             }}
                                         >
                                             <Typography variant="h4">
-                                                {t(
-                                                    `videoRoutes.sourceTypes.${type}`,
-                                                )}
+                                                {t(`sourceTypes.${type}`)}
                                             </Typography>
                                             <Typography
                                                 variant="body2"
                                                 sx={{ color: 'text.secondary' }}
                                             >
                                                 {t(
-                                                    `videoRoutes.sourceTypeDescriptions.${type}`,
+                                                    `sourceTypeDescriptions.${type}`,
                                                 )}
                                             </Typography>
                                         </Stack>

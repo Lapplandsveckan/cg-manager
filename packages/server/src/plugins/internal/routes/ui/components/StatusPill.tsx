@@ -6,7 +6,7 @@ interface StatusPillProps {
 }
 
 export const StatusPill: React.FC<StatusPillProps> = ({ enabled }) => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     const color = enabled ? '#5fc97a' : 'rgba(232, 234, 237, 0.4)';
     return (
         <Stack
@@ -35,9 +35,7 @@ export const StatusPill: React.FC<StatusPillProps> = ({ enabled }) => {
                 variant="caption"
                 sx={{ color: enabled ? '#5fc97a' : 'text.secondary' }}
             >
-                {enabled
-                    ? t('videoRoutes.status.active')
-                    : t('videoRoutes.status.disabled')}
+                {enabled ? t('status.active') : t('status.disabled')}
             </Typography>
         </Stack>
     );

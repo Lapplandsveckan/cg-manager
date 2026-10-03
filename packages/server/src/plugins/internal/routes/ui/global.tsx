@@ -15,7 +15,7 @@ import { useRouteCommands } from './useRouteCommands';
 import { useRouteEditor } from './useRouteEditor';
 
 const GlobalRouteInspector: React.FC = () => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     const notify = useToast();
     const { data: routes } = useRoutesQuery();
     const { channels, videoModes, channelSizes } = useChannelInfo();
@@ -42,9 +42,8 @@ const GlobalRouteInspector: React.FC = () => {
 
             const id = 'edit' in request ? request.edit : request.delete;
             const route = routes?.find(r => r.id === id);
-            if (!routes) return notify(t('actions.loading'), 'info');
-            if (!route)
-                return notify(t('videoRoutes.errors.routeNotFound'), 'error');
+            if (!routes) return notify(t('common:actions.loading'), 'info');
+            if (!route) return notify(t('errors.routeNotFound'), 'error');
 
             if ('edit' in request) return setEditing(route);
             setDeleting(route);

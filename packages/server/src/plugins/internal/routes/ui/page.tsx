@@ -11,7 +11,7 @@ import { useRoutesQuery } from './query';
 import { openRouteInspector } from './inspectorEvents';
 
 const Page = () => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
 
     const { data: routes, error: routesError } = useRoutesQuery();
     const toggle = useRouteToggle();
@@ -28,12 +28,12 @@ const Page = () => {
                 mb={4}
             >
                 <Stack spacing={1}>
-                    <Typography variant="h1">{t('nav.routes')}</Typography>
+                    <Typography variant="h1">{t('nav')}</Typography>
                     <Typography
                         variant="body1"
                         sx={{ color: 'text.secondary' }}
                     >
-                        {t('videoRoutes.description')}
+                        {t('description')}
                     </Typography>
                 </Stack>
                 <Button
@@ -41,19 +41,19 @@ const Page = () => {
                     startIcon={<AddRoundedIcon />}
                     onClick={() => setPicking(true)}
                 >
-                    {t('videoRoutes.newRoute')}
+                    {t('newRoute')}
                 </Button>
             </Stack>
 
             {routes === undefined && !routesError && (
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {t('actions.loading')}
+                    {t('common:actions.loading')}
                 </Typography>
             )}
 
             {routesError && (
                 <Typography variant="body2" sx={{ color: 'error.main' }}>
-                    {routesError.message || t('videoRoutes.errors.loadFailed')}
+                    {routesError.message || t('errors.loadFailed')}
                 </Typography>
             )}
 
@@ -63,9 +63,8 @@ const Page = () => {
                         variant="body1"
                         sx={{ color: 'text.secondary' }}
                     >
-                        {t('videoRoutes.empty.prefix')}{' '}
-                        <strong>{t('videoRoutes.newRoute')}</strong>
-                        {t('videoRoutes.empty.suffix')}
+                        {t('empty.prefix')} <strong>{t('newRoute')}</strong>
+                        {t('empty.suffix')}
                     </Typography>
                 </Card>
             )}
@@ -103,6 +102,6 @@ const Page = () => {
     );
 };
 
-export const meta = { label: 'nav.routes', icon: HubOutlinedIcon };
+export const meta = { label: 'routes:nav', icon: HubOutlinedIcon };
 
 export default Page;

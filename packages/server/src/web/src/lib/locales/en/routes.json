@@ -1,0 +1,159 @@
+{
+    "description": "Live video routes from sources (decklink inputs, files, channels, colors) to CasparCG channels. Click a route to edit; toggle to activate or pause.",
+    "newRoute": "New route",
+    "commands": {
+        "toggle": "Enable/disable route…",
+        "edit": "Edit route…",
+        "create": "Create route…",
+        "delete": "Delete route…",
+        "enabled": "Enabled",
+        "disabled": "Disabled"
+    },
+    "unnamed": "(unnamed route)",
+    "saving": "Saving…",
+    "deleting": "Deleting…",
+    "toggleAria": "Toggle {{name}}",
+    "status": {
+        "active": "Active",
+        "disabled": "Disabled"
+    },
+    "empty": {
+        "prefix": "No video routes yet. Click",
+        "suffix": " to add one."
+    },
+    "deleteConfirm": {
+        "title": "Delete video route?",
+        "body": "will be removed and its underlying effect torn down. This can't be undone."
+    },
+    "summary": {
+        "decklink": "Decklink #{{device}}",
+        "decklinkWithKey": "Decklink #{{device}} (+key #{{key}})",
+        "video": "Video: {{video}}",
+        "channel": "Channel {{channel}}",
+        "color": "Color {{color}}"
+    },
+    "sourceTypes": {
+        "decklink": "Decklink",
+        "video": "Video file",
+        "channel": "Channel",
+        "color": "Color"
+    },
+    "sourceTypeDescriptions": {
+        "decklink": "Blackmagic Decklink SDI input (optional fill+key).",
+        "video": "Looping clip from the media library.",
+        "channel": "Route the output of another CasparCG channel.",
+        "color": "Solid color fill (CSS name or #RRGGBB)."
+    },
+    "picker": {
+        "title": "Add route",
+        "description": "Pick a source type. You'll fill in its details and the destination next."
+    },
+    "modal": {
+        "addTitle": "Add {{type}} route",
+        "editTitle": "Edit {{type}} route",
+        "description": "Routes are persisted to disk and take effect immediately. Source type can't be changed after creation."
+    },
+    "sections": {
+        "source": "Source",
+        "destination": "Destination",
+        "geometry": "Geometry"
+    },
+    "fields": {
+        "name": "Name",
+        "channel": "Channel",
+        "group": "Group",
+        "indexOptional": "Index (optional)",
+        "device": "Device",
+        "format": "Format",
+        "keyDeviceOptional": "Key device (optional)",
+        "color": "Color",
+        "colorHelper": "Stored as #AARRGGBB for CasparCG."
+    },
+    "destinationHint": "Effect-group layer is \"channel:group\". Index disambiguates multiple groups with the same name on a channel.",
+    "geometry": {
+        "title": "Geometry",
+        "description": "Drag handles to position, warp, or blend the route output. Coordinates are normalized (0..1).",
+        "livePreview": "Live preview · ch {{channel}}",
+        "tabs": {
+            "position": "Position",
+            "perspective": "Perspective",
+            "edgeblend": "Edge blend"
+        },
+        "resetTab": "Reset this tab",
+        "fillLabel": "FILL",
+        "perspectiveHint": "CasparCG MIXER PERSPECTIVE accepts arbitrary 4-corner warps — drag any corner anywhere to deform the quad.",
+        "edgeblendHint": "Drag the dot on each edge to fade that side inward. Gamma / power / alpha shape the blend curve.",
+        "gamma": "Gamma",
+        "power": "Power",
+        "alpha": "Alpha",
+        "addButton": "Add geometry…",
+        "editButton": "Edit geometry…",
+        "noneSet": "Position, perspective warp, edge blending — none set.",
+        "parts": {
+            "position": "position",
+            "perspective": "perspective",
+            "edgeblend": "edge blend"
+        },
+        "readout": {
+            "destination": "Destination (FILL)",
+            "source": "Source (CLIP)",
+            "topLeft": "Top-left",
+            "topRight": "Top-right",
+            "bottomRight": "Bottom-right",
+            "bottomLeft": "Bottom-left",
+            "left": "Left",
+            "right": "Right",
+            "top": "Top",
+            "bottom": "Bottom"
+        }
+    },
+    "stage": {
+        "label": "Stage · {{width}}×{{height}} px"
+    },
+    "errors": {
+        "decklinkDeviceRequired": "Decklink device is required",
+        "decklinkFormatRequired": "Decklink format is required",
+        "videoRequired": "Video file is required",
+        "channelRequired": "Channel is required",
+        "colorRequired": "Color is required",
+        "destinationChannelRequired": "Destination channel is required",
+        "destinationGroupRequired": "Destination group is required",
+        "destinationGroupColon": "Destination group cannot contain `:`",
+        "saveFailed": "Failed to save route",
+        "loadFailed": "Failed to load routes",
+        "toggleFailed": "Failed to toggle route",
+        "deleteFailed": "Failed to delete route",
+        "routeNotFound": "Route not found"
+    },
+    "success": {
+        "saved": "Route saved",
+        "deleted": "Route deleted"
+    },
+    "toggleVideoRoute": {
+        "title": "Toggle video route",
+        "description": "Flips the selected route between enabled and disabled when this item runs.",
+        "titleLabel": "Title",
+        "routeLabel": "Route",
+        "selectRoute": "Select a route",
+        "routeGone": "The previously selected route ({{id}}) no longer exists.",
+        "defaultTitle": "Toggle video route"
+    },
+    "routeItem": {
+        "noRouteSelected": "No route selected",
+        "routeNotFound": "Route {{id}} not found",
+        "toggles": "Toggles:",
+        "on": "On",
+        "off": "Off"
+    },
+    "inspectRoute": {
+        "menuLabel": "Inspect route"
+    },
+    "nav": "Routes",
+    "undo": {
+        "create": "create route \"{{name}}\"",
+        "update": "update route \"{{name}}\"",
+        "delete": "delete route \"{{name}}\"",
+        "enable": "enable route \"{{name}}\"",
+        "disable": "disable route \"{{name}}\""
+    }
+}

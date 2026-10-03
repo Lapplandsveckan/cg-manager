@@ -1,0 +1,47 @@
+{
+    "channelN": "Kanal {{n}}",
+    "name": "Namn",
+    "durationSec": "Längd (s)",
+    "start": "Starta inspelning",
+    "stop": "Stoppa inspelning",
+    "choosePreset": "Välj format",
+    "autoStop": "Stoppa inspelningen automatiskt",
+    "afterSeconds": "Efter (sekunder)",
+    "settings": "Inspelningsinställningar",
+    "namePlaceholder": "Auto (datum & tid)",
+    "autoStopSummary": "Stoppas automatiskt efter {{seconds}}s",
+    "manualStopSummary": "Stoppas manuellt",
+    "download": "Ladda ner",
+    "importToMedia": "Importera till media",
+    "importDone": "Importerad till mediebiblioteket",
+    "noRecordings": "Inga inspelningar ännu.",
+    "defaultTitle": "Spela in kanal",
+    "commands": {
+        "start": "Starta inspelning…",
+        "stop": "Stoppa inspelning…"
+    },
+    "states": {
+        "recording": "Spelar in…",
+        "done": "Klar",
+        "interrupted": "Avbruten"
+    },
+    "presets": {
+        "mp4-h264": "MP4 (H.264)",
+        "mov-prores4444": "MOV (ProRes 4444, alfa)"
+    },
+    "editor": {
+        "title": "Spela in kanal",
+        "description": "Spelar in den valda kanalen till en fil när denna post körs.",
+        "titleLabel": "Titel",
+        "durationHint": "Lämna tomt för att stoppa manuellt eller med postens stoppåtgärd."
+    },
+    "item": {
+        "unconfigured": "Ingen kanal konfigurerad",
+        "durationLabel": "{{count}}s"
+    },
+    "errors": {
+        "startFailed": "Kunde inte starta inspelningen",
+        "importFailed": "Kunde inte importera inspelningen"
+    },
+    "nav": "Inspelning"
+}

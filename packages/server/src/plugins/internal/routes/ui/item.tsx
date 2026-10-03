@@ -14,7 +14,7 @@ interface Props {
 
 const ToggleVideoRouteItem: React.FC<Props> = ({ entry }) => {
     const conn = useSocket();
-    const { t } = useTranslation();
+    const { t } = useTranslation('routes');
     const [route, setRoute] = useState<VideoRoute | null>(null);
     const [missing, setMissing] = useState(false);
 
@@ -61,14 +61,14 @@ const ToggleVideoRouteItem: React.FC<Props> = ({ entry }) => {
                 variant="body2"
                 sx={{ color: 'text.secondary', fontStyle: 'italic' }}
             >
-                {t('plugins.routes.routeItem.noRouteSelected')}
+                {t('routeItem.noRouteSelected')}
             </Typography>
         );
 
     if (missing)
         return (
             <Typography variant="body2" sx={{ color: 'warning.main' }}>
-                {t('plugins.routes.routeItem.routeNotFound', {
+                {t('routeItem.routeNotFound', {
                     id: routeId,
                 })}
             </Typography>
@@ -77,14 +77,14 @@ const ToggleVideoRouteItem: React.FC<Props> = ({ entry }) => {
     if (!route)
         return (
             <Typography variant="body2" sx={{ color: 'text.disabled' }}>
-                {t('actions.loading')}
+                {t('common:actions.loading')}
             </Typography>
         );
 
     return (
         <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {t('plugins.routes.routeItem.toggles')}
+                {t('routeItem.toggles')}
             </Typography>
             <Typography variant="body2">{route.name || route.id}</Typography>
             <Typography
@@ -104,9 +104,7 @@ const ToggleVideoRouteItem: React.FC<Props> = ({ entry }) => {
                     letterSpacing: 0.5,
                 }}
             >
-                {route.enabled
-                    ? t('plugins.routes.routeItem.on')
-                    : t('plugins.routes.routeItem.off')}
+                {route.enabled ? t('routeItem.on') : t('routeItem.off')}
             </Typography>
         </Stack>
     );

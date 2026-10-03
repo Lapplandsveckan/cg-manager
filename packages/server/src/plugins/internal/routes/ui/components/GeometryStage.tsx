@@ -20,7 +20,7 @@ export const GeometryStage: React.FC<GeometryStageProps> = ({
     children,
     previewChannel,
 }) => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     const wrapperRef = useRef<HTMLDivElement | null>(null);
     const [scale, setScale] = useState(1);
 
@@ -50,7 +50,7 @@ export const GeometryStage: React.FC<GeometryStageProps> = ({
                 sx={{ color: 'text.secondary' }}
             >
                 <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
-                    {t('videoRoutes.stage.label', {
+                    {t('stage.label', {
                         width: canvasWidth,
                         height: canvasHeight,
                     })}

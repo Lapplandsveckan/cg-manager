@@ -11,7 +11,7 @@ import type { StoredLayout } from './LayoutEditor';
 import { API_ROOT, layoutsUpdated } from './api';
 
 const EdgeblendCommands: React.FC = () => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('edgeblend');
     const conn = useSocket();
     const [layouts, setLayouts] = useState<StoredLayout[]>([]);
 
@@ -33,9 +33,7 @@ const EdgeblendCommands: React.FC = () => {
             id: `edgeblend.layout.${layout.id}`,
             label: layout.name,
             description: t(
-                layout.enabled
-                    ? 'plugins.edgeblend.commands.enabled'
-                    : 'plugins.edgeblend.commands.disabled',
+                layout.enabled ? 'commands.enabled' : 'commands.disabled',
             ),
             run: () => toggle(layout),
         }));
@@ -44,13 +42,13 @@ const EdgeblendCommands: React.FC = () => {
         () => [
             {
                 id: 'edgeblend.toggle',
-                label: t('plugins.edgeblend.commands.toggle'),
+                label: t('commands.toggle'),
                 icon: <ToggleOnRoundedIcon fontSize="small" />,
                 disabled: layouts.length === 0,
                 children: layoutCommands,
             },
         ],
-        { section: t('plugins.edgeblend.commands.section') },
+        { section: t('commands.section') },
     );
 
     return null;

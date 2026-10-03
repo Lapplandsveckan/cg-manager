@@ -14,7 +14,7 @@ import type { RecordingPreset } from '../presets';
 import { API_ROOT, recordingsUpdated } from './api';
 
 const RecorderCommands: React.FC = () => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('recorder');
     const conn = useSocket();
     const { channels } = useChannelInfo();
     const [recordings, setRecordings] = useState<RecordingEntry[]>([]);
@@ -51,7 +51,7 @@ const RecorderCommands: React.FC = () => {
 
             return presets.map(preset => ({
                 id: `recorder.preset.${preset.id}`,
-                label: t(`plugins.recorder.presets.${preset.id}`, preset.id),
+                label: t(`presets.${preset.id}`, preset.id),
                 run: () => start(channel, preset.id),
             }));
         };
@@ -59,9 +59,9 @@ const RecorderCommands: React.FC = () => {
     const channelCommands = (): CommandItem[] =>
         channels.map(channel => ({
             id: `recorder.channel.${channel}`,
-            label: t('plugins.recorder.channelN', { n: channel }),
+            label: t('channelN', { n: channel }),
             disabled: active.some(entry => entry.channel === channel)
-                ? t('plugins.recorder.states.recording')
+                ? t('states.recording')
                 : false,
             children: presetCommands(channel),
         }));
@@ -70,7 +70,7 @@ const RecorderCommands: React.FC = () => {
         active.map(entry => ({
             id: `recorder.recording.${entry.id}`,
             label: entry.name,
-            description: t('plugins.recorder.channelN', { n: entry.channel }),
+            description: t('channelN', { n: entry.channel }),
             run: () => stop(entry.id),
         }));
 
@@ -78,20 +78,20 @@ const RecorderCommands: React.FC = () => {
         () => [
             {
                 id: 'recorder.start',
-                label: t('plugins.recorder.commands.start'),
+                label: t('commands.start'),
                 icon: <FiberManualRecordRoundedIcon fontSize="small" />,
                 disabled: channels.length === 0,
                 children: channelCommands,
             },
             {
                 id: 'recorder.stop',
-                label: t('plugins.recorder.commands.stop'),
+                label: t('commands.stop'),
                 icon: <StopRoundedIcon fontSize="small" />,
                 disabled: active.length === 0,
                 children: stopCommands,
             },
         ],
-        { section: t('nav.recorder') },
+        { section: t('nav') },
     );
 
     return null;

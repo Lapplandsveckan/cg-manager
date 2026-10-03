@@ -57,7 +57,7 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
     onClose,
     onSave,
 }) => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     const stageRef = useRef<HTMLDivElement | null>(null);
     const [tab, setTab] = useState<Tabkey>('position');
     const [showPreview, setShowPreview] = useStoredBoolean(
@@ -153,13 +153,13 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
                         >
                             <Stack spacing={0.5}>
                                 <Typography variant="h3">
-                                    {t('videoRoutes.geometry.title')}
+                                    {t('geometry.title')}
                                 </Typography>
                                 <Typography
                                     variant="body2"
                                     sx={{ color: 'text.secondary' }}
                                 >
-                                    {t('videoRoutes.geometry.description')}
+                                    {t('geometry.description')}
                                 </Typography>
                             </Stack>
                             <Stack direction="row" alignItems="center" gap={2}>
@@ -178,12 +178,9 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
                                         }
                                         label={
                                             <Typography variant="caption">
-                                                {t(
-                                                    'videoRoutes.geometry.livePreview',
-                                                    {
-                                                        channel: previewChannel,
-                                                    },
-                                                )}
+                                                {t('geometry.livePreview', {
+                                                    channel: previewChannel,
+                                                })}
                                             </Typography>
                                         }
                                         labelPlacement="start"
@@ -213,17 +210,15 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
                         >
                             <Tab
                                 value="position"
-                                label={t('videoRoutes.geometry.tabs.position')}
+                                label={t('geometry.tabs.position')}
                             />
                             <Tab
                                 value="perspective"
-                                label={t(
-                                    'videoRoutes.geometry.tabs.perspective',
-                                )}
+                                label={t('geometry.tabs.perspective')}
                             />
                             <Tab
                                 value="edgeblend"
-                                label={t('videoRoutes.geometry.tabs.edgeblend')}
+                                label={t('geometry.tabs.edgeblend')}
                             />
                         </Tabs>
 
@@ -272,17 +267,17 @@ export const GeometryEditor: React.FC<GeometryEditorProps> = ({
                             alignItems="center"
                         >
                             <Button color="inherit" onClick={resetCurrentTab}>
-                                {t('videoRoutes.geometry.resetTab')}
+                                {t('geometry.resetTab')}
                             </Button>
                             <Stack direction="row" gap={1}>
                                 <Button onClick={onClose} color="inherit">
-                                    {t('actions.cancel')}
+                                    {t('common:actions.cancel')}
                                 </Button>
                                 <Button
                                     onClick={handleSave}
                                     variant="contained"
                                 >
-                                    {t('actions.save')}
+                                    {t('common:actions.save')}
                                 </Button>
                             </Stack>
                         </Stack>

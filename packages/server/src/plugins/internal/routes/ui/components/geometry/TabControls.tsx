@@ -43,53 +43,53 @@ export const TabControls: React.FC<TabControlsProps> = ({
     setPower,
     setAlpha,
 }) => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     const readout = useMemo(() => {
         if (tab === 'position')
             return [
                 {
-                    label: t('videoRoutes.geometry.readout.destination'),
+                    label: t('geometry.readout.destination'),
                     value: formatRect(destRect),
                 },
                 {
-                    label: t('videoRoutes.geometry.readout.source'),
+                    label: t('geometry.readout.source'),
                     value: formatRect(srcRect),
                 },
             ];
         if (tab === 'perspective')
             return [
                 {
-                    label: t('videoRoutes.geometry.readout.topLeft'),
+                    label: t('geometry.readout.topLeft'),
                     value: formatPoint(quad.tl),
                 },
                 {
-                    label: t('videoRoutes.geometry.readout.topRight'),
+                    label: t('geometry.readout.topRight'),
                     value: formatPoint(quad.tr),
                 },
                 {
-                    label: t('videoRoutes.geometry.readout.bottomRight'),
+                    label: t('geometry.readout.bottomRight'),
                     value: formatPoint(quad.br),
                 },
                 {
-                    label: t('videoRoutes.geometry.readout.bottomLeft'),
+                    label: t('geometry.readout.bottomLeft'),
                     value: formatPoint(quad.bl),
                 },
             ];
         return [
             {
-                label: t('videoRoutes.geometry.readout.left'),
+                label: t('geometry.readout.left'),
                 value: insets.left.toFixed(3),
             },
             {
-                label: t('videoRoutes.geometry.readout.right'),
+                label: t('geometry.readout.right'),
                 value: insets.right.toFixed(3),
             },
             {
-                label: t('videoRoutes.geometry.readout.top'),
+                label: t('geometry.readout.top'),
                 value: insets.top.toFixed(3),
             },
             {
-                label: t('videoRoutes.geometry.readout.bottom'),
+                label: t('geometry.readout.bottom'),
                 value: insets.bottom.toFixed(3),
             },
         ];
@@ -99,7 +99,7 @@ export const TabControls: React.FC<TabControlsProps> = ({
         <Stack spacing={1.5}>
             {tab === 'perspective' && (
                 <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-                    {t('videoRoutes.geometry.perspectiveHint')}
+                    {t('geometry.perspectiveHint')}
                 </Typography>
             )}
 
@@ -144,7 +144,7 @@ export const TabControls: React.FC<TabControlsProps> = ({
                         variant="caption"
                         sx={{ color: 'text.disabled' }}
                     >
-                        {t('videoRoutes.geometry.edgeblendHint')}
+                        {t('geometry.edgeblendHint')}
                     </Typography>
                     <Box
                         sx={{
@@ -155,7 +155,7 @@ export const TabControls: React.FC<TabControlsProps> = ({
                         }}
                     >
                         <FloatSlider
-                            label={t('videoRoutes.geometry.gamma')}
+                            label={t('geometry.gamma')}
                             value={gamma}
                             min={0.1}
                             max={5}
@@ -163,7 +163,7 @@ export const TabControls: React.FC<TabControlsProps> = ({
                             onChange={setGamma}
                         />
                         <FloatSlider
-                            label={t('videoRoutes.geometry.power')}
+                            label={t('geometry.power')}
                             value={power}
                             min={0.1}
                             max={10}
@@ -171,7 +171,7 @@ export const TabControls: React.FC<TabControlsProps> = ({
                             onChange={setPower}
                         />
                         <FloatSlider
-                            label={t('videoRoutes.geometry.alpha')}
+                            label={t('geometry.alpha')}
                             value={alpha}
                             min={0}
                             max={1}

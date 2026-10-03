@@ -2,12 +2,20 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 import enCommon from './locales/en/common.json';
+import enEdgeblend from './locales/en/edgeblend.json';
+import enRecorder from './locales/en/recorder.json';
+import enRoutes from './locales/en/routes.json';
 import svCommon from './locales/sv/common.json';
+import svEdgeblend from './locales/sv/edgeblend.json';
+import svRecorder from './locales/sv/recorder.json';
+import svRoutes from './locales/sv/routes.json';
 
 // Client-side i18next init. Locale JSON is bundled into the webpack output
 // (no /locales HTTP route), which keeps the packaged binary self-contained.
-// To add a locale: drop a folder under src/web/src/lib/locales, import its
-// common.json below, add it to `resources`, and extend `supportedLngs` here.
+// Each internal plugin has its own namespace file next to common.json.
+// To add a locale: drop a folder under src/web/src/lib/locales with every
+// namespace file, import them below, add them to `resources`, and extend
+// `supportedLngs` here.
 //
 // Passing `resources` inline is also what makes init synchronous — i18next only
 // defers to a setTimeout when resources have to be fetched. Swap to a backend
@@ -18,10 +26,20 @@ if (!i18n.isInitialized)
         fallbackLng: 'en',
         supportedLngs: ['en', 'sv'],
         defaultNS: 'common',
-        ns: ['common'],
+        ns: ['common', 'routes', 'edgeblend', 'recorder'],
         resources: {
-            en: { common: enCommon },
-            sv: { common: svCommon },
+            en: {
+                common: enCommon,
+                routes: enRoutes,
+                edgeblend: enEdgeblend,
+                recorder: enRecorder,
+            },
+            sv: {
+                common: svCommon,
+                routes: svRoutes,
+                edgeblend: svEdgeblend,
+                recorder: svRecorder,
+            },
         },
         interpolation: {
             escapeValue: false,

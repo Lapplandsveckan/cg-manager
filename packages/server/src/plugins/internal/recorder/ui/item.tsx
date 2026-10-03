@@ -9,7 +9,7 @@ interface Props {
 }
 
 const RecordChannelItem: React.FC<Props> = ({ entry }) => {
-    const { t } = useTranslation();
+    const { t } = useTranslation('recorder');
     const { channel, presetId, durationSec } = entry?.data ?? {};
 
     if (!channel || !presetId)
@@ -18,20 +18,20 @@ const RecordChannelItem: React.FC<Props> = ({ entry }) => {
                 variant="body2"
                 sx={{ color: 'text.secondary', fontStyle: 'italic' }}
             >
-                {t('plugins.recorder.item.unconfigured')}
+                {t('item.unconfigured')}
             </Typography>
         );
 
     return (
         <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="body2">
-                {t('plugins.recorder.channelN', { n: channel })}
+                {t('channelN', { n: channel })}
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 ·
             </Typography>
             <Typography variant="body2">
-                {t(`plugins.recorder.presets.${presetId}`, presetId)}
+                {t(`presets.${presetId}`, presetId)}
             </Typography>
             {durationSec ? (
                 <>
@@ -42,7 +42,7 @@ const RecordChannelItem: React.FC<Props> = ({ entry }) => {
                         ·
                     </Typography>
                     <Typography variant="body2">
-                        {t('plugins.recorder.item.durationLabel', {
+                        {t('item.durationLabel', {
                             count: durationSec,
                         })}
                     </Typography>

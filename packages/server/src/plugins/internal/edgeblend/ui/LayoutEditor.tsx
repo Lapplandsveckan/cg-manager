@@ -108,19 +108,17 @@ const LayoutEditor: React.FC<Props> = ({
     onDelete,
     focusedOutput,
 }) => {
-    const { t } = useTranslation();
+    const { t } = useTranslation('edgeblend');
 
     return (
         <Box sx={{ flex: 1, overflowY: 'auto' }}>
             <Typography variant="h3" mb={2}>
-                {selected === 'new'
-                    ? t('plugins.edgeblend.newLayout')
-                    : t('plugins.edgeblend.editLayout')}
+                {selected === 'new' ? t('newLayout') : t('editLayout')}
             </Typography>
 
             <Stack spacing={2} maxWidth={480}>
                 <TextField
-                    label={t('plugins.edgeblend.name')}
+                    label={t('name')}
                     value={form.name}
                     onChange={e =>
                         setForm(p => ({ ...p, name: e.target.value }))
@@ -132,10 +130,10 @@ const LayoutEditor: React.FC<Props> = ({
 
                 <Stack direction="row" spacing={1} alignItems="center">
                     <Typography variant="body2" sx={{ width: 120 }}>
-                        {t('plugins.edgeblend.canvasSize')}
+                        {t('canvasSize')}
                     </Typography>
                     <TextField
-                        label={t('plugins.edgeblend.width')}
+                        label={t('width')}
                         type="number"
                         value={form.canvasW}
                         onChange={e =>
@@ -149,7 +147,7 @@ const LayoutEditor: React.FC<Props> = ({
                     />
                     <Typography>×</Typography>
                     <TextField
-                        label={t('plugins.edgeblend.height')}
+                        label={t('height')}
                         type="number"
                         value={form.canvasH}
                         onChange={e =>
@@ -165,10 +163,10 @@ const LayoutEditor: React.FC<Props> = ({
 
                 <Stack direction="row" spacing={1} alignItems="center">
                     <Typography variant="body2" sx={{ width: 120 }}>
-                        {t('plugins.edgeblend.projectorSize')}
+                        {t('projectorSize')}
                     </Typography>
                     <TextField
-                        label={t('plugins.edgeblend.width')}
+                        label={t('width')}
                         type="number"
                         value={form.projectorW}
                         onChange={e =>
@@ -182,7 +180,7 @@ const LayoutEditor: React.FC<Props> = ({
                     />
                     <Typography>×</Typography>
                     <TextField
-                        label={t('plugins.edgeblend.height')}
+                        label={t('height')}
                         type="number"
                         value={form.projectorH}
                         onChange={e =>
@@ -198,10 +196,10 @@ const LayoutEditor: React.FC<Props> = ({
 
                 <Stack direction="row" spacing={1} alignItems="center">
                     <Typography variant="body2" sx={{ width: 120 }}>
-                        {t('plugins.edgeblend.grid')}
+                        {t('grid')}
                     </Typography>
                     <TextField
-                        label={t('plugins.edgeblend.cols')}
+                        label={t('cols')}
                         type="number"
                         value={form.cols}
                         onChange={e =>
@@ -216,7 +214,7 @@ const LayoutEditor: React.FC<Props> = ({
                     />
                     <Typography>×</Typography>
                     <TextField
-                        label={t('plugins.edgeblend.rows')}
+                        label={t('rows')}
                         type="number"
                         value={form.rows}
                         onChange={e =>
@@ -231,16 +229,14 @@ const LayoutEditor: React.FC<Props> = ({
                     />
                     <Chip
                         size="small"
-                        label={`${gridCount} ${t('plugins.edgeblend.projectors')}`}
+                        label={`${gridCount} ${t('projectors')}`}
                     />
                 </Stack>
 
                 <FormControl size="small" fullWidth>
-                    <InputLabel>
-                        {t('plugins.edgeblend.inputChannel')}
-                    </InputLabel>
+                    <InputLabel>{t('inputChannel')}</InputLabel>
                     <Select
-                        label={t('plugins.edgeblend.inputChannel')}
+                        label={t('inputChannel')}
                         value={form.inputChannel}
                         onChange={e =>
                             setForm(p => ({
@@ -251,7 +247,7 @@ const LayoutEditor: React.FC<Props> = ({
                     >
                         {channels.map(ch => (
                             <MenuItem key={ch} value={ch}>
-                                {t('plugins.edgeblend.channelN', { n: ch })}
+                                {t('channelN', { n: ch })}
                             </MenuItem>
                         ))}
                     </Select>
@@ -259,7 +255,7 @@ const LayoutEditor: React.FC<Props> = ({
 
                 <Box>
                     <Typography variant="body2" gutterBottom>
-                        {t('plugins.edgeblend.outputChannels')}
+                        {t('outputChannels')}
                     </Typography>
                     <Stack spacing={1}>
                         {Array.from({ length: gridCount }, (_, i) => {
@@ -293,7 +289,7 @@ const LayoutEditor: React.FC<Props> = ({
                                             color: 'text.secondary',
                                         }}
                                     >
-                                        {t('plugins.edgeblend.projectorPos', {
+                                        {t('projectorPos', {
                                             col: col + 1,
                                             row: row + 1,
                                         })}
@@ -302,13 +298,9 @@ const LayoutEditor: React.FC<Props> = ({
                                         size="small"
                                         sx={{ width: 160 }}
                                     >
-                                        <InputLabel>
-                                            {t('plugins.edgeblend.channel')}
-                                        </InputLabel>
+                                        <InputLabel>{t('channel')}</InputLabel>
                                         <Select
-                                            label={t(
-                                                'plugins.edgeblend.channel',
-                                            )}
+                                            label={t('channel')}
                                             value={form.outputChannels[i] ?? ''}
                                             onChange={e =>
                                                 setOutput(
@@ -319,12 +311,9 @@ const LayoutEditor: React.FC<Props> = ({
                                         >
                                             {channels.map(ch => (
                                                 <MenuItem key={ch} value={ch}>
-                                                    {t(
-                                                        'plugins.edgeblend.channelN',
-                                                        {
-                                                            n: ch,
-                                                        },
-                                                    )}
+                                                    {t('channelN', {
+                                                        n: ch,
+                                                    })}
                                                 </MenuItem>
                                             ))}
                                         </Select>
@@ -335,7 +324,7 @@ const LayoutEditor: React.FC<Props> = ({
                     </Stack>
                     {form.outputChannels.length !== gridCount && (
                         <FormHelperText error>
-                            {t('plugins.edgeblend.outputCountError', {
+                            {t('outputCountError', {
                                 count: gridCount,
                             })}
                         </FormHelperText>
@@ -345,7 +334,7 @@ const LayoutEditor: React.FC<Props> = ({
                 {selected !== 'new' && (
                     <Stack direction="row" spacing={1} alignItems="center">
                         <Typography variant="body2">
-                            {t('plugins.edgeblend.enabledInEdit')}
+                            {t('enabledInEdit')}
                         </Typography>
                         <Switch
                             checked={editEnabled}
@@ -361,12 +350,10 @@ const LayoutEditor: React.FC<Props> = ({
                         onClick={onSave}
                         disabled={!isValid || saving}
                     >
-                        {saving
-                            ? t('plugins.edgeblend.saving')
-                            : t('actions.save')}
+                        {saving ? t('saving') : t('common:actions.save')}
                     </Button>
                     <Button variant="outlined" onClick={onClose}>
-                        {t('actions.cancel')}
+                        {t('common:actions.cancel')}
                     </Button>
                     {selected !== 'new' && (
                         <Button
@@ -375,7 +362,7 @@ const LayoutEditor: React.FC<Props> = ({
                             onClick={onDelete}
                             sx={{ ml: 'auto' }}
                         >
-                            {t('actions.delete')}
+                            {t('common:actions.delete')}
                         </Button>
                     )}
                 </Stack>

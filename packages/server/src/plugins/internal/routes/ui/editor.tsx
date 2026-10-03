@@ -38,7 +38,7 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({
     deleteEntry,
 }) => {
     const conn = useSocket();
-    const { t } = useTranslation();
+    const { t } = useTranslation('routes');
 
     const [title, setTitle] = useState(entry.title ?? '');
     const [routeId, setRouteId] = useState<string>(entry.data?.routeId ?? '');
@@ -66,9 +66,7 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({
     const onSave = () => {
         updateEntry({
             ...entry,
-            title:
-                title.trim() ||
-                t('plugins.routes.toggleVideoRoute.defaultTitle'),
+            title: title.trim() || t('toggleVideoRoute.defaultTitle'),
             data: { ...(entry.data ?? {}), routeId: routeId || undefined },
             metadata: { ...entry.metadata, color: color ?? undefined },
         });
@@ -78,15 +76,15 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({
         <Stack spacing={2.5}>
             <Stack spacing={0.5}>
                 <Typography variant="h3">
-                    {t('plugins.routes.toggleVideoRoute.title')}
+                    {t('toggleVideoRoute.title')}
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {t('plugins.routes.toggleVideoRoute.description')}
+                    {t('toggleVideoRoute.description')}
                 </Typography>
             </Stack>
 
             <TextField
-                label={t('plugins.routes.toggleVideoRoute.titleLabel')}
+                label={t('toggleVideoRoute.titleLabel')}
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 size="small"
@@ -95,11 +93,11 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({
 
             <FormControl size="small" fullWidth>
                 <InputLabel id="essentials-toggle-route-select">
-                    {t('plugins.routes.toggleVideoRoute.routeLabel')}
+                    {t('toggleVideoRoute.routeLabel')}
                 </InputLabel>
                 <Select
                     labelId="essentials-toggle-route-select"
-                    label={t('plugins.routes.toggleVideoRoute.routeLabel')}
+                    label={t('toggleVideoRoute.routeLabel')}
                     value={routes ? routeId : ''}
                     onChange={e => setRouteId(String(e.target.value))}
                     displayEmpty
@@ -107,10 +105,8 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({
                     <MenuItem value="">
                         <em>
                             {routes === null
-                                ? t('actions.loading')
-                                : t(
-                                      'plugins.routes.toggleVideoRoute.selectRoute',
-                                  )}
+                                ? t('common:actions.loading')
+                                : t('toggleVideoRoute.selectRoute')}
                         </em>
                     </MenuItem>
                     {(routes ?? []).map(r => (
@@ -125,7 +121,7 @@ const ToggleVideoRouteEditor: React.FC<Props> = ({
 
             {!selectedExists && (
                 <Typography variant="caption" sx={{ color: 'warning.main' }}>
-                    {t('plugins.routes.toggleVideoRoute.routeGone', {
+                    {t('toggleVideoRoute.routeGone', {
                         id: routeId,
                     })}
                 </Typography>

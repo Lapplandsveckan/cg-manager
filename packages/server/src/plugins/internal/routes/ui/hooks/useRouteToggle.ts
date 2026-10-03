@@ -6,7 +6,7 @@ import { routeSetEnabled } from '../query';
 import { routeKey, routeUndo } from '../undo';
 
 export function useRouteToggle() {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     const notify = useToast();
     const setEnabled = useMutationSpec(routeSetEnabled);
     const setEnabledAsync = setEnabled.mutateAsync;
@@ -18,8 +18,7 @@ export function useRouteToggle() {
             );
             if (err) {
                 notify(
-                    (err as Error)?.message ??
-                        t('videoRoutes.errors.toggleFailed'),
+                    (err as Error)?.message ?? t('errors.toggleFailed'),
                     'error',
                 );
                 return;
@@ -27,7 +26,7 @@ export function useRouteToggle() {
 
             routeUndo.record({
                 label: {
-                    key: next ? 'routeEnable' : 'routeDisable',
+                    key: next ? 'routes:undo.enable' : 'routes:undo.disable',
                     params: { name: updated.name },
                 },
                 scopes: [routeKey(id)],

@@ -39,7 +39,7 @@ import { API_ROOT, PLUGIN, recordingsUpdated } from './api';
 
 const RecorderPage: React.FC = () => {
     const conn = useSocket();
-    const { t } = useTranslation();
+    const { t } = useTranslation('recorder');
     const notify = useToast();
 
     const [channels, setChannels] = useState<number[]>([]);
@@ -98,7 +98,7 @@ const RecorderPage: React.FC = () => {
         recordings?.find(r => r.channel === ch && r.state === 'recording');
 
     const activeRecording = activeOnChannel(channel);
-    const presetLabel = (id: string) => t(`plugins.recorder.presets.${id}`, id);
+    const presetLabel = (id: string) => t(`presets.${id}`, id);
 
     const start = async () => {
         if (!conn || !presetId) return;
@@ -114,11 +114,7 @@ const RecorderPage: React.FC = () => {
             .then(() => [null, null])
             .catch((err: Error) => [null, err]);
         setStarting(false);
-        if (error)
-            notify(
-                error.message ?? t('plugins.recorder.errors.startFailed'),
-                'error',
-            );
+        if (error) notify(error.message ?? t('errors.startFailed'), 'error');
     };
 
     const stop = async (id: string) => {
@@ -134,12 +130,8 @@ const RecorderPage: React.FC = () => {
             .rawRequest(`${API_ROOT}/recordings/${id}/import`, 'ACTION', {})
             .then(() => [null, null])
             .catch((err: Error) => [null, err]);
-        if (error)
-            notify(
-                error.message ?? t('plugins.recorder.errors.importFailed'),
-                'error',
-            );
-        else notify(t('plugins.recorder.importDone'), 'success');
+        if (error) notify(error.message ?? t('errors.importFailed'), 'error');
+        else notify(t('importDone'), 'success');
     };
 
     const remove = async (id: string) => {
@@ -152,7 +144,7 @@ const RecorderPage: React.FC = () => {
     return (
         <Box sx={{ p: 2, maxWidth: 820 }}>
             <Typography variant="h1" mb={2}>
-                {t('nav.recorder')}
+                {t('nav')}
             </Typography>
 
             <Stack direction="row" gap={3} mb={3} flexWrap="wrap">
@@ -164,7 +156,7 @@ const RecorderPage: React.FC = () => {
                     >
                         {channels.map(ch => (
                             <MenuItem key={ch} value={ch}>
-                                {t('plugins.recorder.channelN', { n: ch })}
+                                {t('channelN', { n: ch })}
                             </MenuItem>
                         ))}
                     </Select>
@@ -192,7 +184,7 @@ const RecorderPage: React.FC = () => {
                                 startIcon={<StopRoundedIcon />}
                                 onClick={() => stop(activeRecording.id)}
                             >
-                                {t('plugins.recorder.stop')}
+                                {t('stop')}
                             </Button>
                         ) : (
                             <Button
@@ -201,11 +193,11 @@ const RecorderPage: React.FC = () => {
                                 disabled={starting || !presetId}
                                 onClick={start}
                             >
-                                {t('plugins.recorder.start')}
+                                {t('start')}
                             </Button>
                         )}
 
-                        <Tooltip title={t('plugins.recorder.settings')}>
+                        <Tooltip title={t('settings')}>
                             <IconButton
                                 onClick={() => setSettingsOpen(true)}
                                 sx={{ border: 1, borderColor: 'divider' }}
@@ -222,17 +214,17 @@ const RecorderPage: React.FC = () => {
                         >
                             {presetId
                                 ? presetLabel(presetId)
-                                : t('plugins.recorder.choosePreset')}
+                                : t('choosePreset')}
                         </Typography>
                         <Typography
                             variant="body2"
                             sx={{ color: 'text.secondary' }}
                         >
                             {autoStop
-                                ? t('plugins.recorder.autoStopSummary', {
+                                ? t('autoStopSummary', {
                                       seconds: durationSec,
                                   })
-                                : t('plugins.recorder.manualStopSummary')}
+                                : t('manualStopSummary')}
                         </Typography>
                     </Stack>
                 </Stack>
@@ -244,13 +236,13 @@ const RecorderPage: React.FC = () => {
                 fullWidth
                 maxWidth="xs"
             >
-                <DialogTitle>{t('plugins.recorder.settings')}</DialogTitle>
+                <DialogTitle>{t('settings')}</DialogTitle>
                 <DialogContent>
                     <Stack spacing={2.5} mt={0.5}>
                         <TextField
                             size="small"
-                            label={t('plugins.recorder.name')}
-                            placeholder={t('plugins.recorder.namePlaceholder')}
+                            label={t('name')}
+                            placeholder={t('namePlaceholder')}
                             value={name}
                             onChange={e => setName(e.target.value)}
                             disabled={Boolean(activeRecording)}
@@ -284,13 +276,13 @@ const RecorderPage: React.FC = () => {
                                         }
                                     />
                                 }
-                                label={t('plugins.recorder.autoStop')}
+                                label={t('autoStop')}
                             />
                             {autoStop && (
                                 <TextField
                                     size="small"
                                     type="number"
-                                    label={t('plugins.recorder.afterSeconds')}
+                                    label={t('afterSeconds')}
                                     value={durationSec}
                                     disabled={Boolean(activeRecording)}
                                     onChange={e =>
@@ -304,7 +296,7 @@ const RecorderPage: React.FC = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setSettingsOpen(false)}>
-                        {t('actions.done')}
+                        {t('common:actions.done')}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -312,14 +304,12 @@ const RecorderPage: React.FC = () => {
             <List dense disablePadding>
                 {recordings === null && (
                     <ListItem>
-                        <ListItemText secondary={t('actions.loading')} />
+                        <ListItemText secondary={t('common:actions.loading')} />
                     </ListItem>
                 )}
                 {recordings?.length === 0 && (
                     <ListItem>
-                        <ListItemText
-                            secondary={t('plugins.recorder.noRecordings')}
-                        />
+                        <ListItemText secondary={t('noRecordings')} />
                     </ListItem>
                 )}
                 {(recordings ?? []).map(recording => (
@@ -329,11 +319,7 @@ const RecorderPage: React.FC = () => {
                             <Stack direction="row" gap={0.5}>
                                 {recording.state !== 'recording' && (
                                     <>
-                                        <Tooltip
-                                            title={t(
-                                                'plugins.recorder.download',
-                                            )}
-                                        >
+                                        <Tooltip title={t('download')}>
                                             <IconButton
                                                 size="small"
                                                 component="a"
@@ -346,11 +332,7 @@ const RecorderPage: React.FC = () => {
                                                 <DownloadRoundedIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
-                                        <Tooltip
-                                            title={t(
-                                                'plugins.recorder.importToMedia',
-                                            )}
-                                        >
+                                        <Tooltip title={t('importToMedia')}>
                                             <IconButton
                                                 size="small"
                                                 onClick={() =>
@@ -360,7 +342,9 @@ const RecorderPage: React.FC = () => {
                                                 <DriveFolderUploadRoundedIcon fontSize="small" />
                                             </IconButton>
                                         </Tooltip>
-                                        <Tooltip title={t('actions.delete')}>
+                                        <Tooltip
+                                            title={t('common:actions.delete')}
+                                        >
                                             <IconButton
                                                 size="small"
                                                 onClick={() =>
@@ -376,10 +360,8 @@ const RecorderPage: React.FC = () => {
                         }
                     >
                         <ListItemText
-                            primary={`${recording.name} — ${t('plugins.recorder.channelN', { n: recording.channel })}`}
-                            secondary={t(
-                                `plugins.recorder.states.${recording.state}`,
-                            )}
+                            primary={`${recording.name} — ${t('channelN', { n: recording.channel })}`}
+                            secondary={t(`states.${recording.state}`)}
                         />
                     </ListItem>
                 ))}
@@ -389,7 +371,7 @@ const RecorderPage: React.FC = () => {
 };
 
 export const meta = {
-    label: 'nav.recorder',
+    label: 'recorder:nav',
     icon: FiberManualRecordRoundedIcon,
 };
 

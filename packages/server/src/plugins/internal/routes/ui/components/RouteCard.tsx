@@ -28,7 +28,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
     onToggle,
     onDelete,
 }) => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     const { openSurfaceMenu } = useContextMenu();
     // component="div" so the click surface isn't a real <button> — Switch
     // and IconButton below render actual <button> elements, and nesting a
@@ -46,18 +46,18 @@ export const RouteCard: React.FC<RouteCardProps> = ({
                     { id: route.id, name: route.name, enabled: route.enabled },
                     [
                         {
-                            label: t('actions.edit'),
+                            label: t('common:actions.edit'),
                             icon: <EditOutlinedIcon fontSize="small" />,
                             onClick: onEdit,
                         },
                         {
                             label: route.enabled
-                                ? t('actions.disable')
-                                : t('actions.enable'),
+                                ? t('common:actions.disable')
+                                : t('common:actions.enable'),
                             onClick: () => onToggle(!route.enabled),
                         },
                         {
-                            label: t('actions.delete'),
+                            label: t('common:actions.delete'),
                             icon: <DeleteOutlineRoundedIcon fontSize="small" />,
                             danger: true,
                             divider: true,
@@ -84,7 +84,7 @@ export const RouteCard: React.FC<RouteCardProps> = ({
                                 variant="h4"
                                 sx={{ wordBreak: 'break-word' }}
                             >
-                                {route.name || t('videoRoutes.unnamed')}
+                                {route.name || t('unnamed')}
                             </Typography>
                             <StatusPill enabled={route.enabled} />
                         </Stack>
@@ -139,12 +139,12 @@ export const RouteCard: React.FC<RouteCardProps> = ({
                             onChange={(_, checked) => onToggle(checked)}
                             onClick={stop}
                             inputProps={{
-                                'aria-label': t('videoRoutes.toggleAria', {
+                                'aria-label': t('toggleAria', {
                                     name: route.name,
                                 }),
                             }}
                         />
-                        <Tooltip title={t('actions.delete')}>
+                        <Tooltip title={t('common:actions.delete')}>
                             <IconButton
                                 size="small"
                                 onClick={e => {

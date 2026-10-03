@@ -9,19 +9,19 @@ export function summariseSource(
     switch (source.type) {
         case 'decklink':
             return source.keyDevice !== undefined
-                ? t('videoRoutes.summary.decklinkWithKey', {
+                ? t('summary.decklinkWithKey', {
                       device: source.device,
                       key: source.keyDevice,
                   })
-                : t('videoRoutes.summary.decklink', { device: source.device });
+                : t('summary.decklink', { device: source.device });
         case 'video':
-            return t('videoRoutes.summary.video', { video: source.video });
+            return t('summary.video', { video: source.video });
         case 'channel':
-            return t('videoRoutes.summary.channel', {
+            return t('summary.channel', {
                 channel: source.channel,
             });
         case 'color':
-            return t('videoRoutes.summary.color', { color: source.color });
+            return t('summary.color', { color: source.color });
     }
 }
 

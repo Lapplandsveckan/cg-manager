@@ -1,0 +1,159 @@
+{
+    "description": "Live videovägar från källor (decklink-ingångar, filer, kanaler, färger) till CasparCG-kanaler. Klicka på en väg för att redigera; växla för att aktivera eller pausa.",
+    "newRoute": "Ny väg",
+    "commands": {
+        "toggle": "Aktivera/pausa väg…",
+        "edit": "Redigera väg…",
+        "create": "Skapa väg…",
+        "delete": "Ta bort väg…",
+        "enabled": "Aktiv",
+        "disabled": "Pausad"
+    },
+    "unnamed": "(namnlös väg)",
+    "saving": "Sparar…",
+    "deleting": "Tar bort…",
+    "toggleAria": "Växla {{name}}",
+    "status": {
+        "active": "Aktiv",
+        "disabled": "Inaktiverad"
+    },
+    "empty": {
+        "prefix": "Inga videovägar än. Klicka",
+        "suffix": " för att lägg till en."
+    },
+    "deleteConfirm": {
+        "title": "Ta bort videväg?",
+        "body": "kommer att tas bort och dess underliggande effekt rivs sönder. Detta kan inte ångras."
+    },
+    "summary": {
+        "decklink": "Decklink #{{device}}",
+        "decklinkWithKey": "Decklink #{{device}} (+nyckel #{{key}})",
+        "video": "Video: {{video}}",
+        "channel": "Kanal {{channel}}",
+        "color": "Färg {{color}}"
+    },
+    "sourceTypes": {
+        "decklink": "Decklink",
+        "video": "Videofil",
+        "channel": "Kanal",
+        "color": "Färg"
+    },
+    "sourceTypeDescriptions": {
+        "decklink": "Blackmagic Decklink SDI-ingång (valfri fyllning+nyckel).",
+        "video": "Loopande klipp från mediabiblioteket.",
+        "channel": "Rutt utgången från en annan CasparCG-kanal.",
+        "color": "Solid färgfyllning (CSS-namn eller #RRGGBB)."
+    },
+    "picker": {
+        "title": "Lägg till väg",
+        "description": "Välj en källtyp. Du fyller i dess detaljer och destinationen nästa."
+    },
+    "modal": {
+        "addTitle": "Lägg till {{type}}-väg",
+        "editTitle": "Redigera {{type}}-väg",
+        "description": "Vägar är sparade på disk och börjar gälla omedelbar. Källtypen kan inte ändras efter skapande."
+    },
+    "sections": {
+        "source": "Källa",
+        "destination": "Destination",
+        "geometry": "Geometri"
+    },
+    "fields": {
+        "name": "Namn",
+        "channel": "Kanal",
+        "group": "Grupp",
+        "indexOptional": "Index (valfritt)",
+        "device": "Enhet",
+        "format": "Format",
+        "keyDeviceOptional": "Nyckelenhet (valfritt)",
+        "color": "Färg",
+        "colorHelper": "Lagrad som #AARRGGBB för CasparCG."
+    },
+    "destinationHint": "Effektgrupp-lager är \"kanal:grupp\". Index skiljer på flera grupper med samma namn på en kanal.",
+    "geometry": {
+        "title": "Geometri",
+        "description": "Dra handtag för att placera, förvränga eller blanda vägens utmatning. Koordinater är normaliserade (0..1).",
+        "livePreview": "Direktsänd förhandsvisning · ch {{channel}}",
+        "tabs": {
+            "position": "Position",
+            "perspective": "Perspektiv",
+            "edgeblend": "Kantkombination"
+        },
+        "resetTab": "Återställ denna flik",
+        "fillLabel": "FYLL",
+        "perspectiveHint": "CasparCG MIXER PERSPECTIVE accepterar godtyckliga 4-hörnförvrängningar — dra valfritt hörn var som helst för att deformera kvadraten.",
+        "edgeblendHint": "Dra punkten på varje kant för att tona den sidan inåt. Gamma / kraft / alfa formar blandkurvan.",
+        "gamma": "Gamma",
+        "power": "Kraft",
+        "alpha": "Alfa",
+        "addButton": "Lägg till geometri…",
+        "editButton": "Redigera geometri…",
+        "noneSet": "Position, perspektivförvrängning, kantkombination — ingen satt.",
+        "parts": {
+            "position": "position",
+            "perspective": "perspektiv",
+            "edgeblend": "kantkombination"
+        },
+        "readout": {
+            "destination": "Destination (FYLL)",
+            "source": "Källa (KLIPP)",
+            "topLeft": "Överst till vänster",
+            "topRight": "Överst till höger",
+            "bottomRight": "Underst till höger",
+            "bottomLeft": "Underst till vänster",
+            "left": "Vänster",
+            "right": "Höger",
+            "top": "Överst",
+            "bottom": "Underst"
+        }
+    },
+    "stage": {
+        "label": "Scen · {{width}}×{{height}} px"
+    },
+    "errors": {
+        "decklinkDeviceRequired": "Decklink-enhet krävs",
+        "decklinkFormatRequired": "Decklink-format krävs",
+        "videoRequired": "Videofil krävs",
+        "channelRequired": "Kanal krävs",
+        "colorRequired": "Färg krävs",
+        "destinationChannelRequired": "Destinationskanal krävs",
+        "destinationGroupRequired": "Destinationsgrupp krävs",
+        "destinationGroupColon": "Destinationsgrupp kan inte innehålla `:`",
+        "saveFailed": "Misslyckades att spara väg",
+        "loadFailed": "Misslyckades att ladda rutter",
+        "toggleFailed": "Misslyckades att växla rutt",
+        "deleteFailed": "Misslyckades att ta bort rutt",
+        "routeNotFound": "Rutten hittades inte"
+    },
+    "success": {
+        "saved": "Rutt sparad",
+        "deleted": "Rutt borttagen"
+    },
+    "toggleVideoRoute": {
+        "title": "Växla videorutt",
+        "description": "Växlar den valda rutten mellan aktiverad och inaktiverad när detta objekt körs.",
+        "titleLabel": "Titel",
+        "routeLabel": "Rutt",
+        "selectRoute": "Välj en rutt",
+        "routeGone": "Den tidigare valda rutten ({{id}}) finns inte längre.",
+        "defaultTitle": "Växla videorutt"
+    },
+    "routeItem": {
+        "noRouteSelected": "Ingen rutt vald",
+        "routeNotFound": "Rutten {{id}} hittades inte",
+        "toggles": "Växlar:",
+        "on": "På",
+        "off": "Av"
+    },
+    "inspectRoute": {
+        "menuLabel": "Inspektera rutt"
+    },
+    "nav": "Rutter",
+    "undo": {
+        "create": "skapa rutt \"{{name}}\"",
+        "update": "uppdatera rutt \"{{name}}\"",
+        "delete": "ta bort rutt \"{{name}}\"",
+        "enable": "aktivera rutt \"{{name}}\"",
+        "disable": "inaktivera rutt \"{{name}}\""
+    }
+}

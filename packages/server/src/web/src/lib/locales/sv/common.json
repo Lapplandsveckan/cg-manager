@@ -7,8 +7,6 @@
         "server": "Server",
         "media": "Media",
         "play": "Spela",
-        "routes": "Rutter",
-        "recorder": "Inspelning",
         "plugins": "Plugin",
         "config": "Inställningar"
     },
@@ -670,138 +668,6 @@
             "args": "Argument"
         }
     },
-    "videoRoutes": {
-        "description": "Live videovägar från källor (decklink-ingångar, filer, kanaler, färger) till CasparCG-kanaler. Klicka på en väg för att redigera; växla för att aktivera eller pausa.",
-        "newRoute": "Ny väg",
-        "commands": {
-            "toggle": "Aktivera/pausa väg…",
-            "edit": "Redigera väg…",
-            "create": "Skapa väg…",
-            "delete": "Ta bort väg…",
-            "enabled": "Aktiv",
-            "disabled": "Pausad"
-        },
-        "unnamed": "(namnlös väg)",
-        "saving": "Sparar…",
-        "deleting": "Tar bort…",
-        "toggleAria": "Växla {{name}}",
-        "status": {
-            "active": "Aktiv",
-            "disabled": "Inaktiverad"
-        },
-        "empty": {
-            "prefix": "Inga videovägar än. Klicka",
-            "suffix": " för att lägg till en."
-        },
-        "deleteConfirm": {
-            "title": "Ta bort videväg?",
-            "body": "kommer att tas bort och dess underliggande effekt rivs sönder. Detta kan inte ångras."
-        },
-        "summary": {
-            "decklink": "Decklink #{{device}}",
-            "decklinkWithKey": "Decklink #{{device}} (+nyckel #{{key}})",
-            "video": "Video: {{video}}",
-            "channel": "Kanal {{channel}}",
-            "color": "Färg {{color}}"
-        },
-        "sourceTypes": {
-            "decklink": "Decklink",
-            "video": "Videofil",
-            "channel": "Kanal",
-            "color": "Färg"
-        },
-        "sourceTypeDescriptions": {
-            "decklink": "Blackmagic Decklink SDI-ingång (valfri fyllning+nyckel).",
-            "video": "Loopande klipp från mediabiblioteket.",
-            "channel": "Rutt utgången från en annan CasparCG-kanal.",
-            "color": "Solid färgfyllning (CSS-namn eller #RRGGBB)."
-        },
-        "picker": {
-            "title": "Lägg till väg",
-            "description": "Välj en källtyp. Du fyller i dess detaljer och destinationen nästa."
-        },
-        "modal": {
-            "addTitle": "Lägg till {{type}}-väg",
-            "editTitle": "Redigera {{type}}-väg",
-            "description": "Vägar är sparade på disk och börjar gälla omedelbar. Källtypen kan inte ändras efter skapande."
-        },
-        "sections": {
-            "source": "Källa",
-            "destination": "Destination",
-            "geometry": "Geometri"
-        },
-        "fields": {
-            "name": "Namn",
-            "channel": "Kanal",
-            "group": "Grupp",
-            "indexOptional": "Index (valfritt)",
-            "device": "Enhet",
-            "format": "Format",
-            "keyDeviceOptional": "Nyckelenhet (valfritt)",
-            "color": "Färg",
-            "colorHelper": "Lagrad som #AARRGGBB för CasparCG."
-        },
-        "destinationHint": "Effektgrupp-lager är \"kanal:grupp\". Index skiljer på flera grupper med samma namn på en kanal.",
-        "geometry": {
-            "title": "Geometri",
-            "description": "Dra handtag för att placera, förvränga eller blanda vägens utmatning. Koordinater är normaliserade (0..1).",
-            "livePreview": "Direktsänd förhandsvisning · ch {{channel}}",
-            "tabs": {
-                "position": "Position",
-                "perspective": "Perspektiv",
-                "edgeblend": "Kantkombination"
-            },
-            "resetTab": "Återställ denna flik",
-            "fillLabel": "FYLL",
-            "perspectiveHint": "CasparCG MIXER PERSPECTIVE accepterar godtyckliga 4-hörnförvrängningar — dra valfritt hörn var som helst för att deformera kvadraten.",
-            "edgeblendHint": "Dra punkten på varje kant för att tona den sidan inåt. Gamma / kraft / alfa formar blandkurvan.",
-            "gamma": "Gamma",
-            "power": "Kraft",
-            "alpha": "Alfa",
-            "addButton": "Lägg till geometri…",
-            "editButton": "Redigera geometri…",
-            "noneSet": "Position, perspektivförvrängning, kantkombination — ingen satt.",
-            "parts": {
-                "position": "position",
-                "perspective": "perspektiv",
-                "edgeblend": "kantkombination"
-            },
-            "readout": {
-                "destination": "Destination (FYLL)",
-                "source": "Källa (KLIPP)",
-                "topLeft": "Överst till vänster",
-                "topRight": "Överst till höger",
-                "bottomRight": "Underst till höger",
-                "bottomLeft": "Underst till vänster",
-                "left": "Vänster",
-                "right": "Höger",
-                "top": "Överst",
-                "bottom": "Underst"
-            }
-        },
-        "stage": {
-            "label": "Scen · {{width}}×{{height}} px"
-        },
-        "errors": {
-            "decklinkDeviceRequired": "Decklink-enhet krävs",
-            "decklinkFormatRequired": "Decklink-format krävs",
-            "videoRequired": "Videofil krävs",
-            "channelRequired": "Kanal krävs",
-            "colorRequired": "Färg krävs",
-            "destinationChannelRequired": "Destinationskanal krävs",
-            "destinationGroupRequired": "Destinationsgrupp krävs",
-            "destinationGroupColon": "Destinationsgrupp kan inte innehålla `:`",
-            "saveFailed": "Misslyckades att spara väg",
-            "loadFailed": "Misslyckades att ladda rutter",
-            "toggleFailed": "Misslyckades att växla rutt",
-            "deleteFailed": "Misslyckades att ta bort rutt",
-            "routeNotFound": "Rutten hittades inte"
-        },
-        "success": {
-            "saved": "Rutt sparad",
-            "deleted": "Rutt borttagen"
-        }
-    },
     "notFound": {
         "title": "Sidan hittades inte"
     },
@@ -967,110 +833,6 @@
             "newItemTitle": "Nytt rundown-objekt"
         }
     },
-    "plugins": {
-        "routes": {
-            "toggleVideoRoute": {
-                "title": "Växla videorutt",
-                "description": "Växlar den valda rutten mellan aktiverad och inaktiverad när detta objekt körs.",
-                "titleLabel": "Titel",
-                "routeLabel": "Rutt",
-                "selectRoute": "Välj en rutt",
-                "routeGone": "Den tidigare valda rutten ({{id}}) finns inte längre.",
-                "defaultTitle": "Växla videorutt"
-            },
-            "routeItem": {
-                "noRouteSelected": "Ingen rutt vald",
-                "routeNotFound": "Rutten {{id}} hittades inte",
-                "toggles": "Växlar:",
-                "on": "På",
-                "off": "Av"
-            },
-            "inspectRoute": {
-                "menuLabel": "Inspektera rutt"
-            }
-        },
-        "edgeblend": {
-            "layouts": "Layouter",
-            "commands": {
-                "section": "Edge blend",
-                "toggle": "Aktivera/inaktivera layout…",
-                "enabled": "Aktiv",
-                "disabled": "Inaktiv"
-            },
-            "addLayout": "+ Lägg till",
-            "noLayouts": "Inga layouter konfigurerade.",
-            "selectOrAdd": "Välj en layout eller lägg till en ny.",
-            "newLayout": "Ny layout",
-            "editLayout": "Redigera layout",
-            "name": "Namn",
-            "canvasSize": "Canvasstorlek",
-            "projectorSize": "Projektorstorlek",
-            "width": "Bredd",
-            "height": "Höjd",
-            "grid": "Rutnät",
-            "cols": "Kolumner",
-            "rows": "Rader",
-            "projectors": "projektorer",
-            "inputChannel": "Inkanal",
-            "outputChannels": "Utkanaler (vänster→höger, uppifrån→ned)",
-            "channel": "Kanal",
-            "channelN": "Kanal {{n}}",
-            "projectorPos": "Kol {{col}}, Rad {{row}}",
-            "enable": "Aktivera",
-            "disable": "Inaktivera",
-            "enabledInEdit": "Aktiverad",
-            "outputCountError": "Måste ha exakt {{count}} utkanal(er) för detta rutnät.",
-            "saving": "Sparar…",
-            "showPreview": "Live-förhandsgranskning",
-            "overlapZone": "Överlappnings- / blandningszon"
-        },
-        "recorder": {
-            "channelN": "Kanal {{n}}",
-            "name": "Namn",
-            "durationSec": "Längd (s)",
-            "start": "Starta inspelning",
-            "stop": "Stoppa inspelning",
-            "choosePreset": "Välj format",
-            "autoStop": "Stoppa inspelningen automatiskt",
-            "afterSeconds": "Efter (sekunder)",
-            "settings": "Inspelningsinställningar",
-            "namePlaceholder": "Auto (datum & tid)",
-            "autoStopSummary": "Stoppas automatiskt efter {{seconds}}s",
-            "manualStopSummary": "Stoppas manuellt",
-            "download": "Ladda ner",
-            "importToMedia": "Importera till media",
-            "importDone": "Importerad till mediebiblioteket",
-            "noRecordings": "Inga inspelningar ännu.",
-            "defaultTitle": "Spela in kanal",
-            "commands": {
-                "start": "Starta inspelning…",
-                "stop": "Stoppa inspelning…"
-            },
-            "states": {
-                "recording": "Spelar in…",
-                "done": "Klar",
-                "interrupted": "Avbruten"
-            },
-            "presets": {
-                "mp4-h264": "MP4 (H.264)",
-                "mov-prores4444": "MOV (ProRes 4444, alfa)"
-            },
-            "editor": {
-                "title": "Spela in kanal",
-                "description": "Spelar in den valda kanalen till en fil när denna post körs.",
-                "titleLabel": "Titel",
-                "durationHint": "Lämna tomt för att stoppa manuellt eller med postens stoppåtgärd."
-            },
-            "item": {
-                "unconfigured": "Ingen kanal konfigurerad",
-                "durationLabel": "{{count}}s"
-            },
-            "errors": {
-                "startFailed": "Kunde inte starta inspelningen",
-                "importFailed": "Kunde inte importera inspelningen"
-            }
-        }
-    },
     "undo": {
         "undid": "Ångrade: {{label}}",
         "redid": "Gjorde om: {{label}}",
@@ -1104,11 +866,6 @@
             "folderRename": "byt namn på mapp till \"{{name}}\"",
             "folderDelete": "ta bort mapp \"{{name}}\"",
             "configSave": "spara konfiguration",
-            "routeCreate": "skapa rutt \"{{name}}\"",
-            "routeUpdate": "uppdatera rutt \"{{name}}\"",
-            "routeDelete": "ta bort rutt \"{{name}}\"",
-            "routeEnable": "aktivera rutt \"{{name}}\"",
-            "routeDisable": "inaktivera rutt \"{{name}}\"",
             "unknown": "en åtgärd"
         }
     }

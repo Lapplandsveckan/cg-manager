@@ -26,7 +26,7 @@ import { API_ROOT, layoutsUpdated } from './api';
 
 const EdgeblendPage: React.FC = () => {
     const conn = useSocket();
-    const { t } = useTranslation();
+    const { t } = useTranslation('edgeblend');
 
     const [layouts, setLayouts] = useState<StoredLayout[] | null>(null);
     const [channels, setChannels] = useState<number[]>([]);
@@ -157,25 +157,23 @@ const EdgeblendPage: React.FC = () => {
                     justifyContent="space-between"
                     mb={1}
                 >
-                    <Typography variant="h3">
-                        {t('plugins.edgeblend.layouts')}
-                    </Typography>
+                    <Typography variant="h3">{t('layouts')}</Typography>
                     <Button size="small" variant="outlined" onClick={startNew}>
-                        {t('plugins.edgeblend.addLayout')}
+                        {t('addLayout')}
                     </Button>
                 </Stack>
 
                 <List dense disablePadding>
                     {layouts === null && (
                         <ListItem>
-                            <ListItemText secondary={t('actions.loading')} />
+                            <ListItemText
+                                secondary={t('common:actions.loading')}
+                            />
                         </ListItem>
                     )}
                     {layouts?.length === 0 && (
                         <ListItem>
-                            <ListItemText
-                                secondary={t('plugins.edgeblend.noLayouts')}
-                            />
+                            <ListItemText secondary={t('noLayouts')} />
                         </ListItem>
                     )}
                     {(layouts ?? []).map(layout => (
@@ -186,8 +184,8 @@ const EdgeblendPage: React.FC = () => {
                                 <Tooltip
                                     title={
                                         layout.enabled
-                                            ? t('plugins.edgeblend.disable')
-                                            : t('plugins.edgeblend.enable')
+                                            ? t('disable')
+                                            : t('enable')
                                     }
                                 >
                                     <Switch
@@ -271,7 +269,7 @@ const EdgeblendPage: React.FC = () => {
                     }}
                 >
                     <Typography color="text.secondary">
-                        {t('plugins.edgeblend.selectOrAdd')}
+                        {t('selectOrAdd')}
                     </Typography>
                 </Box>
             )}

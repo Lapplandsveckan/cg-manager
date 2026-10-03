@@ -20,7 +20,7 @@ import { routeKey, routeScope, routeUndo } from './undo';
  * route" context-menu action.
  */
 export function useRouteEditor() {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     const notify = useToast();
     const create = useMutationSpec(routeCreate);
     const update = useMutationSpec(routeUpdate);
@@ -45,7 +45,7 @@ export function useRouteEditor() {
                 });
                 routeUndo.record({
                     label: {
-                        key: 'routeUpdate',
+                        key: 'routes:undo.update',
                         params: { name: updated.name },
                     },
                     scopes: [routeKey(updated.id)],
@@ -62,7 +62,10 @@ export function useRouteEditor() {
 
             const created = await create.mutateAsync(data);
             routeUndo.record<VideoRoute | null>({
-                label: { key: 'routeCreate', params: { name: created.name } },
+                label: {
+                    key: 'routes:undo.create',
+                    params: { name: created.name },
+                },
                 scopes: [routeKey(created.id)],
                 prev: null,
                 next: created,
@@ -83,13 +86,10 @@ export function useRouteEditor() {
             });
         });
         if (err) {
-            notify(
-                (err as Error)?.message ?? t('videoRoutes.errors.saveFailed'),
-                'error',
-            );
+            notify((err as Error)?.message ?? t('errors.saveFailed'), 'error');
             return;
         }
-        notify(t('videoRoutes.success.saved'), 'success');
+        notify(t('success.saved'), 'success');
         closeModal();
     };
 
@@ -101,7 +101,7 @@ export function useRouteEditor() {
         );
         if (err) {
             notify(
-                (err as Error)?.message ?? t('videoRoutes.errors.deleteFailed'),
+                (err as Error)?.message ?? t('errors.deleteFailed'),
                 'error',
             );
             return;
@@ -110,9 +110,12 @@ export function useRouteEditor() {
         const deleted = deleting;
         setDeleting(null);
         closeModal();
-        notify(t('videoRoutes.success.deleted'), 'success');
+        notify(t('success.deleted'), 'success');
         routeUndo.record<VideoRoute | null>({
-            label: { key: 'routeDelete', params: { name: deleted.name } },
+            label: {
+                key: 'routes:undo.delete',
+                params: { name: deleted.name },
+            },
             scopes: [routeKey(deleted.id)],
             prev: deleted,
             next: null,

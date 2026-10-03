@@ -49,7 +49,7 @@ const LayoutDiagram: React.FC<Props> = ({
     focusedOutput,
     onFocusOutput,
 }) => {
-    const { t } = useTranslation();
+    const { t } = useTranslation('edgeblend');
     const wrapperRef = useRef<HTMLDivElement | null>(null);
     const [scale, setScale] = useState(1);
 
@@ -141,7 +141,7 @@ const LayoutDiagram: React.FC<Props> = ({
                     }
                     label={
                         <Typography variant="caption">
-                            {t('plugins.edgeblend.showPreview')}
+                            {t('showPreview')}
                         </Typography>
                     }
                     labelPlacement="start"
@@ -271,7 +271,7 @@ const LayoutDiagram: React.FC<Props> = ({
                                             fontSize: '0.85em',
                                         }}
                                     >
-                                        {t('plugins.edgeblend.projectorPos', {
+                                        {t('projectorPos', {
                                             col: rect.col + 1,
                                             row: rect.row + 1,
                                         })}
@@ -299,7 +299,7 @@ const LayoutDiagram: React.FC<Props> = ({
                         variant="caption"
                         sx={{ color: 'text.secondary' }}
                     >
-                        {t('plugins.edgeblend.overlapZone')}
+                        {t('overlapZone')}
                     </Typography>
                 </Stack>
             )}

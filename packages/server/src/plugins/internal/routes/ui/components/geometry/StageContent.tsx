@@ -38,7 +38,7 @@ export const StageContent: React.FC<StageContentProps> = ({
     setQuad,
     setInsets,
 }) => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     if (tab === 'position')
         return (
             <RectHandles
@@ -47,7 +47,7 @@ export const StageContent: React.FC<StageContentProps> = ({
                 width={width}
                 height={height}
                 stageRef={stageRef}
-                label={t('videoRoutes.geometry.fillLabel')}
+                label={t('geometry.fillLabel')}
             />
         );
     if (tab === 'perspective')

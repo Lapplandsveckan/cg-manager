@@ -23,11 +23,10 @@ export function useRouteCommands({
     remove,
     create,
 }: RouteCommandsArgs) {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
     const toggle = useRouteToggle();
 
-    const routeName = (route: VideoRoute) =>
-        route.name || t('videoRoutes.unnamed');
+    const routeName = (route: VideoRoute) => route.name || t('unnamed');
 
     const routeCommands =
         (
@@ -47,23 +46,19 @@ export function useRouteCommands({
     const sourceTypeCommands = (): CommandItem[] =>
         SOURCE_TYPES.map(type => ({
             id: `routes.type.${type}`,
-            label: t(`videoRoutes.sourceTypes.${type}`),
-            description: t(`videoRoutes.sourceTypeDescriptions.${type}`),
+            label: t(`sourceTypes.${type}`),
+            description: t(`sourceTypeDescriptions.${type}`),
             run: () => create(type),
         }));
 
     const stateOf = (route: VideoRoute) =>
-        t(
-            route.enabled
-                ? 'videoRoutes.commands.enabled'
-                : 'videoRoutes.commands.disabled',
-        );
+        t(route.enabled ? 'commands.enabled' : 'commands.disabled');
 
     useRegisterCommands(
         () => [
             {
                 id: 'routes.toggle',
-                label: t('videoRoutes.commands.toggle'),
+                label: t('commands.toggle'),
                 icon: <PowerSettingsNewRoundedIcon fontSize="small" />,
                 disabled: routes.length === 0,
                 children: routeCommands(
@@ -73,26 +68,26 @@ export function useRouteCommands({
             },
             {
                 id: 'routes.edit',
-                label: t('videoRoutes.commands.edit'),
+                label: t('commands.edit'),
                 icon: <EditOutlinedIcon fontSize="small" />,
                 disabled: routes.length === 0,
                 children: routeCommands(edit, stateOf),
             },
             {
                 id: 'routes.create',
-                label: t('videoRoutes.commands.create'),
+                label: t('commands.create'),
                 icon: <AddRoundedIcon fontSize="small" />,
                 children: sourceTypeCommands,
             },
             {
                 id: 'routes.delete',
-                label: t('videoRoutes.commands.delete'),
+                label: t('commands.delete'),
                 icon: <DeleteOutlineRoundedIcon fontSize="small" />,
                 danger: true,
                 disabled: routes.length === 0,
                 children: routeCommands(remove, stateOf, true),
             },
         ],
-        { section: t('nav.routes') },
+        { section: t('nav') },
     );
 }

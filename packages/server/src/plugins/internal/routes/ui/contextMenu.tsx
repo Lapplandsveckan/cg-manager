@@ -12,7 +12,7 @@ function routeIdOf(data: unknown): string | undefined {
 }
 
 export default function RundownItemProvider() {
-    const { t } = useTranslation();
+    const { t } = useTranslation('routes');
 
     useRegisterContextMenuItems<ContextMenuRundownItemTarget>(
         'rundown-item',
@@ -20,7 +20,7 @@ export default function RundownItemProvider() {
             const routeId = routeIdOf(target.data);
             return [
                 target.type === 'toggle-video-route' && {
-                    label: t('plugins.routes.inspectRoute.menuLabel'),
+                    label: t('inspectRoute.menuLabel'),
                     disabled: !routeId,
                     onClick: () =>
                         routeId && openRouteInspector({ edit: routeId }),

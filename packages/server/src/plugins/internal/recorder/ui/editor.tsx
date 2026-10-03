@@ -33,7 +33,7 @@ const RecordChannelEditor: React.FC<Props> = ({
     deleteEntry,
 }) => {
     const conn = useSocket();
-    const { t } = useTranslation();
+    const { t } = useTranslation('recorder');
 
     const [title, setTitle] = useState(entry.title ?? '');
     const [channels, setChannels] = useState<number[]>([]);
@@ -71,7 +71,7 @@ const RecordChannelEditor: React.FC<Props> = ({
     const onSave = () => {
         updateEntry({
             ...entry,
-            title: title.trim() || t('plugins.recorder.defaultTitle'),
+            title: title.trim() || t('defaultTitle'),
             data: {
                 channel,
                 presetId,
@@ -84,16 +84,14 @@ const RecordChannelEditor: React.FC<Props> = ({
     return (
         <Stack spacing={2.5}>
             <Stack spacing={0.5}>
-                <Typography variant="h3">
-                    {t('plugins.recorder.editor.title')}
-                </Typography>
+                <Typography variant="h3">{t('editor.title')}</Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                    {t('plugins.recorder.editor.description')}
+                    {t('editor.description')}
                 </Typography>
             </Stack>
 
             <TextField
-                label={t('plugins.recorder.editor.titleLabel')}
+                label={t('editor.titleLabel')}
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 size="small"
@@ -107,7 +105,7 @@ const RecordChannelEditor: React.FC<Props> = ({
             >
                 {channels.map(ch => (
                     <MenuItem key={ch} value={ch}>
-                        {t('plugins.recorder.channelN', { n: ch })}
+                        {t('channelN', { n: ch })}
                     </MenuItem>
                 ))}
             </Select>
@@ -119,14 +117,14 @@ const RecordChannelEditor: React.FC<Props> = ({
             >
                 {presets.map(preset => (
                     <MenuItem key={preset.id} value={preset.id}>
-                        {t(`plugins.recorder.presets.${preset.id}`, preset.id)}
+                        {t(`presets.${preset.id}`, preset.id)}
                     </MenuItem>
                 ))}
             </Select>
 
             <TextField
                 size="small"
-                label={t('plugins.recorder.name')}
+                label={t('name')}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 fullWidth
@@ -135,8 +133,8 @@ const RecordChannelEditor: React.FC<Props> = ({
             <TextField
                 size="small"
                 type="number"
-                label={t('plugins.recorder.durationSec')}
-                helperText={t('plugins.recorder.editor.durationHint')}
+                label={t('durationSec')}
+                helperText={t('editor.durationHint')}
                 value={durationSec}
                 onChange={e => setDurationSec(e.target.value)}
             />

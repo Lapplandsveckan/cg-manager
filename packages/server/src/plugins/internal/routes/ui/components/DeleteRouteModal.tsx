@@ -16,7 +16,7 @@ export const DeleteRouteModal: React.FC<DeleteRouteModalProps> = ({
     onClose,
     onConfirm,
 }) => {
-    const { t } = useTranslation('common');
+    const { t } = useTranslation('routes');
 
     return (
         <Modal open={Boolean(deleting)} onClose={() => !busy && onClose()}>
@@ -44,7 +44,7 @@ export const DeleteRouteModal: React.FC<DeleteRouteModalProps> = ({
                                 sx={{ color: '#e88c8c' }}
                             />
                             <Typography variant="h3">
-                                {t('videoRoutes.deleteConfirm.title')}
+                                {t('deleteConfirm.title')}
                             </Typography>
                         </Stack>
                         <Typography
@@ -54,7 +54,7 @@ export const DeleteRouteModal: React.FC<DeleteRouteModalProps> = ({
                             <strong style={{ color: 'inherit' }}>
                                 {deleting?.name || deleting?.id}
                             </strong>{' '}
-                            {t('videoRoutes.deleteConfirm.body')}
+                            {t('deleteConfirm.body')}
                         </Typography>
                         <Stack
                             direction="row"
@@ -66,7 +66,7 @@ export const DeleteRouteModal: React.FC<DeleteRouteModalProps> = ({
                                 disabled={busy}
                                 color="inherit"
                             >
-                                {t('actions.cancel')}
+                                {t('common:actions.cancel')}
                             </Button>
                             <Button
                                 onClick={onConfirm}
@@ -75,8 +75,8 @@ export const DeleteRouteModal: React.FC<DeleteRouteModalProps> = ({
                                 color="error"
                             >
                                 {busy
-                                    ? t('videoRoutes.deleting')
-                                    : t('actions.delete')}
+                                    ? t('deleting')
+                                    : t('common:actions.delete')}
                             </Button>
                         </Stack>
                     </Stack>
