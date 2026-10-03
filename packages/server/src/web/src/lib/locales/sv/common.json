@@ -26,6 +26,80 @@
     "auth": {
         "signOut": "Logga ut"
     },
+    "commandPalette": {
+        "title": "Kommandon",
+        "quickOpenShortcut": "{{mod}}+Skift+K",
+        "placeholder": "Skriv ett kommando eller sök…",
+        "empty": "Inga matchande kommandon",
+        "loading": "Laddar…",
+        "failed": "Kommandot misslyckades",
+        "recent": "Senaste",
+        "prompt": {
+            "submit": "Tryck Enter för att bekräfta ”{{value}}”",
+            "empty": "Skriv ett värde och tryck Enter"
+        },
+        "sections": {
+            "navigation": "Navigering",
+            "general": "Allmänt",
+            "server": "Server",
+            "rundown": "Rundown",
+            "quickActions": "Snabbåtgärder",
+            "media": "Media",
+            "config": "Konfig",
+            "plugins": "Plugins"
+        },
+        "commands": {
+            "goTo": "Gå till {{page}}",
+            "openRundown": "Öppna rundown…",
+            "openRundownPlaceholder": "Sök rundowns…",
+            "openPlugin": "Öppna plugin…",
+            "mediaFolder": "Gå till mediamapp…",
+            "mediaRoot": "Medias rot",
+            "undo": "Ångra",
+            "redo": "Gör om",
+            "newRundown": "Ny rundown",
+            "newRundownPlaceholder": "Rundownens namn",
+            "createNamed": "Skapa ”{{value}}”",
+            "language": "Byt språk…",
+            "currentLanguage": "Aktuellt språk",
+            "untitledEntry": "Namnlös post",
+            "addEntry": "Lägg till post",
+            "playEntry": "Spela post…",
+            "stopEntry": "Stoppa post…",
+            "pasteEntry": "Klistra in post",
+            "renameRundown": "Byt namn på rundown",
+            "renamePlaceholder": "Nytt namn",
+            "renameTo": "Byt namn till ”{{value}}”",
+            "switchToLive": "Byt till Live-läge",
+            "switchToEdit": "Byt till Redigeringsläge",
+            "selectQuickSet": "Välj snabbåtgärdsset…",
+            "newQuickSet": "Nytt snabbåtgärdsset",
+            "quickSetPlaceholder": "Setets namn",
+            "playQuickAction": "Spela snabbåtgärd…",
+            "uploadMedia": "Ladda upp media",
+            "newFolder": "Ny mapp",
+            "folderPlaceholder": "Mappens namn",
+            "refreshMedia": "Uppdatera media",
+            "playClip": "Spela klipp…",
+            "inspectClip": "Granska klipp…",
+            "saveConfig": "Spara konfig",
+            "discardConfig": "Kasta konfigändringar",
+            "configMode": {
+                "simple": "Byt till enkel konfig",
+                "advanced": "Byt till avancerad konfig"
+            },
+            "addChannel": "Lägg till kanal",
+            "enablePlugin": "Aktivera plugin…",
+            "disablePlugin": "Inaktivera plugin…",
+            "uploadPlugin": "Installera plugin",
+            "clearLogs": "Rensa loggar",
+            "caspar": {
+                "start": "Starta CasparCG",
+                "stop": "Stoppa CasparCG",
+                "restart": "Starta om CasparCG"
+            }
+        }
+    },
     "language": {
         "label": "Språk",
         "en": "English",
@@ -599,6 +673,14 @@
     "videoRoutes": {
         "description": "Live videovägar från källor (decklink-ingångar, filer, kanaler, färger) till CasparCG-kanaler. Klicka på en väg för att redigera; växla för att aktivera eller pausa.",
         "newRoute": "Ny väg",
+        "commands": {
+            "toggle": "Aktivera/pausa väg…",
+            "edit": "Redigera väg…",
+            "create": "Skapa väg…",
+            "delete": "Ta bort väg…",
+            "enabled": "Aktiv",
+            "disabled": "Pausad"
+        },
         "unnamed": "(namnlös väg)",
         "saving": "Sparar…",
         "deleting": "Tar bort…",
@@ -876,11 +958,6 @@
             "createdDesc": "Nyast först",
             "createdAsc": "Äldst först"
         },
-        "quickJump": {
-            "hint": "Hoppa",
-            "placeholder": "Sök rundowns…",
-            "empty": "Inga matchande rundowns"
-        },
         "detail": {
             "untitled": "Namnlös rundown",
             "itemsLabel": "Objekt",
@@ -914,6 +991,12 @@
         },
         "edgeblend": {
             "layouts": "Layouter",
+            "commands": {
+                "section": "Edge blend",
+                "toggle": "Aktivera/inaktivera layout…",
+                "enabled": "Aktiv",
+                "disabled": "Inaktiv"
+            },
             "addLayout": "+ Lägg till",
             "noLayouts": "Inga layouter konfigurerade.",
             "selectOrAdd": "Välj en layout eller lägg till en ny.",
@@ -959,6 +1042,10 @@
             "importDone": "Importerad till mediebiblioteket",
             "noRecordings": "Inga inspelningar ännu.",
             "defaultTitle": "Spela in kanal",
+            "commands": {
+                "start": "Starta inspelning…",
+                "stop": "Stoppa inspelning…"
+            },
             "states": {
                 "recording": "Spelar in…",
                 "done": "Klar",

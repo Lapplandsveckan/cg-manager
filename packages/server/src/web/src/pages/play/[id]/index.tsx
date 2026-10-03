@@ -7,6 +7,7 @@ import { getStorageItem, setStorageItem } from '../../../lib/storage';
 import { useDragAutoScroll } from '../../../lib/hooks/useDragAutoScroll';
 import { DefaultContentLayout } from '../../../components/DefaultContentLayout';
 import { useEntryCommand } from '../../../lib/hooks/useEntryCommand';
+import { useRundownCommands } from '../../../lib/commands/useRundownCommands';
 import { Injections, UI_INJECTION_ZONE } from '../../../lib/api/inject';
 import { Rundowns } from '../../../components/rundown/RundownList';
 import { ModeToggle } from '../../../components/RundownChrome';
@@ -210,6 +211,18 @@ const Page = () => {
             { ...entry, id: newId(), data: structuredClone(entry.data) },
             index + 1,
         );
+
+    useRundownCommands({
+        name,
+        entries,
+        locked,
+        setLocked,
+        setAdding,
+        play,
+        stop,
+        paste: handlePaste,
+        rename: renameRundown,
+    });
 
     return (
         <RundownLiveProvider live={!locked}>

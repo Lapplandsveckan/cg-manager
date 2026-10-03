@@ -23,6 +23,10 @@ import {
 import { useMutationSpec } from '../../lib/query/mutations';
 import { usePluginMutations, usePluginsQuery } from '../../lib/query/plugins';
 import { useInjectionsForZone } from '../../lib/query/pluginInjections';
+import { NAV_COMMAND } from '../../lib/commands/useNavigationCommands';
+import { usePluginsPageCommands } from '../../lib/commands/usePluginsPageCommands';
+import { useQuickOpenCommand } from '../../components/commandPalette/CommandPaletteProvider';
+import { pickFiles } from '../../lib/filePicker';
 
 interface ChannelInfo {
     name: string;
@@ -124,6 +128,28 @@ const Page = () => {
         },
         [plugins, channelCount, applyToggle],
     );
+
+    const pluginFileTypes = [
+        {
+            description: t('pluginsPage.upload.fileType'),
+            accept: { 'application/zip': ['.cgplugin'] },
+        },
+    ];
+
+    const pickAndUploadPlugin = async () => {
+        const { phase } = uploadCtrl.state;
+        if (phase === 'starting' || phase === 'uploading') return;
+
+        const files = await pickFiles({ types: pluginFileTypes });
+        if (files.length) uploadCtrl.start(files);
+    };
+
+    useQuickOpenCommand(NAV_COMMAND.plugin);
+    usePluginsPageCommands({
+        plugins: plugins ?? [],
+        toggle: togglePlugin,
+        upload: pickAndUploadPlugin,
+    });
 
     const addChannels = async (need: number) => {
         setAddingChannels(true);
@@ -264,14 +290,7 @@ const Page = () => {
                         label={t('pluginsPage.upload.button')}
                         controller={uploadCtrl}
                         multiple={false}
-                        types={[
-                            {
-                                description: t('pluginsPage.upload.fileType'),
-                                accept: {
-                                    'application/zip': ['.cgplugin'],
-                                },
-                            },
-                        ]}
+                        types={pluginFileTypes}
                     />
                 </Stack>
 

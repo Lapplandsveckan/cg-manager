@@ -121,6 +121,7 @@ export default class RecorderPlugin extends CasparPlugin {
         const zone = (name: string) => name as UI_INJECTION_ZONE_KEY;
 
         this.api.registerUI(UI_INJECTION_ZONE.NAVBAR_PAGE, this.uiFile('page'));
+        this.api.registerUI(UI_INJECTION_ZONE.GLOBAL, this.uiFile('global'));
         this.api.registerUI(
             zone(`${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${RECORD_CHANNEL}`),
             this.uiFile('editor'),

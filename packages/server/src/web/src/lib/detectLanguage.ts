@@ -1,4 +1,5 @@
 import { noTry } from 'no-try';
+import i18n from './i18n';
 
 export const SUPPORTED_LANGUAGES = ['en', 'sv'] as const;
 export type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
@@ -31,4 +32,9 @@ export function detectLanguage(): SupportedLanguage {
 
 export function setStoredLanguage(lng: SupportedLanguage): void {
     noTry(() => window.localStorage.setItem(LANGUAGE_STORAGE_KEY, lng));
+}
+
+export function applyLanguage(lng: SupportedLanguage): void {
+    i18n.changeLanguage(lng);
+    setStoredLanguage(lng);
 }

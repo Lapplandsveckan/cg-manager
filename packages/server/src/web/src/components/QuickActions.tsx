@@ -15,6 +15,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useContextMenu } from './ContextMenuProvider';
 import { useEntryCommand } from '../lib/hooks/useEntryCommand';
+import { useQuickActionCommands } from '../lib/commands/useQuickActionCommands';
 import { EditRundown } from '../pages/play';
 import { RundownModals } from './RundownModals';
 import { Rundowns } from './rundown/RundownList';
@@ -162,6 +163,20 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ locked }) => {
             { ...entry, id: newId(), data: structuredClone(entry.data) },
             index + 1,
         );
+
+    const createAndSelect = async (name: string) => {
+        const created = await createQuickAction(name);
+        if (created) setQuickAction(created.id);
+    };
+
+    useQuickActionCommands({
+        sets: quickActions,
+        selectedId: quickAction,
+        entries,
+        select: setQuickAction,
+        create: createAndSelect,
+        play,
+    });
 
     return (
         <>

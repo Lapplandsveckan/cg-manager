@@ -12,7 +12,7 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material';
-import { Method, topic, useBroadcast, useSocket } from '@web-lib';
+import { useBroadcast, useSocket } from '@web-lib';
 import { useTranslation } from 'react-i18next';
 import LayoutEditor, {
     type StoredLayout,
@@ -22,15 +22,7 @@ import LayoutEditor, {
     fromForm,
 } from './LayoutEditor';
 import LayoutDiagram from './LayoutDiagram';
-
-const PLUGIN = 'edgeblend';
-const API_ROOT = `/api/plugin/${PLUGIN}`;
-
-const layoutsUpdated = topic(
-    `plugin/${PLUGIN}/layouts`,
-    Method.UPDATE,
-    (data): data is StoredLayout[] => Array.isArray(data),
-);
+import { API_ROOT, layoutsUpdated } from './api';
 
 const EdgeblendPage: React.FC = () => {
     const conn = useSocket();

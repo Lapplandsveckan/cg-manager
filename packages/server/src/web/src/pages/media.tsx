@@ -21,6 +21,10 @@ import CreateFolderModal from '../components/media/CreateFolderModal';
 import RenameMediaModal from '../components/media/RenameMediaModal';
 import RenameFolderModal from '../components/media/RenameFolderModal';
 import { useMediaHandlers } from '../lib/media/useMediaHandlers';
+import { useMediaCommands } from '../lib/commands/useMediaCommands';
+import { NAV_COMMAND } from '../lib/commands/useNavigationCommands';
+import { useQuickOpenCommand } from '../components/commandPalette/CommandPaletteProvider';
+import { pickFiles } from '../lib/filePicker';
 import { useRundownActionsQuery } from '../lib/query/rundownMeta';
 import MediaPlayModal from '../components/MediaPlayModal';
 import MediaInspectorModal from '../components/media/MediaInspectorModal';
@@ -123,6 +127,34 @@ const Page = () => {
         createUpload: file => socket.caspar.uploadMedia(path + file.name, file),
     });
 
+    const mediaTypes = [
+        {
+            description: t('media.page.mediaFiles'),
+            accept: {
+                'audio/*': ['mp3', 'wav', 'ogg'],
+                'video/*': ['mp4', 'webm', 'mkv'],
+                'image/*': ['png', 'jpg', 'jpeg', 'gif'],
+            },
+        },
+    ];
+
+    const pickAndUpload = async () => {
+        const { phase } = uploadCtrl.state;
+        if (phase === 'starting' || phase === 'uploading') return;
+
+        const files = await pickFiles({ types: mediaTypes, multiple: true });
+        if (files.length) uploadCtrl.start(files);
+    };
+
+    useQuickOpenCommand(NAV_COMMAND.mediaFolder);
+    useMediaCommands({
+        path,
+        navigate,
+        upload: pickAndUpload,
+        inspect: setInspecting,
+        play: canPlay ? handlePlay : undefined,
+    });
+
     return (
         <DefaultContentLayout>
             <Dropzone
@@ -170,21 +202,7 @@ const Page = () => {
                         <UploadButton
                             label={t('media.page.uploadMedia')}
                             controller={uploadCtrl}
-                            types={[
-                                {
-                                    description: t('media.page.mediaFiles'),
-                                    accept: {
-                                        'audio/*': ['mp3', 'wav', 'ogg'],
-                                        'video/*': ['mp4', 'webm', 'mkv'],
-                                        'image/*': [
-                                            'png',
-                                            'jpg',
-                                            'jpeg',
-                                            'gif',
-                                        ],
-                                    },
-                                },
-                            ]}
+                            types={mediaTypes}
                         />
                     </Stack>
                 </Stack>

@@ -6,11 +6,12 @@ import {
     MenuItem,
     Select,
     Stack,
+    Tooltip,
     Typography,
 } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
 import { useTranslation } from 'react-i18next';
 import { DefaultContentLayout } from '../../components/DefaultContentLayout';
@@ -22,7 +23,12 @@ import { RenameRundownModal } from '../../components/play/RenameRundownModal';
 import { DeleteRundownModal } from '../../components/play/DeleteRundownModal';
 import { EditRundownModal } from '../../components/play/EditRundownModal';
 import { ModalShell } from '../../components/play/ModalShell';
-import { QuickJumpPalette } from '../../components/play/QuickJumpPalette';
+import {
+    useCommandPalette,
+    useQuickOpenCommand,
+} from '../../components/commandPalette/CommandPaletteProvider';
+import { NAV_COMMAND } from '../../lib/commands/useNavigationCommands';
+import { modKey } from '../../lib/shortcut';
 import { useStoredString } from '../../lib/hooks/useStoredValue';
 import { useToast } from '../../components/ToastProvider';
 import type { Rundown, RundownItem } from '../../lib/query/rundowns';
@@ -89,23 +95,13 @@ const Page = () => {
         'default',
     );
     const sortBy = (storedSort ?? 'default') as SortKey;
-    const [jumpOpen, setJumpOpen] = useState(false);
+    const { open: openPalette } = useCommandPalette();
+    useQuickOpenCommand(NAV_COMMAND.rundown);
 
     const sortedRundowns = useMemo(
         () => sortRundowns(rundowns, sortBy),
         [rundowns, sortBy],
     );
-
-    useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
-                e.preventDefault();
-                setJumpOpen(true);
-            }
-        };
-        window.addEventListener('keydown', onKeyDown);
-        return () => window.removeEventListener('keydown', onKeyDown);
-    }, []);
 
     return (
         <DefaultContentLayout>
@@ -161,13 +157,19 @@ const Page = () => {
                             </MenuItem>
                         </Select>
                     </FormControl>
-                    <Button
-                        variant="outlined"
-                        startIcon={<SearchRoundedIcon />}
-                        onClick={() => setJumpOpen(true)}
+                    <Tooltip
+                        title={t('commandPalette.quickOpenShortcut', {
+                            mod: modKey(),
+                        })}
                     >
-                        {t('playPage.quickJump.hint')}
-                    </Button>
+                        <Button
+                            variant="outlined"
+                            startIcon={<SearchRoundedIcon />}
+                            onClick={() => openPalette(NAV_COMMAND.rundown)}
+                        >
+                            {t('commandPalette.commands.openRundown')}
+                        </Button>
+                    </Tooltip>
                     <Button
                         variant="contained"
                         startIcon={<AddRoundedIcon />}
@@ -269,18 +271,6 @@ const Page = () => {
                 }}
                 onCancel={() => setDeleting(null)}
             />
-
-            <SlotErrorBoundary label="quick-jump" silent>
-                <QuickJumpPalette
-                    rundowns={sortedRundowns}
-                    open={jumpOpen}
-                    onClose={() => setJumpOpen(false)}
-                    onSelect={id => {
-                        setJumpOpen(false);
-                        router.push(`/play/${id}`);
-                    }}
-                />
-            </SlotErrorBoundary>
         </DefaultContentLayout>
     );
 };

@@ -11,6 +11,7 @@ import {
     useRoutesSync,
 } from './query';
 import { routeUndo, routeKey } from './undo';
+import { useRouteCommands } from './useRouteCommands';
 import { useRouteEditor } from './useRouteEditor';
 
 const GlobalRouteInspector: React.FC = () => {
@@ -20,6 +21,13 @@ const GlobalRouteInspector: React.FC = () => {
     const { channels, videoModes, channelSizes } = useChannelInfo();
     const editor = useRouteEditor();
     const { setEditing, setDeleting, setNewType } = editor;
+
+    useRouteCommands({
+        routes: routes ?? [],
+        edit: setEditing,
+        remove: setDeleting,
+        create: setNewType,
+    });
 
     useRoutesSync();
     useBroadcast(routeUpdated, ({ id }) =>

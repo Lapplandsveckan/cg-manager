@@ -27,9 +27,7 @@ import DriveFolderUploadRoundedIcon from '@mui/icons-material/DriveFolderUploadR
 import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
 import {
     ChannelPreview,
-    Method,
     pluginHttpUrl,
-    topic,
     useBroadcast,
     useSocket,
     useToast,
@@ -37,15 +35,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { type RecordingEntry } from '../recordings';
 import { type RecordingPreset } from '../presets';
-
-const PLUGIN = 'recorder';
-const API_ROOT = `/api/plugin/${PLUGIN}`;
-
-const recordingsUpdated = topic(
-    `plugin/${PLUGIN}/recordings`,
-    Method.UPDATE,
-    (data): data is RecordingEntry[] => Array.isArray(data),
-);
+import { API_ROOT, PLUGIN, recordingsUpdated } from './api';
 
 const RecorderPage: React.FC = () => {
     const conn = useSocket();

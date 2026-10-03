@@ -1,63 +1,22 @@
 import { Button, Card, Stack, Typography } from '@mui/material';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { useCallback, useState } from 'react';
-import { noTryAsync } from 'no-try';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HubOutlinedIcon from '@mui/icons-material/HubOutlined';
-import {
-    SlotErrorBoundary,
-    liveId,
-    runMutation,
-    useMutationSpec,
-    useToast,
-} from '@web-lib';
+import { SlotErrorBoundary } from '@web-lib';
 import { RouteSourceTypePicker } from './components/RouteSourceTypePicker';
 import { RouteCard } from './components/RouteCard';
-import { routeSetEnabled, useRoutesQuery } from './query';
-import { routeKey, routeUndo } from './undo';
+import { useRouteToggle } from './hooks/useRouteToggle';
+import { useRoutesQuery } from './query';
 import { openRouteInspector } from './inspectorEvents';
 
 const Page = () => {
     const { t } = useTranslation('common');
-    const notify = useToast();
 
     const { data: routes, error: routesError } = useRoutesQuery();
-    const setEnabled = useMutationSpec(routeSetEnabled);
+    const toggle = useRouteToggle();
 
     const [picking, setPicking] = useState(false);
-
-    const setEnabledAsync = setEnabled.mutateAsync;
-    const toggle = useCallback(
-        async (id: string, next: boolean) => {
-            const [err, updated] = await noTryAsync(() =>
-                setEnabledAsync({ id, enabled: next }),
-            );
-            if (err) {
-                notify(
-                    (err as Error)?.message ??
-                        t('videoRoutes.errors.toggleFailed'),
-                    'error',
-                );
-                return;
-            }
-
-            routeUndo.record({
-                label: {
-                    key: next ? 'routeEnable' : 'routeDisable',
-                    params: { name: updated.name },
-                },
-                scopes: [routeKey(id)],
-                prev: !next,
-                next,
-                apply: (enabled, { api }) =>
-                    runMutation(routeSetEnabled, api, {
-                        id: liveId(id),
-                        enabled,
-                    }),
-            });
-        },
-        [setEnabledAsync, notify, t],
-    );
 
     return (
         <>

@@ -26,6 +26,80 @@
     "auth": {
         "signOut": "Sign out"
     },
+    "commandPalette": {
+        "title": "Commands",
+        "quickOpenShortcut": "{{mod}}+Shift+K",
+        "placeholder": "Type a command or search…",
+        "empty": "No matching commands",
+        "loading": "Loading…",
+        "failed": "Command failed",
+        "recent": "Recent",
+        "prompt": {
+            "submit": "Press Enter to confirm “{{value}}”",
+            "empty": "Type a value, then press Enter"
+        },
+        "sections": {
+            "navigation": "Navigation",
+            "general": "General",
+            "server": "Server",
+            "rundown": "Rundown",
+            "quickActions": "Quick actions",
+            "media": "Media",
+            "config": "Config",
+            "plugins": "Plugins"
+        },
+        "commands": {
+            "goTo": "Go to {{page}}",
+            "openRundown": "Open rundown…",
+            "openRundownPlaceholder": "Search rundowns…",
+            "openPlugin": "Open plugin…",
+            "mediaFolder": "Go to media folder…",
+            "mediaRoot": "Media root",
+            "undo": "Undo",
+            "redo": "Redo",
+            "newRundown": "New rundown",
+            "newRundownPlaceholder": "Rundown name",
+            "createNamed": "Create “{{value}}”",
+            "language": "Switch language…",
+            "currentLanguage": "Current language",
+            "untitledEntry": "Untitled item",
+            "addEntry": "Add item",
+            "playEntry": "Play item…",
+            "stopEntry": "Stop item…",
+            "pasteEntry": "Paste item",
+            "renameRundown": "Rename rundown",
+            "renamePlaceholder": "New name",
+            "renameTo": "Rename to “{{value}}”",
+            "switchToLive": "Switch to Live mode",
+            "switchToEdit": "Switch to Edit mode",
+            "selectQuickSet": "Select quick action set…",
+            "newQuickSet": "New quick action set",
+            "quickSetPlaceholder": "Set name",
+            "playQuickAction": "Play quick action…",
+            "uploadMedia": "Upload media",
+            "newFolder": "New folder",
+            "folderPlaceholder": "Folder name",
+            "refreshMedia": "Refresh media",
+            "playClip": "Play clip…",
+            "inspectClip": "Inspect clip…",
+            "saveConfig": "Save config",
+            "discardConfig": "Discard config changes",
+            "configMode": {
+                "simple": "Switch to simple config",
+                "advanced": "Switch to advanced config"
+            },
+            "addChannel": "Add channel",
+            "enablePlugin": "Enable plugin…",
+            "disablePlugin": "Disable plugin…",
+            "uploadPlugin": "Install plugin",
+            "clearLogs": "Clear logs",
+            "caspar": {
+                "start": "Start CasparCG",
+                "stop": "Stop CasparCG",
+                "restart": "Restart CasparCG"
+            }
+        }
+    },
     "language": {
         "label": "Language",
         "en": "English",
@@ -599,6 +673,14 @@
     "videoRoutes": {
         "description": "Live video routes from sources (decklink inputs, files, channels, colors) to CasparCG channels. Click a route to edit; toggle to activate or pause.",
         "newRoute": "New route",
+        "commands": {
+            "toggle": "Enable/disable route…",
+            "edit": "Edit route…",
+            "create": "Create route…",
+            "delete": "Delete route…",
+            "enabled": "Enabled",
+            "disabled": "Disabled"
+        },
         "unnamed": "(unnamed route)",
         "saving": "Saving…",
         "deleting": "Deleting…",
@@ -876,11 +958,6 @@
             "createdDesc": "Newest first",
             "createdAsc": "Oldest first"
         },
-        "quickJump": {
-            "hint": "Jump",
-            "placeholder": "Search rundowns…",
-            "empty": "No matching rundowns"
-        },
         "detail": {
             "untitled": "Untitled rundown",
             "itemsLabel": "Items",
@@ -914,6 +991,12 @@
         },
         "edgeblend": {
             "layouts": "Layouts",
+            "commands": {
+                "section": "Edge blend",
+                "toggle": "Enable/disable layout…",
+                "enabled": "Enabled",
+                "disabled": "Disabled"
+            },
             "addLayout": "+ Add",
             "noLayouts": "No layouts configured.",
             "selectOrAdd": "Select a layout or add a new one.",
@@ -959,6 +1042,10 @@
             "importDone": "Imported into the media library",
             "noRecordings": "No recordings yet.",
             "defaultTitle": "Record channel",
+            "commands": {
+                "start": "Start recording…",
+                "stop": "Stop recording…"
+            },
             "states": {
                 "recording": "Recording…",
                 "done": "Done",

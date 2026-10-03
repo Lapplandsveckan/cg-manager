@@ -10,12 +10,24 @@ import { SlotErrorBoundary } from '../components/SlotErrorBoundary';
 import { useConfigDraft } from '../lib/config/useConfigDraft';
 import { useConsumerEditor } from '../lib/config/useConsumerEditor';
 import { useConfigMode } from '../lib/config/useConfigMode';
+import { useConfigCommands } from '../lib/commands/useConfigCommands';
 
 const Page = () => {
     const config = useConfigDraft();
     const consumers = useConsumerEditor(config.draft, config.updateChannel);
     const { mode, setMode } = useConfigMode();
     const goAdvanced = () => setMode('advanced');
+
+    useConfigCommands({
+        loaded: Boolean(config.draft),
+        dirty: config.dirty,
+        saving: config.saving,
+        mode,
+        setMode,
+        save: config.save,
+        discard: config.discard,
+        addChannel: config.addChannel,
+    });
 
     return (
         <DefaultContentLayout>

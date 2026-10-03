@@ -47,6 +47,7 @@ export default class EdgeblendPlugin extends CasparPlugin {
             UI_INJECTION_ZONE.PLUGIN_PAGE,
             this.uiFile('index'),
         );
+        this.api.registerUI(UI_INJECTION_ZONE.GLOBAL, this.uiFile('global'));
         this.api.onReconnect(this.handleReconnect);
 
         void this.api

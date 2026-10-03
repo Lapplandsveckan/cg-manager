@@ -16,14 +16,14 @@ import VerticalAlignBottomRoundedIcon from '@mui/icons-material/VerticalAlignBot
 import DeleteSweepRoundedIcon from '@mui/icons-material/DeleteSweepRounded';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
 import { useTranslation } from 'react-i18next';
-import { noTryAsync } from 'no-try';
 import type { TFunction } from 'i18next';
 import { useSocket } from '../lib/hooks/useSocket';
+import { useCasparActions } from '../lib/hooks/useCasparActions';
+import { useServerCommands } from '../lib/commands/useServerCommands';
 import { DefaultContentLayout } from '../components/DefaultContentLayout';
 import { type CasparStatus } from '../lib/api/caspar';
 import { useCasparStatusQuery } from '../lib/query/caspar';
 import { PreviewPanel } from '../components/PreviewPanel';
-import { useToast } from '../components/ToastProvider';
 import { SlotErrorBoundary } from '../components/SlotErrorBoundary';
 
 type Tone = 'success' | 'error' | 'warning' | 'neutral';
@@ -303,11 +303,11 @@ const LogViewer: React.FC<LogViewerProps> = ({ logs, onClear }) => {
 const Page = () => {
     const { t } = useTranslation('common');
     const socket = useSocket();
-    const notify = useToast();
     const { data: statusData } = useCasparStatusQuery();
     const status = statusData ?? null;
     const [logs, setLogs] = useState<string>('');
-    const [busy, setBusy] = useState<string | null>(null);
+    const { busy, run: runAction } = useCasparActions();
+    useServerCommands({ hasLogs: Boolean(logs), clearLogs: () => setLogs('') });
 
     // Logs stay an EventEmitter stream — an append-only clamped string is
     // not cacheable state, so it never moves into the query cache.
@@ -325,17 +325,6 @@ const Page = () => {
             socket.caspar.off('logs', logListener);
         };
     }, [socket]);
-
-    const runAction = async (action: 'start' | 'stop' | 'restart') => {
-        if (!socket) return;
-        setBusy(action);
-        const [err] = await noTryAsync(() => socket.caspar[action]());
-        const message = err
-            ? ((err as Error)?.message ?? t(`serverPage.errors.${action}`))
-            : t(`serverPage.success.${action}`);
-        notify(message, err ? 'error' : 'success');
-        setBusy(null);
-    };
 
     return (
         <DefaultContentLayout>

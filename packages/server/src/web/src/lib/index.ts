@@ -17,6 +17,20 @@ export type {
     ContextMenuRouteTarget,
     ContextMenuPluginTarget,
 } from '../components/ContextMenuProvider';
+export {
+    useCommandPalette,
+    useQuickOpenCommand,
+    useRegisterCommands,
+} from '../components/commandPalette/CommandPaletteProvider';
+export type {
+    Command,
+    CommandItem,
+    CommandProvider,
+    CommandProviderOptions,
+    RunCommand,
+    ParentCommand,
+    PromptCommand,
+} from '../components/commandPalette/types';
 export { MediaView } from '../components/MediaView';
 export { MediaSelect } from '../components/MediaSelectPicker';
 export { MediaCard } from '../components/MediaCard';

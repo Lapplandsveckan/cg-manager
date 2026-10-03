@@ -5,26 +5,24 @@ import LanguageIcon from '@mui/icons-material/Language';
 import {
     SUPPORTED_LANGUAGES,
     type SupportedLanguage,
-    setStoredLanguage,
+    applyLanguage,
 } from '../../lib/detectLanguage';
 
 export const LanguageSelector: React.FC = () => {
     const { t, i18n } = useTranslation('common');
     const [anchor, setAnchor] = useState<HTMLElement | null>(null);
-    const [current, setCurrent] = useState<SupportedLanguage>(
-        (SUPPORTED_LANGUAGES as readonly string[]).includes(i18n.language)
-            ? (i18n.language as SupportedLanguage)
-            : 'en',
-    );
+    const current = (SUPPORTED_LANGUAGES as readonly string[]).includes(
+        i18n.language,
+    )
+        ? (i18n.language as SupportedLanguage)
+        : 'en';
 
     const open = (e: React.MouseEvent<HTMLElement>) =>
         setAnchor(e.currentTarget);
     const close = () => setAnchor(null);
 
     const select = (lng: SupportedLanguage) => {
-        i18n.changeLanguage(lng);
-        setStoredLanguage(lng);
-        setCurrent(lng);
+        applyLanguage(lng);
         close();
     };
 
