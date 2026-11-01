@@ -1,0 +1,42 @@
+{
+    "nav": "Screen share",
+    "sessions": {
+        "title": "Incoming shares",
+        "empty": "No one is sharing yet. Create a link and send it out.",
+        "state": {
+            "connecting": "Connecting",
+            "live": "Live",
+            "closed": "Closed"
+        },
+        "audio": "With audio",
+        "noAudio": "No audio",
+        "show": "Show on screen",
+        "hide": "Take off screen",
+        "onAir": "On screen"
+    },
+    "shares": {
+        "title": "Share links",
+        "empty": "No share links yet.",
+        "create": "Create link",
+        "label": "Label",
+        "labelPlaceholder": "e.g. Player 1",
+        "copy": "Copy link",
+        "copied": "Link copied",
+        "revoke": "Revoke"
+    },
+    "local": {
+        "title": "This browser",
+        "start": "Share this screen",
+        "stop": "Stop sharing"
+    },
+    "editor": {
+        "session": "Screen share",
+        "sessionHint": "The share to put on screen when this item fires.",
+        "destination": "Effect group",
+        "destinationHint": "Channel and group, e.g. 1:main"
+    },
+    "errors": {
+        "showFailed": "Could not put that share on screen",
+        "createFailed": "Could not create the link"
+    }
+}

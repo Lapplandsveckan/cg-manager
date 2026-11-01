@@ -1,32 +1,19 @@
-import net from 'net';
-import dgram from 'dgram';
-import fs from 'fs';
-import path from 'path';
+import type net from 'net';
+import type dgram from 'dgram';
 import { spawn, type ChildProcess } from 'child_process';
 import { type Consumer } from '@lappis/cg-manager';
-import {
-    MediaStreamTrack,
-    RTCDtlsTransport,
-    RTCPeerConnection,
-    RTCRtpCodecParameters,
-    RtpPacket,
-    type DtlsKeys,
-} from 'werift';
+import { MediaStreamTrack, RtpPacket, type RTCPeerConnection } from 'werift';
 import { noTry, noTryAsync } from 'no-try';
-import managerConfig from '../../util/config';
-import { Logger } from '../../util/log';
-import { type CasparExecutor } from '../caspar/executor';
+import managerConfig from '../../../util/config';
+import { Logger } from '../../../util/log';
+import { ffmpegBinary } from '../../../util/ffmpeg';
+import { type CasparExecutor } from '../../caspar/executor';
+import { H264_CODEC, H264_PAYLOAD_TYPE } from '../shared/codecs';
+import { createPeerConnection, pinHostCandidates } from '../shared/peer';
+import { dtlsKeys } from '../shared/dtls';
+import { bindUdp, listenTcp } from '../shared/ports';
 
 const logger = Logger.scope('Preview');
-
-// Constrained Baseline 3.1 is accepted by every browser; payloadType 96 matches ffmpeg's `-payload_type`.
-const WEBRTC_VIDEO_CODEC = new RTCRtpCodecParameters({
-    mimeType: 'video/H264',
-    clockRate: 90000,
-    payloadType: 96,
-    parameters:
-        'level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f',
-});
 
 // CasparCG adds an audio stream unless the muxer is video-only, and the rtp muxer rejects
 // multi-stream output. The `h264` muxer is video-only, so a sidecar ffmpeg `-c copy`s it into RTP.
@@ -61,17 +48,6 @@ const H264_PREVIEW_ARGS = [
     `fps=${PREVIEW_FPS},scale=640:-2,format=yuv420p`,
 ];
 
-const RTP_PAYLOAD_TYPE = 96;
-
-/** Windows ships ffmpeg.exe next to caspar; the Linux bundle has only shared libs, so fall back to PATH. */
-function ffmpegBinary(): string {
-    const folder = managerConfig['caspar-path'];
-    if (!folder) return 'ffmpeg';
-    const ext = process.platform === 'win32' ? '.exe' : '';
-    const bundled = path.join(folder, `ffmpeg${ext}`);
-    return fs.existsSync(bundled) ? bundled : 'ffmpeg';
-}
-
 export interface WebRTCSessionOptions {
     channel: number;
     /** SDP offer from the browser, exchanged via the WHEP endpoint. */
@@ -95,34 +71,12 @@ interface InternalWebRTCSession extends WebRTCSession {
     closed: boolean;
 }
 
-/** Bound before the AMCP ADD so CasparCG can never connect to a not-yet-bound port (Linux 'Connection refused' race). */
-async function listenTcp(): Promise<{ server: net.Server; port: number }> {
-    const server = net.createServer();
-    await new Promise<void>((resolve, reject) => {
-        server.once('error', reject);
-        server.listen(0, '127.0.0.1', () => {
-            server.removeListener('error', reject);
-            resolve();
-        });
-    });
-    return { server, port: (server.address() as net.AddressInfo).port };
-}
-
 export class PreviewManager {
     private webrtcSessions = new Set<InternalWebRTCSession>();
-    // Pre-generated once to avoid per-session key generation cost.
-    private dtlsKeysPromise: Promise<DtlsKeys> =
-        RTCDtlsTransport.SetupCertificate().then(cert => ({
-            certPem: cert.certPem,
-            keyPem: cert.privateKey,
-            signatureHash: cert.signatureHash,
-        }));
 
     public constructor(private executor: CasparExecutor) {
         // Kick off key generation immediately so it's done before the first session.
-        this.dtlsKeysPromise.catch(() => {
-            /* falls back to werift's per-session cert if this fails */
-        });
+        dtlsKeys();
     }
 
     /** werift peer fed CasparCG's h264 over loopback TCP, packetized to RTP by a sidecar ffmpeg. */
@@ -136,37 +90,17 @@ export class PreviewManager {
 
         const channel = this.executor.getChannel(opts.channel);
 
-        const [, dtlsKeys] = await noTryAsync(() => this.dtlsKeysPromise);
-
-        const udpSocket = dgram.createSocket('udp4');
-        await new Promise<void>((resolve, reject) => {
-            udpSocket.once('error', reject);
-            udpSocket.bind(0, '127.0.0.1', () => {
-                udpSocket.removeListener('error', reject);
-                resolve();
-            });
-        });
-        const udpPort = udpSocket.address().port;
-
+        const { socket: udpSocket, port: udpPort } = await bindUdp();
         const { server: tcpServer, port: tcpPort } = await listenTcp();
 
         const stunServer = managerConfig['preview-stun'];
-        const pc = new RTCPeerConnection({
-            codecs: { video: [WEBRTC_VIDEO_CODEC] },
-            iceServers: stunServer ? [{ urls: stunServer }] : [],
-            ...(dtlsKeys ? { dtls: { keys: dtlsKeys } } : {}),
-        });
+        const pc = await createPeerConnection(
+            { video: [H264_CODEC] },
+            stunServer,
+        );
         const track = new MediaStreamTrack({ kind: 'video' });
         pc.addTransceiver(track, { direction: 'sendonly' });
-
-        // werift defaults to Google STUN and blocks gathering up to 5s per unreachable
-        // interface; host candidates suffice for LAN use.
-        if (!stunServer) {
-            for (const dt of pc.dtlsTransports) {
-                const conn = dt?.iceTransport?.connection;
-                if (conn) conn.stunServer = undefined;
-            }
-        }
+        pinHostCandidates(pc, stunServer);
 
         const ffmpeg = spawn(
             ffmpegBinary(),
@@ -188,7 +122,7 @@ export class PreviewManager {
                 '-c:v',
                 'copy',
                 '-payload_type',
-                String(RTP_PAYLOAD_TYPE),
+                String(H264_PAYLOAD_TYPE),
                 '-f',
                 'rtp',
                 `rtp://127.0.0.1:${udpPort}`,

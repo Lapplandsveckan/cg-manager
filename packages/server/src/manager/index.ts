@@ -15,7 +15,8 @@ import { DirectoryManager } from './scanner/dir';
 import { FileDatabase } from './scanner/db';
 import { UIInjector } from './plugins/ui';
 import { RundownManager } from './rundown/rundown';
-import { PreviewManager } from './preview/preview';
+import { PreviewManager } from './wrtc/preview/preview';
+import { IngestManager } from './wrtc/ingest/ingest';
 import { CompanionRegistry } from './companion/registry';
 import { PluginInterop } from './plugins/interop';
 
@@ -29,6 +30,7 @@ export class CasparManager extends EventEmitter {
     public ui: UIInjector;
     public rundowns: RundownManager;
     public preview: PreviewManager;
+    public ingest: IngestManager;
     public companion: CompanionRegistry;
     public interop: PluginInterop;
 
@@ -72,6 +74,7 @@ export class CasparManager extends EventEmitter {
         this.ui = new UIInjector();
         this.rundowns = new RundownManager();
         this.preview = new PreviewManager(this.executor);
+        this.ingest = new IngestManager();
         this.companion = new CompanionRegistry();
         this.interop = new PluginInterop();
 
@@ -133,6 +136,8 @@ export class CasparManager extends EventEmitter {
         Logger.info('Starting Caspar CG process...');
         await this.caspar.start();
 
+        await this.ingest.load();
+
         Logger.info('Starting rundown auto save...');
         this.rundowns.startAutosave();
         await this.rundowns.loadRundowns();
@@ -148,6 +153,7 @@ export class CasparManager extends EventEmitter {
         this.executor.disconnect();
 
         await this.preview.disposeAll();
+        await this.ingest.disposeAll();
 
         await this.scanner.stop();
         await this.caspar.stop();

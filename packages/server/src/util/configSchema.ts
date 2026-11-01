@@ -113,6 +113,27 @@ export const schema: Record<string, FieldMeta> = {
         seeded: false,
         desc: 'STUN server URL for WebRTC preview ICE. Leave unset for LAN-only use.',
     },
+    'ingest-stun': {
+        type: 'string',
+        default: null,
+        seeded: false,
+        desc: 'STUN server URL for incoming screen-share ICE. Falls back to preview-stun when unset.',
+    },
+    'ingest-file': {
+        type: 'string',
+        default: './ingest.json',
+        desc: 'Path to the persisted screen-share link list.',
+    },
+    'ingest-max-sessions': {
+        type: 'number',
+        default: 12,
+        desc: 'Maximum simultaneous incoming screen shares. Further offers are rejected.',
+    },
+    'ingest-port-base': {
+        type: 'number',
+        default: 6000,
+        desc: 'First loopback UDP port used for screen-share ingest. Each session claims a few ports above this.',
+    },
     'caspar-profile': {
         type: 'string',
         default: 'upstream',

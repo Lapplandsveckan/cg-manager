@@ -868,5 +868,14 @@
             "configSave": "spara konfiguration",
             "unknown": "en åtgärd"
         }
+    },
+    "share": {
+        "description": "Välj ett fönster eller en skärm att dela med produktionen.",
+        "statusLive": "Du delar nu. Håll den här fliken öppen.",
+        "start": "Börja dela",
+        "stop": "Sluta dela",
+        "errors": {
+            "invalidLink": "Den här delningslänken gäller inte längre."
+        }
     }
 }

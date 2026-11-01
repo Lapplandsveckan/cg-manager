@@ -868,5 +868,14 @@
             "configSave": "save config",
             "unknown": "an action"
         }
+    },
+    "share": {
+        "description": "Pick a window or screen to share with the production.",
+        "statusLive": "You are sharing. Keep this tab open.",
+        "start": "Start sharing",
+        "stop": "Stop sharing",
+        "errors": {
+            "invalidLink": "This share link is no longer valid."
+        }
     }
 }

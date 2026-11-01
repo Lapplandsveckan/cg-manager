@@ -21,6 +21,8 @@ import {
     type Rundown,
 } from './types/rundown';
 import { type CasparStatus } from './types/caspar/process';
+import { type IngestApi } from './types/ingest';
+import { pluginIngestApi, type PluginIngest } from './ingestApi';
 import {
     type ActionDefinition,
     type ActionHandle,
@@ -181,6 +183,7 @@ export class PluginAPI extends EventEmitter {
         this.unregisterHttpHandlers();
         this.unregisterUIInjections();
         this.unregisterCompanion();
+        this._ingest?.unregister();
         this._manager.interop.unregisterOwner(this._plugin.pluginName);
         return this.unregisterFiles();
     }
@@ -310,6 +313,13 @@ export class PluginAPI extends EventEmitter {
 
     public getTempDir() {
         return pluginTempDir(this._plugin.pluginName);
+    }
+
+    private _ingest: PluginIngest | null = null;
+
+    public get ingest(): IngestApi {
+        this._ingest ??= pluginIngestApi(this._manager.ingest);
+        return this._ingest.api;
     }
 
     /**

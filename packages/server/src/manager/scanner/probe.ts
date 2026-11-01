@@ -7,7 +7,7 @@ import ffmpeg from 'fluent-ffmpeg';
 import moment from 'moment';
 import { getId, readFile } from './util';
 import { Logger } from '../../util/log';
-import managerConfig from '../../util/config';
+import { casparBinaryPath } from '../../util/ffmpeg';
 import config from './config';
 import { type MediaDoc } from './db';
 
@@ -53,16 +53,13 @@ export const MEDIA_EXTENSIONS = new Set([
 
 // Prefer the binaries next to CasparCG so the packaged manager doesn't depend on a system ffmpeg.
 export function configureBinaries() {
-    const folder = managerConfig['caspar-path'];
-    if (!folder) return;
-
-    const ext = process.platform === 'win32' ? '.exe' : '';
     const pointAtBinary = (name: string, setPath: (p: string) => unknown) => {
-        const binaryPath = path.join(folder, `${name}${ext}`);
-        if (existsSync(binaryPath)) return setPath(binaryPath);
+        const bundled = casparBinaryPath(name);
+        if (!bundled) return;
+        if (existsSync(bundled)) return setPath(bundled);
 
         logger.warn(
-            `${name} not found at ${binaryPath} — falling back to PATH lookup`,
+            `${name} not found at ${bundled} — falling back to PATH lookup`,
         );
     };
 

@@ -62,6 +62,16 @@ export interface RundownActionFileAccept {
 export interface RundownActionMetadata {
     accepts?: RundownActionFileAccept;
     stop?: (item: RundownItem) => Promise<void> | void;
+
+    /* Display fields for the "Add item" picker. Recorded at registration but
+     * not yet served by `/api/rundown/types`, which still returns bare ids —
+     * see "Planned: rundown action metadata" in CLAUDE.md. Passing them now
+     * means plugins don't need a second migration once the picker reads them. */
+    displayName?: string;
+    description?: string;
+    category?: string;
+    /** Material icon name, from a host-known set. */
+    iconKey?: string;
 }
 
 export declare class RundownManager {

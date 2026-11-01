@@ -14,3 +14,7 @@ export const parseBody = <S extends z.ZodType>(schema: S, request: Request) =>
 
 export const parseParams = <S extends z.ZodType>(schema: S, request: Request) =>
     parseOrThrow(schema, request.params);
+
+/** For input that never was a request body — a rundown item's `data`, say. */
+export const parseValue = <S extends z.ZodType>(schema: S, input: unknown) =>
+    parseOrThrow(schema, input);

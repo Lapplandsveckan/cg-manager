@@ -5,6 +5,7 @@ import {
 } from 'rest-exchange-protocol';
 import { noTry } from 'no-try';
 import { AuthManager } from './auth';
+import { policyFor, verifyShareToken } from './authPolicy';
 
 /** Buffer a JSON request body up to a sane cap; null on parse failure. */
 async function readJsonBody(request: Readable): Promise<unknown> {
@@ -29,9 +30,18 @@ export function authMiddleware() {
             const url = data.request.url ?? '';
             if (data.request.method === 'OPTIONS') return;
 
-            const isProtected =
-                url.startsWith('/api') || url.startsWith('/preview-whep');
-            if (!isProtected) return;
+            const policy = policyFor(url);
+            if (policy === 'public') return;
+            if (policy === 'share-token') {
+                if (verifyShareToken(url)) return;
+
+                // 404, not 401: a wrong token must look like a dead link
+                // rather than an invitation to guess.
+                data.response.statusCode = 404;
+                data.response.setHeader('Content-Type', 'application/json');
+                data.response.end(JSON.stringify({ error: 'Not found' }));
+                throw new MiddlewareProhibitFurtherExecution();
+            }
 
             const token = AuthManager.readToken(data.request.headers.cookie);
             const session = AuthManager.checkSession(token);

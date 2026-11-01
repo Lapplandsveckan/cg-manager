@@ -105,3 +105,5 @@ export {
 // through a temp-id -> server-id rekey (see the routes page's create flow
 // for the canonical pattern).
 export { liveId } from './undo/undoStore';
+export { useScreenCapture } from './useScreenCapture';
+export type { CaptureState } from './useScreenCapture';

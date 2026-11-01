@@ -1,0 +1,42 @@
+{
+    "nav": "Skärmdelning",
+    "sessions": {
+        "title": "Inkommande delningar",
+        "empty": "Ingen delar än. Skapa en länk och skicka ut den.",
+        "state": {
+            "connecting": "Ansluter",
+            "live": "Live",
+            "closed": "Stängd"
+        },
+        "audio": "Med ljud",
+        "noAudio": "Utan ljud",
+        "show": "Visa på skärmen",
+        "hide": "Ta bort från skärmen",
+        "onAir": "På skärmen"
+    },
+    "shares": {
+        "title": "Delningslänkar",
+        "empty": "Inga delningslänkar än.",
+        "create": "Skapa länk",
+        "label": "Etikett",
+        "labelPlaceholder": "t.ex. Spelare 1",
+        "copy": "Kopiera länk",
+        "copied": "Länk kopierad",
+        "revoke": "Återkalla"
+    },
+    "local": {
+        "title": "Den här webbläsaren",
+        "start": "Dela den här skärmen",
+        "stop": "Sluta dela"
+    },
+    "editor": {
+        "session": "Skärmdelning",
+        "sessionHint": "Delningen som ska visas när objektet körs.",
+        "destination": "Effektgrupp",
+        "destinationHint": "Kanal och grupp, t.ex. 1:main"
+    },
+    "errors": {
+        "showFailed": "Kunde inte visa delningen på skärmen",
+        "createFailed": "Kunde inte skapa länken"
+    }
+}

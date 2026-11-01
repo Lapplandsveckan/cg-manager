@@ -18,6 +18,9 @@ import { handleRequest, onUpgrade } from '../web';
 import { Logger } from '../util/log';
 import { Upload } from '../manager/scanner/upload';
 import { authMiddleware, authApiMiddleware } from './authMiddleware';
+import { setShareTokenCheck } from './authPolicy';
+import { ingestWhipMiddleware } from './ingestWhip';
+import { exchangeSdp } from '../manager/wrtc/shared/whip';
 import { isInternalMediaId } from '../manager/scanner/folders';
 import { mediaStreamMiddleware } from './mediaStream';
 import { telemetryScriptMiddleware } from './telemetryScript';
@@ -57,10 +60,29 @@ export class CGServer {
         this.server.use(authApiMiddleware());
         this.server.use(authMiddleware());
         this.server.use(this.previewWhep());
+        this.server.use(ingestWhipMiddleware(this.manager.ingest));
         this.server.use(mediaStreamMiddleware());
         this.server.use(pluginHttpMiddleware());
         this.server.use(this.upload());
         this.server.use(this.web());
+
+        setShareTokenCheck(token => !!this.manager.ingest.shareByToken(token));
+
+        const update = WebsocketOutboundMethod.UPDATE;
+        const broadcastSessions = () =>
+            this.broadcast(
+                'ingest/sessions',
+                update,
+                this.manager.ingest.listSessions(),
+            );
+        this.manager.ingest.onSession(broadcastSessions);
+        this.manager.ingest.on('shares', () =>
+            this.broadcast(
+                'ingest/shares',
+                update,
+                this.manager.ingest.listSharesWithPath(),
+            ),
+        );
 
         const action = WebsocketOutboundMethod.ACTION;
 
@@ -125,13 +147,6 @@ export class CGServer {
             );
             if (!match) return;
 
-            if (data.request.method !== 'POST') {
-                data.response.statusCode = 405;
-                data.response.setHeader('Allow', 'POST');
-                data.response.end('Method Not Allowed');
-                throw new MiddlewareProhibitFurtherExecution();
-            }
-
             const channel = parseInt(match[1], 10);
             if (!Number.isFinite(channel) || channel < 1) {
                 data.response.statusCode = 400;
@@ -139,36 +154,19 @@ export class CGServer {
                 throw new MiddlewareProhibitFurtherExecution();
             }
 
-            const chunks: Buffer[] = [];
-            for await (const chunk of data.request as unknown as AsyncIterable<Buffer>)
-                chunks.push(chunk);
-            const sdpOffer = Buffer.concat(chunks).toString('utf8');
-            if (!sdpOffer.trim()) {
-                data.response.statusCode = 400;
-                data.response.end('Empty SDP offer');
-                throw new MiddlewareProhibitFurtherExecution();
-            }
+            return exchangeSdp(
+                data.request,
+                data.response,
+                Logger.scope('Preview'),
+                async sdpOffer => {
+                    const session = await this.manager.preview.openWebRTC({
+                        channel,
+                        sdpOffer,
+                    });
 
-            const [err, session] = await noTryAsync(() =>
-                this.manager.preview.openWebRTC({ channel, sdpOffer }),
+                    return session.sdpAnswer;
+                },
             );
-            if (err || !session) {
-                Logger.scope('Preview').warn(
-                    `WHEP session failed: ${(err as Error)?.message}`,
-                );
-                data.response.statusCode = 503;
-                data.response.end(
-                    (err as Error)?.message ?? 'Failed to open preview',
-                );
-                throw new MiddlewareProhibitFurtherExecution();
-            }
-
-            data.response.statusCode = 201;
-            data.response.setHeader('Content-Type', 'application/sdp');
-            data.response.setHeader('Location', data.request.url);
-            data.response.end(session.sdpAnswer);
-
-            throw new MiddlewareProhibitFurtherExecution();
         };
     }
 

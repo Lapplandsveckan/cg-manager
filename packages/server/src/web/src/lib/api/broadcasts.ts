@@ -2,6 +2,7 @@ import { Method } from 'rest-exchange-protocol-client';
 import { type CasparConfig, type CasparStatus, type MediaDoc } from './caspar';
 import { type Plugin } from './plugin';
 import { type Rundown, type RundownItem } from './rundowns';
+import { type IngestSession, type ShareLink } from './ingest';
 
 /** One entry per server broadcast topic: path, method and the payload shape,
  *  declared once so subscribers never re-cast `unknown` by hand. Lives in
@@ -129,3 +130,15 @@ export const pluginsChanged = topic<Plugin[]>(
 );
 
 export const casparLogs = topic<string>('caspar/logs', Method.ACTION, isString);
+
+export const ingestSessions = topic<IngestSession[]>(
+    'ingest/sessions',
+    Method.UPDATE,
+    (data): data is IngestSession[] => Array.isArray(data),
+);
+
+export const ingestShares = topic<ShareLink[]>(
+    'ingest/shares',
+    Method.UPDATE,
+    (data): data is ShareLink[] => Array.isArray(data),
+);

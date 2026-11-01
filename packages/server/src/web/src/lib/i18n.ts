@@ -5,10 +5,12 @@ import enCommon from './locales/en/common.json';
 import enEdgeblend from './locales/en/edgeblend.json';
 import enRecorder from './locales/en/recorder.json';
 import enRoutes from './locales/en/routes.json';
+import enScreenshare from './locales/en/screenshare.json';
 import svCommon from './locales/sv/common.json';
 import svEdgeblend from './locales/sv/edgeblend.json';
 import svRecorder from './locales/sv/recorder.json';
 import svRoutes from './locales/sv/routes.json';
+import svScreenshare from './locales/sv/screenshare.json';
 
 // Client-side i18next init. Locale JSON is bundled into the webpack output
 // (no /locales HTTP route), which keeps the packaged binary self-contained.
@@ -26,19 +28,21 @@ if (!i18n.isInitialized)
         fallbackLng: 'en',
         supportedLngs: ['en', 'sv'],
         defaultNS: 'common',
-        ns: ['common', 'routes', 'edgeblend', 'recorder'],
+        ns: ['common', 'routes', 'edgeblend', 'recorder', 'screenshare'],
         resources: {
             en: {
                 common: enCommon,
                 routes: enRoutes,
                 edgeblend: enEdgeblend,
                 recorder: enRecorder,
+                screenshare: enScreenshare,
             },
             sv: {
                 common: svCommon,
                 routes: svRoutes,
                 edgeblend: svEdgeblend,
                 recorder: svRecorder,
+                screenshare: svScreenshare,
             },
         },
         interpolation: {

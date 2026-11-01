@@ -29,6 +29,10 @@ export interface Config {
     password?: string | null;
     'api-token'?: string | null;
     'preview-stun'?: string | null;
+    'ingest-file': string;
+    'ingest-max-sessions': number;
+    'ingest-port-base': number;
+    'ingest-stun'?: string | null;
     host?: string | null;
     'socket-path'?: string | null;
     'caspar-profile'?: string;

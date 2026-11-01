@@ -23,6 +23,7 @@ import {
     type ContributionHandle,
     type Contribution,
 } from './interop';
+import { type IngestApi } from './ingest';
 
 export declare class PluginInterop {
     provideService<T>(name: string, impl: T, owner: string): ServiceHandle<T>;
@@ -70,6 +71,22 @@ export declare class CompanionRegistry {
     listDefinitions(): { actions: unknown[]; feedbacks: unknown[] };
 }
 
+export declare class IngestManager implements IngestApi {
+    listShares: IngestApi['listShares'];
+    listSharesWithPath: IngestApi['listSharesWithPath'];
+    getShare: IngestApi['getShare'];
+    createShare: IngestApi['createShare'];
+    revokeShare: IngestApi['revokeShare'];
+    sharePath: IngestApi['sharePath'];
+
+    listSessions: IngestApi['listSessions'];
+    getSession: IngestApi['getSession'];
+    closeSession: IngestApi['closeSession'];
+
+    onSession: IngestApi['onSession'];
+    offSession: IngestApi['offSession'];
+}
+
 export declare class CasparManager extends EventEmitter {
     public effects: EffectRegistry;
     public ui: UIInjector;
@@ -82,6 +99,7 @@ export declare class CasparManager extends EventEmitter {
     public rundowns: RundownManager;
     public companion: CompanionRegistry;
     public interop: PluginInterop;
+    public ingest: IngestManager;
 
     // This is a static method, so it will not be available from the plugin
     // public static getManager(): CasparManager;
