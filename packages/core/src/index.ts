@@ -9,4 +9,5 @@ export * from './effect';
 export * from './executor';
 export * from './layers';
 export * from './plugin';
+export * from './pluginApiBase';
 export * from './transform';
