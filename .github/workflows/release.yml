@@ -8,9 +8,19 @@ permissions:
   contents: write
 
 jobs:
-  publish:
-    name: Build & Release app
-    runs-on: ubuntu-latest
+  build:
+    name: Build app (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact: manager
+          - os: windows-latest
+            artifact: manager.exe
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Clone codebase
         uses: actions/checkout@v4
@@ -21,9 +31,11 @@ jobs:
           node-version: 22
           cache: 'yarn'
 
-      - name: Get tag name
-        id: tag
-        run: echo "name=$(node ./packages/server/.lappis/scripts/get-release-name.js ${{ github.run_number }})" >> $GITHUB_OUTPUT
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
 
       - name: Install project dependencies
         run: yarn install --prefer-offline
@@ -31,7 +43,37 @@ jobs:
       - name: Package application
         run: yarn package
 
-      - name: Release asset
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ./packages/server/out/${{ matrix.artifact }}
+          if-no-files-found: error
+
+  publish:
+    name: Release app
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone codebase
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Get tag name
+        id: tag
+        run: echo "name=$(node ./packages/server/.lappis/scripts/get-release-name.js ${{ github.run_number }})" >> $GITHUB_OUTPUT
+
+      - name: Download executables
+        uses: actions/download-artifact@v4
+        with:
+          path: out
+          merge-multiple: true
+
+      - name: Release assets
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -40,4 +82,5 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            ./packages/server/out/manager
+            ./out/manager
+            ./out/manager.exe

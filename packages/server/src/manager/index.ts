@@ -17,6 +17,7 @@ import { UIInjector } from './plugins/ui';
 import { RundownManager } from './rundown/rundown';
 import { PreviewManager } from './wrtc/preview/preview';
 import { IngestManager } from './wrtc/ingest/ingest';
+import { reportSidecar, sidecar } from './wrtc/shared/sidecar';
 import { CompanionRegistry } from './companion/registry';
 import { PluginInterop } from './plugins/interop';
 
@@ -137,6 +138,7 @@ export class CasparManager extends EventEmitter {
         await this.caspar.start();
 
         await this.ingest.load();
+        await reportSidecar();
 
         Logger.info('Starting rundown auto save...');
         this.rundowns.startAutosave();
@@ -154,6 +156,7 @@ export class CasparManager extends EventEmitter {
 
         await this.preview.disposeAll();
         await this.ingest.disposeAll();
+        await sidecar.stop();
 
         await this.scanner.stop();
         await this.caspar.stop();
