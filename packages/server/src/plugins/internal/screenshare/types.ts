@@ -29,8 +29,7 @@ export interface ScreenshareDestination {
     /** `<channel>:<groupName>`, as `PluginAPI.getEffectGroup` expects. */
     effectLayer: string;
     index?: number;
-    /** Fill/crop rects, as `Transform.fromArray` wants them — how several
-     *  shares share one channel as a wall. */
+    /** Source then destination rect, as `Transform.fromArray` reads them. */
     transform?: number[];
 }
 

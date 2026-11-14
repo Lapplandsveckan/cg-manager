@@ -45,6 +45,7 @@
     },
     "errors": {
         "showFailed": "Kunde inte visa delningen på skärmen",
+        "noLiveSessions": "Inga aktiva skärmdelningar att visa",
         "createFailed": "Kunde inte skapa länken",
         "revokeFailed": "Kunde inte återkalla länken"
     },

@@ -45,6 +45,7 @@
     },
     "errors": {
         "showFailed": "Could not put that share on screen",
+        "noLiveSessions": "No live screen shares to show",
         "createFailed": "Could not create the link",
         "revokeFailed": "Could not revoke the link"
     },

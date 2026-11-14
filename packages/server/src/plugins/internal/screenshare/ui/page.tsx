@@ -94,19 +94,21 @@ const ScreensharePage: React.FC = () => {
 
     const showWall = () => {
         const live = sessions.filter(session => session.state === 'live');
+        if (!live.length) return notify(t('errors.noLiveSessions'), 'error');
 
-        return run(
-            () =>
-                Promise.all(
-                    live.map((session, index) =>
-                        showSession(conn, session.id, {
-                            effectLayer: effectLayerOf(destination),
-                            transform: tileTransform(index, live.length),
-                        }),
-                    ),
-                ),
-            'errors.showFailed',
-        );
+        const liveIds = live.map(session => session.id);
+        const stale = shown.filter(id => !liveIds.includes(id));
+
+        const tile = (session: IngestSession, index: number) =>
+            showSession(conn, session.id, {
+                effectLayer: effectLayerOf(destination),
+                transform: tileTransform(index, live.length),
+            });
+
+        return run(async () => {
+            await Promise.all(stale.map(id => hideSession(conn, id)));
+            await Promise.all(live.map(tile));
+        }, 'errors.showFailed');
     };
 
     const clearScreen = () =>
