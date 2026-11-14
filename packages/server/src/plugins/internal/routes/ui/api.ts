@@ -22,8 +22,35 @@ export interface ColorSource {
     color: string;
 }
 
-export type VideoRouteSource =
+/** A source type another plugin contributed; its payload is that plugin's. */
+export interface ContributedSource {
+    type: string;
+    [key: string]: unknown;
+}
+
+export type BuiltinSource =
     DecklinkSource | VideoSource | ChannelSource | ColorSource;
+
+export type VideoRouteSource = BuiltinSource | ContributedSource;
+
+export const BUILTIN_SOURCE_TYPES: BuiltinSource['type'][] = [
+    'decklink',
+    'video',
+    'channel',
+    'color',
+];
+
+export const isBuiltinSource = (
+    source: VideoRouteSource,
+): source is BuiltinSource =>
+    BUILTIN_SOURCE_TYPES.includes(source.type as BuiltinSource['type']);
+
+export interface RouteSourceTypeInfo {
+    type: string;
+    label: string;
+    description?: string;
+    plugin: string;
+}
 
 export interface VideoRouteDestination {
     type: 'effect-group';
@@ -48,11 +75,19 @@ export interface VideoRoute {
 
 type Connection = ReturnType<typeof useSocket>;
 
-const ROOT = '/api/plugin/routes/routes';
+const PLUGIN_ROOT = '/api/plugin/routes';
+const ROOT = `${PLUGIN_ROOT}/routes`;
 
 const routePath = (id: string) => `${ROOT}/${encodeURIComponent(id)}`;
 
 export const routesApi = {
+    sourceTypes: async (conn: Connection) =>
+        ((await conn.rawRequest(
+            `${PLUGIN_ROOT}/source-types`,
+            'GET',
+            {},
+        )) as RouteSourceTypeInfo[]) ?? [],
+
     list: async (conn: Connection) =>
         ((await conn.rawRequest(ROOT, 'GET', {})) as VideoRoute[]) ?? [],
 

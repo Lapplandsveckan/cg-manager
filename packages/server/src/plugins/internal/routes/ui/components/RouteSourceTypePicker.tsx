@@ -10,6 +10,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { type VideoRouteSource } from '../api';
+import { useRouteSourceTypesQuery } from '../query';
 
 export type SourceType = VideoRouteSource['type'];
 
@@ -19,7 +20,13 @@ interface RouteSourceTypePickerProps {
     onSelect: (type: SourceType) => void;
 }
 
-const TYPES: SourceType[] = ['decklink', 'video', 'channel', 'color'];
+interface Tile {
+    type: string;
+    label: string;
+    description: string;
+}
+
+const BUILTIN: SourceType[] = ['decklink', 'video', 'channel', 'color'];
 
 export const RouteSourceTypePicker: React.FC<RouteSourceTypePickerProps> = ({
     open,
@@ -27,6 +34,25 @@ export const RouteSourceTypePicker: React.FC<RouteSourceTypePickerProps> = ({
     onSelect,
 }) => {
     const { t } = useTranslation('routes');
+    const { data: contributed } = useRouteSourceTypesQuery();
+
+    const tiles: Tile[] = [
+        ...BUILTIN.map(type => ({
+            type,
+            label: t(`sourceTypes.${type}`),
+            description: t(`sourceTypeDescriptions.${type}`),
+        })),
+        ...(contributed ?? []).map(entry => ({
+            type: entry.type,
+            label: t(entry.label, { defaultValue: entry.label }),
+            description: entry.description
+                ? t(entry.description, { defaultValue: entry.description })
+                : t('sourceTypeDescriptions.contributed', {
+                      plugin: entry.plugin,
+                  }),
+        })),
+    ];
+
     return (
         <Modal open={open} onClose={onClose}>
             <Box
@@ -62,9 +88,9 @@ export const RouteSourceTypePicker: React.FC<RouteSourceTypePickerProps> = ({
                                 gap: 1.5,
                             }}
                         >
-                            {TYPES.map(type => (
+                            {tiles.map(tile => (
                                 <Card
-                                    key={type}
+                                    key={tile.type}
                                     variant="outlined"
                                     sx={theme => ({
                                         bgcolor: theme.palette.surface.elevated,
@@ -88,7 +114,7 @@ export const RouteSourceTypePicker: React.FC<RouteSourceTypePickerProps> = ({
                                     })}
                                 >
                                     <CardActionArea
-                                        onClick={() => onSelect(type)}
+                                        onClick={() => onSelect(tile.type)}
                                         sx={{
                                             p: 2,
                                             height: '100%',
@@ -103,15 +129,13 @@ export const RouteSourceTypePicker: React.FC<RouteSourceTypePickerProps> = ({
                                             }}
                                         >
                                             <Typography variant="h4">
-                                                {t(`sourceTypes.${type}`)}
+                                                {tile.label}
                                             </Typography>
                                             <Typography
                                                 variant="body2"
                                                 sx={{ color: 'text.secondary' }}
                                             >
-                                                {t(
-                                                    `sourceTypeDescriptions.${type}`,
-                                                )}
+                                                {tile.description}
                                             </Typography>
                                         </Stack>
                                     </CardActionArea>

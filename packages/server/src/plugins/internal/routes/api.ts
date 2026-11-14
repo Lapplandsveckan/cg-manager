@@ -1,18 +1,28 @@
 import { type PluginAPI } from '@lappis/cg-manager';
 import { WebError } from 'rest-exchange-protocol';
 import { type VideoRoutesManager } from './manager';
-import { type Destination, type Source, type VideoRoute } from './types';
-
-const SOURCE_TYPES = ['decklink', 'video', 'channel', 'color'];
+import { type RouteSourceTypes } from './sourceTypes';
+import {
+    isBuiltinSourceType,
+    type ContributedSource,
+    type Destination,
+    type Source,
+    type VideoRoute,
+} from './types';
 
 const isNonEmptyString = (value: unknown) =>
     typeof value === 'string' && value.length > 0;
 
-function validateSource(src: unknown): src is Source {
+function validateSource(
+    src: unknown,
+    sourceTypes: RouteSourceTypes,
+): src is Source {
     if (!src || typeof src !== 'object') return false;
 
     const source = src as Record<string, unknown>;
-    if (!SOURCE_TYPES.includes(source.type as string)) return false;
+    if (!isNonEmptyString(source.type)) return false;
+    if (!isBuiltinSourceType(source.type as string))
+        return validateContributed(source as ContributedSource, sourceTypes);
     if (source.type === 'decklink')
         return (
             typeof source.device === 'number' &&
@@ -21,6 +31,18 @@ function validateSource(src: unknown): src is Source {
     if (source.type === 'video') return isNonEmptyString(source.video);
     if (source.type === 'channel') return typeof source.channel === 'number';
     return isNonEmptyString(source.color);
+}
+
+/** A contributed type owns its own payload shape, so the most the host can
+ *  check is that the type exists — and whatever its provider wants to add. */
+function validateContributed(
+    source: ContributedSource,
+    sourceTypes: RouteSourceTypes,
+): boolean {
+    const contributed = sourceTypes.get(source.type);
+    if (!contributed) return false;
+
+    return contributed.validate?.(source) ?? true;
 }
 
 function validateDestination(dest: unknown): dest is Destination {
@@ -69,9 +91,16 @@ function mergeRoute(existing: VideoRoute, payload: Partial<VideoRoute>) {
 export function registerRouteEndpoints(
     api: PluginAPI,
     manager: VideoRoutesManager,
+    sourceTypes: RouteSourceTypes,
 ) {
     return [
         api.registerRoute('routes', async () => manager.list(), 'GET'),
+
+        api.registerRoute(
+            'source-types',
+            async () => sourceTypes.list(),
+            'GET',
+        ),
 
         api.registerRoute(
             'routes',
@@ -79,7 +108,7 @@ export function registerRouteEndpoints(
                 const payload = requireBody(request.getData());
                 if (typeof payload.name !== 'string')
                     throw new WebError('`name` is required', 400);
-                if (!validateSource(payload.source))
+                if (!validateSource(payload.source, sourceTypes))
                     throw new WebError('Invalid `source`', 400);
                 if (!validateDestination(payload.destination))
                     throw new WebError('Invalid `destination`', 400);
@@ -124,6 +153,16 @@ export function registerRouteEndpoints(
                 const id = requireId(request.getParams());
                 const payload = requireBody(request.getData());
                 const existing = requireRoute(manager, id);
+                if (
+                    payload.source !== undefined &&
+                    !validateSource(payload.source, sourceTypes)
+                )
+                    throw new WebError('Invalid `source`', 400);
+                if (
+                    payload.destination !== undefined &&
+                    !validateDestination(payload.destination)
+                )
+                    throw new WebError('Invalid `destination`', 400);
 
                 const next = mergeRoute(
                     existing,

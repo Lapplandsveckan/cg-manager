@@ -8,7 +8,7 @@ import {
     useSocket,
     type Rollback,
 } from '@web-lib';
-import { routesApi, type VideoRoute } from './api';
+import { routesApi, type RouteSourceTypeInfo, type VideoRoute } from './api';
 
 export const routeCreated = topic(
     'plugin/routes/routes',
@@ -28,7 +28,14 @@ export const routeDeleted = topic(
     (data): data is string => typeof data === 'string',
 );
 
+export const sourceTypesUpdated = topic(
+    'plugin/routes/source-types',
+    Method.UPDATE,
+    (data): data is RouteSourceTypeInfo[] => Array.isArray(data),
+);
+
 const routesKey = ['plugin', 'routes', 'list'] as const;
+const sourceTypesKey = ['plugin', 'routes', 'source-types'] as const;
 const routeKeys = () => [routesKey] as const;
 
 export function useRoutesQuery() {
@@ -36,6 +43,16 @@ export function useRoutesQuery() {
     return useQuery({
         queryKey: routesKey,
         queryFn: () => routesApi.list(conn),
+    });
+}
+
+/** Which source types exist depends on which plugins are enabled, so this is
+ *  broadcast state rather than something fetched once. */
+export function useRouteSourceTypesQuery() {
+    const conn = useSocket();
+    return useQuery({
+        queryKey: sourceTypesKey,
+        queryFn: () => routesApi.sourceTypes(conn),
     });
 }
 
@@ -127,6 +144,9 @@ export const routeSetEnabled = defineMutation({
 });
 
 export function useRoutesSync(): void {
+    useBroadcast(sourceTypesUpdated, list =>
+        queryClient.setQueryData(sourceTypesKey, list),
+    );
     useBroadcast(routeCreated, mergeRouteInCache);
     useBroadcast(routeUpdated, replaceRouteInCache);
     useBroadcast(routeDeleted, removeRouteFromCache);

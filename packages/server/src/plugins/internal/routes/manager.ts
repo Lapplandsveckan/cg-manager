@@ -14,7 +14,13 @@ import { VideoEffect, type VideoEffectOptions } from './effects/video';
 import { RouteEffect, type RouteEffectOptions } from './effects/route';
 import { ColorEffect, type ColorEffectOptions } from './effects/color';
 import { DecklinkEffect, type DecklinkEffectOptions } from './effects/decklink';
-import { type Destination, type Source, type VideoRoute } from './types';
+import {
+    type ContributedSource,
+    type Destination,
+    type Source,
+    type VideoRoute,
+} from './types';
+import { type RouteSourceTypes } from './sourceTypes';
 
 export type RouteChangeMethod = 'CREATE' | 'UPDATE' | 'DELETE';
 
@@ -45,6 +51,7 @@ export class VideoRoutesManager {
     public constructor(
         private api: PluginAPI,
         private dataDir: string,
+        private sourceTypes: RouteSourceTypes,
         private onChange: RouteChangeHandler,
     ) {}
 
@@ -133,13 +140,16 @@ export class VideoRoutesManager {
         );
     }
 
-    public refreshEffects() {
-        if (this.routes.size === 0) return;
+    public refreshEffects(filter?: (route: VideoRoute) => boolean) {
+        const stale = Array.from(this.routes.values())
+            .filter(({ route }) => !filter || filter(route))
+            .map(({ route }) => route.id);
+        if (stale.length === 0) return;
 
         logger.info(
-            `Refreshing ${this.routes.size} video route${this.routes.size === 1 ? '' : 's'}`,
+            `Refreshing ${stale.length} video route${stale.length === 1 ? '' : 's'}`,
         );
-        for (const id of this.routes.keys()) {
+        for (const id of stale) {
             this.checkState(id, true);
             this.checkState(id);
         }
@@ -217,7 +227,10 @@ export class VideoRoutesManager {
         if (!state) return;
 
         if (removal) {
-            if (state._enabled) state._effect.dispose();
+            // Unconditional: an effect is built as soon as a route is known,
+            // enabled or not, and dropping it without disposing leaks the
+            // layers it allocated.
+            state._effect?.dispose();
 
             delete state._effect;
             delete state._enabled;
@@ -263,9 +276,56 @@ export class VideoRoutesManager {
             return new VideoEffect(group, options as VideoEffectOptions);
         if (type === 'color')
             return new ColorEffect(group, options as ColorEffectOptions);
-        if (type === 'channel') return this.getChannelSource(group, route, src);
+        if (type === 'channel')
+            return this.getChannelSource(
+                group,
+                route,
+                src as Extract<Source, { type: 'channel' }>,
+            );
 
-        logger.warn(`Unknown source type: ${type}`);
+        return this.getContributedSource(type, group, route);
+    }
+
+    private getContributedSource(
+        type: string,
+        group: EffectGroup,
+        route: VideoRoute,
+    ): Effect {
+        const contributed = this.sourceTypes.get(type);
+        if (!contributed) {
+            logger.warn(`Source type "${type}" is unavailable`);
+            return this.getBlackSource(group, route);
+        }
+
+        const [err, effect] = noTry(() =>
+            contributed.createEffect({
+                group,
+                source: route.source as ContributedSource,
+                route,
+            }),
+        );
+        if (effect) return effect;
+
+        // Nothing to show yet (no guest connected, say) is the normal state for
+        // a contributed source, so only a throw is worth a warning.
+        if (err) logger.warn(`Source type "${type}" failed to build: ${err}`);
+        else logger.debug(`Source type "${type}" has nothing to show`);
+
+        return this.getBlackSource(group, route);
+    }
+
+    /** Every path out of `getSource` has to produce an effect: `checkState`
+     *  activates whatever it gets back, and black is what an unavailable
+     *  source has always shown. */
+    private getBlackSource(group: EffectGroup, route: VideoRoute): Effect {
+        const { transform, edgeblend, perspective } = route;
+
+        return new ColorEffect(group, {
+            color: 'black',
+            transform,
+            edgeblend,
+            perspective,
+        } as ColorEffectOptions);
     }
 
     private getChannelSource(
@@ -290,11 +350,6 @@ export class VideoRoutesManager {
         logger.warn(
             `Channel ${src.channel} not available — falling back to black`,
         );
-        return new ColorEffect(group, {
-            color: 'black',
-            transform,
-            edgeblend,
-            perspective,
-        } as ColorEffectOptions);
+        return this.getBlackSource(group, route);
     }
 }

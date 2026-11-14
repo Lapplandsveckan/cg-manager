@@ -42,7 +42,8 @@
         "decklink": "Blackmagic Decklink SDI input (optional fill+key).",
         "video": "Looping clip from the media library.",
         "channel": "Route the output of another CasparCG channel.",
-        "color": "Solid color fill (CSS name or #RRGGBB)."
+        "color": "Solid color fill (CSS name or #RRGGBB).",
+        "contributed": "Provided by the {{plugin}} plugin"
     },
     "picker": {
         "title": "Add route",
@@ -67,7 +68,8 @@
         "format": "Format",
         "keyDeviceOptional": "Key device (optional)",
         "color": "Color",
-        "colorHelper": "Stored as #AARRGGBB for CasparCG."
+        "colorHelper": "Stored as #AARRGGBB for CasparCG.",
+        "contributedNoEditor": "This source type has no editor — the plugin providing it may be disabled."
     },
     "destinationHint": "Effect-group layer is \"channel:group\". Index disambiguates multiple groups with the same name on a channel.",
     "geometry": {

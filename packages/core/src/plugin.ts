@@ -11,6 +11,7 @@ import {
     type HttpHandler,
     type HttpRouter,
 } from './types';
+import { type RouteRegistration } from './types/server';
 import { type UI_INJECTION_ZONE_KEY } from './types/ui';
 import { PluginApiBase } from './pluginApiBase';
 
@@ -138,11 +139,13 @@ export class PluginAPI extends PluginApiBase {
         path: string,
         handler: Route['handler'],
         method: Method,
+        options?: RouteRegistration,
     ) {
         const route = this._manager.server.registerRoute(
             `plugin/${this._plugin.pluginName}/${path}`,
             handler,
             method,
+            options,
         );
         this.routes.push(route);
 
@@ -161,12 +164,16 @@ export class PluginAPI extends PluginApiBase {
         return this._manager.server.createHttpRouter();
     }
 
-    public registerHttpHandler(handler: HttpHandler) {
+    public registerHttpHandler(
+        handler: HttpHandler,
+        options?: RouteRegistration,
+    ) {
         if (this.httpHandlers.includes(handler)) return;
 
         this._manager.server.registerHttpHandler(
             this._plugin.pluginName,
             handler,
+            options,
         );
         this.httpHandlers.push(handler);
     }

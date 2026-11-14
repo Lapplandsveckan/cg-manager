@@ -10,6 +10,24 @@ import { type CasparManager } from './manager';
 
 export type CGClient = TypedClient<object>;
 
+/** How a plugin's own API surface is credentialed. The host's full policy
+ *  table also knows share tokens, but those are positional in the URL and so
+ *  stay host-internal. */
+export type RoutePolicy = 'public' | 'session';
+
+export interface RouteRegistration {
+    /** `session` (the default) keeps the route behind the manager's auth gate;
+     *  `public` makes it reachable without credentials, for a surface a guest
+     *  has to be able to hit.
+     *
+     *  `public` is matched by URL prefix, so it is coarser than one
+     *  registration: a route with a path parameter opens its parent path
+     *  (`items/:id` opens `items/`, siblings included), and on an HTTP handler
+     *  it opens the plugin's whole `/api/plugin-http/<name>/` mount. Split
+     *  anything that must stay authenticated onto a path of its own. */
+    policy?: RoutePolicy;
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type HttpHandler = (
     req: any,
@@ -57,10 +75,15 @@ export declare class CGServer {
         path: string,
         handler: Route['handler'],
         method: Method,
+        options?: RouteRegistration,
     ): Route;
     public unregisterRoute(route: Route): void;
 
-    public registerHttpHandler(pluginName: string, handler: HttpHandler): void;
+    public registerHttpHandler(
+        pluginName: string,
+        handler: HttpHandler,
+        options?: RouteRegistration,
+    ): void;
     public unregisterHttpHandler(
         pluginName: string,
         handler: HttpHandler,

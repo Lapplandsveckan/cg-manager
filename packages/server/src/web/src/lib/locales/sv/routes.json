@@ -42,7 +42,8 @@
         "decklink": "Blackmagic Decklink SDI-ingång (valfri fyllning+nyckel).",
         "video": "Loopande klipp från mediabiblioteket.",
         "channel": "Rutt utgången från en annan CasparCG-kanal.",
-        "color": "Solid färgfyllning (CSS-namn eller #RRGGBB)."
+        "color": "Solid färgfyllning (CSS-namn eller #RRGGBB).",
+        "contributed": "Tillhandahålls av pluginet {{plugin}}"
     },
     "picker": {
         "title": "Lägg till väg",
@@ -67,7 +68,8 @@
         "format": "Format",
         "keyDeviceOptional": "Nyckelenhet (valfritt)",
         "color": "Färg",
-        "colorHelper": "Lagrad som #AARRGGBB för CasparCG."
+        "colorHelper": "Lagrad som #AARRGGBB för CasparCG.",
+        "contributedNoEditor": "Den här källtypen har ingen redigerare — pluginet som tillhandahåller den kan vara inaktiverat."
     },
     "destinationHint": "Effektgrupp-lager är \"kanal:grupp\". Index skiljer på flera grupper med samma namn på en kanal.",
     "geometry": {

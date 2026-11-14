@@ -10,6 +10,7 @@ import {
     type Route,
 } from 'rest-exchange-protocol';
 import { type RequestHandler } from 'express';
+import { type RouteRegistration } from '@lappis/cg-manager';
 import { noTry, noTryAsync } from 'no-try';
 import { loadRoutes } from './route';
 import { type CasparManager } from '../manager';
@@ -18,8 +19,9 @@ import { handleRequest, onUpgrade } from '../web';
 import { Logger } from '../util/log';
 import { Upload } from '../manager/scanner/upload';
 import { authMiddleware, authApiMiddleware } from './authMiddleware';
-import { setShareTokenCheck } from './authPolicy';
+import { registerPolicy, setShareTokenCheck } from './authPolicy';
 import { ingestWhipMiddleware } from './ingestWhip';
+import { ingestThumbnailMiddleware } from './ingestThumbnail';
 import { exchangeSdp } from '../manager/wrtc/shared/whip';
 import { isInternalMediaId } from '../manager/scanner/folders';
 import { mediaStreamMiddleware } from './mediaStream';
@@ -35,6 +37,15 @@ import {
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export type CGClient = TypedClient<{}>;
+
+/** Prefix matching can't express a path parameter, so a route holding one
+ *  opens its parent path instead — still inside the plugin's own namespace. */
+const policyPrefix = (path: string) => {
+    const segments = path.split('/');
+    const param = segments.findIndex(segment => segment.startsWith(':'));
+
+    return param < 0 ? path : `${segments.slice(0, param).join('/')}/`;
+};
 
 export class CGServer {
     private server: REPServer;
@@ -52,15 +63,18 @@ export class CGServer {
         const routes = loadRoutes();
         routes.forEach(route => this.server.register(route));
 
-        // telemetryScript must precede auth (public, pre-login) and web() (Next would 404 it).
+        // Order below is about who answers a request, not about who may: every
+        // path's credential comes from the table in `authPolicy.ts`, so the gate
+        // can sit above the pre-login endpoints instead of below them.
         this.server.use(this.cors());
+        this.server.use(authMiddleware());
+        this.server.use(authApiMiddleware());
         this.server.use(telemetryScriptMiddleware());
         this.server.use(brandScriptMiddleware());
         this.server.use(brandHomeMiddleware());
-        this.server.use(authApiMiddleware());
-        this.server.use(authMiddleware());
         this.server.use(this.previewWhep());
         this.server.use(ingestWhipMiddleware(this.manager.ingest));
+        this.server.use(ingestThumbnailMiddleware(this.manager.ingest));
         this.server.use(mediaStreamMiddleware());
         this.server.use(pluginHttpMiddleware());
         this.server.use(this.upload());
@@ -164,7 +178,7 @@ export class CGServer {
                         sdpOffer,
                     });
 
-                    return session.sdpAnswer;
+                    return { sdpAnswer: session.sdpAnswer };
                 },
             );
         };
@@ -275,10 +289,33 @@ export class CGServer {
         await this.server.stop();
     }
 
+    /** Policies opened up by plugin registrations, closed again when the
+     *  registration that asked for them goes away. */
+    private policies = new Map<object, () => void>();
+
+    private openPolicy(
+        key: object,
+        prefix: string,
+        options?: RouteRegistration,
+    ) {
+        if (options?.policy !== 'public') return;
+
+        Logger.scope('API').debug(
+            `Opening ${prefix} to unauthenticated requests`,
+        );
+        this.policies.set(key, registerPolicy(prefix, 'public'));
+    }
+
+    private closePolicy(key: object) {
+        this.policies.get(key)?.();
+        this.policies.delete(key);
+    }
+
     public registerRoute(
         path: string,
         handler: Route['handler'],
         method: Method,
+        options?: RouteRegistration,
     ) {
         const route = {
             method,
@@ -288,6 +325,7 @@ export class CGServer {
 
         Logger.scope('API').debug(`Registering route ${method} /api/${path}`);
         this.server.register(route);
+        this.openPolicy(route, policyPrefix(route.path), options);
 
         return route;
     }
@@ -296,18 +334,29 @@ export class CGServer {
         Logger.scope('API').debug(
             `Unregistering route ${route.method} ${route.path}`,
         );
+        this.closePolicy(route);
         this.server.unregister(route);
     }
 
-    public registerHttpHandler(pluginName: string, handler: RequestHandler) {
+    public registerHttpHandler(
+        pluginName: string,
+        handler: RequestHandler,
+        options?: RouteRegistration,
+    ) {
         Logger.scope('API').debug(`Registering HTTP handler for ${pluginName}`);
         registerPluginHttp(pluginName, handler);
+        this.openPolicy(
+            handler,
+            `/api/plugin-http/${encodeURIComponent(pluginName)}/`,
+            options,
+        );
     }
 
     public unregisterHttpHandler(pluginName: string, handler: RequestHandler) {
         Logger.scope('API').debug(
             `Unregistering HTTP handler for ${pluginName}`,
         );
+        this.closePolicy(handler);
         unregisterPluginHttp(pluginName, handler);
     }
 

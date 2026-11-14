@@ -6,4 +6,9 @@ export * from './ingest';
 export * from './companion';
 export type { CasparStatus } from './caspar/process';
 export type { MediaDoc } from './scanner/db';
-export type { HttpHandler, HttpRouter } from './server';
+export type {
+    HttpHandler,
+    HttpRouter,
+    RoutePolicy,
+    RouteRegistration,
+} from './server';

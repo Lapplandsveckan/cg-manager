@@ -13,7 +13,8 @@ import { RouteEffect, type RouteEffectOptions } from './effects/route';
 import { ColorEffect, type ColorEffectOptions } from './effects/color';
 import { DecklinkEffect, type DecklinkEffectOptions } from './effects/decklink';
 import { registerRouteEndpoints } from './api';
-import { type VideoRoutesService } from './types';
+import { isBuiltinSourceType, type VideoRoutesService } from './types';
+import { RouteSourceTypes } from './sourceTypes';
 import { VideoRoutesManager, type RouteChangeMethod } from './manager';
 
 const TOGGLE_VIDEO_ROUTE = 'toggle-video-route';
@@ -38,9 +39,26 @@ export default class VideoRoutesPlugin extends CasparPlugin {
 
     private disabled = false;
     private manager!: VideoRoutesManager;
+    private sourceTypes!: RouteSourceTypes;
     private endpoints: ReturnType<typeof registerRouteEndpoints> = [];
 
     private readonly refresh = () => this.manager.refreshEffects();
+
+    /** A type appearing or going away changes what the routes built on a
+     *  contributed source can resolve — and only those: rebuilding a builtin
+     *  route would re-issue PLAY on live output for no reason. */
+    private readonly onSourceTypesChange = () => {
+        if (this.disabled) return;
+
+        this.api.broadcast(
+            'source-types',
+            WebsocketOutboundMethod.UPDATE,
+            this.sourceTypes.list(),
+        );
+        this.manager?.refreshEffects(
+            route => !isBuiltinSourceType(route.source.type),
+        );
+    };
 
     protected async onEnable() {
         this.disabled = false;
@@ -51,10 +69,17 @@ export default class VideoRoutesPlugin extends CasparPlugin {
     private async start() {
         this.registerEffects();
 
+        this.sourceTypes = new RouteSourceTypes(
+            this.api,
+            this.onSourceTypesChange,
+        );
+        this.sourceTypes.load();
+
         const dataDir = this.api.getDataDir();
         this.manager = new VideoRoutesManager(
             this.api,
             dataDir,
+            this.sourceTypes,
             (method, data, exclude) => this.broadcast(method, data, exclude),
         );
         await this.manager.load(legacyRoutesDir());
@@ -69,7 +94,11 @@ export default class VideoRoutesPlugin extends CasparPlugin {
             setEnabled: (id, enabled) => this.manager.setEnabled(id, enabled),
         });
 
-        this.endpoints = registerRouteEndpoints(this.api, this.manager);
+        this.endpoints = registerRouteEndpoints(
+            this.api,
+            this.manager,
+            this.sourceTypes,
+        );
         this.registerRundownAction();
         this.registerUI();
 
@@ -84,6 +113,7 @@ export default class VideoRoutesPlugin extends CasparPlugin {
             this.api.unregisterRoute(endpoint);
 
         this.endpoints = [];
+        this.sourceTypes?.dispose();
         this.manager?.disposeAll();
     }
 

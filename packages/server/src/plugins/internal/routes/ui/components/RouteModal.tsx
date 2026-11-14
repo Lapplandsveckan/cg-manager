@@ -28,6 +28,8 @@ import {
     sourceToDraft,
 } from './RouteSourceFields';
 import { GeometryEditor, type GeometryValues } from './GeometryEditor';
+import { sourceTypeLabel } from '../routeFormatters';
+import { useRouteSourceTypesQuery } from '../query';
 
 interface DraftDestination {
     channel: string;
@@ -146,6 +148,7 @@ export const RouteModal: React.FC<RouteModalProps> = ({
     onDelete,
 }) => {
     const { t } = useTranslation('routes');
+    const { data: contributed } = useRouteSourceTypesQuery();
     const [name, setName] = useState('');
     const [source, setSource] = useState<DraftSource>(
         defaultSourceFor('color'),
@@ -221,6 +224,9 @@ export const RouteModal: React.FC<RouteModalProps> = ({
             if (channel === undefined) return t('errors.channelRequired');
             return { type: 'channel', channel };
         }
+        if (source.type === 'contributed')
+            return { ...source.data, type: source.sourceType };
+
         const color = source.color.trim();
         if (!color) return t('errors.colorRequired');
         return { type: 'color', color };
@@ -272,13 +278,14 @@ export const RouteModal: React.FC<RouteModalProps> = ({
         setBusy(false);
     };
 
+    const typeLabel = sourceTypeLabel(
+        t,
+        activeType,
+        contributed ?? [],
+    ).toLowerCase();
     const title = route
-        ? t('modal.editTitle', {
-              type: t(`sourceTypes.${activeType}`).toLowerCase(),
-          })
-        : t('modal.addTitle', {
-              type: t(`sourceTypes.${activeType}`).toLowerCase(),
-          });
+        ? t('modal.editTitle', { type: typeLabel })
+        : t('modal.addTitle', { type: typeLabel });
 
     return (
         <>

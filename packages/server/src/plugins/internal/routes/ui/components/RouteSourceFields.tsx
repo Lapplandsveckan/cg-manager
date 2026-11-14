@@ -7,23 +7,35 @@ import {
     Select,
     Stack,
     TextField,
+    Typography,
 } from '@mui/material';
 import { MuiColorInput } from 'mui-color-input';
 import { useTranslation } from 'react-i18next';
 import {
     BUILTIN_VIDEO_MODES,
+    Injections,
     MediaSelect,
     useMediaDocsQuery,
     type MediaDoc,
+    type UI_INJECTION_ZONE_KEY,
 } from '@web-lib';
-import { type VideoRouteSource } from '../api';
+import { isBuiltinSource, type VideoRouteSource } from '../api';
 import type { SourceType } from './RouteSourceTypePicker';
 
 export type DraftSource =
     | { type: 'decklink'; device: string; format: string; keyDevice: string }
     | { type: 'video'; video: string }
     | { type: 'channel'; channel: string }
-    | { type: 'color'; color: string };
+    | { type: 'color'; color: string }
+    | {
+          type: 'contributed';
+          sourceType: string;
+          data: Record<string, unknown>;
+      };
+
+/** Where a contributing plugin's own editor for its source type is rendered. */
+const contributedZone = (type: string) =>
+    `plugin:routes.source.${type}` as UI_INJECTION_ZONE_KEY;
 
 export function defaultSourceFor(type: SourceType): DraftSource {
     switch (type) {
@@ -41,9 +53,16 @@ export function defaultSourceFor(type: SourceType): DraftSource {
         case 'color':
             return { type: 'color', color: '#000000' };
     }
+
+    return { type: 'contributed', sourceType: type, data: {} };
 }
 
 export function sourceToDraft(src: VideoRouteSource): DraftSource {
+    if (!isBuiltinSource(src)) {
+        const { type, ...data } = src;
+        return { type: 'contributed', sourceType: type, data };
+    }
+
     switch (src.type) {
         case 'decklink':
             return {
@@ -209,6 +228,23 @@ export const SourceFields: React.FC<SourceFieldsProps> = ({
                     ))}
                 </Select>
             </FormControl>
+        );
+
+    if (draft.type === 'contributed')
+        return (
+            <Injections
+                zone={contributedZone(draft.sourceType)}
+                props={{
+                    data: draft.data,
+                    onChange: (data: Record<string, unknown>) =>
+                        patch('contributed', p => ({ ...p, data })),
+                }}
+                fallback={
+                    <Typography variant="body2" color="text.secondary">
+                        {t('fields.contributedNoEditor')}
+                    </Typography>
+                }
+            />
         );
 
     if (draft.type === 'color') {
