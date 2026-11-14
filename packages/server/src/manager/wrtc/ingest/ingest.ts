@@ -45,6 +45,7 @@ interface InternalSession extends IngestSession {
     pc: RTCPeerConnection;
     rtpSocket: dgram.Socket;
     pipeline: Pipeline;
+    stopKeyframeRequests: () => void;
     ports: number[];
     closed: boolean;
     timer?: NodeJS.Timeout;
@@ -304,6 +305,7 @@ export class IngestManager extends EventEmitter implements IngestApi {
         clearTimeout(session.timer);
         this.sessions.delete(id);
 
+        session.stopKeyframeRequests();
         await noTryAsync(() => session.pc.close());
         noTry(() => session.rtpSocket.close());
         await noTryAsync(() => session.pipeline.close());

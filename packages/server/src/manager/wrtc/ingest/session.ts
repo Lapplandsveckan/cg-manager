@@ -3,7 +3,7 @@ import { type RTCPeerConnection } from 'werift';
 import { noTry, noTryAsync } from 'no-try';
 import { Logger } from '../../../util/log';
 import {
-    H264_CODEC,
+    H264_KEYFRAME_REQUEST_CODEC,
     H264_PAYLOAD_TYPE,
     OPUS_CODEC,
     OPUS_PAYLOAD_TYPE,
@@ -28,6 +28,7 @@ export interface SessionHandles {
     pc: RTCPeerConnection;
     rtpSocket: dgram.Socket;
     pipeline: Pipeline;
+    stopKeyframeRequests: () => void;
 }
 
 export interface SessionHooks {
@@ -67,7 +68,7 @@ export async function buildSession(
 
         const pc = await createPeerConnection(
             {
-                video: [H264_CODEC],
+                video: [H264_KEYFRAME_REQUEST_CODEC],
                 ...(plan.wantsAudio ? { audio: [OPUS_CODEC] } : {}),
             },
             plan.stunServer,
@@ -75,6 +76,9 @@ export async function buildSession(
         rollback.push(() => pc.close());
 
         forwardRtp(pc, rtpSocket, plan, hooks);
+
+        const stopKeyframeRequests = requestKeyframes(pc);
+        rollback.push(stopKeyframeRequests);
 
         await pc.setRemoteDescription({ type: 'offer', sdp: sdpOffer });
         // Transceivers exist only now, and gathering starts just below.
@@ -85,7 +89,10 @@ export async function buildSession(
         if (!sdpAnswer)
             throw new Error('werift failed to produce an SDP answer');
 
-        return { sdpAnswer, handles: { pc, rtpSocket, pipeline } };
+        return {
+            sdpAnswer,
+            handles: { pc, rtpSocket, pipeline, stopKeyframeRequests },
+        };
     });
 
     if (err) {
@@ -94,6 +101,33 @@ export async function buildSession(
     }
 
     return built;
+}
+
+const KEYFRAME_INTERVAL_MS = 2000;
+
+// A browser only sends a keyframe when asked, and `-c:v copy` means whoever
+// starts reading the sink shows nothing until the next one.
+function requestKeyframes(pc: RTCPeerConnection): () => void {
+    let videoSsrc: number | undefined;
+
+    pc.onTrack.subscribe(track => {
+        if (track.kind !== 'video') return;
+
+        track.onReceiveRtp.once(packet => {
+            videoSsrc = packet.header.ssrc;
+        });
+    });
+
+    const timer = setInterval(() => {
+        if (videoSsrc === undefined) return;
+
+        const video = pc.getTransceivers().find(t => t.kind === 'video');
+        video?.receiver
+            .sendRtcpPLI(videoSsrc)
+            .catch(e => logger.debug(`Keyframe request failed: ${e}`));
+    }, KEYFRAME_INTERVAL_MS);
+
+    return () => clearInterval(timer);
 }
 
 /** Browser-offered m-lines become recvonly transceivers, so tracks arrive here
