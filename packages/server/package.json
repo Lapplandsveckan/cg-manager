@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "2.50.1",
+  "version": "2.51.0",
   "name": "@cg-manager/server",
   "engines": {
     "node": ">=22.12"
@@ -89,6 +89,7 @@
       "dist/web/.next/**/*",
       "dist/web/public/**/*",
       "dist/plugins/internal/**/ui/**/*.{js,jsx}",
+      "dist/sidecar/*",
       "../../node_modules/**/*",
       "!../../node_modules/@cg-manager/**"
     ],

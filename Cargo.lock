@@ -179,6 +179,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
 
 [[package]]
+name = "cg-sidecar"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "str0m",
+ "tokio",
+]
+
+[[package]]
 name = "chacha20"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -839,16 +849,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "85eae3c4ed2f50dcfe72643da4befc30deadb458a9b590d720cde2f2b1e97da9"
 dependencies = [
  "zerocopy",
-]
-
-[[package]]
-name = "preview-relay"
-version = "0.1.0"
-dependencies = [
- "serde",
- "serde_json",
- "str0m",
- "tokio",
 ]
 
 [[package]]

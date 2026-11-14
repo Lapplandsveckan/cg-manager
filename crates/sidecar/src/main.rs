@@ -1,10 +1,5 @@
-mod annexb;
-#[cfg(test)]
-mod annexb_tests;
 mod control;
-mod hub;
-mod ingest;
-mod peer;
+mod relay;
 
 use std::{net::IpAddr, sync::Arc};
 
@@ -16,7 +11,7 @@ use tokio::{
 };
 
 use control::Command;
-use hub::{detect_local_ip, Hub, HubMessage};
+use relay::hub::{detect_local_ip, Hub, HubMessage};
 
 struct Args {
     udp_port: u16,

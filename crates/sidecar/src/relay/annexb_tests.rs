@@ -1,4 +1,4 @@
-use crate::annexb::Splitter;
+use crate::relay::annexb::Splitter;
 
 const SPS: [u8; 4] = [0x67, 0x42, 0xe0, 0x1f];
 const PPS: [u8; 2] = [0x68, 0xce];

@@ -14,12 +14,16 @@ pub enum Command {
     Ingest {
         channel: u16,
     },
+    Ping {
+        id: u64,
+    },
     Shutdown,
 }
 
 #[derive(Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Event {
+    Pong { id: u64, version: &'static str },
     Opened { id: u64, sdp_answer: String },
     Error { id: u64, message: String },
     IngestReady { channel: u16, port: u16 },

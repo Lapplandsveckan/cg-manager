@@ -7,12 +7,8 @@ use std::{
 
 use tokio::{net::UdpSocket, sync::mpsc::UnboundedSender};
 
-use crate::{
-    annexb::Frame,
-    control::{Command, Event},
-    ingest,
-    peer::Peer,
-};
+use super::{annexb::Frame, ingest, peer::Peer};
+use crate::control::{Command, Event};
 
 const IDLE_WAKE: Duration = Duration::from_secs(1);
 
@@ -116,6 +112,10 @@ impl Hub {
             } => self.open(id, channel, &sdp_offer),
             Command::Close { id } => self.close(id),
             Command::Ingest { channel } => self.ingest(channel).await,
+            Command::Ping { id } => emit(&Event::Pong {
+                id,
+                version: env!("CARGO_PKG_VERSION"),
+            }),
             Command::Shutdown => return false,
         }
         true

@@ -8,7 +8,7 @@ use str0m::{
     Candidate, Event, IceConnectionState, Input, Output, Rtc, RtcConfig,
 };
 
-use crate::annexb::Frame;
+use crate::relay::annexb::Frame;
 
 const MICROS_TO_TICKS_NUMERATOR: u64 = 90;
 const MICROS_TO_TICKS_DENOMINATOR: u64 = 1000;

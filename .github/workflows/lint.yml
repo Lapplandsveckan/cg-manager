@@ -24,3 +24,30 @@ jobs:
 
         - name: Generate @web-lib types
           run: yarn gen:web-lib-types
+
+  sidecar:
+    name: Sidecar (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+        - name: Clone codebase
+          uses: actions/checkout@v4
+
+        - name: Setup Rust
+          uses: dtolnay/rust-toolchain@stable
+          with:
+            components: rustfmt, clippy
+
+        - name: Cache Rust build
+          uses: Swatinem/rust-cache@v2
+
+        - name: Check formatting
+          run: cargo fmt --all --check
+
+        - name: Clippy
+          run: cargo clippy --workspace --all-targets -- -D warnings
+
+        - name: Test
+          run: cargo test --workspace

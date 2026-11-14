@@ -2,6 +2,7 @@ const { exec } = require('child_process');
 const fss = require('fs');
 const fs = fss.promises;
 const path = require('path');
+const { buildSidecar, binaryName } = require('./build-sidecar');
 const root = path.join(__dirname, '../../');
 // Yarn workspaces hoist deps to the monorepo-root node_modules — `root` here
 // is `packages/server`, so binaries/patched files live two levels further up.
@@ -89,6 +90,20 @@ async function packageConfig() {
     await fs.writeFile(out, `module.exports = ${content};`);
 }
 
+async function packageSidecar() {
+    console.log('Packaging sidecar...');
+
+    const binary = buildSidecar({ release: true, required: true });
+    const out = path.join(root, 'dist', 'sidecar');
+
+    await fs.mkdir(out, { recursive: true });
+    await fs.copyFile(binary, path.join(out, binaryName));
+}
+
+// The embedded sidecar is built for the host, so the executable has to be too.
+const PKG_PLATFORMS = { linux: 'linux', win32: 'win', darwin: 'macos' };
+const pkgTarget = () => `node22-${PKG_PLATFORMS[process.platform]}-${process.arch}`;
+
 async function packageWeb() {
     console.log('Packaging web...');
 
@@ -175,6 +190,7 @@ async function package() {
     await packageRoutes();
     await packageInternalPlugins();
     await packageConfig();
+    await packageSidecar();
     await packageWeb();
     await patchVmCallSites();
 
@@ -190,6 +206,7 @@ async function package() {
     await cmd(
         path.join('@yao-pkg', 'pkg', 'lib-es5', 'bin.js'),
         JSON.stringify(path.join(root, 'package.json')),
+        '--targets', pkgTarget(),
         '--output', JSON.stringify(output),
     );
 }

@@ -6,7 +6,7 @@ use tokio::{
     sync::mpsc::UnboundedSender,
 };
 
-use crate::{annexb::Splitter, hub::HubMessage};
+use crate::relay::{annexb::Splitter, hub::HubMessage};
 
 const READ_SIZE: usize = 64 * 1024;
 
