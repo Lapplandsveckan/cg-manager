@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { noTry, noTryAsync } from 'no-try';
 import { startThumbnailUploads } from './captureThumbnails';
+import { steadyFrameRate } from './steadyFrameRate';
 
 export type CaptureState = 'idle' | 'starting' | 'live' | 'ended' | 'error';
 
@@ -58,6 +59,7 @@ export function useScreenCapture({
     const pcRef = useRef<RTCPeerConnection | null>(null);
     const abortRef = useRef<AbortController | null>(null);
     const thumbnailsRef = useRef<(() => void) | null>(null);
+    const steadyRef = useRef<(() => void) | null>(null);
 
     const stop = useCallback(() => {
         abortRef.current?.abort();
@@ -65,6 +67,9 @@ export function useScreenCapture({
 
         thumbnailsRef.current?.();
         thumbnailsRef.current = null;
+
+        steadyRef.current?.();
+        steadyRef.current = null;
 
         const pc = pcRef.current;
         pcRef.current = null;
@@ -99,7 +104,13 @@ export function useScreenCapture({
 
             const pc = new RTCPeerConnection();
             pcRef.current = pc;
-            captured.getTracks().forEach(track => pc.addTrack(track, captured));
+            const steady = steadyFrameRate(captured.getVideoTracks()[0]);
+            steadyRef.current = steady.stop;
+
+            pc.addTrack(steady.track, captured);
+            captured
+                .getAudioTracks()
+                .forEach(track => pc.addTrack(track, captured));
 
             // Stopping the share from the browser's own banner ends the session.
             captured.getVideoTracks()[0]?.addEventListener('ended', stop);
