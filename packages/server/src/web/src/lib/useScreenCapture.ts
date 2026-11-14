@@ -44,6 +44,14 @@ async function whipExchange(
     };
 }
 
+// CasparCG's producer dies when the stream changes size mid-play.
+function keepResolution(sender: RTCRtpSender): Promise<void> {
+    return sender.setParameters({
+        ...sender.getParameters(),
+        degradationPreference: 'maintain-resolution',
+    });
+}
+
 /** Browser half of screen-share ingest: `getDisplayMedia` into a sendonly
  *  peer connection, offer POSTed to a WHIP endpoint. The mirror of
  *  `ChannelPreview`'s WHEP consumer. */
@@ -107,7 +115,8 @@ export function useScreenCapture({
             const steady = steadyFrameRate(captured.getVideoTracks()[0]);
             steadyRef.current = steady.stop;
 
-            pc.addTrack(steady.track, captured);
+            steady.track.contentHint = 'detail';
+            const videoSender = pc.addTrack(steady.track, captured);
             captured
                 .getAudioTracks()
                 .forEach(track => pc.addTrack(track, captured));
@@ -129,6 +138,7 @@ export function useScreenCapture({
                 type: 'answer',
                 sdp: answer.sdpAnswer,
             });
+            await noTryAsync(() => keepResolution(videoSender));
 
             if (abort.signal.aborted) return;
             if (thumbnailEndpoint && answer.sessionId)

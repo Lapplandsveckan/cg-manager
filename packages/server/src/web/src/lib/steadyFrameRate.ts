@@ -71,7 +71,6 @@ export function steadyFrameRate(source: MediaStreamTrack): SteadyTrack {
 
     const { readable } = new MediaStreamTrackProcessor({ track: source });
     const generator = new MediaStreamTrackGenerator({ kind: 'video' });
-    generator.contentHint = source.contentHint;
 
     const sourceUrl = URL.createObjectURL(
         new Blob([repeaterSource], { type: 'text/javascript' }),
