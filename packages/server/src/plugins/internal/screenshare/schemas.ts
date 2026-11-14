@@ -8,6 +8,7 @@ const required = (message: string) =>
 export const destinationBody = z.object({
     effectLayer: required('No destination selected'),
     index: z.number().int().nonnegative().optional(),
+    transform: z.array(z.number()).length(8).optional(),
 });
 
 export const showItemData = destinationBody.extend({

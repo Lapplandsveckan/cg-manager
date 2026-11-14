@@ -12,7 +12,11 @@
         "noAudio": "No audio",
         "show": "Show on screen",
         "hide": "Take off screen",
-        "onAir": "On screen"
+        "onAir": "On screen",
+        "noPreview": "No preview yet",
+        "disconnect": "Disconnect",
+        "showWall": "Show all as a wall",
+        "clear": "Clear screen"
     },
     "shares": {
         "title": "Share links",
@@ -22,7 +26,11 @@
         "labelPlaceholder": "e.g. Player 1",
         "copy": "Copy link",
         "copied": "Link copied",
-        "revoke": "Revoke"
+        "revoke": "Revoke",
+        "maxSessions": "Max uses",
+        "usage": "{{used}}/{{max}} in use",
+        "showQr": "Show QR code",
+        "qrFailed": "Could not render a QR code for this link"
     },
     "local": {
         "title": "This browser",
@@ -37,6 +45,20 @@
     },
     "errors": {
         "showFailed": "Could not put that share on screen",
-        "createFailed": "Could not create the link"
+        "createFailed": "Could not create the link",
+        "revokeFailed": "Could not revoke the link"
+    },
+    "description": "Put incoming screen shares on a channel, and hand out links so anyone can share theirs.",
+    "routeSource": {
+        "label": "Screen share",
+        "description": "A share link, played live on this route",
+        "share": "Share link",
+        "shareHint": "Whoever is connected on this link goes on screen.",
+        "noShares": "No share links yet — create one on the screen share page.",
+        "shareGone": "This share link no longer exists."
+    },
+    "destination": {
+        "channel": "Channel",
+        "group": "Effect group"
     }
 }

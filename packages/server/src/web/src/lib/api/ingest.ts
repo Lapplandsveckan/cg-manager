@@ -36,3 +36,11 @@ export const guestWhipPath = (token: string) => `${guestSharePath(token)}/whip`;
 
 export const operatorWhipPath = (label: string) =>
     `/ingest-whip?label=${encodeURIComponent(label)}`;
+
+/** GET reads the latest frame, POST stores one. Operator-side, so behind the
+ *  session gate; a guest posts to its own share path instead. */
+export const sessionThumbnailPath = (id: string) =>
+    `/api/ingest/thumbnail/${encodeURIComponent(id)}`;
+
+export const guestThumbnailPath = (token: string, id: string) =>
+    `${guestSharePath(token)}/thumbnail/${encodeURIComponent(id)}`;

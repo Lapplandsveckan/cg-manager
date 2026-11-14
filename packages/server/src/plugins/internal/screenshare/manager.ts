@@ -47,6 +47,7 @@ export class ScreenshareManager {
             sessionId,
             url: session.url,
             label: session.label,
+            transform: destination.transform,
         };
         const effect = new ScreenshareEffect(group, options);
         this.shown.set(sessionId, { destination, effect });

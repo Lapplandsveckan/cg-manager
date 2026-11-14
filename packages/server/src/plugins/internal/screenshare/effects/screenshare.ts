@@ -1,11 +1,14 @@
 import {
     ClearCommand,
     Effect,
+    type EffectGeometry,
     type EffectGroup,
     PlayCommand,
+    geometryCommands,
+    geometryTransform,
 } from '@lappis/cg-manager';
 
-export interface ScreenshareEffectOptions {
+export interface ScreenshareEffectOptions extends EffectGeometry {
     sessionId: string;
     /** The ingest session's playable URL, resolved when the effect is created. */
     url: string;
@@ -20,10 +23,16 @@ export class ScreenshareEffect extends Effect {
 
         this.options = options;
         this.allocateLayers();
+
+        const transform = geometryTransform(options);
+        if (transform) this.setTransform(transform);
     }
 
     public activate() {
         if (!super.activate()) return;
+
+        for (const command of geometryCommands(this.options, this.layers))
+            this.executor.execute(command);
 
         // No LOOP: a live stream has nothing to loop back to, and CasparCG
         // would restart the producer the moment the sender pauses.

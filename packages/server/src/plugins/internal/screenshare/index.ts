@@ -3,6 +3,8 @@ import path from 'path';
 import {
     CasparPlugin,
     UI_INJECTION_ZONE,
+    type ContributionHandle,
+    type IngestSessionEvent,
     type UI_INJECTION_ZONE_KEY,
     type RundownItem,
 } from '@lappis/cg-manager';
@@ -13,7 +15,12 @@ import { ScreenshareEffect } from './effects/screenshare';
 import { parseValue } from '../../../api/validate';
 import { registerScreenshareEndpoints } from './api';
 import { showItemData, stopItemData } from './schemas';
-import { type ScreenshareService } from './types';
+import {
+    ROUTE_SOURCE_POINT,
+    ROUTE_SOURCE_TYPE,
+    screenshareRouteSource,
+} from './routeSource';
+import { type RouteSourceType, type ScreenshareService } from './types';
 
 const SHOW_SCREENSHARE = 'show-screenshare';
 
@@ -26,6 +33,17 @@ export default class ScreensharePlugin extends CasparPlugin {
     // CasparCG down. Only `show` needs a channel, and it fails on its own.
     private manager!: ScreenshareManager;
     private endpoints: Route[] = [];
+    private routeSource: ContributionHandle<RouteSourceType> | null = null;
+
+    /** A session appearing or going away changes what a screenshare route can
+     *  resolve, and re-publishing the contribution is what makes the routes
+     *  plugin rebuild its effects. */
+    private readonly onSession = (event: IngestSessionEvent) => {
+        this.manager.onSession(event);
+        if (event.type === 'update') return;
+
+        this.routeSource?.update(screenshareRouteSource(this.api));
+    };
 
     protected onEnable() {
         this.manager = new ScreenshareManager(this.api, this.logger);
@@ -42,11 +60,15 @@ export default class ScreensharePlugin extends CasparPlugin {
         );
 
         this.endpoints = registerScreenshareEndpoints(this.api, this.manager);
+        this.routeSource = this.api.contribute<RouteSourceType>(
+            ROUTE_SOURCE_POINT,
+            screenshareRouteSource(this.api),
+        );
         this.provideService();
         this.registerRundownAction();
         this.registerUI();
 
-        this.api.ingest.onSession(this.manager.onSession);
+        this.api.ingest.onSession(this.onSession);
         this.api.onConnect(this.manager.refresh);
     }
 
@@ -60,7 +82,8 @@ export default class ScreensharePlugin extends CasparPlugin {
         if (!this.manager) return;
 
         this.api.offConnect(this.manager.refresh);
-        this.api.ingest.offSession(this.manager.onSession);
+        this.api.ingest.offSession(this.onSession);
+        this.routeSource = null;
         this.manager.disposeAll();
     }
 
@@ -113,6 +136,10 @@ export default class ScreensharePlugin extends CasparPlugin {
         this.api.registerUI(
             zone(`${UI_INJECTION_ZONE.RUNDOWN_EDITOR}.${SHOW_SCREENSHARE}`),
             this.uiFile('editor'),
+        );
+        this.api.registerUI(
+            zone(`plugin:routes.source.${ROUTE_SOURCE_TYPE}`),
+            this.uiFile('routeSource'),
         );
     }
 

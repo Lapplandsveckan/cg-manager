@@ -30,13 +30,20 @@ async function readBody(request: IncomingMessage): Promise<string> {
 
 class OfferTooLarge extends Error {}
 
+export interface SdpExchange {
+    sdpAnswer: string;
+    /** Echoed back as `X-Ingest-Session` so the sender can address the session
+     *  it just created — posting preview frames for it, for instance. */
+    sessionId?: string;
+}
+
 /** The POST-offer/201-answer handshake shared by WHEP (egress) and WHIP
  *  (ingress). Always ends the response, so it never returns normally. */
 export async function exchangeSdp(
     request: IncomingMessage,
     response: ServerResponse,
     logger: Logger,
-    open: (sdpOffer: string) => Promise<string>,
+    open: (sdpOffer: string) => Promise<SdpExchange>,
     /** Guests get a generic failure: the real messages name share labels,
      *  session caps and loopback port ranges. */
     expose: 'detail' | 'generic' = 'detail',
@@ -52,8 +59,8 @@ export async function exchangeSdp(
     if (readErr) return end(response, 400, 'Could not read SDP offer');
     if (!sdpOffer.trim()) return end(response, 400, 'Empty SDP offer');
 
-    const [err, sdpAnswer] = await noTryAsync(() => open(sdpOffer));
-    if (err || !sdpAnswer) {
+    const [err, opened] = await noTryAsync(() => open(sdpOffer));
+    if (err || !opened?.sdpAnswer) {
         logger.warn(`SDP exchange failed: ${(err as Error)?.message}`);
         const detail = expose === 'detail' ? (err as Error)?.message : null;
 
@@ -63,7 +70,9 @@ export async function exchangeSdp(
     response.statusCode = 201;
     response.setHeader('Content-Type', 'application/sdp');
     response.setHeader('Location', request.url ?? '');
-    response.end(sdpAnswer);
+    if (opened.sessionId)
+        response.setHeader('X-Ingest-Session', opened.sessionId);
+    response.end(opened.sdpAnswer);
 
     throw new MiddlewareProhibitFurtherExecution();
 }

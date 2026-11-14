@@ -35,7 +35,10 @@ export function ingestWhipMiddleware(ingest: IngestManager) {
                         label: labelFrom(operator[1]),
                     });
 
-                    return session.sdpAnswer;
+                    return {
+                        sdpAnswer: session.sdpAnswer,
+                        sessionId: session.id,
+                    };
                 },
             );
 
@@ -81,7 +84,10 @@ export function ingestWhipMiddleware(ingest: IngestManager) {
                     allowAudio: share.allowAudio,
                 });
 
-                return session.sdpAnswer;
+                return {
+                    sdpAnswer: session.sdpAnswer,
+                    sessionId: session.id,
+                };
             },
             'generic',
         );

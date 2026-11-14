@@ -12,7 +12,11 @@
         "noAudio": "Utan ljud",
         "show": "Visa på skärmen",
         "hide": "Ta bort från skärmen",
-        "onAir": "På skärmen"
+        "onAir": "På skärmen",
+        "noPreview": "Ingen förhandsvisning än",
+        "disconnect": "Koppla ner",
+        "showWall": "Visa alla som vägg",
+        "clear": "Rensa skärmen"
     },
     "shares": {
         "title": "Delningslänkar",
@@ -22,7 +26,11 @@
         "labelPlaceholder": "t.ex. Spelare 1",
         "copy": "Kopiera länk",
         "copied": "Länk kopierad",
-        "revoke": "Återkalla"
+        "revoke": "Återkalla",
+        "maxSessions": "Max antal",
+        "usage": "{{used}}/{{max}} används",
+        "showQr": "Visa QR-kod",
+        "qrFailed": "Kunde inte rita någon QR-kod för länken"
     },
     "local": {
         "title": "Den här webbläsaren",
@@ -37,6 +45,20 @@
     },
     "errors": {
         "showFailed": "Kunde inte visa delningen på skärmen",
-        "createFailed": "Kunde inte skapa länken"
+        "createFailed": "Kunde inte skapa länken",
+        "revokeFailed": "Kunde inte återkalla länken"
+    },
+    "description": "Lägg ut inkommande skärmdelningar på en kanal och dela ut länkar så att vem som helst kan dela sin.",
+    "routeSource": {
+        "label": "Skärmdelning",
+        "description": "En delningslänk som spelas live på den här routen",
+        "share": "Delningslänk",
+        "shareHint": "Den som är ansluten på länken hamnar på skärmen.",
+        "noShares": "Inga delningslänkar än — skapa en på skärmdelningssidan.",
+        "shareGone": "Den här delningslänken finns inte längre."
+    },
+    "destination": {
+        "channel": "Kanal",
+        "group": "Effektgrupp"
     }
 }

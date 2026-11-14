@@ -1,26 +1,19 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Box,
     Button,
-    Chip,
     Divider,
-    IconButton,
-    List,
-    ListItem,
-    ListItemText,
     Stack,
     TextField,
-    Tooltip,
     Typography,
 } from '@mui/material';
 import ScreenShareIcon from '@mui/icons-material/ScreenShare';
 import StopScreenShareIcon from '@mui/icons-material/StopScreenShare';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DeleteOutlineRoundedIcon from '@mui/icons-material/DeleteOutlineRounded';
+import GridViewRoundedIcon from '@mui/icons-material/GridViewRounded';
 import LinkIcon from '@mui/icons-material/Link';
 import {
     SlotErrorBoundary,
-    useBroadcast,
+    useChannelInfo,
     useScreenCapture,
     useSocket,
     useToast,
@@ -29,75 +22,112 @@ import { useTranslation } from 'react-i18next';
 import { noTryAsync } from 'no-try';
 import {
     operatorWhipPath,
+    sessionThumbnailPath,
     type IngestSession,
-    type ShareLink,
 } from '../../../../web/src/lib/api/ingest';
-import { API_ROOT, sessionsUpdated, sharesUpdated } from './api';
+import {
+    closeSession,
+    createShare,
+    hideSession,
+    revokeShare,
+    showSession,
+    useIngestSessions,
+    useShareLinks,
+    useShownSessions,
+} from './data';
+import { tileTransform } from './grid';
+import { SessionCard } from './components/SessionCard';
+import { ShareCard } from './components/ShareCard';
+import { ShareQrDialog } from './components/ShareQrDialog';
+import {
+    DestinationField,
+    effectLayerOf,
+    type Destination,
+} from './components/DestinationField';
 
-const DEFAULT_GROUP = '1:screenshare';
+const DEFAULT_DESTINATION: Destination = { channel: '1', group: 'screenshare' };
+
+const guestUrl = (path?: string | null) =>
+    path ? `${window.location.origin}${path}` : null;
 
 const ScreensharePage: React.FC = () => {
     const conn = useSocket();
     const { t } = useTranslation('screenshare');
     const notify = useToast();
+    const { channels } = useChannelInfo();
 
-    const [sessions, setSessions] = useState<IngestSession[]>([]);
-    const [shares, setShares] = useState<ShareLink[]>([]);
-    const [shown, setShown] = useState<string[]>([]);
+    const { sessions } = useIngestSessions();
+    const { shares } = useShareLinks();
+    const { shown, refresh: refreshShown } = useShownSessions(sessions);
+
+    const [destination, setDestination] =
+        useState<Destination>(DEFAULT_DESTINATION);
     const [label, setLabel] = useState('');
-    const [group, setGroup] = useState(DEFAULT_GROUP);
-
-    const refreshShown = useCallback(async () => {
-        const [, ids] = await noTryAsync(() =>
-            conn.rawRequest(`${API_ROOT}/shown`, 'GET', null),
-        );
-        if (Array.isArray(ids)) setShown(ids as string[]);
-    }, [conn]);
-
-    const refresh = useCallback(async () => {
-        const [, loaded] = await noTryAsync(() =>
-            Promise.all([
-                conn.rawRequest(`${API_ROOT}/sessions`, 'GET', null),
-                conn.rawRequest(`${API_ROOT}/shares`, 'GET', null),
-            ]),
-        );
-        if (loaded) {
-            setSessions(loaded[0] as IngestSession[]);
-            setShares(loaded[1] as ShareLink[]);
-        }
-        await refreshShown();
-    }, [conn, refreshShown]);
-
-    useEffect(() => {
-        void refresh();
-    }, [refresh]);
-
-    useBroadcast(sessionsUpdated, data => {
-        setSessions(data);
-        void refreshShown();
-    });
-    useBroadcast(sharesUpdated, setShares);
+    const [maxSessions, setMaxSessions] = useState('1');
+    const [busy, setBusy] = useState(false);
+    const [qrShare, setQrShare] = useState<string | null>(null);
 
     const capture = useScreenCapture({
         endpoint: operatorWhipPath(t('local.title')),
+        thumbnailEndpoint: sessionThumbnailPath,
     });
 
-    const createShare = async () => {
-        const [err] = await noTryAsync(() =>
-            conn.rawRequest(`${API_ROOT}/shares`, 'CREATE', {
-                label: label || undefined,
-            }),
-        );
-        if (err) return notify(t('errors.createFailed'), 'error');
+    const run = async (action: () => Promise<unknown>, errorKey: string) => {
+        setBusy(true);
+        const [err] = await noTryAsync(action);
+        setBusy(false);
+        await refreshShown();
 
-        setLabel('');
+        if (err) notify(t(errorKey), 'error');
     };
 
-    const revokeShare = (id: string) =>
-        void conn.rawRequest(`${API_ROOT}/shares/${id}`, 'DELETE', null);
+    const toggleShown = (session: IngestSession) =>
+        run(
+            () =>
+                shown.includes(session.id)
+                    ? hideSession(conn, session.id)
+                    : showSession(conn, session.id, {
+                          effectLayer: effectLayerOf(destination),
+                      }),
+            'errors.showFailed',
+        );
 
-    const copyLink = async (share: ShareLink) => {
-        const url = `${window.location.origin}${share.path ?? ''}`;
+    const showWall = () => {
+        const live = sessions.filter(session => session.state === 'live');
+
+        return run(
+            () =>
+                Promise.all(
+                    live.map((session, index) =>
+                        showSession(conn, session.id, {
+                            effectLayer: effectLayerOf(destination),
+                            transform: tileTransform(index, live.length),
+                        }),
+                    ),
+                ),
+            'errors.showFailed',
+        );
+    };
+
+    const clearScreen = () =>
+        run(
+            () => Promise.all(shown.map(id => hideSession(conn, id))),
+            'errors.showFailed',
+        );
+
+    const onCreateShare = () =>
+        run(async () => {
+            await createShare(conn, {
+                label: label || undefined,
+                maxSessions: Number(maxSessions) || 1,
+            });
+            setLabel('');
+        }, 'errors.createFailed');
+
+    const copyLink = async (path?: string | null) => {
+        const url = guestUrl(path);
+        if (!url) return;
+
         const [err] = await noTryAsync(() =>
             navigator.clipboard.writeText(url),
         );
@@ -106,116 +136,108 @@ const ScreensharePage: React.FC = () => {
         notify(t('shares.copied'), 'success');
     };
 
-    const toggleShown = async (session: IngestSession) => {
-        const live = shown.includes(session.id);
-        const path = `${API_ROOT}/sessions/${session.id}/${live ? 'hide' : 'show'}`;
-        const [err] = await noTryAsync(() =>
-            conn.rawRequest(
-                path,
-                'ACTION',
-                live ? null : { effectLayer: group },
-            ),
-        );
-        if (err) return notify(t('errors.showFailed'), 'error');
+    const usedBy = (shareId: string) =>
+        sessions.filter(session => session.shareId === shareId).length;
 
-        await refreshShown();
-    };
+    const qrLink = shares.find(share => share.id === qrShare);
 
     return (
         <Box sx={{ p: 3 }}>
             <Stack spacing={4}>
+                <Stack spacing={1}>
+                    <Typography variant="h1">{t('nav')}</Typography>
+                    <Typography variant="body1" color="text.secondary">
+                        {t('description')}
+                    </Typography>
+                </Stack>
+
                 <SlotErrorBoundary label="screenshare-sessions">
-                    <Stack spacing={1}>
-                        <Typography variant="h6">
+                    <Stack spacing={2}>
+                        <Typography variant="h3">
                             {t('sessions.title')}
                         </Typography>
-                        <TextField
-                            size="small"
-                            label={t('editor.destination')}
-                            helperText={t('editor.destinationHint')}
-                            value={group}
-                            onChange={e => setGroup(e.target.value)}
-                            sx={{ maxWidth: 260 }}
-                        />
+
+                        <Stack
+                            direction="row"
+                            gap={1.5}
+                            flexWrap="wrap"
+                            alignItems="center"
+                        >
+                            <DestinationField
+                                value={destination}
+                                channels={channels}
+                                onChange={setDestination}
+                            />
+                            <Button
+                                variant="outlined"
+                                startIcon={<GridViewRoundedIcon />}
+                                disabled={busy || !sessions.length}
+                                onClick={() => void showWall()}
+                            >
+                                {t('sessions.showWall')}
+                            </Button>
+                            <Button
+                                color="inherit"
+                                disabled={busy || !shown.length}
+                                onClick={() => void clearScreen()}
+                            >
+                                {t('sessions.clear')}
+                            </Button>
+                        </Stack>
+
                         {!sessions.length && (
                             <Typography variant="body2" color="text.secondary">
                                 {t('sessions.empty')}
                             </Typography>
                         )}
-                        <List dense>
+
+                        <Box
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns:
+                                    'repeat(auto-fill, minmax(240px, 1fr))',
+                                gap: 2,
+                            }}
+                        >
                             {sessions.map(session => (
-                                <ListItem
+                                <SlotErrorBoundary
                                     key={session.id}
-                                    secondaryAction={
-                                        <Button
-                                            size="small"
-                                            variant={
-                                                shown.includes(session.id)
-                                                    ? 'outlined'
-                                                    : 'contained'
-                                            }
-                                            onClick={() =>
-                                                void toggleShown(session)
-                                            }
-                                        >
-                                            {t(
-                                                shown.includes(session.id)
-                                                    ? 'sessions.hide'
-                                                    : 'sessions.show',
-                                            )}
-                                        </Button>
-                                    }
+                                    label={`screenshare-session:${session.id}`}
+                                    resetKeys={[session.id]}
                                 >
-                                    <ListItemText
-                                        primary={
-                                            <Stack
-                                                direction="row"
-                                                spacing={1}
-                                                alignItems="center"
-                                            >
-                                                <span>{session.label}</span>
-                                                <Chip
-                                                    size="small"
-                                                    label={t(
-                                                        `sessions.state.${session.state}`,
-                                                    )}
-                                                    color={
-                                                        session.state === 'live'
-                                                            ? 'success'
-                                                            : 'default'
-                                                    }
-                                                />
-                                                {shown.includes(session.id) && (
-                                                    <Chip
-                                                        size="small"
-                                                        color="primary"
-                                                        label={t(
-                                                            'sessions.onAir',
-                                                        )}
-                                                    />
-                                                )}
-                                            </Stack>
+                                    <SessionCard
+                                        session={session}
+                                        onAir={shown.includes(session.id)}
+                                        busy={busy}
+                                        onToggle={() =>
+                                            void toggleShown(session)
                                         }
-                                        secondary={t(
-                                            session.hasAudio
-                                                ? 'sessions.audio'
-                                                : 'sessions.noAudio',
-                                        )}
+                                        onClose={() =>
+                                            void run(
+                                                () =>
+                                                    closeSession(
+                                                        conn,
+                                                        session.id,
+                                                    ),
+                                                'errors.showFailed',
+                                            )
+                                        }
                                     />
-                                </ListItem>
+                                </SlotErrorBoundary>
                             ))}
-                        </List>
+                        </Box>
                     </Stack>
                 </SlotErrorBoundary>
 
                 <Divider />
 
                 <SlotErrorBoundary label="screenshare-shares">
-                    <Stack spacing={1}>
-                        <Typography variant="h6">
+                    <Stack spacing={2}>
+                        <Typography variant="h3">
                             {t('shares.title')}
                         </Typography>
-                        <Stack direction="row" spacing={1}>
+
+                        <Stack direction="row" gap={1} flexWrap="wrap">
                             <TextField
                                 size="small"
                                 label={t('shares.label')}
@@ -223,55 +245,48 @@ const ScreensharePage: React.FC = () => {
                                 value={label}
                                 onChange={e => setLabel(e.target.value)}
                             />
+                            <TextField
+                                size="small"
+                                type="number"
+                                label={t('shares.maxSessions')}
+                                value={maxSessions}
+                                onChange={e => setMaxSessions(e.target.value)}
+                                inputProps={{ min: 1, max: 50, step: 1 }}
+                                sx={{ width: 120 }}
+                            />
                             <Button
                                 variant="contained"
                                 startIcon={<LinkIcon />}
-                                onClick={() => void createShare()}
+                                disabled={busy}
+                                onClick={() => void onCreateShare()}
                             >
                                 {t('shares.create')}
                             </Button>
                         </Stack>
+
                         {!shares.length && (
                             <Typography variant="body2" color="text.secondary">
                                 {t('shares.empty')}
                             </Typography>
                         )}
-                        <List dense>
+
+                        <Stack spacing={1} sx={{ maxWidth: 720 }}>
                             {shares.map(share => (
-                                <ListItem
+                                <ShareCard
                                     key={share.id}
-                                    secondaryAction={
-                                        <Stack direction="row" spacing={0.5}>
-                                            <Tooltip title={t('shares.copy')}>
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() =>
-                                                        void copyLink(share)
-                                                    }
-                                                >
-                                                    <ContentCopyIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                            <Tooltip title={t('shares.revoke')}>
-                                                <IconButton
-                                                    size="small"
-                                                    onClick={() =>
-                                                        revokeShare(share.id)
-                                                    }
-                                                >
-                                                    <DeleteOutlineRoundedIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Stack>
+                                    share={share}
+                                    used={usedBy(share.id)}
+                                    onCopy={() => void copyLink(share.path)}
+                                    onQr={() => setQrShare(share.id)}
+                                    onRevoke={() =>
+                                        void run(
+                                            () => revokeShare(conn, share.id),
+                                            'errors.revokeFailed',
+                                        )
                                     }
-                                >
-                                    <ListItemText
-                                        primary={share.label}
-                                        secondary={share.path}
-                                    />
-                                </ListItem>
+                                />
                             ))}
-                        </List>
+                        </Stack>
                     </Stack>
                 </SlotErrorBoundary>
 
@@ -279,7 +294,7 @@ const ScreensharePage: React.FC = () => {
 
                 <SlotErrorBoundary label="screenshare-local">
                     <Stack spacing={1} alignItems="flex-start">
-                        <Typography variant="h6">{t('local.title')}</Typography>
+                        <Typography variant="h3">{t('local.title')}</Typography>
                         <Button
                             variant="contained"
                             color={
@@ -313,6 +328,12 @@ const ScreensharePage: React.FC = () => {
                     </Stack>
                 </SlotErrorBoundary>
             </Stack>
+
+            <ShareQrDialog
+                url={guestUrl(qrLink?.path)}
+                label={qrLink?.label ?? ''}
+                onClose={() => setQrShare(null)}
+            />
         </Box>
     );
 };

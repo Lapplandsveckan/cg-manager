@@ -30,6 +30,12 @@ const VIDEO_PORT_OFFSET = 0;
 const AUDIO_PORT_OFFSET = 2;
 const SINK_PORT_OFFSET = 4;
 
+/** One scaled-down JPEG from the sender. Generous for a 320px frame, small
+ *  enough that a share link can't be used to park megabytes in memory. */
+export const MAX_THUMBNAIL_BYTES = 256 * 1024;
+
+const JPEG_MAGIC = Buffer.from([0xff, 0xd8, 0xff]);
+
 /** A peer that never sends a packet would otherwise hold its ports and its
  *  ffmpeg forever: werift answers even an offer with no transport at all, so
  *  `connectionStateChange` never reports a failure to clean up after. */
@@ -42,6 +48,7 @@ interface InternalSession extends IngestSession {
     ports: number[];
     closed: boolean;
     timer?: NodeJS.Timeout;
+    thumbnail?: Buffer;
 }
 
 export interface OpenSessionOptions {
@@ -138,6 +145,33 @@ export class IngestManager extends EventEmitter implements IngestApi {
         const session = this.sessions.get(id);
 
         return session ? publicSession(session) : null;
+    }
+
+    /** Frames come from whoever is sending the stream — see
+     *  `web/src/lib/captureThumbnails.ts` for why the host doesn't make them.
+     *  Lives and dies with the session, like the rest of its state. */
+    public setThumbnail(id: string, data: Buffer): boolean {
+        const session = this.sessions.get(id);
+        if (!session || session.closed) return false;
+        if (data.length > MAX_THUMBNAIL_BYTES) return false;
+
+        // Guest-supplied bytes get served back to an operator's browser from
+        // our own origin, so take nothing on trust but a real JPEG header.
+        if (!data.subarray(0, JPEG_MAGIC.length).equals(JPEG_MAGIC))
+            return false;
+
+        session.thumbnail = data;
+        return true;
+    }
+
+    public getThumbnail(id: string): Buffer | null {
+        return this.sessions.get(id)?.thumbnail ?? null;
+    }
+
+    /** Which share a session came in on, for checking a guest only writes to
+     *  sessions its own link opened. */
+    public shareIdOf(id: string): string | null {
+        return this.sessions.get(id)?.shareId ?? null;
     }
 
     public onSession(handler: IngestSessionHandler): () => void {

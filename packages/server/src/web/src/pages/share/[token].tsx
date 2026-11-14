@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
     Box,
@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { noTryAsync } from 'no-try';
 import {
     guestSharePath,
+    guestThumbnailPath,
     guestWhipPath,
     type ShareInfo,
 } from '../../lib/api/ingest';
@@ -32,9 +33,15 @@ const SharePage: React.FC = () => {
     const [loadError, setLoadError] = useState<string | null>(null);
     const videoRef = useRef<HTMLVideoElement | null>(null);
 
+    const thumbnailEndpoint = useCallback(
+        (sessionId: string) => guestThumbnailPath(token, sessionId),
+        [token],
+    );
+
     const capture = useScreenCapture({
         endpoint: token ? guestWhipPath(token) : '',
         audio: share?.allowAudio ?? true,
+        thumbnailEndpoint,
     });
 
     useEffect(() => {
