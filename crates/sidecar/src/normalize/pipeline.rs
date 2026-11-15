@@ -1,5 +1,4 @@
 use std::{
-    io,
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc::{self, Receiver, RecvTimeoutError, Sender, SyncSender, TrySendError},
@@ -12,16 +11,13 @@ use std::{
 use super::{
     decoder::Decoder,
     frame::{black_frame, Letterbox, PackedPicture, Size},
-    output::OutputHandle,
+    output::{Output, OutputHandle},
 };
 
 const NANOS_PER_SECOND: u128 = 1_000_000_000;
 const PENDING_ACCESS_UNITS: usize = 4;
 const PENDING_OUTPUT_FRAMES: usize = 1;
 const RETARGET_POLL: Duration = Duration::from_millis(50);
-// Past this an encoder is not merely late, and making up every missed frame
-// would only put it further behind.
-const MAX_CATCH_UP: Duration = Duration::from_secs(1);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Fps {
@@ -160,12 +156,9 @@ fn decode_loop(
     }
 }
 
-fn tick_loop(
-    fps: Fps,
-    slot: SharedSlot,
-    frames: SyncSender<(u64, Arc<Vec<u8>>)>,
-    stop: Arc<AtomicBool>,
-) {
+// A tick the writer was too busy for is dropped and never made up: frames sent
+// late are frames CasparCG plays late, and it keeps every bit of that delay.
+fn tick_loop(fps: Fps, slot: SharedSlot, frames: SyncSender<Arc<Vec<u8>>>, stop: Arc<AtomicBool>) {
     let start = Instant::now();
     let mut tick = 0;
 
@@ -173,55 +166,26 @@ fn tick_loop(
         thread::sleep(tick_time(tick, fps).saturating_sub(start.elapsed()));
 
         let frame = lock(&slot).frame.clone();
-        if let Err(TrySendError::Disconnected(_)) = frames.try_send((tick, frame)) {
+        if let Err(TrySendError::Disconnected(_)) = frames.try_send(frame) {
             return;
         }
         tick = next_tick(tick, start.elapsed(), fps);
     }
 }
 
-// The encoder reads frame count as time, so a tick that never reached it has to
-// be made up or the stream falls permanently behind the clock it was paced on.
-pub fn missed_frames(
-    previous: &Option<Arc<Vec<u8>>>,
-    missed: u64,
-    limit: u64,
-) -> Vec<Arc<Vec<u8>>> {
-    let Some(frame) = previous else {
-        return vec![];
-    };
-
-    vec![frame.clone(); missed.min(limit) as usize]
-}
-
-fn write_frames(output: &mut dyn super::output::Output, frames: &[Arc<Vec<u8>>]) -> io::Result<()> {
-    frames.iter().try_for_each(|frame| output.write(frame))
-}
-
 fn write_loop(
-    frames: Receiver<(u64, Arc<Vec<u8>>)>,
-    fps: Fps,
-    mut output: Box<dyn super::output::Output>,
+    frames: Receiver<Arc<Vec<u8>>>,
+    mut output: Box<dyn Output>,
     notices: Sender<Notice>,
     stop: Arc<AtomicBool>,
 ) {
-    let limit = ticks_elapsed(MAX_CATCH_UP, fps);
-    let mut written = 0;
-    let mut previous: Option<Arc<Vec<u8>>> = None;
-
-    for (tick, frame) in frames {
-        let mut batch = missed_frames(&previous, tick.saturating_sub(written), limit);
-        batch.push(frame.clone());
-        written = tick + 1;
-        previous = Some(frame);
-
-        let Err(error) = write_frames(output.as_mut(), &batch) else {
-            continue;
-        };
-        if !stop.load(Ordering::Relaxed) {
-            let _ = notices.send(Notice::OutputFailed(error.to_string()));
-        }
+    let failure = frames.iter().find_map(|frame| output.write(&frame).err());
+    let Some(error) = failure else {
         return;
+    };
+
+    if !stop.load(Ordering::Relaxed) {
+        let _ = notices.send(Notice::OutputFailed(error.to_string()));
     }
 }
 
@@ -319,9 +283,7 @@ impl Normalizer {
         };
         let write = {
             let (notices, stop) = (self.notices.clone(), stop.clone());
-            thread::spawn(move || {
-                write_loop(frame_receiver, format.fps, handle.output, notices, stop)
-            })
+            thread::spawn(move || write_loop(frame_receiver, handle.output, notices, stop))
         };
 
         self.format = Some(format);

@@ -133,7 +133,11 @@ impl Hub {
             } => self.open(id, channel, &sdp_offer),
             Command::Close { id } => self.close(id),
             Command::Ingest { channel } => self.ingest(channel).await,
-            Command::Publish { id, sdp_offer } => self.publish(id, &sdp_offer),
+            Command::Publish {
+                id,
+                sdp_offer,
+                sink_port,
+            } => self.publish(id, &sdp_offer, sink_port),
             Command::SetOutput {
                 id,
                 publish_id,
@@ -142,7 +146,6 @@ impl Hub {
                 fps_numerator,
                 fps_denominator,
                 ffmpeg,
-                output_args,
             } => {
                 let spec = OutputSpec {
                     format: Format {
@@ -153,7 +156,6 @@ impl Hub {
                         },
                     },
                     ffmpeg,
-                    output_args,
                 };
                 self.set_output(id, publish_id, &spec);
             }
@@ -211,8 +213,8 @@ impl Hub {
         emit(&Event::ChannelIdle { channel });
     }
 
-    fn publish(&mut self, id: u64, sdp_offer: &str) {
-        match start_publisher(sdp_offer, self.candidate) {
+    fn publish(&mut self, id: u64, sdp_offer: &str, sink_port: u16) {
+        match start_publisher(sdp_offer, self.candidate, sink_port) {
             Ok((publisher, sdp_answer)) => {
                 self.publishers.insert(id, publisher);
                 emit(&Event::Published { id, sdp_answer });

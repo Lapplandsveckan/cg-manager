@@ -8,10 +8,11 @@ use super::{
     frame::Size,
     output::spawn_ffmpeg,
     pipeline::{tick_time, Format, Fps, Normalizer, Pushed},
+    sink::Sink,
 };
 use crate::relay::annexb::Splitter;
 
-const USAGE: &str = "usage: cg-sidecar normalize --input <clip.h264> --sink <url>
+const USAGE: &str = "usage: cg-sidecar normalize --input <clip.h264> --port <tcp port>
     [--width 1280] [--height 720] [--fps 30] [--input-fps 30]
     [--gap <start seconds>:<length seconds>] [--ffmpeg ffmpeg]";
 
@@ -22,7 +23,7 @@ struct Gap {
 
 struct Options {
     input: String,
-    sink: String,
+    port: u16,
     ffmpeg: String,
     format: Format,
     input_fps: Fps,
@@ -59,7 +60,7 @@ fn parse_options(args: &[String]) -> Option<Options> {
 
     Some(Options {
         input: value("--input")?,
-        sink: value("--sink")?,
+        port: value("--port")?.parse().ok()?,
         ffmpeg: value("--ffmpeg").unwrap_or_else(|| "ffmpeg".into()),
         format: Format {
             size: Size::even(
@@ -71,22 +72,6 @@ fn parse_options(args: &[String]) -> Option<Options> {
         input_fps: whole_fps(number("--input-fps", 30)),
         gap: value("--gap").and_then(|text| parse_gap(&text)),
     })
-}
-
-fn output_args(sink: &str) -> Vec<String> {
-    [
-        "-c:v",
-        "mpeg2video",
-        "-g",
-        "1",
-        "-q:v",
-        "3",
-        "-f",
-        "mpegts",
-        sink,
-    ]
-    .map(String::from)
-    .to_vec()
 }
 
 fn feed(normalizer: &Normalizer, access_units: &[Vec<u8>], options: &Options) {
@@ -123,12 +108,10 @@ pub fn run(args: &[String]) -> Result<(), String> {
     }
 
     let (mut normalizer, notices) = Normalizer::start(Box::new(OpenH264Decoder::new()?));
-    let output = spawn_ffmpeg(
-        &options.ffmpeg,
-        &options.format,
-        &output_args(&options.sink),
-    )
-    .map_err(|error| format!("could not start {}: {error}", options.ffmpeg))?;
+    let sink = Sink::bind(options.port)
+        .map_err(|error| format!("could not listen on port {}: {error}", options.port))?;
+    let output = spawn_ffmpeg(&options.ffmpeg, &options.format, sink.feed())
+        .map_err(|error| format!("could not start {}: {error}", options.ffmpeg))?;
     normalizer.set_output(options.format, output);
 
     thread::spawn(move || notices.iter().for_each(|notice| eprintln!("{notice:?}")));

@@ -2,7 +2,6 @@ import { noTryAsync } from 'no-try';
 import { ffmpegBinary } from '../../../util/ffmpeg';
 import { sidecar, type SidecarEvent } from '../shared/sidecar';
 import { type OutputFormat } from './channelFormat';
-import { type IngestSink } from './sinks';
 
 export interface SidecarSessionHooks {
     onLive(): void;
@@ -20,9 +19,12 @@ export interface SidecarSession {
     teardown(): Promise<void>;
 }
 
+// TCP, not UDP: the sidecar sees each reader connect, so it can hand that
+// reader a stream that starts at its first byte and is timed for it alone.
+export const sidecarSinkUrl = (port: number) => `tcp://127.0.0.1:${port}`;
+
 export async function openSidecarSession(
     sdpOffer: string,
-    sink: IngestSink,
     sinkPort: number,
     hooks: SidecarSessionHooks,
 ): Promise<SidecarSession> {
@@ -45,7 +47,7 @@ export async function openSidecarSession(
     // Subscribed before the request so no event for this id can be missed.
     sidecar.on('event', onEvent);
     const [error, published] = await noTryAsync(() =>
-        sidecar.request({ type: 'publish', sdpOffer }, publishId),
+        sidecar.request({ type: 'publish', sdpOffer, sinkPort }, publishId),
     );
     if (error) {
         stopListening();
@@ -62,7 +64,6 @@ export async function openSidecarSession(
                 publishId,
                 ...format,
                 ffmpeg: ffmpegBinary(),
-                outputArgs: sink.args(sinkPort),
             });
         },
         clear: () =>

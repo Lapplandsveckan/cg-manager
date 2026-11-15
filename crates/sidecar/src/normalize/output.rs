@@ -2,9 +2,10 @@ use std::{
     io::{self, Write},
     process::{Child, ChildStdin, Command, Stdio},
     sync::{Arc, Mutex, PoisonError},
+    thread,
 };
 
-use super::pipeline::Format;
+use super::{avi, pipeline::Format, sink::Feed};
 
 pub trait Output: Send {
     fn write(&mut self, frame: &[u8]) -> io::Result<()>;
@@ -43,26 +44,56 @@ fn input_args(format: &Format) -> Vec<String> {
     .to_vec()
 }
 
+// Without low_delay the encoder holds every frame back until the next arrives.
+const ENCODER_ARGS: [&str; 13] = [
+    "-c:v",
+    "mpeg2video",
+    "-g",
+    "1",
+    "-q:v",
+    "3",
+    "-flags",
+    "+low_delay",
+    "-flush_packets",
+    "1",
+    "-f",
+    "avi",
+    "pipe:1",
+];
+
 fn kill(child: &Mutex<Child>) {
     let mut child = child.lock().unwrap_or_else(PoisonError::into_inner);
     let _ = child.kill();
     let _ = child.wait();
 }
 
-pub fn spawn_ffmpeg(
-    ffmpeg: &str,
-    format: &Format,
-    output_args: &[String],
-) -> io::Result<OutputHandle> {
+fn report(ended: io::Result<()>) {
+    let Err(error) = ended else {
+        return;
+    };
+    if error.kind() != io::ErrorKind::UnexpectedEof {
+        eprintln!("encoder output unreadable: {error}");
+    }
+}
+
+pub fn spawn_ffmpeg(ffmpeg: &str, format: &Format, feed: Feed) -> io::Result<OutputHandle> {
     let mut child = Command::new(ffmpeg)
         .args(input_args(format))
-        .args(output_args)
+        .args(ENCODER_ARGS)
         .stdin(Stdio::piped())
-        .stdout(Stdio::null())
+        .stdout(Stdio::piped())
         .stderr(Stdio::inherit())
         .spawn()?;
     let stdin = child.stdin.take().ok_or(io::ErrorKind::BrokenPipe)?;
+    let stdout = child.stdout.take().ok_or(io::ErrorKind::BrokenPipe)?;
     let child = Arc::new(Mutex::new(child));
+
+    let format = *format;
+    thread::spawn(move || {
+        report(avi::read_frames(stdout, |frame| {
+            feed.publish(format, frame)
+        }))
+    });
 
     let killed = child.clone();
     Ok(OutputHandle {

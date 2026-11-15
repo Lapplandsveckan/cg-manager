@@ -18,8 +18,12 @@ import { clearStaleSdp } from './pipeline';
 import { buildSession } from './session';
 import { type Config } from '../../caspar/config/types';
 import { channelFormat } from './channelFormat';
-import { openSidecarSession, type SessionOutput } from './sidecarSession';
-import { DEFAULT_SINK, SIDECAR_SINK, sinkById, type IngestSink } from './sinks';
+import {
+    openSidecarSession,
+    sidecarSinkUrl,
+    type SessionOutput,
+} from './sidecarSession';
+import { DEFAULT_SINK, sinkById } from './sinks';
 import { ShareStore } from './shares';
 
 const logger = Logger.scope('Ingest');
@@ -46,6 +50,7 @@ const CONNECT_TIMEOUT_MS = 30_000;
 interface OpenedSession {
     ports: number[];
     sinkPort: number;
+    url: string;
     sdpAnswer: string;
     output?: SessionOutput;
     teardown(): Promise<void>;
@@ -203,10 +208,6 @@ export class IngestManager extends EventEmitter implements IngestApi {
             throw new Error('Offer carries no video track');
 
         const usesSidecar = managerConfig['ingest-engine'] === 'sidecar';
-        const sinkId = usesSidecar ? SIDECAR_SINK : DEFAULT_SINK;
-        const sink = sinkById(sinkId);
-        if (!sink) throw new Error(`Unknown ingest sink ${sinkId}`);
-
         const offersAudio =
             opts.allowAudio !== false && /^m=audio /m.test(opts.sdpOffer);
         const wantsAudio = offersAudio && !usesSidecar;
@@ -218,8 +219,8 @@ export class IngestManager extends EventEmitter implements IngestApi {
 
         const [err, opened] = await noTryAsync(() =>
             usesSidecar
-                ? this.openOnSidecar(id, opts.sdpOffer, sink)
-                : this.openOnFfmpeg(id, opts.sdpOffer, sink, wantsAudio),
+                ? this.openOnSidecar(id, opts.sdpOffer)
+                : this.openOnFfmpeg(id, opts.sdpOffer, wantsAudio),
         );
 
         this.reserving.delete(id);
@@ -229,7 +230,7 @@ export class IngestManager extends EventEmitter implements IngestApi {
             id,
             label: opts.label ?? 'Screen share',
             shareId: opts.shareId ?? null,
-            url: sink.url(opened.sinkPort),
+            url: opened.url,
             state: 'connecting',
             hasVideo: true,
             hasAudio: wantsAudio,
@@ -262,9 +263,11 @@ export class IngestManager extends EventEmitter implements IngestApi {
     private async openOnFfmpeg(
         id: string,
         sdpOffer: string,
-        sink: IngestSink,
         wantsAudio: boolean,
     ): Promise<OpenedSession> {
+        const sink = sinkById(DEFAULT_SINK);
+        if (!sink) throw new Error(`Unknown ingest sink ${DEFAULT_SINK}`);
+
         const ports = this.pool.claim(PORTS_PER_SESSION);
         const plan = {
             sink,
@@ -299,6 +302,7 @@ export class IngestManager extends EventEmitter implements IngestApi {
         return {
             ports,
             sinkPort: plan.sinkPort,
+            url: sink.url(plan.sinkPort),
             sdpAnswer: built.sdpAnswer,
             teardown,
         };
@@ -307,13 +311,12 @@ export class IngestManager extends EventEmitter implements IngestApi {
     private async openOnSidecar(
         id: string,
         sdpOffer: string,
-        sink: IngestSink,
     ): Promise<OpenedSession> {
         const ports = this.pool.claim(1);
         const [sinkPort] = ports;
 
         const [openErr, opened] = await noTryAsync(() =>
-            openSidecarSession(sdpOffer, sink, sinkPort, {
+            openSidecarSession(sdpOffer, sinkPort, {
                 onLive: () => this.markLive(id),
                 onClosed: () => this.closeQuietly(id),
             }),
@@ -323,7 +326,7 @@ export class IngestManager extends EventEmitter implements IngestApi {
             throw openErr;
         }
 
-        return { ports, sinkPort, ...opened };
+        return { ports, sinkPort, url: sidecarSinkUrl(sinkPort), ...opened };
     }
 
     /** Live plus still-negotiating sessions attributed to a share. */

@@ -21,6 +21,7 @@ pub enum Command {
     Publish {
         id: u64,
         sdp_offer: String,
+        sink_port: u16,
     },
     SetOutput {
         id: u64,
@@ -30,7 +31,6 @@ pub enum Command {
         fps_numerator: u32,
         fps_denominator: u32,
         ffmpeg: String,
-        output_args: Vec<String>,
     },
     ClearOutput {
         id: u64,

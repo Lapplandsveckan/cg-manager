@@ -15,6 +15,7 @@ use super::{
     decoder::OpenH264Decoder,
     output::spawn_ffmpeg,
     pipeline::{Format, Normalizer, Notice, Pushed},
+    sink::Sink,
 };
 
 const KEYFRAME_REQUEST_INTERVAL: Duration = Duration::from_millis(500);
@@ -35,7 +36,7 @@ pub struct Publisher {
     keyframe_requested_at: Option<Instant>,
     output_spec: Option<OutputSpec>,
     output_restarts: Vec<Instant>,
-    output_started_at: Option<Instant>,
+    sink: Sink,
 }
 
 impl Publisher {
@@ -44,6 +45,7 @@ impl Publisher {
         candidate: SocketAddr,
         normalizer: Normalizer,
         notices: Receiver<Notice>,
+        sink: Sink,
     ) -> Result<(Publisher, String), String> {
         let offer = SdpOffer::from_sdp_string(sdp_offer).map_err(|error| error.to_string())?;
         let mut rtc = RtcConfig::new()
@@ -71,7 +73,7 @@ impl Publisher {
             keyframe_requested_at: None,
             output_spec: None,
             output_restarts: vec![],
-            output_started_at: None,
+            sink,
         };
         Ok((publisher, answer.to_sdp_string()))
     }
@@ -195,26 +197,10 @@ impl Publisher {
 pub struct OutputSpec {
     pub format: Format,
     pub ffmpeg: String,
-    pub output_args: Vec<String>,
 }
 
 const OUTPUT_RESTART_LIMIT: usize = 5;
 const OUTPUT_RESTART_WINDOW: Duration = Duration::from_secs(30);
-
-/// A fresh encoder stamps its first frame at zero, so without this the sink's
-/// timeline jumps backwards and whoever is playing it has to resync.
-fn with_ts_offset(output_args: &[String], offset: Duration) -> Vec<String> {
-    if offset.is_zero() {
-        return output_args.to_vec();
-    }
-
-    let mut args = vec![
-        "-output_ts_offset".to_string(),
-        format!("{:.3}", offset.as_secs_f64()),
-    ];
-    args.extend_from_slice(output_args);
-    args
-}
 
 impl Publisher {
     pub fn set_output(&mut self, spec: &OutputSpec) -> Result<(), String> {
@@ -223,14 +209,13 @@ impl Publisher {
             return Ok(());
         }
 
-        self.start_output(spec, Duration::ZERO)?;
-        self.output_started_at = Some(Instant::now());
+        self.start_output(spec)?;
         self.output_restarts.clear();
         Ok(())
     }
 
-    // The peer behind a dead encoder is still good, so the disposable half is
-    // respawned rather than the session being lost.
+    // The peer and the readers behind a dead encoder are still good, so the
+    // disposable half is respawned rather than the session being lost.
     pub fn restart_output(&mut self, now: Instant) -> Result<(), String> {
         let Some(spec) = self.output_spec.clone() else {
             return Err("no output to restart".into());
@@ -243,18 +228,19 @@ impl Publisher {
         }
         self.output_restarts.push(now);
 
-        let offset = self
-            .output_started_at
-            .map_or(Duration::ZERO, |at| now.duration_since(at));
-
-        // Not cleared first: the normalizer keeps the last picture when the
-        // size is unchanged, so a restart does not black the sink out.
-        self.start_output(&spec, offset)
+        self.start_output(&spec)
     }
 
-    fn start_output(&mut self, spec: &OutputSpec, offset: Duration) -> Result<(), String> {
-        let args = with_ts_offset(&spec.output_args, offset);
-        let handle = spawn_ffmpeg(&spec.ffmpeg, &spec.format, &args)
+    fn start_output(&mut self, spec: &OutputSpec) -> Result<(), String> {
+        if self
+            .normalizer
+            .format()
+            .is_some_and(|running| running != spec.format)
+        {
+            self.sink.disconnect_readers();
+        }
+
+        let handle = spawn_ffmpeg(&spec.ffmpeg, &spec.format, self.sink.feed())
             .map_err(|error| format!("could not start {}: {error}", spec.ffmpeg))?;
 
         self.normalizer.set_output(spec.format, handle);
@@ -264,8 +250,8 @@ impl Publisher {
 
     pub fn clear_output(&mut self) {
         self.normalizer.clear_output();
+        self.sink.disconnect_readers();
         self.output_spec = None;
-        self.output_started_at = None;
         self.output_restarts.clear();
     }
 }
@@ -273,9 +259,12 @@ impl Publisher {
 pub fn start_publisher(
     sdp_offer: &str,
     candidate: SocketAddr,
+    sink_port: u16,
 ) -> Result<(Publisher, String), String> {
+    let sink = Sink::bind(sink_port)
+        .map_err(|error| format!("could not listen on port {sink_port}: {error}"))?;
     let decoder = OpenH264Decoder::new()?;
     let (normalizer, notices) = Normalizer::start(Box::new(decoder));
 
-    Publisher::open(sdp_offer, candidate, normalizer, notices)
+    Publisher::open(sdp_offer, candidate, normalizer, notices, sink)
 }
