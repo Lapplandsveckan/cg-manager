@@ -33,6 +33,9 @@ pub struct Publisher {
     notices: Receiver<Notice>,
     needs_keyframe: bool,
     keyframe_requested_at: Option<Instant>,
+    output_spec: Option<OutputSpec>,
+    output_restarts: Vec<Instant>,
+    output_started_at: Option<Instant>,
 }
 
 impl Publisher {
@@ -66,6 +69,9 @@ impl Publisher {
             notices,
             needs_keyframe: false,
             keyframe_requested_at: None,
+            output_spec: None,
+            output_restarts: vec![],
+            output_started_at: None,
         };
         Ok((publisher, answer.to_sdp_string()))
     }
@@ -185,26 +191,82 @@ impl Publisher {
     }
 }
 
+#[derive(Clone, PartialEq, Eq)]
 pub struct OutputSpec {
     pub format: Format,
     pub ffmpeg: String,
     pub output_args: Vec<String>,
 }
 
+const OUTPUT_RESTART_LIMIT: usize = 5;
+const OUTPUT_RESTART_WINDOW: Duration = Duration::from_secs(30);
+
+/// A fresh encoder stamps its first frame at zero, so without this the sink's
+/// timeline jumps backwards and whoever is playing it has to resync.
+fn with_ts_offset(output_args: &[String], offset: Duration) -> Vec<String> {
+    if offset.is_zero() {
+        return output_args.to_vec();
+    }
+
+    let mut args = vec![
+        "-output_ts_offset".to_string(),
+        format!("{:.3}", offset.as_secs_f64()),
+    ];
+    args.extend_from_slice(output_args);
+    args
+}
+
 impl Publisher {
     pub fn set_output(&mut self, spec: &OutputSpec) -> Result<(), String> {
-        if self.normalizer.format() == Some(spec.format) {
+        let running = self.normalizer.format() == Some(spec.format);
+        if running && self.output_spec.as_ref() == Some(spec) {
             return Ok(());
         }
 
-        let handle = spawn_ffmpeg(&spec.ffmpeg, &spec.format, &spec.output_args)
+        self.start_output(spec, Duration::ZERO)?;
+        self.output_started_at = Some(Instant::now());
+        self.output_restarts.clear();
+        Ok(())
+    }
+
+    // The peer behind a dead encoder is still good, so the disposable half is
+    // respawned rather than the session being lost.
+    pub fn restart_output(&mut self, now: Instant) -> Result<(), String> {
+        let Some(spec) = self.output_spec.clone() else {
+            return Err("no output to restart".into());
+        };
+
+        self.output_restarts
+            .retain(|at| now.duration_since(*at) < OUTPUT_RESTART_WINDOW);
+        if self.output_restarts.len() >= OUTPUT_RESTART_LIMIT {
+            return Err("encoder keeps failing".into());
+        }
+        self.output_restarts.push(now);
+
+        let offset = self
+            .output_started_at
+            .map_or(Duration::ZERO, |at| now.duration_since(at));
+
+        // Not cleared first: the normalizer keeps the last picture when the
+        // size is unchanged, so a restart does not black the sink out.
+        self.start_output(&spec, offset)
+    }
+
+    fn start_output(&mut self, spec: &OutputSpec, offset: Duration) -> Result<(), String> {
+        let args = with_ts_offset(&spec.output_args, offset);
+        let handle = spawn_ffmpeg(&spec.ffmpeg, &spec.format, &args)
             .map_err(|error| format!("could not start {}: {error}", spec.ffmpeg))?;
+
         self.normalizer.set_output(spec.format, handle);
+        self.output_spec = Some(spec.clone());
         Ok(())
     }
 
     pub fn clear_output(&mut self) {
         self.normalizer.clear_output();
+        self.output_spec = None;
+        self.output_started_at = None;
+        self.output_restarts.clear();
     }
 }
 

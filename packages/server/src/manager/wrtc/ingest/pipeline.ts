@@ -45,9 +45,30 @@ function sdpFor(ports: PipelinePorts): string {
 }
 
 export interface Pipeline {
-    ffmpeg: ChildProcess;
     close(): Promise<void>;
 }
+
+export interface PipelineHooks {
+    /** ffmpeg is reading again, and cannot open its output until the sender
+     *  sends SPS/PPS and a keyframe. */
+    onRestart(): void;
+    onGiveUp(): void;
+    /** Media already carried by the sink. ffmpeg's timeline starts at its
+     *  first RTP packet, not at spawn, so the wait for ICE/DTLS is not part
+     *  of it and a respawn must not offset by it. */
+    elapsedMs(): number;
+}
+
+/** A demuxer that times out on a quiet sender, or any other mid-stream error,
+ *  kills ffmpeg. The peer connection behind it is still perfectly good, so the
+ *  disposable half is respawned rather than the session being lost. */
+const RESTART_LIMIT = 5;
+const RESTART_WINDOW_MS = 30_000;
+/** Long enough for the dying process to release the RTP ports it bound. */
+const RESTART_DELAY_MS = 250;
+/** A keyframe asked for before the new ffmpeg has bound its sockets arrives
+ *  nowhere, and recovery then waits for the next periodic request. */
+const KEYFRAME_DELAY_MS = 250;
 
 /** Nothing sweeps these on a crash or hard kill, so clear them on startup —
  *  same treatment the recorder gives its temp dir. */
@@ -55,39 +76,50 @@ export async function clearStaleSdp(): Promise<void> {
     await fs.rm(sdpDir(), { recursive: true, force: true });
 }
 
-export async function startPipeline(
-    id: string,
-    ports: PipelinePorts,
-    sink: IngestSink,
-    onExit: () => void,
-): Promise<Pipeline> {
-    await fs.mkdir(sdpDir(), { recursive: true });
-    const sdpPath = path.join(sdpDir(), `${id}.sdp`);
-    await fs.writeFile(sdpPath, sdpFor(ports));
+function inputArgs(sdpPath: string): string[] {
+    return [
+        '-protocol_whitelist',
+        'file,udp,rtp',
+        '-fflags',
+        '+nobuffer',
+        '-flags',
+        'low_delay',
+        // Deliberately generous, and NOT the latency knob it looks like:
+        // `-c:v copy` can't open the output until it has read SPS/PPS for
+        // the frame size, and the first RTP only arrives once the browser
+        // finishes ICE/DTLS — well after this process starts. These are
+        // ceilings, not waits: probing ends at the first keyframe. Tighten
+        // them and ffmpeg exits with "Could not find codec parameters"
+        // before the sender ever connects.
+        '-probesize',
+        '10000000',
+        '-analyzeduration',
+        '10000000',
+        '-i',
+        sdpPath,
+    ];
+}
 
+/** A respawned ffmpeg stamps its first packet at zero again, so without this
+ *  the sink's timeline jumps backwards and whoever is playing it has to resync. */
+function continuityArgs(elapsedMs: number): string[] {
+    if (elapsedMs <= 0) return [];
+
+    return ['-output_ts_offset', `${(elapsedMs / 1000).toFixed(3)}`];
+}
+
+function spawnFfmpeg(
+    sdpPath: string,
+    sink: IngestSink,
+    sinkPort: number,
+    elapsedMs: number,
+): ChildProcess {
     const ffmpeg = spawn(
         ffmpegBinary(),
         [
-            '-protocol_whitelist',
-            'file,udp,rtp',
-            '-fflags',
-            '+nobuffer',
-            '-flags',
-            'low_delay',
-            // Deliberately generous, and NOT the latency knob it looks like:
-            // `-c:v copy` can't open the output until it has read SPS/PPS for
-            // the frame size, and the first RTP only arrives once the browser
-            // finishes ICE/DTLS — well after this process starts. These are
-            // ceilings, not waits: probing ends at the first keyframe. Tighten
-            // them and ffmpeg exits with "Could not find codec parameters"
-            // before the sender ever connects.
-            '-probesize',
-            '10000000',
-            '-analyzeduration',
-            '10000000',
-            '-i',
-            sdpPath,
-            ...sink.args(ports.sink),
+            ...inputArgs(sdpPath),
+            ...continuityArgs(elapsedMs),
+            ...sink.args(sinkPort),
         ],
         { stdio: ['ignore', 'ignore', 'pipe'] },
     );
@@ -98,22 +130,82 @@ export async function startPipeline(
             logger.warn(`ingest ffmpeg: ${line.trim()}`);
     });
 
+    return ffmpeg;
+}
+
+export async function startPipeline(
+    id: string,
+    ports: PipelinePorts,
+    sink: IngestSink,
+    hooks: PipelineHooks,
+): Promise<Pipeline> {
+    await fs.mkdir(sdpDir(), { recursive: true });
+    const sdpPath = path.join(sdpDir(), `${id}.sdp`);
+    await fs.writeFile(sdpPath, sdpFor(ports));
+
+    let restarts: number[] = [];
     let closing = false;
+    const timers = new Set<NodeJS.Timeout>();
+
+    const later = (run: () => void, delay: number) => {
+        const timer = setTimeout(() => {
+            timers.delete(timer);
+            run();
+        }, delay);
+        timers.add(timer);
+    };
+
+    const keepsDying = () => {
+        const now = Date.now();
+        restarts = [...restarts, now].filter(
+            at => now - at < RESTART_WINDOW_MS,
+        );
+
+        return restarts.length > RESTART_LIMIT;
+    };
+
+    // Node may emit both 'exit' and 'error' for one child, and a restart
+    // scheduled twice would orphan an ffmpeg still holding this session's ports.
+    const watch = (child: ChildProcess, die: (reason: string) => void) => {
+        const once = (reason: string) => {
+            child.removeAllListeners('exit');
+            child.removeAllListeners('error');
+            die(reason);
+        };
+        child.on('error', e => once(`failed to spawn (${e.message})`));
+        child.on('exit', code => once(`exited (${code})`));
+    };
+
+    let ffmpeg = spawnFfmpeg(sdpPath, sink, ports.sink, 0);
+
+    const restart = () => {
+        if (closing) return;
+
+        ffmpeg = spawnFfmpeg(sdpPath, sink, ports.sink, hooks.elapsedMs());
+        watch(ffmpeg, onDeath);
+        later(() => hooks.onRestart(), KEYFRAME_DELAY_MS);
+    };
 
     // A dead pipeline would otherwise leave a session reporting itself live
     // while its RTP goes nowhere, holding ports until the process exits.
-    const reportExit = (reason: string) => {
+    function onDeath(reason: string) {
         if (closing) return;
         logger.warn(`ingest ffmpeg ${reason} for ${id}`);
-        onExit();
-    };
-    ffmpeg.on('error', e => reportExit(`failed to spawn (${e.message})`));
-    ffmpeg.on('exit', code => reportExit(`exited (${code})`));
+
+        if (keepsDying()) {
+            logger.error(`ingest ffmpeg keeps dying for ${id} — closing`);
+            return hooks.onGiveUp();
+        }
+
+        later(restart, RESTART_DELAY_MS);
+    }
+    watch(ffmpeg, onDeath);
 
     return {
-        ffmpeg,
         close: async () => {
             closing = true;
+            timers.forEach(clearTimeout);
+            timers.clear();
             await stopProcess(ffmpeg);
             await fs.rm(sdpPath, { force: true });
         },

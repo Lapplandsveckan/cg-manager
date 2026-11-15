@@ -52,6 +52,11 @@ export async function buildSession(
         const { socket: rtpSocket } = await bindUdp();
         rollback.push(() => rtpSocket.close());
 
+        // Only reaches the peer's requester once there is a peer; a restart
+        // before then has nothing to ask and nothing to miss.
+        let requestKeyframe = () => {};
+        let firstPacketAt = 0;
+
         // Started before the peer so ffmpeg is already bound when the first
         // RTP arrives, mirroring the preview path's bind-before-ADD ordering.
         const pipeline = await startPipeline(
@@ -62,7 +67,12 @@ export async function buildSession(
                 sink: plan.sinkPort,
             },
             plan.sink,
-            hooks.onPipelineExit,
+            {
+                onRestart: () => requestKeyframe(),
+                onGiveUp: hooks.onPipelineExit,
+                elapsedMs: () =>
+                    firstPacketAt ? Date.now() - firstPacketAt : 0,
+            },
         );
         rollback.push(() => pipeline.close());
 
@@ -75,9 +85,17 @@ export async function buildSession(
         );
         rollback.push(() => pc.close());
 
-        forwardRtp(pc, rtpSocket, plan, hooks);
+        forwardRtp(pc, rtpSocket, plan, {
+            ...hooks,
+            onFirstPacket: () => {
+                firstPacketAt = Date.now();
+                hooks.onFirstPacket();
+            },
+        });
 
-        const stopKeyframeRequests = requestKeyframes(pc);
+        const keyframes = requestKeyframes(pc);
+        requestKeyframe = keyframes.request;
+        const stopKeyframeRequests = keyframes.stop;
         rollback.push(stopKeyframeRequests);
 
         await pc.setRemoteDescription({ type: 'offer', sdp: sdpOffer });
@@ -107,7 +125,10 @@ const KEYFRAME_INTERVAL_MS = 2000;
 
 // A browser only sends a keyframe when asked, and `-c:v copy` means whoever
 // starts reading the sink shows nothing until the next one.
-function requestKeyframes(pc: RTCPeerConnection): () => void {
+function requestKeyframes(pc: RTCPeerConnection): {
+    request: () => void;
+    stop: () => void;
+} {
     let videoSsrc: number | undefined;
 
     pc.onTrack.subscribe(track => {
@@ -118,16 +139,18 @@ function requestKeyframes(pc: RTCPeerConnection): () => void {
         });
     });
 
-    const timer = setInterval(() => {
+    const request = () => {
         if (videoSsrc === undefined) return;
 
         const video = pc.getTransceivers().find(t => t.kind === 'video');
         video?.receiver
             .sendRtcpPLI(videoSsrc)
             .catch(e => logger.debug(`Keyframe request failed: ${e}`));
-    }, KEYFRAME_INTERVAL_MS);
+    };
 
-    return () => clearInterval(timer);
+    const timer = setInterval(request, KEYFRAME_INTERVAL_MS);
+
+    return { request, stop: () => clearInterval(timer) };
 }
 
 /** Browser-offered m-lines become recvonly transceivers, so tracks arrive here

@@ -262,7 +262,11 @@ impl Hub {
                     Notice::InputChanged(Size { width, height }) => {
                         emit(&Event::PublishInputChanged { id, width, height })
                     }
-                    Notice::OutputFailed(reason) => closing.push((id, reason)),
+                    Notice::OutputFailed(reason) => {
+                        if let Err(message) = publisher.restart_output(now) {
+                            closing.push((id, format!("{reason}; {message}")));
+                        }
+                    }
                     Notice::DecodeFailed(_) => {}
                 }
             }

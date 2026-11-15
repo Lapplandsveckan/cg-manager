@@ -99,6 +99,6 @@ target/debug/cg-sidecar normalize --input clip.h264 --sink "udp://127.0.0.1:6100
 - The channel format comes from the saved CasparCG config (`video-mode` per channel), not from the running process. An unrecognised mode falls back to 1920x1080 at 30 fps with a warning in the log.
 - A share shown on two channels with different formats follows the most recent one; the other layer has to be played again.
 - A sender that disappears is only noticed after about 22 seconds (ICE timeout).
-- ffmpeg exiting closes the session instead of being restarted.
+- ffmpeg exiting restarts the encoder, continuing the output timeline and keeping the last picture; the session only closes once it has failed five times in 30 s.
 - No STUN, so senders outside the LAN cannot connect.
 - No server-side thumbnails yet; the sender-posted ones still work.
