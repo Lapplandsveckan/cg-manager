@@ -6,6 +6,10 @@ export interface IngestSink {
     url(port: number): string;
 }
 
+// An all-intra frame crosses loopback as one burst of datagrams, which a
+// default-sized socket buffer loses most of.
+const SOCKET_BUFFER = 4 * 1024 * 1024;
+
 // Extension point: add a sink here to support another transport (SRT, RTP/SDP).
 // Nothing else changes — `ingest.ts` looks sinks up by id and splices `args`
 // onto the ffmpeg command line.
@@ -54,15 +58,14 @@ export const SINKS: IngestSink[] = [
             '1',
             '-f',
             'mpegts',
-            `udp://127.0.0.1:${port}?pkt_size=1316`,
+            `udp://127.0.0.1:${port}?pkt_size=1316&buffer_size=${SOCKET_BUFFER}`,
         ],
         url: port =>
-            `udp://127.0.0.1:${port}?overrun_nonfatal=1&fifo_size=1000000`,
+            `udp://127.0.0.1:${port}?overrun_nonfatal=1&fifo_size=1000000&buffer_size=${SOCKET_BUFFER}`,
     },
 ];
 
 export const DEFAULT_SINK = 'ts-udp';
-// Raw frames from the sidecar: every frame is a keyframe, bitrate is free on loopback.
 export const SIDECAR_SINK = 'ts-udp-intra';
 
 export const sinkById = (id: string) => SINKS.find(sink => sink.id === id);
