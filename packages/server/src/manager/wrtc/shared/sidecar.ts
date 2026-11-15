@@ -111,9 +111,20 @@ export class Sidecar extends EventEmitter {
     private retryAt = 0;
     private stopping = false;
 
-    async request(command: SidecarCommand): Promise<SidecarEvent> {
+    constructor() {
+        super();
+        this.setMaxListeners(0);
+    }
+
+    allocateId() {
+        return this.nextId++;
+    }
+
+    async request(
+        command: SidecarCommand,
+        id = this.allocateId(),
+    ): Promise<SidecarEvent> {
         const child = this.runningChild();
-        const id = this.nextId++;
 
         const reply = new Promise<SidecarEvent>((resolve, reject) => {
             const timer = setTimeout(
@@ -125,6 +136,10 @@ export class Sidecar extends EventEmitter {
 
         child.stdin.write(`${JSON.stringify({ ...command, id })}\n`);
         return reply;
+    }
+
+    sendIfRunning(command: SidecarCommand) {
+        this.child?.stdin.write(`${JSON.stringify(command)}\n`);
     }
 
     send(command: SidecarCommand) {
@@ -159,9 +174,15 @@ export class Sidecar extends EventEmitter {
     private runningChild() {
         if (this.child && !this.wasRebuilt()) return this.child;
 
-        this.failAll(new Error('Sidecar restarted after a rebuild'));
-        this.child?.kill();
+        if (this.child) this.retireAfterRebuild(this.child);
         return this.spawnChild();
+    }
+
+    private retireAfterRebuild(child: ChildProcessWithoutNullStreams) {
+        this.child = null;
+        this.failAll(new Error('Sidecar restarted after a rebuild'));
+        child.kill();
+        this.emit('exit');
     }
 
     private wasRebuilt() {
@@ -242,11 +263,11 @@ export class Sidecar extends EventEmitter {
 
         this.child = null;
         this.failAll(new Error(reason));
+        if (!this.stopping) this.delayRestart();
         this.emit('exit');
         if (this.stopping) return;
 
         logger.error(reason);
-        this.delayRestart();
     }
 
     private delayRestart() {

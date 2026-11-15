@@ -30,14 +30,18 @@ export function screenshareRouteSource(api: PluginAPI): RouteSourceType {
             );
             if (!session) return null;
 
-            return new ScreenshareEffect(group, {
-                sessionId: session.id,
-                url: session.url,
-                label: session.label,
-                transform: route.transform,
-                edgeblend: route.edgeblend,
-                perspective: route.perspective,
-            });
+            return new ScreenshareEffect(
+                group,
+                {
+                    sessionId: session.id,
+                    url: session.url,
+                    label: session.label,
+                    transform: route.transform,
+                    edgeblend: route.edgeblend,
+                    perspective: route.perspective,
+                },
+                api.ingest,
+            );
         },
     };
 }

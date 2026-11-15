@@ -75,7 +75,7 @@ export class CasparManager extends EventEmitter {
         this.ui = new UIInjector();
         this.rundowns = new RundownManager();
         this.preview = new PreviewManager(this.executor);
-        this.ingest = new IngestManager();
+        this.ingest = new IngestManager(() => this.caspar.getRunningConfig());
         this.companion = new CompanionRegistry();
         this.interop = new PluginInterop();
 

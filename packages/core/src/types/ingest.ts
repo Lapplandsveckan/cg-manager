@@ -48,6 +48,10 @@ export interface IngestApi {
     listSessions(): IngestSession[];
     getSession(id: string): IngestSession | null;
     closeSession(id: string): Promise<void>;
+    /** Say a session is about to be played on a CasparCG channel, so its stream
+     *  can match that channel's size and frame rate. Pair every call with `release`. */
+    prepare(sessionId: string, casparChannel: number): Promise<void>;
+    release(sessionId: string): void;
 
     onSession(handler: IngestSessionHandler): () => void;
     offSession(handler: IngestSessionHandler): void;

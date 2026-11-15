@@ -82,6 +82,8 @@ export declare class IngestManager implements IngestApi {
     listSessions: IngestApi['listSessions'];
     getSession: IngestApi['getSession'];
     closeSession: IngestApi['closeSession'];
+    prepare: IngestApi['prepare'];
+    release: IngestApi['release'];
 
     onSession: IngestApi['onSession'];
     offSession: IngestApi['offSession'];

@@ -134,6 +134,11 @@ export const schema: Record<string, FieldMeta> = {
         default: 6000,
         desc: 'First loopback UDP port used for screen-share ingest. Each session claims a few ports above this.',
     },
+    'ingest-engine': {
+        type: 'string',
+        default: 'ffmpeg',
+        desc: 'How incoming screen shares reach CasparCG. Valid values: "ffmpeg" (stream copy of whatever the browser sends) or "sidecar" (experimental: decoded and re-encoded at the size and frame rate of the channel it is played on; video only).',
+    },
     'caspar-profile': {
         type: 'string',
         default: 'upstream',

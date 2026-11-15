@@ -3,6 +3,7 @@ import {
     Effect,
     type EffectGeometry,
     type EffectGroup,
+    type IngestApi,
     PlayCommand,
     geometryCommands,
     geometryTransform,
@@ -15,13 +16,23 @@ export interface ScreenshareEffectOptions extends EffectGeometry {
     label?: string;
 }
 
+type SessionPlayout = Pick<IngestApi, 'prepare' | 'release'>;
+
 export class ScreenshareEffect extends Effect {
     private options: ScreenshareEffectOptions;
+    private playout: SessionPlayout;
+    private casparChannel: number;
 
-    public constructor(group: EffectGroup, options: ScreenshareEffectOptions) {
+    public constructor(
+        group: EffectGroup,
+        options: ScreenshareEffectOptions,
+        playout: SessionPlayout,
+    ) {
         super(group);
 
         this.options = options;
+        this.playout = playout;
+        this.casparChannel = group.channel.getCasparChannel();
         this.allocateLayers();
 
         const transform = geometryTransform(options);
@@ -34,6 +45,13 @@ export class ScreenshareEffect extends Effect {
         for (const command of geometryCommands(this.options, this.layers))
             this.executor.execute(command);
 
+        return this.playOnceStreamMatchesChannel();
+    }
+
+    private async playOnceStreamMatchesChannel() {
+        await this.playout.prepare(this.options.sessionId, this.casparChannel);
+        if (!this.active) return;
+
         // No LOOP: a live stream has nothing to loop back to, and CasparCG
         // would restart the producer the moment the sender pauses.
         const cmd = PlayCommand.video(this.options.url);
@@ -45,6 +63,7 @@ export class ScreenshareEffect extends Effect {
     public deactivate() {
         if (!super.deactivate()) return;
 
+        this.playout.release(this.options.sessionId);
         return this.executor.execute(new ClearCommand(this.layer));
     }
 

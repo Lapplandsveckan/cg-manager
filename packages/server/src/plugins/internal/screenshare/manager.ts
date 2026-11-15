@@ -49,10 +49,12 @@ export class ScreenshareManager {
             label: session.label,
             transform: destination.transform,
         };
-        const effect = new ScreenshareEffect(group, options);
+        const effect = new ScreenshareEffect(group, options, this.api.ingest);
         this.shown.set(sessionId, { destination, effect });
 
-        await noTryAsync(() => Promise.resolve(effect.activate()));
+        const [error] = await noTryAsync(async () => effect.activate());
+        if (error)
+            this.logger.warn(`Failed to show ${sessionId}: ${error.message}`);
     }
 
     public async hide(sessionId: string): Promise<void> {

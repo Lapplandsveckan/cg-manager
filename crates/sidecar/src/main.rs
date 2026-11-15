@@ -1,4 +1,5 @@
 mod control;
+mod normalize;
 mod relay;
 
 use std::{net::IpAddr, sync::Arc};
@@ -49,8 +50,19 @@ async fn forward_commands(sender: UnboundedSender<HubMessage>) {
     let _ = sender.send(HubMessage::Command(Command::Shutdown));
 }
 
-#[tokio::main(flavor = "current_thread")]
-async fn main() -> std::io::Result<()> {
+fn main() -> std::io::Result<()> {
+    let args: Vec<String> = std::env::args().collect();
+    if args.get(1).is_some_and(|command| command == "normalize") {
+        return normalize::cli::run(&args).map_err(std::io::Error::other);
+    }
+
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()?
+        .block_on(relay_main())
+}
+
+async fn relay_main() -> std::io::Result<()> {
     str0m::crypto::from_feature_flags().install_process_default();
 
     let args = parse_args();

@@ -6,3 +6,10 @@ members = ["crates/*"]
 lto = true
 opt-level = 3
 strip = true
+
+# Decoding and scaling video in real time is not possible unoptimized.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

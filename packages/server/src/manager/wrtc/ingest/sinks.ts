@@ -37,8 +37,32 @@ export const SINKS: IngestSink[] = [
         url: port =>
             `udp://127.0.0.1:${port}?overrun_nonfatal=1&fifo_size=1000000`,
     },
+    {
+        id: 'ts-udp-intra',
+        args: port => [
+            '-c:v',
+            'mpeg2video',
+            '-g',
+            '1',
+            '-q:v',
+            '3',
+            '-muxdelay',
+            '0',
+            '-muxpreload',
+            '0',
+            '-flush_packets',
+            '1',
+            '-f',
+            'mpegts',
+            `udp://127.0.0.1:${port}?pkt_size=1316`,
+        ],
+        url: port =>
+            `udp://127.0.0.1:${port}?overrun_nonfatal=1&fifo_size=1000000`,
+    },
 ];
 
 export const DEFAULT_SINK = 'ts-udp';
+// Raw frames from the sidecar: every frame is a keyframe, bitrate is free on loopback.
+export const SIDECAR_SINK = 'ts-udp-intra';
 
 export const sinkById = (id: string) => SINKS.find(sink => sink.id === id);

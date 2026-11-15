@@ -250,8 +250,19 @@ export class VideoRoutesManager {
         if (state._enabled === state.enabled) return;
         state._enabled = state.enabled;
 
-        if (state._enabled) state._effect.activate();
+        if (state._enabled) this.activate(state);
         if (!state._enabled) state._effect.deactivate();
+    }
+
+    private activate(state: StatefulVideoRoute) {
+        const reportFailure = (error: Error) =>
+            logger.error(
+                `Failed to activate route ${state.route.id}: ${error.message}`,
+            );
+
+        noTryAsync(async () => state._effect.activate()).then(([error]) => {
+            if (error) reportFailure(error);
+        });
     }
 
     private getDestination(dest: Destination): EffectGroup {

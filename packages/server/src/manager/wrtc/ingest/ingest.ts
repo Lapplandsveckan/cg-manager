@@ -1,4 +1,3 @@
-import type dgram from 'dgram';
 import { EventEmitter } from 'events';
 import {
     type IngestApi,
@@ -15,9 +14,12 @@ import { Logger } from '../../../util/log';
 import { UUID } from '../../../util/uuid';
 import { dtlsKeys } from '../shared/dtls';
 import { PortPool } from '../shared/ports';
-import { clearStaleSdp, type Pipeline } from './pipeline';
+import { clearStaleSdp } from './pipeline';
 import { buildSession } from './session';
-import { DEFAULT_SINK, sinkById } from './sinks';
+import { type Config } from '../../caspar/config/types';
+import { channelFormat } from './channelFormat';
+import { openSidecarSession, type SessionOutput } from './sidecarSession';
+import { DEFAULT_SINK, SIDECAR_SINK, sinkById, type IngestSink } from './sinks';
 import { ShareStore } from './shares';
 
 const logger = Logger.scope('Ingest');
@@ -41,11 +43,18 @@ const JPEG_MAGIC = Buffer.from([0xff, 0xd8, 0xff]);
  *  `connectionStateChange` never reports a failure to clean up after. */
 const CONNECT_TIMEOUT_MS = 30_000;
 
+interface OpenedSession {
+    ports: number[];
+    sinkPort: number;
+    sdpAnswer: string;
+    output?: SessionOutput;
+    teardown(): Promise<void>;
+}
+
 interface InternalSession extends IngestSession {
-    pc: RTCPeerConnection;
-    rtpSocket: dgram.Socket;
-    pipeline: Pipeline;
-    stopKeyframeRequests: () => void;
+    teardown(): Promise<void>;
+    output?: SessionOutput;
+    players: number;
     ports: number[];
     closed: boolean;
     timer?: NodeJS.Timeout;
@@ -76,7 +85,7 @@ export class IngestManager extends EventEmitter implements IngestApi {
     private shares = new ShareStore();
     private pool: PortPool;
 
-    public constructor() {
+    public constructor(private runningConfig: () => Config | null) {
         super();
 
         const base = managerConfig['ingest-port-base'];
@@ -193,43 +202,25 @@ export class IngestManager extends EventEmitter implements IngestApi {
         if (!/^m=video /m.test(opts.sdpOffer))
             throw new Error('Offer carries no video track');
 
-        const sink = sinkById(DEFAULT_SINK);
-        if (!sink) throw new Error(`Unknown ingest sink ${DEFAULT_SINK}`);
+        const usesSidecar = managerConfig['ingest-engine'] === 'sidecar';
+        const sinkId = usesSidecar ? SIDECAR_SINK : DEFAULT_SINK;
+        const sink = sinkById(sinkId);
+        if (!sink) throw new Error(`Unknown ingest sink ${sinkId}`);
 
-        const wantsAudio =
+        const offersAudio =
             opts.allowAudio !== false && /^m=audio /m.test(opts.sdpOffer);
+        const wantsAudio = offersAudio && !usesSidecar;
         const id = UUID.generate();
 
         // Reserved before any await: concurrent offers would otherwise all pass
         // the caps and only be stopped by the port pool running dry.
         this.reserve(id, opts.shareId ?? null);
 
-        const [err, opened] = await noTryAsync(async () => {
-            const ports = this.pool.claim(PORTS_PER_SESSION);
-            const plan = {
-                sink,
-                wantsAudio,
-                videoPort: ports[VIDEO_PORT_OFFSET],
-                audioPort: ports[AUDIO_PORT_OFFSET],
-                sinkPort: ports[SINK_PORT_OFFSET],
-                stunServer:
-                    managerConfig['ingest-stun'] ??
-                    managerConfig['preview-stun'],
-            };
-
-            const [buildErr, built] = await noTryAsync(() =>
-                buildSession(id, opts.sdpOffer, plan, {
-                    onFirstPacket: () => this.markLive(id),
-                    onPipelineExit: () => this.onPipelineExit(id),
-                }),
-            );
-            if (buildErr) {
-                this.pool.release(ports);
-                throw buildErr;
-            }
-
-            return { ports, plan, ...built };
-        });
+        const [err, opened] = await noTryAsync(() =>
+            usesSidecar
+                ? this.openOnSidecar(id, opts.sdpOffer, sink)
+                : this.openOnFfmpeg(id, opts.sdpOffer, sink, wantsAudio),
+        );
 
         this.reserving.delete(id);
         if (err) throw err;
@@ -238,14 +229,16 @@ export class IngestManager extends EventEmitter implements IngestApi {
             id,
             label: opts.label ?? 'Screen share',
             shareId: opts.shareId ?? null,
-            url: sink.url(opened.plan.sinkPort),
+            url: sink.url(opened.sinkPort),
             state: 'connecting',
             hasVideo: true,
             hasAudio: wantsAudio,
             startedAt: Date.now(),
             ports: opened.ports,
             closed: false,
-            ...opened.handles,
+            teardown: opened.teardown,
+            output: opened.output,
+            players: 0,
         };
 
         session.timer = setTimeout(() => {
@@ -256,16 +249,81 @@ export class IngestManager extends EventEmitter implements IngestApi {
         }, CONNECT_TIMEOUT_MS);
 
         this.sessions.set(id, session);
-        this.watch(session);
         this.emitSession('open', session);
 
         logger.debug(
-            `Opened ingest ${id} video=${opened.plan.videoPort} audio=` +
-                `${wantsAudio ? opened.plan.audioPort : 'none'} ` +
-                `sink=${opened.plan.sinkPort}`,
+            `Opened ingest ${id} engine=${managerConfig['ingest-engine']} ` +
+                `audio=${wantsAudio} sink=${opened.sinkPort}`,
         );
 
         return { id, sdpAnswer: opened.sdpAnswer };
+    }
+
+    private async openOnFfmpeg(
+        id: string,
+        sdpOffer: string,
+        sink: IngestSink,
+        wantsAudio: boolean,
+    ): Promise<OpenedSession> {
+        const ports = this.pool.claim(PORTS_PER_SESSION);
+        const plan = {
+            sink,
+            wantsAudio,
+            videoPort: ports[VIDEO_PORT_OFFSET],
+            audioPort: ports[AUDIO_PORT_OFFSET],
+            sinkPort: ports[SINK_PORT_OFFSET],
+            stunServer:
+                managerConfig['ingest-stun'] ?? managerConfig['preview-stun'],
+        };
+
+        const [buildErr, built] = await noTryAsync(() =>
+            buildSession(id, sdpOffer, plan, {
+                onFirstPacket: () => this.markLive(id),
+                onPipelineExit: () => this.closeQuietly(id),
+            }),
+        );
+        if (buildErr) {
+            this.pool.release(ports);
+            throw buildErr;
+        }
+
+        const { pc, rtpSocket, pipeline, stopKeyframeRequests } = built.handles;
+        const teardown = async () => {
+            stopKeyframeRequests();
+            await noTryAsync(() => pc.close());
+            noTry(() => rtpSocket.close());
+            await noTryAsync(() => pipeline.close());
+        };
+        this.watch(id, pc);
+
+        return {
+            ports,
+            sinkPort: plan.sinkPort,
+            sdpAnswer: built.sdpAnswer,
+            teardown,
+        };
+    }
+
+    private async openOnSidecar(
+        id: string,
+        sdpOffer: string,
+        sink: IngestSink,
+    ): Promise<OpenedSession> {
+        const ports = this.pool.claim(1);
+        const [sinkPort] = ports;
+
+        const [openErr, opened] = await noTryAsync(() =>
+            openSidecarSession(sdpOffer, sink, sinkPort, {
+                onLive: () => this.markLive(id),
+                onClosed: () => this.closeQuietly(id),
+            }),
+        );
+        if (openErr) {
+            this.pool.release(ports);
+            throw openErr;
+        }
+
+        return { ports, sinkPort, ...opened };
     }
 
     /** Live plus still-negotiating sessions attributed to a share. */
@@ -290,10 +348,34 @@ export class IngestManager extends EventEmitter implements IngestApi {
         this.reserving.set(id, shareId);
     }
 
-    private onPipelineExit(id: string): void {
+    private closeQuietly(id: string): void {
         this.closeSession(id).catch(() => {
             /* already torn down */
         });
+    }
+
+    public async prepare(
+        sessionId: string,
+        casparChannel: number,
+    ): Promise<void> {
+        const session = this.sessions.get(sessionId);
+        if (!session) throw new Error(`No ingest session ${sessionId}`);
+
+        session.players += 1;
+        if (!session.output) return;
+
+        const format = channelFormat(casparChannel, this.runningConfig());
+        await session.output.set(format);
+    }
+
+    public release(sessionId: string): void {
+        const session = this.sessions.get(sessionId);
+        if (!session) return;
+
+        session.players = Math.max(0, session.players - 1);
+        if (session.players > 0) return;
+
+        session.output?.clear();
     }
 
     public async closeSession(id: string): Promise<void> {
@@ -305,10 +387,7 @@ export class IngestManager extends EventEmitter implements IngestApi {
         clearTimeout(session.timer);
         this.sessions.delete(id);
 
-        session.stopKeyframeRequests();
-        await noTryAsync(() => session.pc.close());
-        noTry(() => session.rtpSocket.close());
-        await noTryAsync(() => session.pipeline.close());
+        await noTryAsync(() => session.teardown());
         this.pool.release(session.ports);
 
         this.emitSession('close', session);
@@ -344,9 +423,9 @@ export class IngestManager extends EventEmitter implements IngestApi {
         this.emitSession('update', session);
     }
 
-    private watch(session: InternalSession): void {
+    private watch(id: string, pc: RTCPeerConnection): void {
         // Peer connection close tears everything down; no DELETE endpoint.
-        session.pc.connectionStateChange.subscribe(state => {
+        pc.connectionStateChange.subscribe(state => {
             if (
                 state !== 'closed' &&
                 state !== 'failed' &&
@@ -354,7 +433,7 @@ export class IngestManager extends EventEmitter implements IngestApi {
             )
                 return;
 
-            this.closeSession(session.id).catch(e =>
+            this.closeSession(id).catch(e =>
                 logger.warn(`close failed: ${(e as Error).message}`),
             );
         });

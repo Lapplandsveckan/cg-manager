@@ -56,6 +56,7 @@ export default class ScreensharePlugin extends CasparPlugin {
                     options as ConstructorParameters<
                         typeof ScreenshareEffect
                     >[1],
+                    this.api.ingest,
                 ),
         );
 

@@ -32,6 +32,7 @@ export interface Config {
     'ingest-file': string;
     'ingest-max-sessions': number;
     'ingest-port-base': number;
+    'ingest-engine': 'ffmpeg' | 'sidecar';
     'ingest-stun'?: string | null;
     host?: string | null;
     'socket-path'?: string | null;

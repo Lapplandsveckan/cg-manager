@@ -23,6 +23,9 @@ export function pluginIngestApi(ingest: IngestApi): PluginIngest {
         listSessions: () => ingest.listSessions(),
         getSession: id => ingest.getSession(id),
         closeSession: id => ingest.closeSession(id),
+        prepare: (sessionId, casparChannel) =>
+            ingest.prepare(sessionId, casparChannel),
+        release: sessionId => ingest.release(sessionId),
 
         onSession: handler => {
             handlers.push(handler);
