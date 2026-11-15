@@ -34,6 +34,12 @@ To poke it by hand:
 echo '{"type":"ping","id":1}' | target/debug/cg-sidecar
 ```
 
+## Media addresses
+
+`--host-ip <ip>` (repeatable) is every local IPv4 address the manager found; the sidecar binds one UDP socket per address and advertises one ICE host candidate for each, so a sender reaches it on whichever of them its own route leads to. An address that cannot be bound is skipped with a line on stderr; the process only fails if none can. With no `--host-ip` it binds `0.0.0.0` and advertises the address of the interface the default route uses — enough for a sender on the same machine, and a guess on a multi-homed one.
+
+`--udp-port <port>` is that port, the same on every address. The default, 0, picks a free port per address, which a firewall rule cannot name in advance; `sidecar-udp-port` in the manager config sets a fixed one.
+
 ## Control protocol
 
 One JSON object per line. Commands go in on stdin, events come out on stdout. The sidecar exits when stdin closes.

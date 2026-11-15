@@ -5,6 +5,7 @@ use std::{
     time::{Duration, Instant},
 };
 
+use str0m::net::Transmit;
 use tokio::{net::UdpSocket, sync::mpsc::UnboundedSender};
 
 use super::{annexb::Frame, ingest, peer::Peer};
@@ -19,6 +20,11 @@ const IDLE_WAKE: Duration = Duration::from_secs(1);
 
 pub enum HubMessage {
     Command(Command),
+    Datagram {
+        data: Vec<u8>,
+        source: SocketAddr,
+        destination: SocketAddr,
+    },
     Frame {
         channel: u16,
         frame: Arc<Frame>,
@@ -26,9 +32,15 @@ pub enum HubMessage {
     },
 }
 
+#[derive(Clone)]
+pub struct Endpoint {
+    pub socket: Arc<UdpSocket>,
+    pub candidate: SocketAddr,
+}
+
 pub struct Hub {
-    socket: Arc<UdpSocket>,
-    candidate: SocketAddr,
+    endpoints: Vec<Endpoint>,
+    candidates: Vec<SocketAddr>,
     peers: HashMap<u64, Peer>,
     publishers: HashMap<u64, Publisher>,
     ingest_ports: HashMap<u16, u16>,
@@ -52,40 +64,46 @@ pub fn detect_local_ip() -> IpAddr {
 }
 
 impl Hub {
-    pub fn new(
-        socket: Arc<UdpSocket>,
-        public_ip: IpAddr,
-        sender: UnboundedSender<HubMessage>,
-    ) -> std::io::Result<Hub> {
-        let candidate = SocketAddr::new(public_ip, socket.local_addr()?.port());
-        Ok(Hub {
-            socket,
-            candidate,
+    pub fn new(endpoints: &[Endpoint], sender: UnboundedSender<HubMessage>) -> Hub {
+        Hub {
+            endpoints: endpoints.to_vec(),
+            candidates: endpoints
+                .iter()
+                .map(|endpoint| endpoint.candidate)
+                .collect(),
             peers: HashMap::new(),
             publishers: HashMap::new(),
             ingest_ports: HashMap::new(),
             sender,
-        })
+        }
     }
 
-    pub async fn receive_datagram(&mut self, data: &[u8], source: SocketAddr) {
+    fn receive_datagram(&mut self, data: &[u8], source: SocketAddr, destination: SocketAddr) {
         let now = Instant::now();
-        let candidate = self.candidate;
         let relayed = self
             .peers
             .values_mut()
-            .any(|peer| peer.receive(now, source, candidate, data));
-        if !relayed {
-            self.publishers
-                .values_mut()
-                .any(|publisher| publisher.receive(now, source, candidate, data));
+            .any(|peer| peer.receive(now, source, destination, data));
+        if relayed {
+            return;
         }
-        self.pump().await;
+
+        self.publishers
+            .values_mut()
+            .any(|publisher| publisher.receive(now, source, destination, data));
     }
 
     pub async fn dispatch(&mut self, message: HubMessage) -> bool {
         let keep_running = match message {
             HubMessage::Command(command) => self.command(command).await,
+            HubMessage::Datagram {
+                data,
+                source,
+                destination,
+            } => {
+                self.receive_datagram(&data, source, destination);
+                true
+            }
             HubMessage::Frame { channel, frame, at } => {
                 self.broadcast_frame(channel, &frame, at);
                 true
@@ -175,7 +193,7 @@ impl Hub {
     }
 
     fn open(&mut self, id: u64, channel: u16, sdp_offer: &str) {
-        match Peer::open(channel, sdp_offer, self.candidate) {
+        match Peer::open(channel, sdp_offer, &self.candidates) {
             Ok((peer, sdp_answer)) => {
                 self.peers.insert(id, peer);
                 emit(&Event::Opened { id, sdp_answer });
@@ -214,7 +232,7 @@ impl Hub {
     }
 
     fn publish(&mut self, id: u64, sdp_offer: &str, sink_port: u16) {
-        match start_publisher(sdp_offer, self.candidate, sink_port) {
+        match start_publisher(sdp_offer, &self.candidates, sink_port) {
             Ok((publisher, sdp_answer)) => {
                 self.publishers.insert(id, publisher);
                 emit(&Event::Published { id, sdp_answer });
@@ -247,7 +265,7 @@ impl Hub {
         emit(&Event::PublishClosed { id, reason });
     }
 
-    fn pump_publishers(&mut self) -> Vec<(SocketAddr, Vec<u8>)> {
+    fn pump_publishers(&mut self) -> Vec<Transmit> {
         let now = Instant::now();
         let mut outgoing = vec![];
         let mut closing = vec![];
@@ -283,6 +301,19 @@ impl Hub {
         outgoing
     }
 
+    // ICE pairs an address of ours with one of the sender's, so a reply has to
+    // leave from the address the sender reached.
+    fn socket_for(&self, source: SocketAddr) -> Option<Arc<UdpSocket>> {
+        let reached = self
+            .endpoints
+            .iter()
+            .find(|endpoint| endpoint.candidate == source);
+
+        reached
+            .or_else(|| self.endpoints.first())
+            .map(|endpoint| endpoint.socket.clone())
+    }
+
     async fn pump(&mut self) {
         let mut outgoing = self.pump_publishers();
         for peer in self.peers.values_mut() {
@@ -290,8 +321,13 @@ impl Hub {
             peer.timeout = pumped.timeout;
             outgoing.extend(pumped.transmits);
         }
-        for (destination, contents) in outgoing {
-            let _ = self.socket.send_to(&contents, destination).await;
+        for transmit in outgoing {
+            let Some(socket) = self.socket_for(transmit.source) else {
+                continue;
+            };
+            let _ = socket
+                .send_to(&transmit.contents, transmit.destination)
+                .await;
         }
 
         let dead: Vec<u64> = self

@@ -139,6 +139,11 @@ export const schema: Record<string, FieldMeta> = {
         default: 'ffmpeg',
         desc: 'How incoming screen shares reach CasparCG. Valid values: "ffmpeg" (stream copy of whatever the browser sends) or "sidecar" (experimental: decoded and re-encoded at the size and frame rate of the channel it is played on; video only).',
     },
+    'sidecar-udp-port': {
+        type: 'number',
+        default: 0,
+        desc: 'UDP port the sidecar receives WebRTC media on, the same port on every local address. 0 picks a free port per address, which a firewall rule cannot name in advance.',
+    },
     'caspar-profile': {
         type: 'string',
         default: 'upstream',

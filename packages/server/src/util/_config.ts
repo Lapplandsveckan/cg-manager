@@ -34,6 +34,7 @@ export interface Config {
     'ingest-port-base': number;
     'ingest-engine': 'ffmpeg' | 'sidecar';
     'ingest-stun'?: string | null;
+    'sidecar-udp-port': number;
     host?: string | null;
     'socket-path'?: string | null;
     'caspar-profile'?: string;

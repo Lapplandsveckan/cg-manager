@@ -7,9 +7,11 @@ use std::{
 use str0m::{
     change::SdpOffer,
     media::{KeyframeRequestKind, MediaData, MediaKind, Mid},
-    net::{Protocol, Receive},
-    Candidate, Event, IceConnectionState, Input, Output, Rtc, RtcConfig,
+    net::{Protocol, Receive, Transmit},
+    Event, IceConnectionState, Input, Output, Rtc, RtcConfig,
 };
+
+use crate::ice::add_host_candidates;
 
 use super::{
     decoder::OpenH264Decoder,
@@ -21,7 +23,7 @@ use super::{
 const KEYFRAME_REQUEST_INTERVAL: Duration = Duration::from_millis(500);
 
 pub struct Pumped {
-    pub transmits: Vec<(SocketAddr, Vec<u8>)>,
+    pub transmits: Vec<Transmit>,
     pub notices: Vec<Notice>,
 }
 
@@ -42,7 +44,7 @@ pub struct Publisher {
 impl Publisher {
     pub fn open(
         sdp_offer: &str,
-        candidate: SocketAddr,
+        candidates: &[SocketAddr],
         normalizer: Normalizer,
         notices: Receiver<Notice>,
         sink: Sink,
@@ -54,8 +56,7 @@ impl Publisher {
             .enable_opus(true, false)
             .build(Instant::now());
 
-        let host = Candidate::host(candidate, "udp").map_err(|error| error.to_string())?;
-        rtc.add_local_candidate(host);
+        add_host_candidates(&mut rtc, candidates)?;
 
         let answer = rtc
             .sdp_api()
@@ -127,9 +128,7 @@ impl Publisher {
         self.timeout = loop {
             match self.rtc.poll_output() {
                 Ok(Output::Timeout(at)) => break Some(at),
-                Ok(Output::Transmit(transmit)) => {
-                    transmits.push((transmit.destination, transmit.contents.to_vec()));
-                }
+                Ok(Output::Transmit(transmit)) => transmits.push(transmit),
                 Ok(Output::Event(event)) => self.on_event(event),
                 Err(_) => {
                     self.alive = false;
@@ -258,7 +257,7 @@ impl Publisher {
 
 pub fn start_publisher(
     sdp_offer: &str,
-    candidate: SocketAddr,
+    candidates: &[SocketAddr],
     sink_port: u16,
 ) -> Result<(Publisher, String), String> {
     let sink = Sink::bind(sink_port)
@@ -266,5 +265,5 @@ pub fn start_publisher(
     let decoder = OpenH264Decoder::new()?;
     let (normalizer, notices) = Normalizer::start(Box::new(decoder));
 
-    Publisher::open(sdp_offer, candidate, normalizer, notices, sink)
+    Publisher::open(sdp_offer, candidates, normalizer, notices, sink)
 }

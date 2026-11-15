@@ -97,6 +97,20 @@ export const sidecarBinary = () =>
     process.env.CG_SIDECAR_PATH ||
     (isPackaged ? extractBundledBinary() : builtBinary());
 
+const localIpv4Addresses = () =>
+    Object.values(os.networkInterfaces())
+        .flatMap(entries => entries ?? [])
+        .filter(entry => entry.family === 'IPv4')
+        .map(entry => entry.address);
+
+// The sidecar cannot guess which of our addresses a sender can route to, so it
+// is told all of them and advertises one ICE candidate per address.
+const sidecarArgs = (addresses: string[]) => [
+    '--udp-port',
+    String(config['sidecar-udp-port'] ?? 0),
+    ...addresses.flatMap(address => ['--host-ip', address]),
+];
+
 const describeExit = (code: number | null, signal: string | null) =>
     `Sidecar exited with code ${code}${signal ? ` (signal ${signal})` : ''}`;
 
@@ -207,7 +221,10 @@ export class Sidecar extends EventEmitter {
                 'Sidecar binary not found (run `yarn sidecar:build`)',
             );
 
-        const child = spawn(binary, [], { stdio: 'pipe' });
+        const addresses = localIpv4Addresses();
+        logger.info(`Sidecar media addresses: ${addresses.join(', ')}`);
+
+        const child = spawn(binary, sidecarArgs(addresses), { stdio: 'pipe' });
         this.child = child;
         this.binary = binary;
         this.binaryModifiedAt = modifiedAt(binary);

@@ -4,17 +4,17 @@ use str0m::{
     change::SdpOffer,
     format::Codec,
     media::{Frequency, MediaTime, Mid, Pt},
-    net::{Protocol, Receive},
-    Candidate, Event, IceConnectionState, Input, Output, Rtc, RtcConfig,
+    net::{Protocol, Receive, Transmit},
+    Event, IceConnectionState, Input, Output, Rtc, RtcConfig,
 };
 
-use crate::relay::annexb::Frame;
+use crate::{ice::add_host_candidates, relay::annexb::Frame};
 
 const MICROS_TO_TICKS_NUMERATOR: u64 = 90;
 const MICROS_TO_TICKS_DENOMINATOR: u64 = 1000;
 
 pub struct Pumped {
-    pub transmits: Vec<(SocketAddr, Vec<u8>)>,
+    pub transmits: Vec<Transmit>,
     pub timeout: Option<Instant>,
 }
 
@@ -33,7 +33,7 @@ impl Peer {
     pub fn open(
         channel: u16,
         sdp_offer: &str,
-        candidate: SocketAddr,
+        candidates: &[SocketAddr],
     ) -> Result<(Peer, String), String> {
         let offer = SdpOffer::from_sdp_string(sdp_offer).map_err(|error| error.to_string())?;
         let mut rtc = RtcConfig::new()
@@ -41,8 +41,7 @@ impl Peer {
             .enable_h264(true)
             .build(Instant::now());
 
-        let host = Candidate::host(candidate, "udp").map_err(|error| error.to_string())?;
-        rtc.add_local_candidate(host);
+        add_host_candidates(&mut rtc, candidates)?;
 
         let answer = rtc
             .sdp_api()
@@ -146,9 +145,7 @@ impl Peer {
         let timeout = loop {
             match self.rtc.poll_output() {
                 Ok(Output::Timeout(at)) => break Some(at),
-                Ok(Output::Transmit(transmit)) => {
-                    transmits.push((transmit.destination, transmit.contents.to_vec()));
-                }
+                Ok(Output::Transmit(transmit)) => transmits.push(transmit),
                 Ok(Output::Event(event)) => self.on_event(event),
                 Err(_) => {
                     self.alive = false;

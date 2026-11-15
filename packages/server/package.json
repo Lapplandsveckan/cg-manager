@@ -1,6 +1,6 @@
 {
   "private": true,
-  "version": "2.55.4",
+  "version": "2.55.5",
   "name": "@cg-manager/server",
   "engines": {
     "node": ">=22.12"
