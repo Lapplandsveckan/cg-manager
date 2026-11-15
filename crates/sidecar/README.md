@@ -61,7 +61,7 @@ The output size and frame rate are not configured. A connected share is decoded 
 | WebRTC receive | `publisher.rs` | str0m, receive only. Asks for a keyframe (PLI) on start, packet loss, a dropped access unit or a decode error, at most every 500 ms. |
 | Decode | `decoder.rs` | `Decoder` trait; openh264 today. |
 | Scale | `frame.rs` | Letterbox into the canonical I420 frame. |
-| Pace | `pipeline.rs` | Decode, tick and write threads. Nothing queues: a late tick or a blocked output drops frames. |
+| Pace | `pipeline.rs` | Decode, tick and write threads. The encoder reads frame count as time, so a tick lost to a late sleep or a busy writer is made up by repeating the frame it would have shown, up to a second's worth. |
 | Encode + mux | `output.rs` | `Output` trait; one ffmpeg child fed raw frames on stdin today. |
 
 Extra control messages:

@@ -1,8 +1,8 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use super::{
     frame::{black_frame, letterbox_rect, Letterbox, Picture, Plane, Rect, Size},
-    pipeline::{next_tick, size_notice, tick_time, ticks_elapsed, Fps, Notice},
+    pipeline::{missed_frames, next_tick, size_notice, tick_time, ticks_elapsed, Fps, Notice},
 };
 
 const HD: Size = Size {
@@ -107,6 +107,22 @@ fn an_on_time_ticker_advances_by_one() {
 #[test]
 fn a_late_ticker_skips_to_the_present() {
     assert_eq!(next_tick(4, Duration::from_secs(2), THIRTY), 60);
+}
+
+#[test]
+fn a_skipped_tick_is_made_up_with_the_frame_it_would_have_shown() {
+    let held = Arc::new(vec![7u8; 4]);
+
+    assert_eq!(missed_frames(&Some(held.clone()), 3, 30).len(), 3);
+    assert_eq!(missed_frames(&Some(held.clone()), 0, 30).len(), 0);
+    assert_eq!(missed_frames(&None, 3, 30).len(), 0);
+}
+
+#[test]
+fn catching_up_stops_short_of_a_stalled_encoder() {
+    let held = Arc::new(vec![7u8; 4]);
+
+    assert_eq!(missed_frames(&Some(held), 500, 30).len(), 30);
 }
 
 #[test]

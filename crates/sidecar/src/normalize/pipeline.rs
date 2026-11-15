@@ -1,4 +1,5 @@
 use std::{
+    io,
     sync::{
         atomic::{AtomicBool, Ordering},
         mpsc::{self, Receiver, RecvTimeoutError, Sender, SyncSender, TrySendError},
@@ -18,6 +19,9 @@ const NANOS_PER_SECOND: u128 = 1_000_000_000;
 const PENDING_ACCESS_UNITS: usize = 4;
 const PENDING_OUTPUT_FRAMES: usize = 1;
 const RETARGET_POLL: Duration = Duration::from_millis(50);
+// Past this an encoder is not merely late, and making up every missed frame
+// would only put it further behind.
+const MAX_CATCH_UP: Duration = Duration::from_secs(1);
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct Fps {
@@ -31,11 +35,15 @@ pub struct Format {
     pub fps: Fps,
 }
 
+const MAX_FPS: u32 = 1000;
+
 impl Format {
     pub fn is_playable(&self) -> bool {
         let has_area = self.size.width >= 2 && self.size.height >= 2;
         let has_rate = self.fps.numerator > 0 && self.fps.denominator > 0;
-        has_area && has_rate
+        let sane_rate = has_rate && self.fps.numerator / self.fps.denominator <= MAX_FPS;
+
+        has_area && sane_rate
     }
 }
 
@@ -152,7 +160,12 @@ fn decode_loop(
     }
 }
 
-fn tick_loop(fps: Fps, slot: SharedSlot, frames: SyncSender<Arc<Vec<u8>>>, stop: Arc<AtomicBool>) {
+fn tick_loop(
+    fps: Fps,
+    slot: SharedSlot,
+    frames: SyncSender<(u64, Arc<Vec<u8>>)>,
+    stop: Arc<AtomicBool>,
+) {
     let start = Instant::now();
     let mut tick = 0;
 
@@ -160,21 +173,49 @@ fn tick_loop(fps: Fps, slot: SharedSlot, frames: SyncSender<Arc<Vec<u8>>>, stop:
         thread::sleep(tick_time(tick, fps).saturating_sub(start.elapsed()));
 
         let frame = lock(&slot).frame.clone();
-        if let Err(TrySendError::Disconnected(_)) = frames.try_send(frame) {
+        if let Err(TrySendError::Disconnected(_)) = frames.try_send((tick, frame)) {
             return;
         }
         tick = next_tick(tick, start.elapsed(), fps);
     }
 }
 
+// The encoder reads frame count as time, so a tick that never reached it has to
+// be made up or the stream falls permanently behind the clock it was paced on.
+pub fn missed_frames(
+    previous: &Option<Arc<Vec<u8>>>,
+    missed: u64,
+    limit: u64,
+) -> Vec<Arc<Vec<u8>>> {
+    let Some(frame) = previous else {
+        return vec![];
+    };
+
+    vec![frame.clone(); missed.min(limit) as usize]
+}
+
+fn write_frames(output: &mut dyn super::output::Output, frames: &[Arc<Vec<u8>>]) -> io::Result<()> {
+    frames.iter().try_for_each(|frame| output.write(frame))
+}
+
 fn write_loop(
-    frames: Receiver<Arc<Vec<u8>>>,
+    frames: Receiver<(u64, Arc<Vec<u8>>)>,
+    fps: Fps,
     mut output: Box<dyn super::output::Output>,
     notices: Sender<Notice>,
     stop: Arc<AtomicBool>,
 ) {
-    for frame in frames {
-        let Err(error) = output.write(&frame) else {
+    let limit = ticks_elapsed(MAX_CATCH_UP, fps);
+    let mut written = 0;
+    let mut previous: Option<Arc<Vec<u8>>> = None;
+
+    for (tick, frame) in frames {
+        let mut batch = missed_frames(&previous, tick.saturating_sub(written), limit);
+        batch.push(frame.clone());
+        written = tick + 1;
+        previous = Some(frame);
+
+        let Err(error) = write_frames(output.as_mut(), &batch) else {
             continue;
         };
         if !stop.load(Ordering::Relaxed) {
@@ -258,11 +299,16 @@ impl Normalizer {
     }
 
     pub fn set_output(&mut self, format: Format, handle: OutputHandle) {
+        let previous = lock(&self.slot).target;
         self.clear_output();
         {
             let mut slot = lock(&self.slot);
             slot.target = Some(format.size);
-            slot.frame = Arc::new(black_frame(format.size));
+            // Restarting at the same size keeps showing the live picture
+            // instead of blacking out until the sender's next frame.
+            if previous != Some(format.size) {
+                slot.frame = Arc::new(black_frame(format.size));
+            }
         }
 
         let stop = Arc::new(AtomicBool::new(false));
@@ -273,7 +319,9 @@ impl Normalizer {
         };
         let write = {
             let (notices, stop) = (self.notices.clone(), stop.clone());
-            thread::spawn(move || write_loop(frame_receiver, handle.output, notices, stop))
+            thread::spawn(move || {
+                write_loop(frame_receiver, format.fps, handle.output, notices, stop)
+            })
         };
 
         self.format = Some(format);
