@@ -1,7 +1,10 @@
 import { noTryAsync } from 'no-try';
 import { ffmpegBinary } from '../../../util/ffmpeg';
+import { Logger } from '../../../util/log';
 import { sidecar, type SidecarEvent } from '../shared/sidecar';
 import { type OutputFormat } from './channelFormat';
+
+const logger = Logger.scope('Ingest');
 
 export interface SidecarSessionHooks {
     onLive(): void;
@@ -33,7 +36,10 @@ export async function openSidecarSession(
     const onEvent = (event: SidecarEvent) => {
         if (event.id !== publishId) return;
         if (event.type === 'publish_live') return hooks.onLive();
-        if (event.type === 'publish_closed') hooks.onClosed();
+        if (event.type !== 'publish_closed') return;
+
+        logger.debug(`Sidecar publish ${publishId} closed: ${event.reason}`);
+        hooks.onClosed();
     };
 
     const stopListening = () => {
