@@ -34,7 +34,7 @@ interface StatefulVideoRoute {
 
 const logger = Logger.scope('Routes');
 
-// MIGRATION-SHIM: see CLAUDE.md "Temporary migration shims"
+// MIGRATION-SHIM
 const MIGRATED_MARKER = '.migrated';
 
 const isJsonFile = (file: string) => file.endsWith('.json');
@@ -182,7 +182,7 @@ export class VideoRoutesManager {
         logger.error(err);
     }
 
-    // MIGRATION-SHIM: see CLAUDE.md "Temporary migration shims"
+    // MIGRATION-SHIM: copies pre-plugin route files in once, never deletes them.
     private async migrateLegacy(legacyDir?: string) {
         if (!legacyDir) return;
 

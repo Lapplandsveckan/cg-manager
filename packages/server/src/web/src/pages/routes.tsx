@@ -1,4 +1,4 @@
-// MIGRATION-SHIM: see CLAUDE.md "Temporary migration shims"
+// MIGRATION-SHIM: keeps bookmarks of the pre-plugin /routes page working.
 import { useEffect } from 'react';
 import { useRouter } from 'next/router';
 

@@ -18,7 +18,7 @@ import { VideoRoutesManager, type RouteChangeMethod } from './manager';
 
 const TOGGLE_VIDEO_ROUTE = 'toggle-video-route';
 
-// MIGRATION-SHIM: see CLAUDE.md "Temporary migration shims"
+// MIGRATION-SHIM: `routes-dir` was removed from the config schema; read it raw.
 const legacyRoutesDir = () => {
     const file = path.join(process.cwd(), 'config.json');
     const [, config] = noTry(() => JSON.parse(fs.readFileSync(file, 'utf8')));

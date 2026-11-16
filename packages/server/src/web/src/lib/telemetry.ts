@@ -38,8 +38,8 @@ export function initBrowserTelemetry(): void {
         release: telemetry.release,
         sampleRate: telemetry.sampleRate,
         tracesSampleRate: 0,
-        // Replay is unmasked by design (see CLAUDE.md's telemetry section) —
-        // the point is seeing what an operator actually did before a crash,
+        // Replay is unmasked by design — the point is seeing what an
+        // operator actually did before a crash,
         // not a redacted approximation of it. Session recording is off
         // (`replaysSessionSampleRate: 0`); only a crash captures one.
         integrations: telemetry.replays

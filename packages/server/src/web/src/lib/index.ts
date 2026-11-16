@@ -82,8 +82,6 @@ export type { MediaDoc } from './api/caspar';
 // slot machinery the host uses to render plugin UI into its own zones.
 export { Injections, Injection, UI_INJECTION_ZONE } from './api/inject';
 export type { UI_INJECTION_ZONE_KEY } from './api/inject';
-// Plugin-facing undo/redo — see the "Plugin -> undo/redo contract" section
-// in CLAUDE.md.
 export { createPluginUndo } from './undo/pluginUndo';
 export type { PluginUndoAPI } from './undo/pluginUndo';
 export type {
