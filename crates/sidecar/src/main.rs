@@ -73,6 +73,12 @@ async fn bind_endpoints(host_ips: &[IpAddr], port: u16) -> io::Result<Vec<Endpoi
     if endpoints.is_empty() {
         return Err(io::Error::other("no host address could be bound"));
     }
+
+    let addresses: Vec<String> = endpoints
+        .iter()
+        .map(|endpoint| endpoint.candidate.to_string())
+        .collect();
+    eprintln!("ICE host candidates: {}", addresses.join(", "));
     Ok(endpoints)
 }
 

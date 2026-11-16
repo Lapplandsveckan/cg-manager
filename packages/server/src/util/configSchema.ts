@@ -141,8 +141,8 @@ export const schema: Record<string, FieldMeta> = {
     },
     'sidecar-udp-port': {
         type: 'number',
-        default: 0,
-        desc: 'UDP port the sidecar receives WebRTC media on, the same port on every local address. 0 picks a free port per address, which a firewall rule cannot name in advance.',
+        default: 6500,
+        desc: 'UDP port the sidecar receives WebRTC media on, the same port on every local address and shared by every session. Senders on other machines need it open in the firewall. 0 picks a free port per address instead, which no firewall rule can name in advance.',
     },
     'caspar-profile': {
         type: 'string',

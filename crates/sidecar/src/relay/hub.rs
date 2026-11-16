@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
     time::{Duration, Instant},
@@ -45,7 +45,13 @@ pub struct Hub {
     publishers: HashMap<u64, Publisher>,
     ingest_ports: HashMap<u16, u16>,
     sender: UnboundedSender<HubMessage>,
+    senders_seen: HashSet<SocketAddr>,
 }
+
+// Whether a sender's packets arrive at all is the first thing worth knowing
+// when ICE stays in checking, and nothing else reports it: a STUN request for
+// credentials we don't know is dropped without a word.
+const SENDERS_LOGGED: usize = 32;
 
 pub fn emit(event: &Event) {
     if let Ok(line) = serde_json::to_string(event) {
@@ -75,10 +81,24 @@ impl Hub {
             publishers: HashMap::new(),
             ingest_ports: HashMap::new(),
             sender,
+            senders_seen: HashSet::new(),
         }
     }
 
+    fn note_sender(&mut self, source: SocketAddr, destination: SocketAddr) {
+        if self.senders_seen.len() >= SENDERS_LOGGED {
+            return;
+        }
+        if !self.senders_seen.insert(source) {
+            return;
+        }
+
+        eprintln!("first datagram from {source} on {destination}");
+    }
+
     fn receive_datagram(&mut self, data: &[u8], source: SocketAddr, destination: SocketAddr) {
+        self.note_sender(source, destination);
+
         let now = Instant::now();
         let relayed = self
             .peers
@@ -273,6 +293,9 @@ impl Hub {
         for (&id, publisher) in self.publishers.iter_mut() {
             let pumped = publisher.pump(now);
             outgoing.extend(pumped.transmits);
+            for line in pumped.logs {
+                eprintln!("publish {id}: {line}");
+            }
 
             for notice in pumped.notices {
                 match notice {

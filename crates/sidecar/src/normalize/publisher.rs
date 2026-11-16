@@ -25,7 +25,10 @@ const KEYFRAME_REQUEST_INTERVAL: Duration = Duration::from_millis(500);
 pub struct Pumped {
     pub transmits: Vec<Transmit>,
     pub notices: Vec<Notice>,
+    pub logs: Vec<String>,
 }
+
+const DECODE_FAILURE_LOG_INTERVAL: Duration = Duration::from_secs(5);
 
 pub struct Publisher {
     rtc: Rtc,
@@ -39,6 +42,8 @@ pub struct Publisher {
     output_spec: Option<OutputSpec>,
     output_restarts: Vec<Instant>,
     sink: Sink,
+    logs: Vec<String>,
+    decode_failure_logged_at: Option<Instant>,
 }
 
 impl Publisher {
@@ -75,6 +80,8 @@ impl Publisher {
             output_spec: None,
             output_restarts: vec![],
             sink,
+            logs: vec![],
+            decode_failure_logged_at: None,
         };
         Ok((publisher, answer.to_sdp_string()))
     }
@@ -118,10 +125,14 @@ impl Publisher {
 
     pub fn pump(&mut self, now: Instant) -> Pumped {
         let notices: Vec<Notice> = self.notices.try_iter().collect();
-        let decode_failed = notices
-            .iter()
-            .any(|notice| matches!(notice, Notice::DecodeFailed(_)));
-        self.needs_keyframe |= decode_failed;
+        let failure = notices.iter().find_map(|notice| match notice {
+            Notice::DecodeFailed(reason) => Some(reason.clone()),
+            _ => None,
+        });
+        if let Some(reason) = failure {
+            self.needs_keyframe = true;
+            self.log_decode_failure(now, &reason);
+        }
         self.request_keyframe_if_needed(now);
 
         let mut transmits = vec![];
@@ -140,7 +151,23 @@ impl Publisher {
             }
         };
 
-        Pumped { transmits, notices }
+        Pumped {
+            transmits,
+            notices,
+            logs: std::mem::take(&mut self.logs),
+        }
+    }
+
+    fn log_decode_failure(&mut self, now: Instant, reason: &str) {
+        let logged_recently = self
+            .decode_failure_logged_at
+            .is_some_and(|at| now.duration_since(at) < DECODE_FAILURE_LOG_INTERVAL);
+        if logged_recently {
+            return;
+        }
+
+        self.decode_failure_logged_at = Some(now);
+        self.logs.push(format!("could not decode: {reason}"));
     }
 
     fn request_keyframe_if_needed(&mut self, now: Instant) {
@@ -171,9 +198,13 @@ impl Publisher {
             Event::MediaAdded(media) if media.kind == MediaKind::Video => {
                 self.video = Some(media.mid);
                 self.needs_keyframe = true;
+                self.logs.push("sender track added".into());
             }
             Event::MediaData(data) if Some(data.mid) == self.video => self.on_video(data),
-            Event::IceConnectionStateChange(IceConnectionState::Disconnected) => self.alive = false,
+            Event::IceConnectionStateChange(state) => {
+                self.logs.push(format!("ICE {state:?}"));
+                self.alive &= state != IceConnectionState::Disconnected;
+            }
             _ => {}
         }
     }

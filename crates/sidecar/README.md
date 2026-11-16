@@ -38,7 +38,9 @@ echo '{"type":"ping","id":1}' | target/debug/cg-sidecar
 
 `--host-ip <ip>` (repeatable) is every local IPv4 address the manager found; the sidecar binds one UDP socket per address and advertises one ICE host candidate for each, so a sender reaches it on whichever of them its own route leads to. An address that cannot be bound is skipped with a line on stderr; the process only fails if none can. With no `--host-ip` it binds `0.0.0.0` and advertises the address of the interface the default route uses — enough for a sender on the same machine, and a guess on a multi-homed one.
 
-`--udp-port <port>` is that port, the same on every address. The default, 0, picks a free port per address, which a firewall rule cannot name in advance; `sidecar-udp-port` in the manager config sets a fixed one.
+`--udp-port <port>` is that port, the same on every address and shared by every session (`sidecar-udp-port` in the manager config, 6500 by default). A sender on another machine needs it open in the firewall — on Windows the sidecar is a separate binary from the manager, so an existing rule for the manager does not cover it. Passing 0 picks a free port per address instead, which no firewall rule can name in advance.
+
+Two stderr lines say whether a sender is reaching it: `ICE host candidates: …` at startup, and `first datagram from <sender> on <ours>` the first time each sender's packets arrive. A share whose ICE stays in checking with no `first datagram` line never reached the process.
 
 ## Control protocol
 
