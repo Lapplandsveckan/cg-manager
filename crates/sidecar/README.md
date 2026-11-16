@@ -66,7 +66,7 @@ The output size and frame rate are not configured. A connected share is decoded 
 
 | Stage | File | Notes |
 |---|---|---|
-| WebRTC receive | `publisher.rs` | str0m, receive only. Asks for a keyframe (PLI) on start, packet loss, a dropped access unit or a decode error, at most every 500 ms. |
+| WebRTC receive | `publisher.rs` | str0m, receive only. Asks for a keyframe (PLI) until a picture comes out, and again on packet loss, a dropped access unit or a decode error, at most every 500 ms. Every access unit is decoded, lost packets before it or not: str0m's `contiguous` is RTP sequence contiguity, so one lost packet marks a whole keyframe too, and dropping those never recovers on a network that loses anything. |
 | Decode | `decoder.rs` | `Decoder` trait; openh264 today. |
 | Scale | `frame.rs` | Letterbox into the canonical I420 frame. |
 | Pace | `pipeline.rs` | Decode, tick and write threads. A tick the writer is too busy for is dropped and never made up. |

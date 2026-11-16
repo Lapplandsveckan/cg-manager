@@ -44,6 +44,8 @@ pub struct Publisher {
     sink: Sink,
     logs: Vec<String>,
     decode_failure_logged_at: Option<Instant>,
+    received_video: bool,
+    decoded: bool,
 }
 
 impl Publisher {
@@ -82,6 +84,8 @@ impl Publisher {
             sink,
             logs: vec![],
             decode_failure_logged_at: None,
+            received_video: false,
+            decoded: false,
         };
         Ok((publisher, answer.to_sdp_string()))
     }
@@ -133,6 +137,13 @@ impl Publisher {
             self.needs_keyframe = true;
             self.log_decode_failure(now, &reason);
         }
+
+        // A decoder with no keyframe yet reports nothing at all, so asking is
+        // what has to repeat until a picture comes out.
+        self.decoded |= notices
+            .iter()
+            .any(|notice| matches!(notice, Notice::Live(_)));
+        self.needs_keyframe |= !self.decoded;
         self.request_keyframe_if_needed(now);
 
         let mut transmits = vec![];
@@ -209,10 +220,16 @@ impl Publisher {
         }
     }
 
+    // For H.264 str0m reports contiguity of RTP sequence numbers alone, so one
+    // lost packet marks every following frame — a whole keyframe included —
+    // until the sequence lines up again. Dropping those never recovered on a
+    // network that loses anything; the decoder conceals what it can and a
+    // keyframe is asked for instead.
     fn on_video(&mut self, data: MediaData) {
-        if !data.contiguous {
-            self.needs_keyframe = true;
-            return;
+        self.needs_keyframe |= !data.contiguous;
+        if !self.received_video {
+            self.received_video = true;
+            self.logs.push("receiving video".into());
         }
 
         match self.normalizer.push(data.data.to_vec()) {
